@@ -1,0 +1,241 @@
+<script type="text/javascript">
+
+    function viewderretiaonlist (trano)
+    {
+        var storedepreciation = new Ext.data.Store ({
+
+            id:'store-depreciation',
+            url:'/finance/depreciationasset/getdetailperiode/trano/' + trano,
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'token'
+                    },{
+                        name:'nilai'
+                    },{
+                        name:'periode'
+                    },{
+                        name:'tahun'
+                    },{
+                        name:'description'
+                    }]
+                })
+
+        })
+
+        var summary = new Ext.ux.grid.GridSummary();
+
+        var griddepreciation = new Ext.grid.GridPanel ({
+
+            store:storedepreciation,
+            height:300,
+            viewConfig:{
+                forceFit:true
+            },
+            plugins:summary,
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Trano',
+                dataIndex:'trano',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Desscription',
+                dataIndex:'description',
+                sortable:true,
+                width:200
+            },{
+                header:'Date',
+                dataIndex:'date',
+                sortable:true,
+                width:100,
+                align:'center',
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'PIC',
+                dataIndex:'uid',
+                sortable:true,
+                width:80,
+                align:'center'
+            },{
+                header:'Value',
+                dataIndex:'nilai',
+                sortable:true,
+                width:100,
+                align:'right',
+                renderer: function(v,p,r){
+                    var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                },
+                summaryType:'sum'
+            },{
+                header:'Periode',
+                dataIndex:'periode',
+                sortable:true,
+                width:80,
+                align:'center'
+            },{
+                header:'Years',
+                dataIndex:'tahun',
+                sortable:true,
+                width:80,
+                align:'center'
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-detail-depreciation',
+                pageSize: 20,
+                store: storedepreciation,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+        var windowdepreciation = new Ext.Window ({
+
+            title:'Detail Depreciation Asset',
+            id:'window-insert',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 800,
+            height:332,
+            loadMask:true,
+            items:[griddepreciation]
+
+        })
+
+        windowdepreciation.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var storedepreciation = new Ext.data.Store ({
+
+            id:'store-depreciation',
+            url:'/finance/depreciationasset/getperiodedepreciation',
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'token'
+                    },{
+                        name:'nilai'
+                    },{
+                        name:'periode'
+                    },{
+                        name:'tahun'
+                    },{
+                        name:'tgl_awal',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'tgl_akhir',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'periode_bulan'
+                    },{
+                        name:'periode_tahun'
+                    },{
+                        name:'periode_uid'
+                    },{
+                        name:'periode_tgl',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    }]
+                })
+        })
+
+        var griddepreciation = new Ext.grid.GridPanel ({
+
+            store:storedepreciation,
+            id:'grid-depreciation',
+            height:300,
+            title:'Fixed Asset Depreciation By Periode',
+            frame:true,
+            viewConfig:{
+                forceFit:true
+            },
+            renderTo:'grid_depreciation',
+            columns:[new Ext.grid.RowNumberer(),{
+                header: "Action",
+                width: 40,
+                dataIndex: 'id',
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                    return '<a href="#" onclick="viewderretiaonlist(\'' + r.data['trano'] + '\')"><img src="/images/application_go.png"></a>';
+                }
+            },{
+                header: 'Trano',
+                dataIndex: 'trano',
+                sortable: true
+            },{
+                header: 'Periode',
+                dataIndex: 'periode',
+                sortable: true,
+                align:'center'
+            },{
+                header: 'Month',
+                dataIndex: 'periode_bulan',
+                sortable: true,
+                align:'center'
+            },{
+                header: 'Year',
+                dataIndex: 'periode_tahun',
+                sortable: true,
+                align:'center'
+            },{
+                header: 'Depreciation Date',
+                dataIndex: 'date',
+                sortable: true,
+                renderer: Ext.util.Format.dateRenderer('d M Y'),
+                align:'center'
+            },{
+                header: 'PIC',
+                dataIndex: 'uid',
+                sortable: true,
+                align:'center'
+            },{
+                header: 'Total Depreciation',
+                dataIndex: 'nilai',
+                sortable: true,
+                align:'right',
+                renderer: function(v,p,r){
+                    var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            }],bbar:new Ext.PagingToolbar ({
+                id: 'paging-depreciation',
+                pageSize: 20,
+                store: storedepreciation,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="grid_depreciation"></div>

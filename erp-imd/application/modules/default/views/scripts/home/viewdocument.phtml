@@ -1,0 +1,362 @@
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/treegrid/treegrid.css" rel="stylesheet" />
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGridSorter.js"></script>
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGridColumnResizer.js"></script>
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGridNodeUI.js"></script>
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGridLoader.js"></script>
+
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGridColumns.js"></script>
+<script type="text/javascript" src="/js/layout/ux/treegrid/TreeGrid.js"></script>
+<script type="text/javascript" src="/js/layout/ux/RowActions.js"></script>
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowActions.css" />
+
+<script type="text/javascript">
+
+showMyDocument = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/default/home/showmydocument',
+        scripts : true
+    });
+};
+
+showMyDocumentWorkflow = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+//        url: '/default/home/showmydocumentworkflow',
+        url: '/default/home/document-in-my-workflow',
+        scripts : true
+    });
+};
+
+showLog = function(){
+    showDocsChoose2();
+};
+
+showProcessDocument = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/default/home/showprocessdocument',
+        scripts : true
+    });
+};
+
+showApprovedDocument = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/default/report/my-approved-document',
+        scripts : true
+    });
+};
+
+function showDocsList2()
+    {
+        var columns = [ {header:'Trano',width:120,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:60,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Date',width:130,sortable:true,dataIndex:'tgl'},
+                        {header:'User',width:140,sortable:true,dataIndex:'uid'}
+                    ];
+
+        urlJson = '/admin/document/loglist';
+        data =  [
+                {name: 'id', mapping: 'id'},
+                {name: 'trano', mapping: 'trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'tgl', mapping: 'tgl'},
+                {name: 'uid', mapping: 'uid'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 480;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=50;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                var id = g.getStore().getAt(rowIndex).data['id'];
+                                var trano = g.getStore().getAt(rowIndex).get('trano');
+                                showDocsChoose2(trano,id);
+                                Ext.getCmp('docs_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/admin/document/loglist/trano/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+        };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 500,
+        height: 350,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano)
+           ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose Transaction';
+      aForm.show();
+
+
+}
+
+var txtboks = function(posX,posY,widthBox,idName,eventName)
+     {
+         txtboks.superclass.constructor.call(this, {
+                id:idName,
+                x:posX,
+                y:posY,
+                width:widthBox,
+                enableKeyEvents:true,
+                listeners: {
+                keyup: eventName
+    }
+             })
+
+     }
+
+function showDocsChoose2(prNum,idNum)
+	{
+        var ids = idNum;
+		var bForm =  new Ext.Window({
+		    id: 'window2',
+		    layout:'fit',
+		    width: 300,
+		    height: 110,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Transaction Number',
+								    id : 'docs_no_text',
+								    xtype: 'trigger',
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showDocsList2();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Submit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        if (ids != undefined && ids != "")
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/admin/document/logtransaction/id/' + ids,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+var windowForm =  ({
+
+    title: 'My Document',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+			
+                    items: [
+                        {
+                            id: 'show_button',
+                            text: 'Show My Submitted Document',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/grid.png",
+                            handler:showMyDocument
+                        },
+                        {
+                            text: 'Show My Approved Document',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/grid.png",
+                            handler:showApprovedDocument
+                        },
+                        {
+                            id: 'show_button2',
+                            text: 'Show Document in My Workflow',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/grid.png",
+                            handler:showMyDocumentWorkflow
+                        },
+                        {
+                            id: 'show_button3',
+                            text: 'Show My Document History',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/grid.png",
+                            handler:showLog
+                        },
+//                        {
+//                            id: 'fill_button',
+//                            text: 'Process Document',
+//                            cls:"x-btn-text-icon" ,
+//                            icon:"/images/icons/fam/action_paste.gif",
+//                            handler:showProcessDocument
+//                        }
+                    ]
+				}
+			}
+           ]
+
+});
+
+//    function getExchangeRate()
+//    {
+//        Ext.Ajax.request({
+//            url: '/default/valuta/getexchangerate/val_kode/USD',
+//            method: 'POST',
+//            success: function(result, request) {
+//                var returnData = Ext.util.JSON.decode(result.responseText);
+//                if (returnData.success) {
+//                    if(returnData.rate == 0)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR,
+//                            fn:function(){window.location='';}
+//                        });
+//                    }
+//                    
+//                    Ext.getCmp('rateidr').setValue(returnData.rate);
+//                }
+//            }
+//            , failure: function(action) {
+//                if (action.failureType == 'server') {
+//                    obj = Ext.util.JSON.decode(action.response.responseText);
+//                    Ext.Msg.alert('Error!', obj.errors.reason);
+//                }
+//            }
+//        });
+//    }
+//    getExchangeRate();
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//myPanel = Ext.getCmp('abs-budget-panel');
+//myPanel.body.load({
+//    url: '/projectmanagement/timesheet/showmytimesheet',
+//    scripts : true
+//});
+
+<?php if ($this->processDocument) {
+?>
+    showProcessDocument();
+<?php
+}
+?>
+<?php if ($this->assistant) {
+?>
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/default/home/showassistantdocument',
+        scripts : true
+    });
+<?php
+}
+?>
+</script>

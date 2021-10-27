@@ -1,0 +1,86 @@
+<script type="text/javascript">
+
+   Ext.onReady(function(){
+
+       Ext.QuickTips.init();
+
+       var addtypesupp = new Ext.form.FormPanel ({
+
+            title:'Add New Type Supplier',
+            id:'add-type-supplier',
+            renderTo:'add_type_supp',
+            iconCls: 'silk-user',
+            frame: true,
+            width:360,
+            labelWidth:140,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Supplier Type ',
+                id:'supp-type',
+                msgTarget:'side',
+                width:180,
+                allowBlank:false
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier Type Name ',
+                id:'supp-type-name',
+                msgTarget:'side',
+                width:180,
+                allowBlank:false
+            }],
+           buttons:[{
+               text:'Submit',
+               handler:function(btn,ev)
+               {
+                    if(!Ext.getCmp('add-type-supplier').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('add-type-supplier').getForm().submit({
+
+                        method:'POST',
+                        url:'/logistic/logistictypesupplier/doinserttypesupp',
+                        success:function(thisForm,response)
+                        {
+                            Ext.getBody().unmask();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/logistic/logistictypesupplier/typesupplier',
+                                scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+               }
+           },{
+               text:'Cancel',
+               handler:function(btn,ev)
+               {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/logistic/logistictypesupplier/typesupplier',
+                        scripts : true
+                    });
+               }
+           }]
+
+       })
+
+
+
+   })
+
+
+</script>
+
+    <div id="add_type_supp"></div>

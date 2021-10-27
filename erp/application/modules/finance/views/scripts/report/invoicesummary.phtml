@@ -1,0 +1,195 @@
+<?php if ($this->popup) { ?>
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<?php } ?>
+
+<?php
+if (count($this->data) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+?>
+<style type="text/css">
+		.tooltip {
+			border-bottom: 1px dotted #000000; color: #000000; outline: none;
+			cursor: help; text-decoration: none;
+			position: relative;
+		}
+		.tooltip span {
+			margin-left: -999em;
+			position: absolute;
+		}
+		.tooltip:hover span {
+			border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+			box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+			font-family: Calibri, Tahoma, Geneva, sans-serif;
+			position: absolute; left: 1em; top: 2em; z-index: 99;
+			margin-left: 0;
+		}
+		.tooltip:hover img {
+			border: 0; margin: -10px 0 0 -55px;
+			float: left; position: absolute;
+		}
+		.tooltip:hover em {
+			font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+			display: block; padding: 0.2em 0 0.6em 0;
+		}
+		.info { padding: 0.8em 1em; }
+		.custom { padding: 0.5em 0.8em 0.8em 2em; }
+		* html a:hover { background: transparent;}
+		.info {background: #FFFFAA; border: 1px solid #FFAD33; }
+</style>
+<?php if (!$this->print) { ?>
+<style type="text/css">
+
+.parentContainer{
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 740px;
+    height: 460px;
+    overflow: auto;
+    font-size: 14px;
+}
+</style>
+<?php } else { ?>
+<style>
+    .parentContainer{
+        font-size: 14px;
+    }
+    table
+    {
+        border-collapse:collapse;
+    }
+    table,th, td
+    {
+        border: 1px solid black;
+    }
+    td {
+        padding: 3px;
+    }
+</style>
+<?php } ?>
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead id="fixed">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>CO Number</center></th>
+            <th scope="col"><center>Customer</center></th>
+            <th scope="col"><center>Invoice Number</center></th>
+            <th scope="col"><center>Invoice Date</center></th>
+            <th scope="col"><center>Project</center></th>
+            <th scope="col"><center>Site</center></th>
+            <th scope="col"><center>Description</center></th>
+            <th scope="col"><center>Valuta</center></th>
+            <th scope="col"><center><a class="tooltip" href="#" >Invoice Value<span class="info">Exclude VAT, Holding Tax, Deduction</span></a></center></th>
+            <th scope="col"><center>Tax (10% VAT)</center></th>
+            <th scope="col"><center>Holding Tax</center></th>
+            <th scope="col"><center>Deduction</center></th>
+            <th scope="col"><center>Paid Date</center></th>
+            <th scope="col"><center>Payment Value</center></th>
+            <th scope="col"><center><a class="tooltip" href="#" style="white-space: normal;">Payment Aging<span class="info">Days from Invoice Date until Now</span></a></center></th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+            $i = 0;
+            $paymentValue=0;
+            $invoiceValue=0;
+            $taxValue=0;
+            $compare1='';
+            foreach($this->data as $k => $v)
+            {
+                $row = 1;
+                $totalRow = count($this->data[$k]);
+                foreach($v as $k2 => $v2)
+                {
+                    $v2['val_kode'] = 'IDR';
+                    //$compare2=$k;
+                    $compare2=$v2['inv_no'];
+    	?>
+        <tr>
+            <td><?=$i+1;?></td>
+            <?php if ($row == 1) { ?>
+            <td rowspan="<?=$totalRow?>"><?=$v2['co_no'];?></td>
+            <td rowspan="<?=$totalRow?>"><?=$v2['customer_name'];?></td>
+             <?php } ?>
+            <td><?=$v2['inv_no'];?></td>
+            <td><?=$v2['tglInvoice'];?></td>
+            <td><?=$v2['project'];?></td>
+            <td><?=$v2['site'];?></td>
+            <td><?=$v2['nama_brg'];?></td>
+            <td><?=$v2['val_kode'];?></td>
+            <?php if($v2['totalInvoiceUSD'] > 0) { ?>
+            <td align="right"><a class="tooltip" href="#"><font color="red"><?=number_format($v2['totalInvoice'],2);?></font><span class="info">USD <?=number_format($v2['totalInvoiceUSD'],2);?></span></a></td>
+            <?php } else { ?>
+            <td align="right"><?=number_format($v2['totalInvoice'],2);?></td>
+            <?php } ?>
+            <?php if($v2['ppnUSD'] > 0) { ?>
+            <td align="right"><a class="tooltip" href="#"><font color="red"><?=number_format($v2['ppn'],2);?></font><span class="info">USD <?=number_format($v2['ppnUSD'],2);?></span></a></td>
+            <?php } else { ?>
+            <td align="right"><?=number_format($v2['ppn'],2);?></td>
+            <?php } ?>
+            <?php if($v2['holding_taxUSD'] > 0) { ?>
+            <td align="right"><a class="tooltip" href="#"><font color="red"><?=number_format($v2['holding_tax'],2);?></font><span class="info">USD <?=number_format($v2['holding_taxUSD'],2);?></span></a></td>
+            <?php } else { ?>
+            <td align="right"><?=number_format($v2['holding_tax'],2);?></td>
+            <?php } ?>
+            <?php if($v2['deductionUSD'] > 0) { ?>
+            <td align="right"><a class="tooltip" href="#"><font color="red"><?=number_format($v2['deduction'],2);?></font><span class="info">USD <?=number_format($v2['deductionUSD'],2);?></span></a></td>
+            <?php } else { ?>
+            <td align="right"><?=number_format($v2['deduction'],2);?></td>
+            <?php } ?>
+            <td ><?=$v2['tglPaymentInvoice'];?></td>
+            <?php if($v2['totalPaymentInvoiceUSD'] > 0) { ?>
+            <td align="right"><a class="tooltip" href="#"><font color="red"><?=number_format($v2['totalPaymentInvoice'],2);?></font><span class="info">USD <?=number_format($v2['totalPaymentInvoiceUSD'],2);?></span></a></td>
+            <?php } else { ?>
+            <td align="right"><?=number_format($v2['totalPaymentInvoice'],2);?></td>
+            <?php } ?>
+            <td><?=$v2['agingPayment'];?></td>
+        </tr>
+
+        <?php
+                    $i++;
+                    $row++;
+                    if($compare1 !=$compare2){
+                        $invoiceValue = $invoiceValue + floatval($v2['totalInvoice']);
+                        $taxValue = $taxValue + floatval($v2['ppn']);
+                        //$compare1=$k; 
+                        $compare1=$v2['inv_no'];
+                        
+                    }
+                    $paymentValue = $paymentValue + floatval($v2['totalPaymentInvoice']);
+                }
+                
+                
+            }
+        ?>
+        <tr>
+            <td colspan="9" align="center"><b>Total</b></td><td align="right"><b><?=number_format($invoiceValue,2)?></b></td><td align="right"><b><?=number_format($taxValue,2)?></b></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        <tr>
+            <td colspan="9" align="center"><b>Grand Total</b></td><td align="center" colspan="2"><b><?=number_format($invoiceValue+$taxValue,2)?></b></td><td></td><td></td><td></td><td><b><?=number_format($paymentValue,2)?></b></td><td></td>
+        </tr>
+    </tbody>
+</table>
+</div>
+<?php if (!$this->all) { ?>
+<?=$this->paging($this->pageUrl,$this->totalResult,$this->limitPerPage,$this->current,$this->currentPage)?>
+<?php } ?>
+
+<?php if (!$this->print) { ?>
+<script type="text/javascript">
+
+(function() {
+    resizeTable("parentContainer");
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 3,
+		headerRows : 1
+	});
+})();
+<?php } ?>
+</script>

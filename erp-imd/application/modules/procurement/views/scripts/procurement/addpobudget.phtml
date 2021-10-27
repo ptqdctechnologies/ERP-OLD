@@ -1,0 +1,3052 @@
+<script type="text/javascript">
+
+    var t = 0;
+    var TEMPORARY = 0;
+    var pajak;
+    var grandtotal = 0;
+    var totaltemp = 0;
+    var totalSupptemp = 0;
+
+    var oripr;
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function (v) {
+            return function () {
+                return this.numericRe.test(v)
+            };
+        }
+
+    });
+
+    showAddPO = function () {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/procurement/procurement/addpo',
+            scripts: true
+        });
+    };
+
+
+//custom summary renderer example
+    function totals(t, params, data) {
+        return t;
+    }
+
+    Ext.ux.grid.GridSummary.Calculations = {
+        'jumlah': function (v, record, field) {
+            t = v + Ext.num(record.data[field], 0);
+            return t;
+        }
+    };
+
+    var summary = new Ext.ux.grid.GridSummary();
+
+    var prlist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'tgl_pr',
+            type: 'date',
+            dateFormat: 'Y-m-d'
+        }, {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'trano',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'net_act',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        }, {
+            name: 'price',
+            type: 'float'
+        }, {
+            name: 'hargaIDR',
+            type: 'float'
+        }, {
+            name: 'hargaUSD',
+            type: 'float'
+        }, {
+            name: 'totalIDR',
+            type: 'float'
+        }, {
+            name: 'totalPrice',
+            type: 'float'
+        }, {
+            name: 'totalPricePO',
+            type: 'float'
+        }, {
+            name: 'totalPR',
+            type: 'float'
+        }, {
+            name: 'pricePR',
+            type: 'float'
+        }, {
+            name: 'totalUSD',
+            type: 'float'
+        }, {
+            name: 'val_kode',
+            type: 'string'
+        }, {
+            name: 'totalPO',
+            type: 'float'
+        },
+        {
+            name: 'totalPricePO',
+            type: 'float'
+        }, {
+            name: 'totalPrice',
+            type: 'float'
+        }, {
+            name: 'budgettype',
+            type: 'string'
+        }, {
+            name: 'balancePO',
+            type: 'string'
+        }, {
+            name: 'ket',
+            type: 'string'
+        }]);
+
+
+    var polist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'tgl_po',
+            type: 'date',
+            dateFormat: 'Y-m-d'
+        }, {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'tgl_pr',
+            type: 'date',
+            dateFormat: 'Y-m-d'
+        }, {
+            name: 'trano',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        }, {
+            name: 'net_act',
+            type: 'string'
+        }, {
+            name: 'price',
+            type: 'float'
+        }, {
+            name: 'hargaIDR',
+            type: 'float'
+        }, {
+            name: 'hargaUSD',
+            type: 'float'
+        }, {
+            name: 'totalIDR',
+            type: 'float'
+        }, {
+            name: 'totalPrice',
+            type: 'float'
+        }, {
+            name: 'totalPricePO',
+            type: 'float'
+        }, {
+            name: 'totalUSD',
+            type: 'float'
+        }, {
+            name: 'val_kode',
+            type: 'string'
+        }, {
+            name: 'currency',
+            type: 'float'
+        }, {
+            name: 'totalPO',
+            type: 'float'
+        }, {
+            name: 'totalPricePR',
+            type: 'float'
+        }, {
+            name: 'gtotal',
+            type: 'float'
+        }, {
+            name: 'gtotals',
+            type: 'float'
+        }, {
+            name: 'ppn',
+            type: 'float'
+        }, {
+            name: 'balancePO',
+            type: 'string'
+        }, {
+            name: 'sup_kode',
+            type: 'string'
+        }, {
+            name: 'sup_nama',
+            type: 'string'
+        }, {
+            name: 'po_number',
+            type: 'string'
+        }, {
+            name: 'pr_number',
+            type: 'string'
+        }, {
+            name: 'invoiceto',
+            type: 'string'
+        }, {
+            name: 'tax',
+            type: 'string'
+        }, {
+            name: 'tujuan',
+            type: 'string'
+        }, {
+            name: 'ket',
+            type: 'string'
+        }, {
+            name: 'tgl_kirim',
+            type: 'date',
+            dateFormat: 'Y-m-d'
+        }, {
+            name: 'po_term',
+            type: 'string'
+        }, {
+            name: 'budgettype',
+            type: 'string'
+        }, {
+            name: 'po_type',
+            type: 'string'
+        }, {
+            name: 'qtySupp',
+            type: 'float'
+        }, {
+            name: 'priceSupp',
+            type: 'float'
+        }, {
+            name: 'totalPriceSupp',
+            type: 'float'
+        }, {
+            name: 'statusppn'
+        }, {
+            name: 'valueppn'
+        }, {
+            name: 'percentppn'
+        }, {
+            name: 'valueppnSupp'
+        }, {
+            name: 'percentppnSupp'
+        }, {
+            name: 'ppn'
+        }, {
+            name: 'top',
+            type: 'integer'
+        }
+    ]);
+
+    var filelist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'filename',
+            type: 'string'
+        }, {
+            name: 'savename',
+            type: 'string'
+        }, {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'path',
+            type: 'string'
+        }]);
+
+    var pricelist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'tgl',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'harga',
+            type: 'float'
+        }, {
+            name: 'val_kode',
+            type: 'string'
+        }, {
+            name: 'sup_kode',
+            type: 'string'
+        }, {
+            name: 'sup_nama',
+            type: 'string'
+        }, {
+            name: 'petugas',
+            type: 'string'
+        }]);
+
+    var expander = new Ext.ux.grid.RowExpander({
+        tpl: new Ext.Template(
+                '<div style="margin-left:50px;"><p><b>Budget From:</b> {prj_nama}</p><br>',
+                '<p><b>Period:</b> {sit_nama}</p>',
+                '<p><b>Remark:</b> {ket}</p>',
+                '</div>'
+                )
+    });
+
+    var expander2 = new Ext.ux.grid.RowExpander({
+        tpl: new Ext.Template(
+                '<div style="margin-left:50px;"><p><b>Budget From:</b> {prj_nama}</p><br>',
+                '<p><b>Period:</b> {sit_nama}</p></div>'
+                )
+    });
+
+    var storeFile = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    var proxyPrice = new Ext.data.HttpProxy({
+        url: '/default/home/getboq3summary'
+    });
+
+    var storePrice = new Ext.data.Store({
+        proxy: proxyPrice,
+        reader: new Ext.data.JsonReader({
+            totalProperty: 'count',
+            idProperty: 'pricelist',
+            root: 'posts',
+            fields: pricelist})
+    });
+
+    var storePR = new Ext.data.Store({
+        id: 'storePR',
+        reader: new Ext.data.JsonReader({fields: prlist})
+    });
+
+    var writer = new Ext.data.JsonWriter({
+        encode: true,
+        writeAllFields: false
+    });
+
+    var proxy = new Ext.data.HttpProxy({
+        api: {
+            create: '/default/prd/list'
+        }
+    });
+
+    var storePO = new Ext.data.Store({
+        //id: 'po',
+        proxy: proxy,
+        writer: writer,
+        reader: new Ext.data.JsonReader({
+            totalProperty: 'count',
+            idProperty: 'polist',
+            root: 'posts',
+            fields: polist})
+    });
+
+
+    var datas = new Ext.data.SimpleStore({
+        fields: ['nilai', 'term']
+        , data: [
+            ['14', '14'],
+            ['30', '30'],
+            ['45', '45'],
+            ['COD', 'COD']
+        ]
+    });
+
+    var dataori = new Ext.data.SimpleStore({
+        fields: ['nilai', 'ori']
+        , data: [
+            ['OPEX', 'OPEX'],
+            ['CAPEX', 'CAPEX'],
+        ]
+
+    });
+
+    var datatype = new Ext.data.SimpleStore({
+        fields: ['nilai', 'type']
+        , data: [
+            ['Project', 'Project'],
+            ['Overhead', 'Overhead']
+
+        ]
+
+    });
+
+    var userColumns = [
+        new Ext.grid.RowNumberer(),
+        expander,
+        {header: "", width: 30, dataIndex: 'id', renderer: function (v, p, r) {
+
+                percent = (parseFloat(r.data['totalPricePO']) / parseFloat(r.data['totalPrice'])) * 100;
+
+                if (percent < 100) {
+                    return '<a href="#" onclick="addToPO();"><img src="/images/g_rec_add.png"></a>';
+                }
+                else
+                {
+                    p.attr = 'ext:qtip="This item (' + r.data['kode_brg'] + ') must be created by PR"';
+                    return '<img src="/images/icons/fam/page_tag_red.gif">';
+//          return '<a href="#" onclick="addToAFE(' + v + ');"><img src="/images/icons/fam/page_tag_red.gif"></a>';
+                }
+            }},
+        {header: 'No Trans', width: 80, sortable: true, dataIndex: 'trano'},
+        {header: 'Date', width: 80, sortable: true, dataIndex: 'tgl_pr'},
+        {header: 'Project ID', width: 60, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Site Code', width: 40, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Budget ID', width: 60, sortable: true, dataIndex: 'workid'},
+        {header: 'Budget Name', width: 90, sortable: true, dataIndex: 'workname'},
+        {header: 'Product Id', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', width: 90, sortable: true, dataIndex: 'nama_brg'},
+        {header: 'Valuta', width: 50, sortable: true, dataIndex: 'val_kode'},
+        {header: 'Qty', width: 80, sortable: true, dataIndex: 'qty', renderer: change, align: 'right'},
+        {header: "Available", width: 100, renderer: function (v, p, r) {
+                var percent = 0;
+
+                if (r.data['totalPrice'] != 0 && r.data['totalPricePO'] != 0)
+                {
+                    var total = parseFloat(r.data['totalPrice']);
+                    var totalPO = parseFloat(r.data['totalPricePO']);
+                    percent = (totalPO / total) * 100;
+                    if (percent > 100)
+                        percent = 100;
+                    percent = percent.toFixed(2);
+                    var warna = '#0a0';
+                    if (percent > 75)
+                        warna = '#FF3F7D';
+                    else if (percent > 50)
+                        warna = '#FFDA2F';
+                }
+
+                return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+            }}
+    ]
+
+    var userColumns2 = [
+        new Ext.grid.RowNumberer(),
+        expander2,
+        {header: "Edit", width: 60, dataIndex: 'id', css: 'text-align:center;', renderer: function(v, p, r) {
+                return '<a href="#" onclick="editToPO();"><img src="/images/g_rec_upd.png"></a>';
+        }},
+        {header: "Delete", width: 60, dataIndex: 'id', css: 'text-align:center;', renderer: function(v, p, r) {
+                return '<a href="#" onclick="delToPO();"><img src="/images/g_rec_del.png"></a>';
+        }},
+        {header: 'PR-Number', name: 'pr_number', width: 80, sortable: true, dataIndex: 'pr_number'},
+        {header: 'Budget Code', name: 'prj_kode', width: 60, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Period Code', name: 'sit_kode', width: 40, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Budget ID', name: 'workid', width: 60, sortable: true, dataIndex: 'workid'},
+        {header: 'Budget Name', name: 'workname', width: 100, sortable: true, dataIndex: 'workname'},
+        {header: 'Product Id', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', width: 90, sortable: true, dataIndex: 'nama_brg'},
+        {header: 'Qty', width: 80, sortable: true, dataIndex: 'qty', renderer: change, align: 'right'},
+        {header: 'Uom', name: 'uom', width: 55, sortable: true, dataIndex: 'uom'},
+        {header: "Price", name: 'price', width: 100, sortable: true, align: 'right',
+            renderer: function (v, p, r) {
+
+                return CommaFormatted(r.data['price']);
+
+            }},
+        {header: "PPN", name: 'valueppn', width: 100, sortable: true, align: 'right', dataIndex: 'valueppn'},
+        {header: "Total", name: 'gtotal', width: 150, sortable: true, align: 'right', summaryType: 'jumlah', summaryRenderer: totals,
+            renderer: function (v, p, r) {
+
+                return CommaFormatted(r.data['gtotal']);
+            }},
+    ]
+
+    var userColumns3 = [
+        new Ext.grid.RowNumberer(),
+        {header: 'Date', name: 'tgl', width: 70, sortable: true, dataIndex: 'tgl'},
+        {header: 'Project ID', name: 'prj_kode', width: 80, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Project Name', name: 'prj_nama', width: 120, sortable: true, dataIndex: 'prj_nama'},
+        {header: 'Site Code', name: 'sit_kode', width: 50, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Site Name', name: 'sit_nama', width: 120, sortable: true, dataIndex: 'sit_nama'},
+        {header: 'PIC', name: 'petugas', width: 100, sortable: true, dataIndex: 'petugas'},
+        {header: "Price", name: 'harga', width: 100, sortable: true, align: 'right', dataIndex: 'harga',
+            renderer: function (v, p, r) {
+                return CommaFormatted(r.data['harga']);
+            }
+        },
+        {header: "Currency", name: 'val_kode', width: 60, sortable: true, dataIndex: 'val_kode'},
+        {header: 'Supplier Code', name: 'sup_kode', width: 80, sortable: true, dataIndex: 'sup_kode'},
+        {header: 'Supplier Name', name: 'sup_nama', width: 120, sortable: true, dataIndex: 'sup_nama'},
+    ]
+
+<?php echo $this->action('popupgrid', 'grid'); ?>
+
+    function change(val)
+    {
+        return Ext.util.Format.number(val, '?0,000.0000?');
+    }
+
+    function getNewID()
+    {
+
+
+
+        var maxRecordPR = storePR.getCount();
+
+        var maxRecordPO = storePO.getCount();
+
+        var newID = maxRecordPR + maxRecordPO + 1;
+
+
+        return newID;
+    }
+
+    function getPORecord(workid, kode_brg, isEdit)
+    {
+        //Clear filter
+        storePO.clearFilter();
+        storePO.filterBy(function (record, id) {
+            if (!isEdit)
+            {
+                if (record.get('workid') == workid.toString() && record.get('kode_brg') == kode_brg.toString())
+                {
+                    return record.get('workid');
+                }
+            }
+            else
+            {
+                if (record.get('workid') == workid.toString() && (record.get('status') != '' || record.get('status') != undefined))
+                {
+                    return record.get('workid');
+                }
+            }
+        });
+        if (storePO.getCount() > 0)
+        {
+            var rec = storePO.getAt(0);
+        }
+
+        storePO.clearFilter();
+        return rec;
+    }
+
+    function resetButton()
+    {
+        Ext.getCmp('cancel-po').setText('Cancel Add');
+        Ext.getCmp('save-po').setText('Add to PR List(Cart)');
+//  Ext.getCmp('save-po').disable();
+    }
+
+
+    function clearPOForm()
+    {
+        var teks = Ext.getCmp('po-form').findByType('textfield');
+        Ext.each(teks, function (t, index) {
+            t.setValue('');
+        });
+        if (document.getElementById('qty') != undefined)
+            document.getElementById('qty').innerHTML = '0';
+        if (document.getElementById('in-po') != undefined)
+            document.getElementById('in-po').innerHTML = '0';
+        if (document.getElementById('tot-po') != undefined)
+            document.getElementById('tot-po').innerHTML = '0';
+        if (document.getElementById('price-pr') != undefined)
+            document.getElementById('price-pr').innerHTML = '0';
+        if (document.getElementById('price-po') != undefined)
+            document.getElementById('price-po').innerHTML = '0';
+        if (document.getElementById('balanceqty') != undefined)
+            document.getElementById('balanceqty').innerHTML = '0';
+        if (document.getElementById('balance-po') != undefined)
+            document.getElementById('balance-po').innerHTML = '0';
+        if (document.getElementById('balance-price') != undefined)
+            document.getElementById('balance-price').innerHTML = '0';
+        if (document.getElementById('tot-price-pr') != undefined)
+            document.getElementById('tot-price-pr').innerHTML = '0';
+        if (document.getElementById('tot-price-po') != undefined)
+            document.getElementById('tot-price-po').innerHTML = '0';
+        if (document.getElementById('tot-balance-price') != undefined)
+            document.getElementById('tot-balance-price').innerHTML = '0';
+        //document.getElementById('balance-price-po').innerHTML = '0';
+//  Ext.getCmp('kode_brg_text').disable();
+        //Ext.getCmp('unit_price_text').disable();
+        Ext.getCmp('ppn-status').setValue('N');
+    }
+
+    function refreshForm()
+    {
+        var tgl_sekarang = new Date();
+        Ext.getCmp('val_kode_text').setValue('IDR');
+        Ext.getCmp('curr_text').setValue('0');
+//  Ext.getCmp('tgl_po_text').setValue(tgl_sekarang.format('Y-m-d'));
+
+    }
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method: 'POST',
+            success: function (result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if (returnData.success) {
+                    Ext.getCmp('curr_text').setValue(CommaFormatted(returnData.rate));
+                }
+            }
+            , failure: function (action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+
+    function cekQty()
+    {
+        var newQty = Ext.getCmp('po-qty').getValue();
+        var satuan = Ext.getCmp('uom_text').getValue();
+        var qtyPr = document.getElementById('qty').innerHTML;
+        var qtyPo = document.getElementById('tot-po').innerHTML;
+
+
+        newQty = parseFloat(newQty.toString().replace(/\$|\,/g, ''));
+        qtyPr = parseFloat(qtyPr.toString().replace(/\$|\,/g, ''));
+        qtyPo = parseFloat(qtyPo.toString().replace(/\$|\,/g, ''));
+        var balance = qtyPr - qtyPo;
+
+        if (moneycomp(newQty, '>', balance, 4))
+        {
+//               Ext.getCmp('save-po').disable();
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Request Quantity is over the Budget!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        else
+        {
+
+            return true;
+        }
+    }
+
+    function cekPrice()
+    {
+        var pricePr = document.getElementById('price-pr').innerHTML;
+        var pricePo = Ext.getCmp('unit_price_text').getValue();
+        var currency = Ext.getCmp('val_kode_text').getValue();
+        document.getElementById('price-po').innerHTML = CommaFormatted(pricePo.toString().replace(/\$|\,/g, '')) + ' ' + currency;
+
+        pricePo = parseFloat(pricePo.toString().replace(/\$|\,/g, ''));
+        pricePr = parseFloat(pricePr.toString().replace(/\$|\,/g, ''));
+
+        //var newPrice = parseFloat(pricePo) + parseFloat(newPrice);
+        if (moneycomp(pricePo, '>', pricePr))
+        {
+//            Ext.getCmp('save-po').disable();
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Request Price is over the Budget!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        else
+        {
+
+            return true;
+
+        }
+    }
+
+    function cekTotal()
+    {
+        var totpricepr = document.getElementById('tot-price-pr').innerHTML;
+        var totpricepo = document.getElementById('tot-price-po').innerHTML;
+        var newtotpri = Ext.getCmp('total_price_text').getValue();
+        var currency = Ext.getCmp('val_kode_text').getValue();
+
+        var qty = parseFloat(Ext.getCmp('po-qty').getValue().toString().replace(/\$|\,/g, ''));
+        var price = parseFloat(Ext.getCmp('unit_price_text').getValue().toString().replace(/\$|\,/g, ''));
+        var subtotal = qty * price;
+
+//        document.getElementById('tot-price-po').innerHTML =  CommaFormatted(totpricepo.toString().replace(/\$|\,/g,''))+' '+currency;
+
+        totpricepr = parseFloat(totpricepr.toString().replace(/\$|\,/g, ''));
+        totpricepo = parseFloat(totpricepo.toString().replace(/\$|\,/g, ''));
+        newtotpri = parseFloat(newtotpri.toString().replace(/\$|\,/g, ''));
+        var balancetot = totpricepr - totpricepo;
+
+        if (moneycomp(subtotal, '>', balancetot))
+        {
+
+//                   Ext.getCmp('save-po').disable();
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Request is over the Budget!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        else
+        {
+
+
+            return true;
+        }
+    }
+
+    function cekTotalSupp()
+    {
+        var totpri = parseFloat(Ext.getCmp('total_price_text').getValue().toString().replace(/\$|\,/g, ''));
+        var totprisupp = parseFloat(Ext.getCmp('total_price_supp').getValue().toString().replace(/\$|\,/g, ''));
+
+        if (Ext.getCmp('posupp-qty').getValue() == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Qty Request For Supplier!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if (Ext.getCmp('unit_price_supp').getValue() == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Unit Price For Supplier!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if (totprisupp > totpri)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Total For Supplier must be less or equal than Total Price!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        else
+        {
+
+
+            return true;
+        }
+    }
+
+
+    function hitungTotal()
+    {
+        if (Ext.getCmp('po-qty').getValue() != undefined && Ext.getCmp('unit_price_text').getValue() != undefined)
+        {
+            var qty = parseFloat(Ext.getCmp('po-qty').getValue().toString().replace(/\$|\,/g, ''));
+            var price = parseFloat(Ext.getCmp('unit_price_text').getValue().toString().replace(/\$|\,/g, ''));
+            var subtotal = qty * price;
+
+            var centang = Ext.getCmp('edit-tax').getValue();
+            var ppn_tax = Ext.getCmp('ppn-status').getValue().getGroupValue();
+            var ppn_tax_percent = 0;
+            var ppn_tax_val = 0;
+
+
+            if (ppn_tax == 'Y' && !centang && Ext.getCmp('ppn-persen').getValue() != '')
+                ppn_tax_percent = Ext.getCmp('ppn-persen').getValue();
+
+            if (ppn_tax == 'Y' && centang && parseFloat(Ext.getCmp('ppn-value').getValue().toString().replace(/\$|\,/g, '')) != 0)
+                ppn_tax_val = parseFloat(Ext.getCmp('ppn-value').getValue().toString().replace(/\$|\,/g, ''));
+
+
+            var fix_ppn_tax = 0;
+
+            if (ppn_tax == 'Y') {
+                if (ppn_tax_percent != '')
+                    fix_ppn_tax = subtotal * ppn_tax_percent;
+                else
+                    fix_ppn_tax = ppn_tax_val;
+            }
+
+
+            Ext.getCmp('total_price_text').setValue(CommaFormatted((subtotal + fix_ppn_tax).toFixed(4)));
+            //                                                  Ext.getCmp('save-po').enable();
+        }
+    }
+
+    function hitungTotalSupp()
+    {
+        if (Ext.getCmp('posupp-qty').getValue() != undefined && Ext.getCmp('unit_price_supp').getValue() != undefined)
+        {
+
+
+            var qtysupp = parseFloat(Ext.getCmp('posupp-qty').getValue().toString().replace(/\$|\,/g, ''));
+            var pricesupp = parseFloat(Ext.getCmp('unit_price_supp').getValue().toString().replace(/\$|\,/g, ''));
+            var subtotalsupp = qtysupp * pricesupp;
+
+            //PPN Section
+            var centang = Ext.getCmp('edit-tax').getValue();
+            var ppn_tax = Ext.getCmp('ppn-status').getValue().getGroupValue();
+            var ppn_tax_percent = 0;
+            var ppn_tax_val = 0;
+
+
+            if (ppn_tax == 'Y' && !centang && Ext.getCmp('ppn-persen').getValue() != '')
+                ppn_tax_percent = Ext.getCmp('ppn-persen').getValue();
+
+            if (ppn_tax == 'Y' && centang && parseFloat(Ext.getCmp('ppn-value').getValue().toString().replace(/\$|\,/g, '')) != 0)
+                ppn_tax_val = parseFloat(Ext.getCmp('ppn-value').getValue().toString().replace(/\$|\,/g, ''));
+
+
+            var fix_ppn_tax = 0;
+
+            if (ppn_tax == 'Y') {
+                if (ppn_tax_percent != '')
+                    fix_ppn_tax = subtotalsupp * ppn_tax_percent;
+                else
+                    fix_ppn_tax = ppn_tax_val;
+            }
+
+            Ext.getCmp('total_price_supp').setValue(CommaFormatted((subtotalsupp + fix_ppn_tax).toFixed(4)));
+            //                                                  Ext.getCmp('save-po').enable();
+        }
+    }
+
+    function addToPO()
+    {
+        var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+        oripr = storePR.getAt(storePR.findExact('id', recpr[0].data['id']));
+
+        if (oripr != undefined)
+        {
+
+            Ext.getCmp('save-po').setText('Add to PO List(Cart)');
+            Ext.getCmp('pr_no_text').setValue(oripr.data['trano']);
+            Ext.getCmp('urut_text').setValue(oripr.data['urut']);
+            Ext.getCmp('budgetid').setValue(oripr.data['workid']);
+            Ext.getCmp('budgetname').setValue(oripr.data['workname']);
+            Ext.getCmp('kode_brg_text').setValue(oripr.data['kode_brg']);
+            Ext.getCmp('nama_brg_text').setValue(oripr.data['nama_brg']);
+            Ext.getCmp('prj_kode_text2').setValue(oripr.data['prj_kode']);
+            Ext.getCmp('prj_nama_text2').setValue(oripr.data['prj_nama']);
+            Ext.getCmp('sit_kode_text2').setValue(oripr.data['sit_kode']);
+            Ext.getCmp('sit_nama_text2').setValue(oripr.data['sit_nama']);
+            Ext.getCmp('kode_brg_text').disable();
+
+            Ext.getCmp('net_act_text').setValue(oripr.data['net_act']);
+
+            Ext.getCmp('unit_price_text').disable();
+            Ext.getCmp('po-qty').disable();
+
+
+            var valNew = Ext.getCmp('val_kode_text').getValue();
+
+            Ext.getCmp('uom_text').setValue(oripr.data['uom']);
+            Ext.getCmp('uom_supp').setValue(oripr.data['uom']);
+            var piece = oripr.data['uom'];
+            var valuta = oripr.data['val_kode'];
+
+            Ext.getCmp('pr-detail-grid').disable();
+            Ext.getCmp('cancel-po').setText('Cancel Add');
+            Ext.getCmp('cancel-po').enable();
+
+            var totpri = oripr.data['totalPrice'];
+
+            var pricepr = oripr.data['price'];
+            var productID = oripr.data['kode_brg'];
+            Ext.getCmp('price-grids').getStore().proxy.setApi('read', '/default/home/getpricehistory/kode_brg/' + productID);
+            Ext.getCmp('price-grids').getStore().reload();
+
+
+            if (valNew != valuta)
+            {
+                Ext.MessageBox.show({
+                    title: 'Error Currency',
+                    msg: 'Currency Not Match!!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+
+                clearPOForm();
+                Ext.getCmp('pr-detail-grid').enable();
+                Ext.getCmp('po-grid').enable();
+                Ext.getCmp('pr-detail-grid').getView().refresh();
+                Ext.getCmp('po-grid').getView().refresh();
+
+                return false;
+
+            }
+
+
+            Ext.getCmp('unit_price_text').enable();
+            Ext.getCmp('po-qty').enable();
+            Ext.getCmp('unit_price_text').setValue(CommaFormatted(oripr.data['price']));
+            Ext.getCmp('po-qty').setValue(CommaFormatted(oripr.data['qty']));
+            Ext.getCmp('unit_price_supp').setValue(CommaFormatted(oripr.data['price']));
+
+            totaltemp = CommaFormatted(oripr.data['totalPrice']);
+            totalSupptemp = CommaFormatted(oripr.data['totalPrice']);
+
+            Ext.getCmp('posupp-qty').setValue(CommaFormatted(oripr.data['qty']));
+//              Ext.getCmp('total_price_text').enable();
+            var totpriPO = oripr.data['totalPricePO'];
+            var balanceTotPri = parseFloat(totpri) - parseFloat(totpriPO);
+            document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>PR Total Price :</td><td align="right"><b id="tot-price-pr">' + CommaFormatted(totpri) + ' ' + valuta + '</b></td></tr><tr><td>Already In PO :</td><td align="right"><b id="tot-price-po">' + CommaFormatted(totpriPO) + ' ' + valuta + '</b></td></tr><tr></td><td>Balance Total Price:</td><td align="right"><b id="tot-balance-price" style="color:#FF3F7D">' + CommaFormatted(balanceTotPri) + ' ' + valuta + '</b></td></tr></table>';
+
+            hitungTotal();
+            hitungTotalSupp();
+
+
+        }
+
+
+        else
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Error while fetching data...',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+    }
+
+    function getPPN(totalprice, totalpriceSupp) {
+
+
+        var centang = Ext.getCmp('edit-tax').getValue();
+        var ppn_tax = Ext.getCmp('ppn-status').getValue().getGroupValue();
+        var ppn_tax_percent = Ext.getCmp('ppn-persen').getValue();
+        var ppn_tax_val = Ext.getCmp('ppn-value').getValue();
+
+        var data = [];
+        data['statusppn'] = ppn_tax;
+
+        if (ppn_tax == 'Y') {
+            if (!centang) {
+                data['ppn_tax'] = ppn_tax_percent * parseFloat(totalprice.toString().replace(/\$|\,/g, ''));
+                data['ppn_taxSupp'] = ppn_tax_percent * parseFloat(totalpriceSupp.toString().replace(/\$|\,/g, ''));
+                data['percentppn'] = ppn_tax_percent;
+            }
+            else {
+                data['ppn_tax'] = parseFloat(ppn_tax_val.toString().replace(/\$|\,/g, ''));
+                data['ppn_taxSupp'] = parseFloat(ppn_tax_val.toString().replace(/\$|\,/g, ''));
+                data['percentppn'] = 0;
+            }
+        } else {
+            data['ppn_tax'] = 0;
+            data['ppn_taxSupp'] = 0;
+            data['percentppn'] = 0;
+        }
+
+        return data;
+
+    }
+
+    function checkPPN() {
+
+        var centang = Ext.getCmp('edit-tax').getValue();
+        var holding_tax = Ext.getCmp('ppn-status').getValue().getGroupValue();
+
+//        console.log(centang+'-'+holding_tax);return false;
+        if (holding_tax == 'Y' && !centang && Ext.getCmp('ppn-persen').getValue() == '')
+        {
+
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please choose your tax value',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+
+            return false;
+        }
+        else
+        if (holding_tax == 'Y' && centang && Ext.getCmp('ppn-value').getValue() == 0)
+        {
+
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please insert your tax value',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+
+            return false;
+        }
+        else
+            return true;
+    }
+
+    function insertPOtoList()
+    {
+        Ext.getCmp('save-list').enable();
+        Ext.getCmp('cancel-list').enable();
+
+        if (Ext.getCmp('price-grids').getStore().getCount() != 0)
+        {
+            Ext.getCmp('price-grids').getStore().removeAll();
+            Ext.getCmp('po-grid').getView().refresh();
+        }
+
+        var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+// if (!isMscWorkid(recpr[0].data['workid']) && !isServiceKdbrg(recpr[0].data['kode_brg']))
+//     var result = cekQty() && cekPrice();
+// else
+        var result = cekTotal() && cekTotalSupp();
+
+        if (result)
+        {
+            if (oripr != undefined) {
+
+                var oripo = storePO.getAt(storePO.findExact('id', recpr[0].data['id']));
+                if (!checkPPN())
+                    return false;
+
+
+                if (oripo != undefined)
+                {
+
+                    if (isMscWorkid(oripr.data['workid']) && (oripo.data['status'] == undefined || oripo.data['status'] == ''))
+                    {
+                        Ext.MessageBox.show({
+                            title: 'Error',
+                            msg: 'Please use Edit for updating this Work ID!',
+                            buttons: Ext.MessageBox.OK,
+                            icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (oripo.data['status'] == 'edit')
+                    {
+                        var qty = Ext.getCmp('po-qty').getValue().toString().replace(/\$|\,/g, '');
+                        var price = Ext.getCmp('unit_price_text').getValue().toString().replace(/\$|\,/g, '');
+                        var qtySupp = Ext.getCmp('posupp-qty').getValue().toString().replace(/\$|\,/g, '');
+                        var priceSupp = Ext.getCmp('unit_price_supp').getValue().toString().replace(/\$|\,/g, '');
+
+                        var data = getPPN((qty * price), (qtySupp * priceSupp));
+
+                        oripo.data['qty'] = qty;
+                        oripo.data['price'] = price;
+                        oripo.data['totalPrice'] = qty * price;
+
+                        oripo.data['qtySupp'] = qtySupp;
+                        oripo.data['priceSupp'] = priceSupp;
+                        oripo.data['totalPriceSupp'] = qtySupp * priceSupp;
+
+
+                        if (data != undefined) {
+                            oripo.data['statusppn'] = data['statusppn'];
+                            oripo.data['valueppn'] = data['ppn_tax'];
+                            oripo.data['valueppnSupp'] = data['ppn_taxSupp'];
+                            oripo.data['percentppn'] = data['percentppn'];
+                        }
+
+                        oripo.data['status'] = '';
+
+                        var tot = Ext.getCmp('total_price_text').getValue().toString().replace(/\$|\,/g, '');
+                        oripo.data['gtotal'] = parseFloat(tot);
+                        oripr.data['totalPricePO'] = parseFloat(oripr.data['totalPricePO']) + parseFloat(tot);
+                    }
+                    else
+                    {
+                        var opri = oripo.data['price'].toString().replace(/\$|\,/g, '');
+                        var epri = Ext.getCmp('unit_price_text').getValue().toString().replace(/\$|\,/g, '');
+
+                        var oldqty = parseFloat(oripo.data['qty'].toString().replace(/\$|\,/g, ''));
+                        var oldpri = parseFloat(opri);
+
+//                  var editpri = parseFloat(epri);
+                        var editqty = parseFloat(Ext.getCmp('po-qty').getValue().toString().replace(/\$|\,/g, ''));
+
+                        var newqty = oldqty + editqty;
+//                  var newpri = oldpri + editpri;
+                        var newtot = newqty * oldpri;
+
+
+                        oripo.data['qty'] = newqty;
+                        oripo.data['price'] = epri.toString().replace(/\$|\,/g, '');
+                        oripo.data['totalPrice'] = newtot.toString().replace(/\$|\,/g, '');
+
+                        oripo.data['qtySupp'] = Ext.getCmp('posupp-qty').getValue().toString().replace(/\$|\,/g, '');
+                        oripo.data['priceSupp'] = Ext.getCmp('unit_price_supp').getValue().toString().replace(/\$|\,/g, '');
+                        oripo.data['totalPriceSupp'] = oripo.data['qtySupp'] * oripo.data['priceSupp'];
+
+                        oripo.data['net_act'] = Ext.getCmp('net_act_text').getValue();
+                        oripo.data['status'] = '';
+
+                        var data = getPPN((newqty * oripo.data['price']), (oripo.data['qtySupp'] * oripo.data['priceSupp']));
+                        if (data != undefined) {
+                            oripo.data['statusppn'] = data['statusppn'];
+                            oripo.data['valueppn'] = data['ppn_tax'];
+                            oripo.data['valueppnSupp'] = data['ppn_taxSupp'];
+                            oripo.data['percentppn'] = data['percentppn'];
+                        }
+                        oripo.data['gtotal'] = parseFloat(Ext.getCmp('total_price_text').getValue().toString().replace(/\$|\,/g, ''));
+
+                    }
+                }
+
+
+                else
+                {
+                    var statusppn;
+                    var valueppn;
+                    var valueppnSupp;
+                    var percentppn;
+
+
+                    var pri = Ext.getCmp('unit_price_text').getValue().toString().replace(/\$|\,/g, '');
+                    var qty = Ext.getCmp('po-qty').getValue().toString().replace(/\$|\,/g, '');
+                    var prisupp = Ext.getCmp('unit_price_supp').getValue().toString().replace(/\$|\,/g, '');
+                    var qtysupp = Ext.getCmp('posupp-qty').getValue().toString().replace(/\$|\,/g, '');
+                    var tot = Ext.getCmp('total_price_text').getValue().toString().replace(/\$|\,/g, '');
+                    oripr.data['totalPricePO'] = parseFloat(oripr.data['totalPricePO']) + parseFloat(tot);
+
+                    var data = getPPN((qty * pri), (qtysupp * prisupp));
+                    if (data != undefined) {
+                        statusppn = data['statusppn'];
+                        valueppn = data['ppn_tax'];
+                        valueppnSupp = data['ppn_taxSupp'];
+                        percentppn = data['percentppn'];
+                    }
+
+                    var d = new polist({
+                        urut: oripr.data['urut'],
+                        workid: oripr.data['workid'],
+                        workname: oripr.data['workname'],
+                        pr_number: oripr.data['trano'],
+                        prj_kode: oripr.data['prj_kode'],
+                        sit_kode: oripr.data['sit_kode'],
+                        prj_nama: oripr.data['prj_nama'],
+                        sit_nama: oripr.data['sit_nama'],
+                        kode_brg: oripr.data['kode_brg'],
+                        nama_brg: oripr.data['nama_brg'],
+                        qty: qty,
+                        uom: oripr.data['uom'],
+                        val_kode: oripr.data['val_kode'],
+                        currency: Ext.getCmp('curr_text').getValue().toString().replace(/\$|\,/g, ''),
+                        price: pri,
+                        tgl_pr: oripr.data['tgl_pr'],
+                        totalPR: oripr.data['qty'],
+                        pricePR: oripr.data['price'],
+                        totalPricePR: oripr.data['totalPrice'],
+                        totalPO: oripr.data['totalPO'],
+                        totalPricePO: oripr.data['totalPricePO'],
+                        totalPrice: pri * qty,
+                        id: oripr.data['id'],
+                        sup_kode: Ext.getCmp('sup_kode_text').getValue(),
+                        sup_nama: Ext.getCmp('sup_nama_text').getValue(),
+                        invoiceto: Ext.getCmp('invoice_text').getValue(),
+                        tax: pajak,
+                        ket: Ext.getCmp('ket_text').getValue(),
+                        tujuan: Ext.getCmp('tujuan_text').getValue(),
+                        tgl_kirim: Ext.getCmp('tgl_kirim_text').getValue(),
+                        po_term: Ext.getCmp('po_term').getValue(),
+                        top: Ext.getCmp('top').getValue(),
+                        budgettype: Ext.getCmp('po_origin_text').getValue(),
+                        net_act: Ext.getCmp('net_act_text').getValue(),
+                        qtySupp: Ext.getCmp('posupp-qty').getValue().toString().replace(/\$|\,/g, ''),
+                        priceSupp: Ext.getCmp('unit_price_supp').getValue().toString().replace(/\$|\,/g, ''),
+                        totalPriceSupp: prisupp * qtysupp,
+                        statusppn: statusppn,
+                        valueppn: valueppn,
+                        valueppnSupp: valueppnSupp,
+                        percentppn: percentppn,
+                        gtotal: parseFloat(tot)
+
+                    });
+
+
+                    storePO.add(d);
+                }
+
+                var oripo = storePO.getAt(storePO.findExact('id', oripr.data['id']));
+
+                TEMPORARY = TEMPORARY + parseFloat(oripo.data['totalPrice']);
+
+                var fix_ppn = 0;
+
+                var data = getPPN(oripo.data['totalPrice'], oripo.data['totalPriceSupp']);
+                if (data != undefined)
+                    fix_ppn = data['ppn_taxSupp'];
+
+//                    console.log(data);
+
+                grandtotal = fix_ppn + TEMPORARY;
+
+                Ext.getCmp('pr-detail-grid').enable();
+                Ext.getCmp('po-grid').enable();
+                Ext.getCmp('pr-detail-grid').getView().refresh();
+                Ext.getCmp('po-grid').getView().refresh();
+                clearPOForm();
+
+                Ext.getCmp('gtotal-text').setText('Sub Total :' + TEMPORARY.toString());
+                Ext.getCmp('pajak-text').setText('Tax :' + fix_ppn.toString());
+                Ext.getCmp('gtotals-text').setText('Grand Total :' + grandtotal.toString());
+
+                oripr = undefined;
+                oripo = undefined;
+                totaltemp = 0;
+                totalSupptemp = 0;
+
+                grandtotal = 0;
+                TEMPORARY = 0;
+
+            }
+        }
+    }
+
+
+
+    function delToPO()
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function (btn) {
+            if (btn == 'yes')
+            {
+                var recpo = Ext.getCmp('po-grid').getSelectionModel().getSelections();
+                var b = storePO.getAt(storePO.findExact('id', recpo[0].data['id']));
+
+                var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+                var a = storePR.getAt(storePR.findExact('id', recpr[0].data['id']));
+
+                var totalPricePO = parseFloat(b.data['totalPrice']);
+                var newtotalPricePO = parseFloat(a.data['totalPricePO']);
+                a.data['totalPricePO'] = newtotalPricePO - totalPricePO;
+                storePO.remove(b);
+                Ext.getCmp('pr-detail-grid').getView().refresh();
+                Ext.getCmp('po-grid').getView().refresh();
+
+                clearPOForm();
+                resetButton();
+            }
+        });
+    }
+    ;
+
+    function editToPO()
+    {
+        var recpo = Ext.getCmp('po-grid').getSelectionModel().getSelections();
+        Ext.getCmp('save-po').setText('Update to PR List(Cart)');
+//  var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+        var oripo = storePO.getAt(storePO.findExact('id', recpo[0].data['id']));
+        oripr = storePR.getAt(storePR.findExact('id', oripo.data['id']));
+
+        Ext.getCmp('pr-detail-grid').disable();
+        Ext.getCmp('po-grid').disable();
+        Ext.getCmp('cancel-po').setText('Cancel Edit');
+        Ext.getCmp('cancel-po').enable();
+
+        if (oripo != undefined && oripr != undefined)
+        {
+            oripo.data['status'] = 'edit';
+            Ext.getCmp('pr_no_text').setValue(oripo.data['pr_number']);
+            Ext.getCmp('urut_text').setValue(oripo.data['urut']);
+            Ext.getCmp('budgetid').setValue(oripo.data['workid']);
+            Ext.getCmp('budgetname').setValue(oripo.data['workname']);
+            Ext.getCmp('kode_brg_text').setValue(oripo.data['kode_brg']);
+            Ext.getCmp('nama_brg_text').setValue(oripo.data['nama_brg']);
+            Ext.getCmp('prj_kode_text2').setValue(oripo.data['prj_kode']);
+            Ext.getCmp('prj_nama_text2').setValue(oripo.data['prj_nama']);
+            Ext.getCmp('sit_kode_text2').setValue(oripo.data['sit_kode']);
+            Ext.getCmp('sit_nama_text2').setValue(oripo.data['sit_nama']);
+            Ext.getCmp('uom_text').setValue(oripo.data['uom']);
+            Ext.getCmp('net_act_text').setValue(oripo.data['net_act']);
+            Ext.getCmp('total_price_text').setValue(CommaFormatted(oripo.data['totalPrice']));
+
+            Ext.getCmp('po-qty').setValue(CommaFormatted(oripo.data['qty']));
+            Ext.getCmp('unit_price_text').setValue(CommaFormatted(oripo.data['price']));
+
+            Ext.getCmp('uom_supp').setValue(oripo.data['uom']);
+            Ext.getCmp('posupp-qty').setValue(CommaFormatted(oripo.data['qtySupp']));
+            Ext.getCmp('unit_price_supp').setValue(CommaFormatted(oripo.data['priceSupp']));
+//            Ext.getCmp('save-po').disable();
+
+            if (oripo.data['statusppn'] == 'Y') {
+                Ext.getCmp('ppn-status').setValue('Y');
+                if (oripo.data['percentppn'] >= 0.01 && oripo.data['percentppn'] <= 0.1) {
+                    Ext.getCmp('ppn-persen').setValue(oripo.data['percentppn']);
+                }
+                else if (oripo.data['valueppn'] != '') {
+                    Ext.getCmp('ppn-value').setValue(oripo.data['valueppn']);
+                    Ext.getCmp('edit-tax').setValue(true);
+                    Ext.getCmp('ppn-persen').setValue('');
+                    Ext.getCmp('ppn-persen').disable();
+                }
+            }
+            Ext.getCmp('unit_price_text').disable();
+            Ext.getCmp('po-qty').disable();
+
+            var valuta = oripo.data['val_kode'];
+
+            var totpri = oripo.data['totalPricePR'];
+
+            var qtypo = parseFloat(oripo.data['qty']);
+
+            var productID = oripo.data['kode_brg'];
+            Ext.getCmp('price-grids').getStore().proxy.setApi('read', '/default/home/getpricehistory/kode_brg/' + productID);
+            Ext.getCmp('price-grids').getStore().reload();
+
+            Ext.getCmp('unit_price_text').enable();
+            Ext.getCmp('po-qty').enable();
+            var totpri = parseFloat(oripo.data['totalPricePR']);
+            oripr.data['totalPricePO'] = parseFloat(oripr.data['totalPricePO']) - parseFloat(oripo.data['totalPrice']);
+
+            var totpriPO = oripr.data['totalPricePO'];
+            var balanceTotPri = parseFloat(totpri) - parseFloat(totpriPO);
+            document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>PR Total Price :</td><td align="right"><b id="tot-price-pr">' + CommaFormatted(totpri) + ' ' + valuta + '</b></td></tr><tr><td>Already In PO :</td><td align="right"><b id="tot-price-po">' + CommaFormatted(totpriPO) + ' ' + valuta + '</b></td></tr><tr></td><td>Balance Total Price:</td><td align="right"><b id="tot-balance-price" style="color:#FF3F7D">' + CommaFormatted(balanceTotPri) + ' ' + valuta + '</b></td></tr></table>';
+            hitungTotal();
+            hitungTotalSupp();
+
+
+        }
+
+        else
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Error while fetching data...',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+    }
+    ;
+
+    function showPrList()
+    {
+        var columns = [{header: 'Trano', width: 100, sortable: true, dataIndex: 'trano'},
+            {header: 'Origin of Budget', width: 100, sortable: true, dataIndex: 'budgettype'},
+            {header: 'Project ID', width: 70, sortable: true, dataIndex: 'prj_kode'},
+            {header: 'Project Name', width: 150, sortable: true, dataIndex: 'prj_nama'},
+            {header: 'Site Code', width: 55, sortable: true, dataIndex: 'sit_kode'},
+            {header: 'Site Name', width: 100, sortable: true, dataIndex: 'sit_nama'}
+        ];
+
+        urlJson = '/default/prh/list/type/O';
+        data = [
+            {name: 'trano', mapping: 'trano'},
+            {name: 'prj_kode', mapping: 'prj_kode'},
+            {name: 'prj_nama', mapping: 'prj_nama'},
+            {name: 'sit_kode', mapping: 'sit_kode'},
+            {name: 'sit_nama', mapping: 'sit_nama'},
+            {name: 'prj_nama', mapping: 'prj_nama'}, ,
+                    {name: 'budgettype', mapping: 'budgettype'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy: new Ext.data.HttpProxy({
+                url: urlJson
+            }),
+            reader: new Ext.data.JsonReader({
+                root: 'posts',
+                totalProperty: 'count'
+            }, data)
+        });
+
+        var storeType = new Ext.data.SimpleStore({
+            fields: ['nilai', 'type']
+            , data: [
+                ['Project', 'Project'],
+                ['OPEX', 'OPEX'],
+                ['CAPEX', 'CAPEX']
+
+            ]
+
+        });
+
+        var combobox = new Ext.form.ComboBox({
+            x: 90,
+            y: 90,
+            name: 'selectBudgettype'
+            , store: storeType
+            , valueField: 'nilai'
+            , displayField: 'type'
+            , typeAhead: true,
+            forceSelection: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus: true,
+            emptyText: 'Select Type',
+            width: 100
+            , listeners: {
+                'select': function (c, storeType, index) {
+
+                    var docs = c.getValue();
+                    newUrl = '/prh/listByParams/name/budgettype/data/' + docs;
+                    proxies = Ext.getCmp('pr_grid').getStore();
+                    proxies.proxy = new Ext.data.HttpProxy({
+                        url: newUrl
+                    });
+                    Ext.getCmp('pr_grid').getStore().reload();
+                    Ext.getCmp('pr_grid').getView().refresh();
+
+                }
+            }
+        });
+
+        yAxis = 120;
+        grids = function ()
+        {
+            grids.superclass.constructor.call(this, {
+                store: stores,
+                columns: columns,
+                x: 0,
+                y: yAxis,
+                id: 'pr_grid',
+                loadMask: true,
+                bbar: [new Ext.PagingToolbar({
+                        pageSize: 100,
+                        store: stores,
+                        displayInfo: true,
+                        displayMsg: 'Displaying data {0} - {1} of {2}',
+                        emptyMsg: "No data to display"
+                    })],
+                height: heightGrid,
+                width: widthGrid,
+                listeners: {
+                    'rowdblclick': function (g, rowIndex, e)
+                    {
+
+                        closeForm = false;
+                        isDblClick = true;
+                        objectName = 'trano';
+                        txtBoxChange = 'trano_text';
+                        closeForm = true;
+                        formId = 'a-form-panel-trano_button';
+                        prox = 'trano_proxy';
+                        gri = 'trano_grid';
+                        var trano = g.getStore().getAt(rowIndex).get(objectName);
+                        var rec = Ext.getCmp('pr_grid').getSelectionModel().getSelections();
+
+                        if (storePR.getCount() > 0)
+                        {
+                            var cekList = storePR.findExact('trano', trano);
+
+                            if (cekList >= 0)
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Information',
+                                    msg: 'PR with trano : <b>' + trano + '</b> is exist on PR List!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+                        Ext.Ajax.request({
+                            scope: this,
+                            results: 0,
+                            url: '/default/home/ceksubmit/trano/' + trano,
+                            method: 'POST',
+                            success: function (result, request) {
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if (returnData.success) {
+                                    if (Ext.getCmp('po_origin_text').getValue() != '')
+                                    {
+
+                                        if (Ext.getCmp('po_origin_text').getValue().toUpperCase() != rec[0].data['budgettype'].toUpperCase())
+                                        {
+                                            Ext.MessageBox.show({
+                                                title: 'Error',
+                                                msg: 'Budget Type Is Not Match',
+                                                buttons: Ext.MessageBox.OK,
+                                                icon: Ext.MessageBox.ERROR
+                                            });
+                                            return false;
+                                        }
+                                    }
+                                    else
+                                        Ext.getCmp('po_origin_text').setValue(rec[0].data['budgettype']);
+
+
+                                    Ext.Ajax.request({
+                                        results: 0,
+                                        url: '/default/home/getprsummary/data/' + trano,
+                                        method: 'POST',
+                                        success: function (result, request) {
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                            Ext.each(returnData.posts, function (op) {
+
+                                                var c = new prlist({
+                                                    trano: op['trano'],
+                                                    tgl_pr: op['tgl'],
+                                                    urut: op['urut'],
+                                                    ket: op['ket'],
+                                                    prj_kode: op['prj_kode'],
+                                                    prj_nama: op['prj_nama'],
+                                                    sit_kode: op['sit_kode'],
+                                                    sit_nama: op['sit_nama'],
+                                                    workid: op['workid'],
+                                                    workname: op['workname'],
+                                                    kode_brg: op['kode_brg'],
+                                                    nama_brg: op['nama_brg'],
+                                                    qty: op['qty'],
+                                                    uom: op['uom'],
+                                                    price: op['harga'],
+                                                    totalPrice: op['jumlah'],
+                                                    val_kode: op['val_kode'],
+                                                    totalPO: op['totalPO'],
+                                                    totalPricePO: op['totalPricePO'],
+                                                    balancePO: op['balancePO'],
+                                                    net_act: op['myob'],
+                                                    budgettype: op['budgettype'],
+                                                    id: op['id']
+
+                                                });
+                                                storePR.add(c);
+
+                                            });
+                                            Ext.getCmp('pr-detail-grid').getView().refresh();
+                                        }
+                                    });
+
+                                    window.setTimeout(function () {
+                                        isDblClick = false;
+                                    }, 0);
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error!', returnData.msg);
+                                    return false;
+                                }
+                            }
+                            ,
+                            failure: function (action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            }
+                        });
+
+
+                    }
+                }
+            });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks, Ext.form.TextField);//PR
+        searchTrano = function (field, e) {
+            newUrl = '/prh/listByParams/type/O/name/trano/data/' + field.getValue();
+            prox = Pk + '_proxy';
+            gri = 'pr_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp(gri).getStore().reload();
+        }
+        searchPrj_kode = function (field, e) {
+            newUrl = '/prh/listByParams/type/O/name/prj_kode/data/' + field.getValue();
+            prox = Pk + '_proxy';
+            gri = 'pr_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp(gri).getStore().reload();
+        }
+        searchSit_kode = function (field, e) {
+            newUrl = '/prh/listByParams/type/O/name/sit_kode/data/' + field.getValue();
+            prox = Pk + '_proxy';
+            gri = 'pr_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp(gri).getStore().reload();
+        }
+
+        var aForm = new Ext.Window({
+            id: 'a-form-panel-trano_button',
+            layout: 'absolute',
+            minWidth: 300,
+            minHeight: 200,
+            width: 400,
+            height: 400,
+            stateful: false,
+            modal: true,
+            resizeable: false,
+            items: [
+                {
+                    x: 6,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'No Trans'
+                },
+                new txtboks(80, 10, 80, 'trans_no', searchTrano),
+                {
+                    x: 6,
+                    y: 52,
+                    xtype: 'label',
+                    text: 'Project Code'
+                },
+                new txtboks(80, 50, 80, 'prj_kode', searchPrj_kode),
+                {
+                    x: 165,
+                    y: 52,
+                    xtype: 'label',
+                    text: 'Site Code'
+                },
+                new txtboks(240, 50, 80, 'sit_kode', searchSit_kode),
+                {
+                    x: 6,
+                    y: 92,
+                    xtype: 'label',
+                    text: 'Origin Of Budget'
+                },
+                combobox
+                        , new grids('pr_list')
+            ]
+
+        });
+        aForm.title = 'Choose No Trans';
+        aForm.show();
+
+    }
+
+    function deliveryTo()
+    {
+
+        var proxy = new Ext.data.HttpProxy({
+            url: '/delivery/list'
+        });
+
+        var store = new Ext.data.Store({
+            proxy: proxy,
+            reader: new Ext.data.JsonReader({
+                id: 'delivery',
+                totalProperty: 'count',
+                root: 'posts'
+            }, [{
+                    name: 'gdg_nama'
+                }, {
+                    name: 'alamat1'
+                }])
+        });
+
+
+        var combobox = new Ext.form.ComboBox({
+            x: 90,
+            y: 10,
+            name: 'selectAlamat'
+            , store: store
+            , valueField: 'alamat1'
+            , displayField: 'gdg_nama'
+            , typeAhead: true,
+            forceSelection: true,
+            mode: 'remote',
+            triggerAction: 'all',
+            selectOnFocus: true,
+            emptyText: 'Select Address',
+            //,value: 'QDC warehouse'
+            width: 200
+            , listeners: {
+                'select': function (c, store, index) {
+
+                    var data = c.getValue();
+                    Ext.getCmp('alamat_text').setValue(data);
+                }
+            }
+        });
+        var textarea = new Ext.form.TextArea({
+            x: 90,
+            y: 50,
+            id: 'alamat_text',
+            width: 200,
+            height: 100,
+            disabled: true,
+            grow: false
+        });
+
+        var okbutton = new Ext.Button({
+            x: 200,
+            y: 153,
+            id: 'ok-button-deli',
+            text: 'submit',
+            handler: function (btn, ev) {
+                Ext.getCmp('tujuan_text').setValue(Ext.getCmp('alamat_text').getValue());
+                Ext.getCmp('a-form-panel-delivery_button').close();
+            }
+        });
+
+        var cancel = new Ext.Button({
+            x: 250,
+            y: 153,
+            id: 'cancel-button-deli',
+            text: 'cancel',
+            handler: function (btn, ev) {
+                Ext.getCmp('tujuan_text').setValue('');
+                Ext.getCmp('a-form-panel-delivery_button').close();
+            }
+        });
+
+        var aForm = new Ext.Window({
+            id: 'a-form-panel-delivery_button',
+            layout: 'absolute',
+            minWidth: 200,
+            minHeight: 200,
+            width: 320,
+            height: 210,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            items: [
+                {
+                    x: 6,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'Select Address :'
+                },
+                combobox,
+                {
+                    x: 6,
+                    y: 52,
+                    xtype: 'label',
+                    text: 'Detail'
+                },
+                textarea,
+                okbutton,
+                cancel
+            ]
+        });
+        aForm.title = 'Choose Adresses';
+        aForm.show();
+
+    }
+
+    function init()
+    {
+
+        var tgl_sekarang = new Date();
+
+        Ext.getCmp('val_kode_text').setValue('IDR');
+        Ext.getCmp('curr_text').setValue('0');
+    }
+
+    function getLastPO()
+    {
+        Ext.Ajax.request({
+            url: '/procurement/procurement/getlastpo',
+            method: 'POST',
+            success: function (result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+
+                if (returnData.po != undefined && returnData.po != '')
+                {
+                    Ext.getCmp('po_number_text').setValue('PO01-' + returnData.po);
+                }
+            }
+            ,
+            failure: function (action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+    ;
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function (btn) {
+                if (btn == 'yes')
+                {
+                    if (theFile.data['status'] == 'new')
+                        var params = {filename: theFile.data['savename']};
+                    Ext.Ajax.request({
+                        url: '/procurement/procurement/deletefile',
+                        method: 'POST',
+                        success: function (result, request) {
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if (returnData.success)
+                            {
+                                storeFile.remove(theFile);
+                                Ext.getCmp('files-grid').getView().refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error!', returnData.msg);
+                                return false;
+                            }
+                        },
+                        failure: function (action) {
+                            if (action.failureType == 'server') {
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            } else {
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        },
+                        params: params
+                    });
+                }
+            });
+        }
+    }
+    ;
+
+
+    var textField = new Ext.form.TextField();
+
+    userForm = new Ext.extend(Ext.form.FormPanel, {
+        id: 'user-forms',
+        iconCls: 'silk-user',
+        title: 'Add New Purchase Order (PO) Overhead',
+        frame: true,
+        width: 700,
+        labelAlign: 'left',
+        initComponent: function () {
+            this.items = this.buildForm();
+            this.buttons = this.buildUI();
+
+            this.addEvents({
+                create: true
+            });
+            userForm.superclass.initComponent.call(this);
+        }
+        ,
+        buildForm: function () {
+            return [
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .4,
+                            layout: 'form',
+                            items: [
+//                                {
+//                                    fieldLabel: 'Budget Code',
+//                                    id: 'prj_kode_text',
+//                                    name: 'prj_kode',
+//                                    xtype: "trigger",
+//                                    triggerClass: 'teropong',
+//                                    editable: false,
+//                                    allowBlank: false,
+//                                    width: 100,
+//                                    onTriggerClick: function ()
+//                                    {
+//                                        projectPopUphandler();
+//                                    }
+//
+//                                },
+                                {
+                                    xtype: 'projectselector',
+                                    anchor: '100%',
+                                    width: 100,
+                                    id: 'project-select',
+                                    Selectid: 'prj_kode_text',
+                                    Nameid: 'prj_nama_text',
+                                    ShowName: false,
+                                    editable: false,
+                                    allowBlank: false,
+                                    typeOverhead:true,
+                                    fieldLabel: 'Budget Code '
+                                },
+                                {
+                                    fieldLabel: 'Supplier Code',
+                                    id: 'sup_kode_text',
+                                    name: 'sup_kode',
+                                    xtype: "trigger",
+                                    triggerClass: 'teropong',
+                                    editable: false,
+                                    allowBlank: false,
+                                    width: 80,
+                                    onTriggerClick: function ()
+                                    {
+                                        suplierPopUphandler();
+                                    }
+                                },
+                                {
+                                    fieldLabel: 'Supplier Name',
+                                    id: 'sup_nama_text',
+                                    name: 'sup_nama',
+                                    xtype: 'textfield',
+                                    style: "font-weight:bold;color:black",
+                                    disabled: true,
+                                    readOnly: true
+                                },
+                                {
+                                    fieldLabel: 'Currency',
+                                    id: 'val_kode_text',
+                                    name: 'val_kode',
+                                    xtype: "trigger",
+                                    triggerClass: 'teropong',
+                                    editable: false,
+                                    allowBlank: false,
+                                    width: 80,
+                                    onTriggerClick: function ()
+                                    {
+                                        valutaPopUphandler();
+
+                                    }
+                                },
+                                {
+                                    fieldLabel: 'Exchange Rate',
+                                    id: 'curr_text',
+                                    name: 'currency',
+                                    xtype: 'textfield',
+                                    allowBlank: false,
+                                    style: "text-align:right",
+                                    width: 80
+                                },
+                                {
+                                    fieldLabel: 'Origin Of Budget',
+                                    id: 'po_origin_text',
+                                    name: 'po-origin',
+                                    xtype: 'textfield',
+                                    style: "font-weight:bold;color:black",
+                                    disabled: true,
+                                    width: 80
+
+                                }
+                            ]
+                        }, {
+                            columnWidth: .5,
+                            layout: 'form',
+                            items: [
+                                {
+                                    fieldLabel: 'Deliver To',
+                                    id: 'tujuan_text',
+                                    name: 'tujuan',
+                                    xtype: 'trigger',
+                                    allowBlank: false,
+                                    triggerClass: 'teropong',
+                                    onTriggerClick:
+                                            function ()
+                                            {
+                                                deliveryTo();
+                                            }, scope: this
+
+                                },
+                                {
+                                    fieldLabel: 'Delivery date Estimate',
+                                    id: 'tgl_kirim_text',
+                                    name: 'tgl_kirim',
+                                    xtype: 'datefield',
+                                    format: ('d-m-Y'),
+                                    allowBlank: false
+                                },
+                                {
+                                    fieldLabel: 'Invoice To',
+                                    id: 'invoice_text',
+                                    name: 'invoice',
+                                    value: 'PT QDC Technologies',
+//                             allowBlank: false,
+                                    xtype: 'textfield'
+
+                                },
+                                {
+                                    fieldLabel: 'Payment Term',
+                                    id: 'po_term',
+                                    name: 'po-term',
+                                    xtype: 'textfield'
+                                }, {layout: 'column',
+                                    items: [
+                                        {layout: 'form',
+                                            items: [
+                                                {
+                                                    xtype: 'textfield',
+                                                    id: 'top',
+                                                    width: 50,
+//                                            allowNegative: false,
+                                                    allowBlank: false,
+                                                    name: 'textfield',
+                                                    fieldLabel: 'TOP',
+                                                    style: 'margin-right:5px',
+                                                    vtype: 'numeric'
+                                                }]}
+                                        , {layout: 'form',
+                                            items: [
+                                                {
+                                                    xtype: 'label',
+                                                    fieldLabel: 'Days',
+                                                    labelSeparator: ""
+                                                }]}
+                                    ]},
+                                {
+                                    fieldLabel: 'Remark',
+                                    id: 'ket_text',
+                                    name: 'keterangan',
+                                    xtype: 'textfield'
+                                },
+                                {
+                                    fieldLabel: 'Internal Notes',
+                                    id: 'ketin_text',
+                                    xtype: 'textarea',
+                                    width: 150,
+                                    height: 80
+                                }
+                            ]
+                        }
+
+                    ]
+                }
+            ];
+        },
+        buildUI: function () {
+            return [
+                {
+                    text: 'Search PR',
+                    icon: "/images/g_rec_src.png",
+                    handler: function () {
+                        showPrList();
+                    }
+
+                }, {
+                    text: 'Reset',
+                    handler: function (btn, ev) {
+
+                        this.getForm().reset();
+
+                        storePR.removeAll();
+                        init();
+                    },
+                    scope: this
+                }];
+        }
+    });
+
+    userForm2 = new Ext.extend(Ext.form.FormPanel, {
+        renderTo: 'user-form2',
+        id: 'po-form',
+        iconCls: 'silk-user',
+        labelAlign: 'right',
+        title: 'Detail Purchase Order (PO) Overhead',
+        frame: true,
+        width: 750,
+        labelAlign: 'left',
+                style: 'margin-top: 10px',
+        initComponent: function () {
+            this.items = this.buildForm();
+            this.buttons = this.buildUI();
+            this.addEvents({
+                create: true
+            });
+            userForm2.superclass.initComponent.call(this);
+        }
+        ,
+        buildForm: function () {
+            return [
+                {
+                    layout: 'column',
+                    items: [
+                        {columnWidth: .400,
+                            layout: 'form',
+                            items: [{
+                                    fieldLabel: 'PR Number',
+                                    id: 'pr_no_text',
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    width: 175
+                                },
+                                {
+                                    fieldLabel: 'Project Code',
+                                    id: 'prj_kode_text2',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    style: "font-weight:bold;color:black",
+                                    width: 175
+                                }, {
+                                    fieldLabel: 'Site Code',
+                                    id: 'sit_kode_text2',
+                                    xtype: 'textfield',
+                                    style: "font-weight:bold;color:black",
+                                    width: 175,
+                                    disabled: true
+                                },
+                                {
+                                    fieldLabel: 'Budget ID',
+                                    id: 'budgetid',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 175
+                                },
+                                {
+                                    fieldLabel: 'Budget Name',
+                                    id: 'budgetname',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 70
+                                },
+                                {
+                                    fieldLabel: 'Product ID',
+                                    id: 'kode_brg_text',
+                                    name: 'kode_brg',
+                                    xtype: 'textfield',
+                                    width: 175
+                                }, {
+                                    xtype: 'radiogroup',
+                                    fieldLabel: 'PPN ',
+                                    id: 'ppn-status',
+                                    width: 100,
+                                    items: [
+                                        {boxLabel: 'Yes ', name: 'ppn-status', inputValue: 'Y'},
+                                        {boxLabel: 'No ', name: 'ppn-status', inputValue: 'N', checked: true}
+                                    ], listeners: {
+                                        'change': function (t, ch)
+                                        {
+                                            if (ch.getGroupValue() == 'Y')
+                                            {
+                                                Ext.getCmp('ppn-persen').enable();
+                                                Ext.getCmp('ppn-persen').setValue(0.1);
+                                                Ext.getCmp('edit-tax').enable();
+                                                hitungTotal();
+                                                hitungTotalSupp();
+                                            } else
+                                            {
+                                                Ext.getCmp('edit-tax').disable();
+                                                Ext.getCmp('edit-tax').setValue('');
+
+                                                Ext.getCmp('ppn-persen').setValue('');
+                                                Ext.getCmp('ppn-persen').disable();
+
+                                                Ext.getCmp('ppn-value').setValue('');
+                                                Ext.getCmp('ppn-value').disable();
+                                                hitungTotal();
+                                                hitungTotalSupp();
+                                            }
+                                        }
+                                    }
+                                }, {
+                                    xtype: 'combo',
+                                    fieldLabel: 'PPN Value ',
+                                    width: 175,
+                                    id: 'ppn-persen',
+                                    disabled: true,
+                                    store: new Ext.data.SimpleStore({
+                                        fields: ['nilai', 'name'],
+                                        data: [
+                                            [0.01, '1%'],
+                                            [0.02, '2%'],
+                                            [0.03, '3%'],
+                                            [0.04, '4%'],
+                                            [0.05, '5%'],
+                                            [0.06, '6%'],
+                                            [0.07, '7%'],
+                                            [0.08, '8%'],
+                                            [0.09, '9%'],
+                                            [0.1, '10%']
+                                        ]
+                                    }),
+                                    valueField: 'nilai',
+                                    displayField: 'name',
+                                    typeAhead: true,
+                                    forceSelection: true,
+                                    editable: false,
+                                    mode: 'local',
+                                    triggerAction: 'all',
+                                    selectOnFocus: true,
+                                    emptyText: 'Select tax',
+                                    textAlign: 'right',
+                                    listeners: {
+                                        'select': function (combo, record, index)
+                                        {
+                                            hitungTotal();
+                                            hitungTotalSupp();
+                                        }
+                                    }
+                                }, {
+                                    layout: 'column',
+                                    items: [{
+                                            layout: 'form',
+                                            items: [new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: '',
+                                                    width: 120,
+                                                    id: 'ppn-value',
+                                                    priceDelemiter: ',',
+                                                    vtype: 'numeric',
+                                                    disabled: true,
+                                                    enableKeyEvents: true,
+                                                    value: 0,
+                                                    style: "font-weight:bold;color:black;text-align:right",
+                                                    listeners: {
+                                                        'keyup': function (t, e)
+                                                        {
+                                                            hitungTotal();
+                                                            hitungTotalSupp();
+                                                        }
+                                                    }
+                                                })]
+                                        }, {
+                                            xtype: 'checkbox',
+                                            hideLabel: true,
+                                            style: 'margin-left: 5px',
+                                            id: 'edit-tax',
+                                            boxLabel: 'Edit',
+                                            disabled: true,
+                                            listeners: {
+                                                check: function (checkbox, check)
+                                                {
+                                                    if (check)
+                                                    {
+                                                        Ext.getCmp('ppn-value').enable();
+                                                        Ext.getCmp('ppn-persen').setValue('');
+                                                        Ext.getCmp('ppn-persen').disable();
+                                                    } else
+                                                    {
+                                                        Ext.getCmp('ppn-value').setValue('');
+                                                        Ext.getCmp('ppn-value').disable();
+                                                        Ext.getCmp('ppn-persen').enable();
+                                                        Ext.getCmp('ppn-persen').setValue(0.1);
+                                                    }
+                                                }
+                                            }
+                                        }]
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .7,
+                                            layout: 'form',
+                                            style: 'margin-top:10',
+                                            items: [{
+                                                    fieldLabel: 'Qty Request',
+                                                    xtype: 'textfield',
+                                                    id: 'po-qty',
+                                                    allowBlank: false,
+                                                    width: 100,
+                                                    style: "text-align:right",
+                                                    enableKeyEvents: true,
+                                                    listeners: {
+                                                        'blur': function (t) {
+                                                            if (!isNaN(t.getValue()))
+                                                            {
+                                                                t.setValue(CommaFormatted(t.getValue()));
+                                                            }
+                                                        },
+                                                        'focus': function (t) {
+                                                            if (t.getValue().search(",") > 0)
+                                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                                        },
+                                                        'keyup': function (t, e) {
+                                                            if (!isNaN(t.getValue()))
+                                                            {
+                                                                hitungTotal();
+
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .3,
+                                            layout: 'form',
+                                            style: 'margin-top:10;margin-left:20;',
+                                            items: [{
+                                                    id: 'uom_text',
+                                                    xtype: 'textfield',
+                                                    disabled: true,
+                                                    hideLabel: true,
+                                                    width: 40
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    fieldLabel: 'Unit Price',
+                                    id: 'unit_price_text',
+                                    name: 'price',
+                                    allowBlank: false,
+                                    xtype: 'textfield',
+                                    style: "text-align:right",
+                                    width: 175,
+                                    enableKeyEvents: true,
+                                    listeners: {
+                                        'blur': function (t) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                t.setValue(CommaFormatted(t.getValue()));
+                                            }
+                                        },
+                                        'focus': function (t) {
+                                            if (t.getValue().search(",") > 0)
+                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                        },
+                                        'keyup': function (t, e) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                hitungTotal();
+                                            }
+                                        }
+                                    }
+
+                                }, {
+                                    fieldLabel: 'Total Price',
+                                    id: 'total_price_text',
+                                    xtype: 'textfield',
+                                    align: 'right',
+                                    disabled: true,
+                                    style: "text-align:right;font-weight:bold;color:black",
+                                    width: 175,
+                                    enableKeyEvents: true,
+                                    listeners: {
+                                        'blur': function (t) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                t.setValue(CommaFormatted(t.getValue()));
+                                            }
+                                        },
+                                        'focus': function (t) {
+                                            if (t.getValue().search(",") > 0)
+                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {columnWidth: .49,
+                            labelWidth: 150,
+                            layout: 'form',
+                            items: [{
+                                    fieldLabel: 'No',
+                                    id: 'urut_text',
+                                    xtype: 'textfield',
+                                    width: 35,
+                                    disabled: true
+                                }, {
+                                    fieldLabel: 'Project name',
+                                    id: 'prj_nama_text2',
+                                    xtype: 'textfield',
+                                    width: 175,
+                                    disabled: true
+                                }, {
+                                    fieldLabel: 'Site name',
+                                    id: 'sit_nama_text2',
+                                    xtype: 'textfield',
+                                    width: 175,
+                                    disabled: true
+                                },
+                                {
+                                    fieldLabel: 'Net Act',
+                                    id: 'net_act_text',
+//                                     disabled:true,
+                                    xtype: 'textfield',
+                                    width: 175
+
+                                },
+                                {
+                                    fieldLabel: 'Product Name',
+                                    id: 'nama_brg_text',
+                                    name: 'nama_brg',
+                                    allowBlank: false,
+                                    xtype: 'textfield',
+                                    width: 175,
+                                    disabled: true
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            style: 'margin-top:115',
+                                            layout: 'form',
+                                            items: [{
+                                                    fieldLabel: 'Qty Request For Supplier',
+                                                    xtype: 'textfield',
+                                                    id: 'posupp-qty',
+                                                    allowBlank: false,
+                                                    width: 100,
+                                                    style: "text-align:right",
+                                                    enableKeyEvents: true,
+                                                    listeners: {
+                                                        'blur': function (t) {
+                                                            if (!isNaN(t.getValue()))
+                                                            {
+                                                                t.setValue(CommaFormatted(t.getValue()));
+                                                            }
+                                                        },
+                                                        'focus': function (t) {
+                                                            if (t.getValue().search(",") > 0)
+                                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                                        },
+                                                        'keyup': function (t, e) {
+                                                            if (!isNaN(t.getValue()))
+                                                            {
+                                                                hitungTotalSupp();
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            layout: 'form',
+                                            style: 'margin-top:115;margin-left:20;',
+                                            items: [{
+                                                    id: 'uom_supp',
+                                                    xtype: 'textfield',
+                                                    disabled: true,
+                                                    hideLabel: true,
+                                                    style: "font-weight:bold;color:black",
+                                                    width: 40
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    fieldLabel: 'Unit Price For Supplier',
+                                    id: 'unit_price_supp',
+                                    name: 'price',
+                                    allowBlank: false,
+                                    xtype: 'textfield',
+                                    style: "text-align:right",
+                                    width: 175,
+                                    enableKeyEvents: true,
+                                    listeners: {
+                                        'blur': function (t) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                t.setValue(CommaFormatted(t.getValue()));
+                                            }
+                                        },
+                                        'focus': function (t) {
+                                            if (t.getValue().search(",") > 0)
+                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                        },
+                                        'keyup': function (t, e) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                hitungTotalSupp();
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    fieldLabel: 'Total Price For Supplier',
+                                    id: 'total_price_supp',
+                                    xtype: 'textfield',
+                                    align: 'right',
+                                    disabled: true,
+                                    style: "text-align:right",
+                                    width: 175,
+                                    enableKeyEvents: true,
+                                    listeners: {
+                                        'blur': function (t) {
+                                            if (!isNaN(t.getValue()))
+                                            {
+                                                t.setValue(CommaFormatted(t.getValue()));
+                                            }
+                                        },
+                                        'focus': function (t) {
+                                            if (t.getValue().search(",") > 0)
+                                                t.setValue(t.getValue().toString().replace(/\$|\,/g, ''));
+                                        }
+                                    }}
+                            ]
+                        }
+                    ]
+                }
+
+            ];
+        },
+        buildUI: function () {
+            return [
+                {
+                    text: 'Add to PO List Overhead',
+                    id: 'save-po',
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        insertPOtoList();
+                    }
+                }, {
+                    text: 'Cancel Add',
+                    id: 'cancel-po',
+                    iconCls: 'icon-cancel',
+                    handler: function () {
+
+                        if (Ext.getCmp('cancel-po').text == 'Cancel Edit')
+                        {
+                            if (oripr != undefined)
+                            {
+                                var a = storePO.getAt(storePO.findExact('id', oripr.data['id']));
+                                var b = storePR.getAt(storePR.findExact('id', oripr.data['id']));
+                                if (a != undefined)
+                                {
+                                    b.data['totalPO'] = parseFloat(b.data['totalPO']) + parseFloat(a.data['qty']);
+                                    a.data['status'] == '';
+                                }
+                            }
+                        }
+                        clearPOForm();
+                        if (Ext.getCmp('price-grids').getStore().getCount() != 0)
+                        {
+                            Ext.getCmp('price-grids').getStore().removeAll();
+                            Ext.getCmp('po-grid').getView().refresh();
+                        }
+
+                        Ext.getCmp('pr-detail-grid').enable();
+                        Ext.getCmp('po-grid').enable();
+                        Ext.getCmp('pr-detail-grid').getView().refresh();
+                        Ext.getCmp('po-grid').getView().refresh();
+                        oripr = undefined;
+                        oripo = undefined;
+
+
+                    }, scope: this
+                }
+            ];
+        }
+    });
+
+    userGrid = Ext.extend(Ext.grid.GridPanel, {
+        id: 'pr-detail-grid',
+        title: 'PR Detail',
+        iconCls: 'silk-grid',
+        frame: true,
+        height: 250,
+        style: 'margin-top: 10px',
+        trackMouseOver: true,
+        initComponent: function () {
+            userGrid.superclass.initComponent.call(this);
+        }
+    });
+
+    priceGrid = Ext.extend(Ext.grid.GridPanel, {
+        id: 'price-grids',
+        title: 'Price History',
+        iconCls: 'silk-grid',
+        frame: true,
+        height: 190,
+        style: 'margin-top: 10px',
+        trackMouseOver: true,
+        initComponent: function () {
+            userGrid.superclass.initComponent.call(this);
+        }
+    });
+
+    userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+        iconCls: 'silk-grid',
+        id: 'po-grid',
+        frame: true,
+        height: 250,
+        title: 'PO Shopping Cart',
+        style: 'margin-top: 10px',
+        initComponent: function () {
+            this.buttons = this.buildUI();
+            userGrid.superclass.initComponent.call(this);
+        },
+        buildUI: function () {
+        },
+        onSave: function (btn, ev) {
+            //this.store.save();
+            var json = '';
+            this.store.each(function (store) {
+                json += Ext.util.JSON.encode(store.data) + ',';
+            });
+            json = json.substring(0, json.length - 1);
+            params = {posts: [json]};
+            Ext.Ajax.request({
+                url: '/procurement/procurement/insertpo',
+                method: 'POST',
+                success: function (resp) {
+                    Ext.Msg.alert('Success', 'Data has been saved!');
+                    //isEdited = false;
+                },
+                failure: function (action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    } else {
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                    }
+                },
+                params: params
+            });
+        }
+    });
+
+    Ext.onReady(function () {
+        Ext.QuickTips.init();
+
+        var userForms = new userForm({
+            renderTo: 'user-form'
+
+        });
+
+        init();
+
+        var userGrids = new userGrid({
+            renderTo: 'user-grid',
+            store: storePR,
+            columns: userColumns,
+            width: 700,
+            plugins: [expander],
+            bbar: [new Ext.PagingToolbar({
+                    id: 'paging',
+                    pageSize: 100,
+                    store: storePR,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                '->', {
+                    xtype: 'button',
+                    text: 'Clear PR',
+                    id: 'clear-list',
+                    iconCls: 'icon-cancel',
+                    handler: function (btn, ev) {
+                        var index = userGrids.getSelectionModel().getSelections();
+                        if (!index) {
+                            return false;
+                        }
+                        Ext.each(index, function (op) {
+                            var idpr = op.data['id'];
+                            var cekid = storePO.getAt(storePO.findExact('id', idpr));
+
+                            if (cekid != undefined)
+                            {
+                                Ext.Msg.alert('can not remove selected');
+                                return false;
+                            }
+                            else
+                                storePR.remove(op);
+                        });
+                    },
+                    scope: this
+                }
+            ]
+        });
+
+        var userForms2 = new userForm2({
+            renderTo: 'user-form2'
+        });
+
+        var priceGrids = new priceGrid({
+            renderTo: 'price-grid',
+            store: storePrice,
+            columns: userColumns3,
+            width: 750
+
+        });
+
+        var userGrids2 = new userGrid2({
+            renderTo: 'user-grid2',
+            store: storePO,
+            columns: userColumns2,
+            width: 750,
+            plugins: [expander2],
+            bbar: ['->', {
+                    xtype: 'button',
+                    text: 'Save PO List(Cart) Overhead',
+                    id: 'save-list',
+                    iconCls: 'icon-save',
+                    disabled: true,
+                    handler: function ()
+                    {
+                        if (!Ext.getCmp('user-forms').getForm().isValid())
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Fill Blank Field!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        var json = '';
+                        var fileJson = '';
+                        var parameter = '';
+                        Ext.getCmp('po-grid').getStore().each(function (store) {
+
+                            json += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                        storeFile.each(function (store) {
+                            fileJson += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+
+                        var p = storePO.getAt(0);
+                        if (p == undefined || p == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Cart is Empty!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        //Get add. Data
+                        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+                        var sitKode = p.data['sit_kode'];
+                        var prjNama = p.data['prj_nama'];
+                        var sitNama = p.data['sit_nama'];
+                        var supkode = Ext.getCmp('sup_kode_text').getValue();
+                        var supnama = Ext.getCmp('sup_nama_text').getValue();
+                        var noPO = p.data['po_number'];
+                        var tgl = new Date(Ext.getCmp('tgl_kirim_text').getValue());
+                        var tglkirim = tgl.format('Y-m-d');
+                        var tujuan = Ext.getCmp('tujuan_text').getValue();
+                        var payterm = Ext.getCmp('po_term').getValue().toString().replace(/\"|\'|\n|\t|\r/g, '');
+                        var top = Ext.getCmp('top').getValue();
+                        var typepo = p.data['po_type'];
+                        var invoiceto = Ext.getCmp('invoice_text').getValue();
+                        var budgettype = Ext.getCmp('po_origin_text').getValue();
+                        var ket = Ext.getCmp('ket_text').getValue().toString().replace(/\"|\'|\n|\t|\r/g, '');
+                        var ketin = Ext.getCmp('ketin_text').getValue().toString().replace(/\"|\'|\n|\t|\r/g, '');
+                        var valKode = Ext.getCmp('val_kode_text').getValue();
+                        var rateidr = Ext.getCmp('curr_text').getValue().toString().replace(/\$|\,/g, '');
+
+//                        var holding_tax_percent = Ext.getCmp('ht-persen').getValue();
+//                        var holding_tax_val = parseFloat(Ext.getCmp('ht-value').getValue().toString().replace(/\$|\,/g, ''));
+//                        var fix_holding_tax = 0;
+//
+//                        if (holding_tax == 'Y') {
+//                            if (holding_tax_percent != '')
+//                                fix_holding_tax = holding_tax_percent;
+//                            else
+//                                fix_holding_tax = holding_tax_val;
+//                        }
+
+
+                        parameter = '[{"prj_kode":"' + prjKode + '","prj_nama":"' + prjNama + '", "sit_kode":"' + sitKode + '", "sit_nama":"'
+                                + sitNama + '","sup_kode":"' + supkode + '","sup_nama":"' + supnama + '","tgldeliesti":"' + tglkirim + '","tujuan":"'
+                                + tujuan + '","payterm":"' + payterm + '","typepo":"' + typepo + '", "invoiceto":"' + invoiceto + '", "budgettype":"'
+                                + budgettype + '", "ket":"' + ket + '", "ketin":"' + ketin + '", "val_kode":"'
+                                + valKode + '", "rateidr":"' + rateidr + '", "top":"' + top + '" }]';
+                        params = {posts: json, etc: parameter, file: fileJson};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/procurement/procurement/apppobudget', //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+                    },
+                    scope: this
+                }
+                ,
+                {
+                    xtype: 'button',
+                    text: 'Cancel PO List(Cart)',
+                    id: 'cancel-list',
+                    disabled: true,
+                    iconCls: 'icon-cancel',
+                    handler: showAddPO
+                    ,
+                    scope: this
+                }
+            ]
+        });
+
+        var tb1 = new Ext.Toolbar({
+            id: 'gtotal-bbar',
+            style: "text-align:right",
+            renderTo: userGrids2.bbar,
+            items: [
+                {
+                    xtype: 'label',
+                    id: 'gtotal-text'
+
+
+                }
+            ],
+            layout: 'fit'
+        });
+
+        var tb2 = new Ext.Toolbar({
+            id: 'pajak-bbar',
+            style: "text-align:right",
+            renderTo: userGrids2.bbar,
+            items: [
+                {
+                    xtype: 'label',
+                    id: 'pajak-text'
+
+                }
+            ],
+            layout: 'fit'
+        });
+
+        var tb3 = new Ext.Toolbar({
+            id: 'gtotals-bbar',
+            style: "text-align:right",
+            renderTo: userGrids2.bbar,
+            items: [
+                {
+                    xtype: 'label',
+                    id: 'gtotals-text'
+
+                }
+            ],
+            layout: 'fit'
+        });
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name", width: 130, dataIndex: 'filename'},
+            {header: '', width: 40, sortable: true, css: 'text-align:center;', renderer: function (v, p, r) {
+                    return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+                }}
+        ];
+
+        var fileUploads = new Ext.FormPanel({
+            renderTo: 'form_file',
+            fileUpload: true,
+            autoHeight: true,
+            frame: true,
+            style: 'margin-top: 10px',
+            width: 700,
+            defaults: {
+                anchor: '95%',
+                allowBlank: false,
+                msgTarget: 'side'
+            },
+            items: [
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .46,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fileuploadfield',
+                                    id: 'po-file',
+                                    emptyText: 'Select a File',
+                                    fieldLabel: 'Attach File',
+                                    allowBlank: false,
+                                    name: 'file-path',
+                                    buttonText: '',
+                                    buttonCfg: {
+                                        iconCls: 'upload-icon'
+                                    }
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Upload',
+                                    style: 'float: right',
+                                    handler: function () {
+                                        if (fileUploads.getForm().isValid()) {
+                                            form_action = 1;
+                                            fileUploads.getForm().submit({
+                                                url: '/procurement/procurement/uploadfile/type/PO',
+                                                waitMsg: 'Uploading file...',
+                                                success: function (form, action) {
+                                                    var returnData = action.result;
+                                                    if (returnData.success) {
+                                                        var c = new filelist({
+                                                            id: parseFloat(storeFile.getCount() + 1),
+                                                            filename: returnData.filename,
+                                                            savename: returnData.savename,
+                                                            path: returnData.path,
+                                                            status: 'new'
+                                                        });
+                                                        storeFile.add(c);
+                                                        Ext.getCmp('files-grid').getView().refresh();
+                                                        Ext.getCmp('po-file').setValue('');
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error', returnData.msg);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .5,
+                            layout: 'form',
+                            items: [
+                                new Ext.grid.GridPanel({
+                                    id: 'files-grid',
+                                    iconCls: 'silk-grid',
+                                    height: 100,
+                                    style: 'margin-left: 5px',
+                                    store: storeFile,
+                                    trackMouseOver: true,
+                                    view: new Ext.grid.GridView({
+                                        forceFit: true
+                                    }),
+                                    columns: fileColumns
+                                })
+                            ]
+                        }
+                    ]
+                }
+
+            ],
+            buttons: []
+        });
+<?php
+if ($this->PRtrano != '') {
+    ?>
+            Ext.Ajax.request({
+                results: 0,
+                url: '/default/home/getprsummary/data/<?php echo $this->PRtrano; ?>',
+                method: 'POST',
+                success: function (result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    var budgettype = returnData.posts[0].budgettype;
+
+                    if (Ext.getCmp('po_origin_text').getValue() != '')
+                    {
+
+                        if (Ext.getCmp('po_origin_text').getValue() != budgettype)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Budget Type Is Not Match',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                    }
+                    else
+                        Ext.getCmp('po_origin_text').setValue(budgettype);
+
+                    Ext.each(returnData.posts, function (op) {
+
+                        var c = new prlist({
+                            trano: op['trano'],
+                            tgl_pr: op['tgl'],
+                            urut: op['urut'],
+                            ket: op['ket'],
+                            prj_kode: op['prj_kode'],
+                            prj_nama: op['prj_nama'],
+                            sit_kode: op['sit_kode'],
+                            sit_nama: op['sit_nama'],
+                            workid: op['workid'],
+                            workname: op['workname'],
+                            kode_brg: op['kode_brg'],
+                            nama_brg: op['nama_brg'],
+                            qty: op['qty'],
+                            uom: op['uom'],
+                            price: op['harga'],
+                            totalPrice: op['jumlah'],
+                            val_kode: op['val_kode'],
+                            totalPO: op['totalPO'],
+                            totalPricePO: op['totalPricePO'],
+                            balancePO: op['balancePO'],
+                            net_act: op['myob'],
+                            budgettype: op['budgettype'],
+                            id: getNewID()
+
+                        });
+                        storePR.add(c);
+
+                    });
+                    Ext.getCmp('pr-detail-grid').getView().refresh();
+                }
+            });
+
+    <?php
+}
+?>
+    });
+</script>
+<div id="user-form"></div>
+<div id="form_file"></div>
+<div id="user-grid"></div>
+<div id="separator">
+    <div id="user-form2" style="float:left"></div>
+    <div class="sidebox" style="float:left;width:38em;">
+        <div class="boxhead"><h2>Available Qty</h2></div>
+        <div class="boxbody" id="a-qty"></div>
+    </div>
+</div>
+<div id="price-grid" style="float:left"></div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

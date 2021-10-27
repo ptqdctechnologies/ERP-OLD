@@ -1,0 +1,218 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var grid;
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Upload Request Price',
+            renderTo:'upload-request',
+            frame:true,
+            fileUpload: true,
+            width:600,
+            bodyStyle: 'padding: 10px 10px 0 10px;',
+            labelWidth: 100,
+            defaults: {
+                anchor: '95%'
+            },
+            items:[{
+                xtype: 'fileuploadfield',
+                id: 'form-file',
+                emptyText: 'Select a File',
+                fieldLabel: 'File Excel ',
+                name: 'file-path',
+                buttonText: '',
+                buttonCfg: {
+                    iconCls: 'upload-icon'
+                },
+                allowBlank: false
+            }],
+            buttons:[{
+                text:'Download Sample Format of Request Price',
+                handler: function(){
+                    window.open('/default/file/download/type/master_request_price','mywin',
+                    'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+	    		}
+            },{
+                text:'Upload',
+                handler:function(btn,ev)
+                {
+                    formpanel.getForm().submit({
+
+                        url: '/sales/requestprice/uploadrequestprice',
+                        waitMsg: 'Uploading your file...',
+                        success: function(fp, o)
+                        {
+                            var json = Ext.util.JSON.encode(o.result);
+                            var jsonDataPosts = '{"posts" : ' + Ext.util.JSON.encode(o.result.RESULT.posts) + '}';
+                            var jsonDataFields = Ext.util.JSON.encode(o.result.RESULT.fields);
+
+                            var Posts = Ext.util.JSON.decode(jsonDataPosts);
+
+                            var jsonData = Ext.util.JSON.decode(json);
+
+                            var reader = new Ext.data.JsonReader({
+                                idProperty: 'id',
+                                root: 'posts',
+                                fields: jsonData.RESULT.fields
+                            });
+
+                            var store = new Ext.data.Store({
+                                id: 'requestprice-store',
+                                reader: reader
+                            });
+
+                            if(grid != undefined)
+                            {
+                                grid.destroy();
+                            }
+
+                            var theData = Ext.util.JSON.decode(jsonDataPosts);
+                            store.loadData(theData);
+
+                            var editor = new Ext.ux.grid.RowEditor({
+                                saveText: 'Update',
+                                clicksToEdit: 1
+                            });
+
+                            grid = new Ext.grid.GridPanel({
+                                id: 'request-grid',
+                                store: store,
+                                width: 600,
+                                height: 400,
+                                frame: true,
+                                viewConfig:{
+                                    forceFit:true
+                                },
+                                renderTo:'fi-grid',
+                                tbar: [{
+                                            text: 'Refresh',
+                                            iconCls: 'silk-table-refresh',
+                                            handler: function(){
+                                                Ext.MessageBox.confirm('Confirm', 'This action will remove all changes on grid, Refresh data now?',
+                                                    function(btn)
+                                                    {
+                                                        if (btn == 'yes')
+                                                        {
+                                                            grid.getStore().removeAll();
+                                                            grid.getStore().loadData(Ext.util.JSON.decode(jsonDataPosts));
+                                                        }
+                                                    }
+                                                );
+
+                                            },
+                                            scope: this
+                                        }],
+                                       buttons: [{
+                                                    text: 'Submit',
+                                                    iconCls: 'icon-save',
+                                                    handler: function(){
+                                                        if (grid.getStore().getCount() == 0)
+                                                            return false;
+                                                        Ext.MessageBox.confirm('Confirm', 'This action will submit Request Price, Proceed?',
+                                                            function(btn)
+                                                            {
+                                                                if (btn == 'yes')
+                                                                {
+                                                                    var json='';
+                                                                    grid.getStore().each(function(store){
+                                                                        var encode = Ext.util.JSON.encode(store.data);
+                                                                        if (encode != undefined)
+                                                                            json += encode + ',';
+                                                                    });
+                                                                    json = '[' + json.substring(0, json.length - 1) + ']';
+
+                                                                    params = {posts:json};
+
+                                                                    Ext.Ajax.request ({
+                                                                        url:'/sales/requestprice/doinsertrequestprice',
+                                                                        method:'POST',
+                                                                        params:params,
+                                                                        success:function(result){
+                                                                            obj = Ext.util.JSON.decode(result.responseText);
+
+                                                                            if (obj.success)
+                                                                            {
+                                                                                Ext.Msg.alert ('Message','Success, Data has been saved' + '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>');
+                                                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                                myPanel.body.load({
+                                                                                url: '/sales/requestprice/menu',
+                                                                                scripts : true
+                                                                                });
+                                                                            }else
+                                                                            {
+                                                                                Ext.Msg.alert('Error', obj.msg);
+                                                                            }
+                                                                        },
+                                                                        failure:function( action){
+                                                                            if(action.failureType == 'server'){
+                                                                              obj = Ext.util.JSON.decode(action.response.responseText);
+                                                                              Ext.Msg.alert('Error!', obj.errors.reason);
+                                                                            }else{
+                                                                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                                            }
+                                                                        }
+                                                                    })
+                                                                }
+                                                            }
+                                                        );
+
+                                                    },
+                                                    scope: this
+                                                },{
+                                                    text: 'Cancel',
+                                                    iconCls: 'icon-cancel',
+                                                    handler: function(){
+                                                        Ext.getCmp('form-file').enable();
+                                                        Ext.getCmp('request-grid').getStore().removeAll();
+                                                        Ext.getCmp('request-grid').disable();
+                                                    }
+                                                }],
+                                plugins: [editor],
+                                columns: [new Ext.grid.RowNumberer(),
+                                          {
+                                              header: 'Nama barang',
+                                              dataIndex: 'nama_barang',
+                                              width: 200,
+                                              sortable: true
+                                          },{
+                                              header: 'Spec',
+                                              dataIndex: 'spec',
+                                              width: 100,
+                                              sortable: true
+                                          }]
+                                      });
+                        }
+
+                    })
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/sales/requestprice/menu',
+                    scripts : true
+                    })
+                }
+            }]
+            
+
+        })
+
+        
+
+
+
+    })
+
+
+</script>
+
+    <div id="upload-request"></div>
+    <br />
+    <div id="fi-grid"></div>

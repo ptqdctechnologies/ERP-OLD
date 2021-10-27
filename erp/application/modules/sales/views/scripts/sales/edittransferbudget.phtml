@@ -1,0 +1,1626 @@
+<script type="text/javascript">
+
+
+    Ext.form.ImageField = Ext.extend(Ext.form.Field, {
+        autoCreate: {tag: 'img'}
+        , setValue: function(new_value) {
+            if (new_value == undefined || new_value == null) {
+                this.el.dom.src = '/images/no_image.png';
+            } else {
+                this.el.dom.src = '/images/' + new_value;
+            }
+        }
+        , initValue: function() {
+            this.setValue(this.value);
+        }
+
+        , initComponent: function() {
+            Ext.apply(this, {
+            });
+            Ext.form.ImageField.superclass.initComponent.apply(this);
+        }
+    });
+    Ext.reg('image_field', Ext.form.ImageField);
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var TranoType = '';
+
+        function inputHandler() {
+            errorForm = false;
+
+            ref_number = Ext.getCmp('ref_number').getValue();
+            project_To = Ext.getCmp('prj_kode2').getValue();
+            site_To = Ext.getCmp('sit_kode2').getValue();
+            workid_To = Ext.getCmp('workid').getValue();
+            kodebrg_To = Ext.getCmp('kode_brg').getValue();
+
+            errorMsg = '';
+            if (ref_number == undefined || ref_number == '')
+                errorMsg += 'Transaction Number is still empty <br />';
+            if (project_To == undefined || project_To == '')
+                errorMsg += 'Project Code is still empty <br />';
+            if (site_To == undefined || site_To == '')
+                errorMsg += 'Site Code is still empty <br />';
+            if (workid_To == undefined || workid_To == '')
+                errorMsg += 'Work ID is still empty <br />';
+            if (kodebrg_To == undefined || kodebrg_To == '')
+                errorMsg += 'Product ID is still empty <br />';
+
+            if (errorMsg != '') {
+
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: errorMsg,
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                errorForm = true;
+            }
+
+            return form;
+        }
+
+        function getTranoType() {
+            return this.TranoType;
+        }
+        function setTranoType(new_TranoType) {
+            this.TranoType = new_TranoType;
+        }
+
+        function getParamForWorkflow() {
+
+            var refJson = '';
+
+//            var bpvJson = '';
+//            var paymentJson = '';
+
+            var gridRef;
+            tranoType = getTranoType();
+
+            if (tranoType == 'PR')
+                gridRef = Ext.getCmp('prgrid');
+            else
+                gridRef = Ext.getCmp('arfgrid');
+
+            gridRef.getStore().each(function(store) {
+
+                refJson += Ext.util.JSON.encode(store.data) + ',';
+            });
+            refJson = '[' + refJson.substring(0, refJson.length - 1) + ']'; //JSON format fix
+
+            var projectTo = Ext.getCmp('prj_kode2').getValue();
+            var projectNameTo = Ext.getCmp('prj_nama_text2').getValue();
+            var siteTo = Ext.getCmp('sit_kode2').getValue();
+            var siteNameTo = Ext.getCmp('sit_nama_text2').getValue();
+            var workidTo = Ext.getCmp('workid').getValue();
+            var workNameTo = Ext.getCmp('workid-select').getWorkidName();
+            var kodebrgTo = Ext.getCmp('kode_brg').getValue();
+            var namebrgTo = Ext.getCmp('nama_brg').getValue();
+            var ref_number = Ext.getCmp('ref_number').getValue();
+            var tranoType = getTranoType();
+            var tranoEdit = Ext.getCmp('tranoEdit').getValue();
+
+            params = {
+                tranoEdit: tranoEdit,
+                refJson: refJson,
+                projectTo: projectTo,
+                projectNameTo: projectNameTo,
+                siteTo: siteTo,
+                siteNameTo: siteNameTo,
+                workidTo: workidTo,
+                workNameTo: workNameTo,
+                kodebrgTo: kodebrgTo,
+                namebrgTo: namebrgTo,
+                item_type: 'TBOQ',
+                ref_number: ref_number,
+                tranoType: tranoType
+            };
+
+            return params;
+
+        }
+
+
+        function clearData() {
+
+            Ext.getCmp('project-select').reset();
+            Ext.getCmp('project-select2').reset();
+            Ext.getCmp('site-select').reset();
+            Ext.getCmp('site-select2').reset();
+
+            Ext.getCmp('workid-select').clearData();
+            Ext.getCmp('workid').setValue('');
+            Ext.getCmp('item-select').clearData();
+
+            Ext.getCmp('arfgrid').getStore().removeAll();
+            Ext.getCmp('asfgrid').getStore().removeAll();
+            Ext.getCmp('asfcancelgrid').getStore().removeAll();
+            Ext.getCmp('prgrid').getStore().removeAll();
+            Ext.getCmp('pogrid').getStore().removeAll();
+            Ext.getCmp('rpigrid').getStore().removeAll();
+
+            Ext.getCmp('bpvgrid').getStore().removeAll();
+            Ext.getCmp('paymentgrid').getStore().removeAll();
+
+            Ext.getCmp('arfgrid').getView().refresh();
+            Ext.getCmp('bpvgrid').getView().refresh();
+            Ext.getCmp('paymentgrid').getView().refresh();
+
+            setTranoType('');
+
+        }
+
+        var arflist = Ext.data.Record.create([{
+                name: 'workid',
+                type: 'string'
+            }, {
+                name: 'trano',
+                type: 'string'
+            }, {
+                name: 'workname',
+                type: 'string'
+            }, {
+                name: 'prj_kode',
+                type: 'string'
+            }, {
+                name: 'prj_nama',
+                type: 'string'
+            }, {
+                name: 'sit_kode',
+                type: 'string'
+            }, {
+                name: 'sit_nama',
+                type: 'string'
+            }, {
+                name: 'nama_brg',
+                type: 'string'
+            }, {
+                name: 'kode_brg',
+                type: 'string'
+            }, {
+                name: 'tgl',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'qty',
+                type: 'string'
+            }, {
+                name: 'id',
+                type: 'string'
+            }, {
+                name: 'ket',
+                type: 'string'
+            }, {
+                name: 'harga',
+                type: 'float'
+            }, {
+                name: 'hargaUSD',
+                type: 'float'
+            }, {
+                name: 'total_arf',
+                type: 'float'
+            }, {
+                name: 'totalPrice',
+                type: 'float'
+            }, {
+                name: 'totalPriceARF',
+                type: 'float'
+            }, {
+                name: 'totalUSD',
+                type: 'float'
+            }, {
+                name: 'val_kode',
+                type: 'string'
+            }, {
+                name: 'status',
+                type: 'string'
+            }, {
+                name: 'net_act',
+                type: 'string'
+            }, {
+                name: 'urut',
+                type: 'integer'
+            }, {
+                name: 'priceArf',
+                type: 'float'
+            }, {
+                name: 'totalqtyARF',
+                type: 'float'
+            }, {
+                name: 'totalARF',
+                type: 'float'
+            }, {
+                name: 'totalqtyPO',
+                type: 'float'
+            }, {
+                name: 'totalPO',
+                type: 'float'
+            }, {
+                name: 'totalqtyASFCancel',
+                type: 'float'
+            }, {
+                name: 'totalASFCancel',
+                type: 'float'
+            }, {
+                name: 'uom',
+                type: 'string'
+            }, {
+                name: 'totalPoArfAsfc',
+                type: 'float'
+            }, {
+                name: 'totalBOQ3',
+                type: 'float'
+            }, {
+                name: 'requester',
+                type: 'string'
+            }, {
+                name: 'requesterName',
+                type: 'string'
+            }
+        ]);
+
+        var storeARF = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: arflist}),
+            groupField: 'id',
+        });
+
+        var arfColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "Work Id", width: 55, sortable: true, dataIndex: 'workid'},
+            {header: "Work Name", width: 150, sortable: true, dataIndex: 'workname'},
+            {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+            {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+            {header: "Currency", width: 55, sortable: true, dataIndex: 'val_kode'},
+            {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+            {header: "Qty", width: 80, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['qty']);
+                }},
+            {header: "Price", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['harga']);
+                }},
+            {header: "Total", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total_arf']);
+//                    return CommaFormatted((parseFloat(r.data['hargaUSD']) * parseFloat(r.data['qty'])).toString());
+                }},
+            {header: "Net Act", width: 100, sortable: true, dataIndex: 'net_act'},
+            {header: "Remark", width: 100, sortable: true, dataIndex: 'ket'},
+        ];
+        var prColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "Work Id", width: 55, sortable: true, dataIndex: 'workid'},
+            {header: "Work Name", width: 150, sortable: true, dataIndex: 'workname'},
+            {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+            {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+            {header: "Currency", width: 55, sortable: true, dataIndex: 'val_kode'},
+            {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+            {header: "Qty", width: 80, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['qty']);
+                }},
+            {header: "Price", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['harga']);
+                }},
+            {header: "Total", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total_pr']);
+//                    return CommaFormatted((parseFloat(r.data['hargaUSD']) * parseFloat(r.data['qty'])).toString());
+                }},
+            {header: "Net Act", width: 100, sortable: true, dataIndex: 'net_act'},
+            {header: "Remark", width: 100, sortable: true, dataIndex: 'ket'},
+        ];
+
+        var prlist = Ext.data.Record.create([{
+                name: 'workid',
+                type: 'string'
+            }, {
+                name: 'trano',
+                type: 'string'
+            }, {
+                name: 'workname',
+                type: 'string'
+            }, {
+                name: 'prj_kode',
+                type: 'string'
+            }, {
+                name: 'prj_nama',
+                type: 'string'
+            }, {
+                name: 'sit_kode',
+                type: 'string'
+            }, {
+                name: 'sit_nama',
+                type: 'string'
+            }, {
+                name: 'nama_brg',
+                type: 'string'
+            }, {
+                name: 'kode_brg',
+                type: 'string'
+            }, {
+                name: 'tgl',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'qty',
+                type: 'string'
+            }, {
+                name: 'id',
+                type: 'integer'
+            }, {
+                name: 'ket',
+                type: 'string'
+            }, {
+                name: 'hargaIDR',
+                type: 'float'
+            }, {
+                name: 'hargaUSD',
+                type: 'float'
+            }, {
+                name: 'total_pr',
+                type: 'float'
+            }, {
+                name: 'totalPrice',
+                type: 'float'
+            },
+            {
+                name: 'harga',
+                type: 'float'
+            },
+            {name: 'totalOCA', type: 'float'},
+            {
+                name: 'totalUSD',
+                type: 'float'
+            }, {
+                name: 'val_kode',
+                type: 'string'
+            }, {
+                name: 'status',
+                type: 'string'
+            }, {
+                name: 'net_act',
+                type: 'string'
+            }, {
+                name: 'urut',
+                type: 'integer'
+            }, {
+                name: 'uom',
+                type: 'string'
+            },
+            {name: 'totalAFE', type: 'float'},
+            {name: 'tranoAFE', type: 'string'}
+
+        ]);
+
+        var storePR = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: prlist})
+        });
+
+        var polist = Ext.data.Record.create([{
+                name: 'id',
+                type: 'integer'
+            }, {
+                name: 'tgl_po',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'status',
+                type: 'string'
+            }, {
+                name: 'urut',
+                type: 'string'
+            }, {
+                name: 'tgl_pr',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'trano',
+                type: 'string'
+            }, {
+                name: 'prj_kode',
+                type: 'string'
+            }, {
+                name: 'prj_nama',
+                type: 'string'
+            }, {
+                name: 'sit_kode',
+                type: 'string'
+            }, {
+                name: 'sit_nama',
+                type: 'string'
+            }, {
+                name: 'workid',
+                type: 'string'
+            }, {
+                name: 'workname',
+                type: 'string'
+            }, {
+                name: 'kode_brg',
+                type: 'string'
+            }, {
+                name: 'nama_brg',
+                type: 'string'
+            }, {
+                name: 'qty',
+                type: 'string'
+            }, {
+                name: 'uom',
+                type: 'string'
+            }, {
+                name: 'net_act',
+                type: 'string'
+            }, {
+                name: 'harga',
+                type: 'float'
+            }, {
+                name: 'hargaIDR',
+                type: 'float'
+            }, {
+                name: 'hargaUSD',
+                type: 'float'
+            }, {
+                name: 'totalIDR',
+                type: 'float'
+            }, {
+                name: 'totalPrice',
+                type: 'float'
+            }, {
+                name: 'totalPricePO',
+                type: 'float'
+            }, {
+                name: 'totalUSD',
+                type: 'float'
+            }, {
+                name: 'val_kode',
+                type: 'string'
+            }, {
+                name: 'currency',
+                type: 'float'
+            }, {
+                name: 'totalPO',
+                type: 'float'
+            }, {
+                name: 'totalPricePR',
+                type: 'float'
+            }, {
+                name: 'total',
+                type: 'float'
+            }, {
+                name: 'gtotals',
+                type: 'float'
+            }, {
+                name: 'ppn',
+                type: 'float'
+            }, {
+                name: 'balancePO',
+                type: 'string'
+            }, {
+                name: 'sup_kode',
+                type: 'string'
+            }, {
+                name: 'sup_nama',
+                type: 'string'
+            }, {
+                name: 'po_number',
+                type: 'string'
+            }, {
+                name: 'pr_number',
+                type: 'string'
+            }, {
+                name: 'invoiceto',
+                type: 'string'
+            }, {
+                name: 'tax',
+                type: 'string'
+            }, {
+                name: 'tujuan',
+                type: 'string'
+            }, {
+                name: 'ket',
+                type: 'string'
+            }, {
+                name: 'tgl_kirim',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'po_term',
+                type: 'string'
+            }, {
+                name: 'budgettype',
+                type: 'string'
+            }, {
+                name: 'po_type',
+                type: 'string'
+            }, {
+                name: 'qtySupp',
+                type: 'float'
+            }, {
+                name: 'priceSupp',
+                type: 'float'
+            }, {
+                name: 'totalPriceSupp',
+                type: 'float'
+            }, {
+                name: 'statusppn'
+            }, {
+                name: 'valueppn'
+            }, {
+                name: 'percentppn'
+            }, {
+                name: 'valueppnSupp'
+            }, {
+                name: 'percentppnSupp'
+            }, {
+                name: 'ppn'
+            }, {
+                name: 'top',
+                type: 'integer'
+            }
+        ]);
+        var storePO = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: polist})
+        });
+
+        var poColumn = [
+            new Ext.grid.RowNumberer(),
+            {header: "PO No.", width: 100, sortable: true, dataIndex: 'trano'},
+            {header: "Work Id", width: 55, sortable: true, dataIndex: 'workid'},
+            {header: "Work Name", width: 150, sortable: true, dataIndex: 'workname'},
+            {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+            {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+            {header: "Currency", width: 55, sortable: true, dataIndex: 'val_kode'},
+            {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+            {header: "Qty", width: 80, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['qty']);
+                }},
+            {header: "Price", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['harga']);
+                }},
+            {header: "Total", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total']);
+//                    return CommaFormatted((parseFloat(r.data['hargaUSD']) * parseFloat(r.data['qty'])).toString());
+                }},
+            {header: "Net Act", width: 100, sortable: true, dataIndex: 'net_act'},
+            {header: "Remark", width: 100, sortable: true, dataIndex: 'ket'},
+        ];
+
+        var rpilist = Ext.data.Record.create([{
+                name: 'workid',
+                type: 'string'
+            }, {
+                name: 'trano',
+                type: 'string'
+            }, {
+                name: 'workname',
+                type: 'string'
+            }, {
+                name: 'prj_kode',
+                type: 'string'
+            }, {
+                name: 'prj_nama',
+                type: 'string'
+            }, {
+                name: 'sit_kode',
+                type: 'string'
+            }, {
+                name: 'sit_nama',
+                type: 'string'
+            }, {
+                name: 'nama_brg',
+                type: 'string'
+            }, {
+                name: 'kode_brg',
+                type: 'string'
+            }, {
+                name: 'tgl',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'qty',
+                type: 'string'
+            }, {
+                name: 'id',
+                type: 'integer'
+            }, {
+                name: 'harga',
+                type: 'float'
+            }, {
+                name: 'total',
+                type: 'float'
+            }, {
+                name: 'ppn',
+                type: 'float'
+            }, {
+                name: 'val_kode',
+                type: 'string'
+            }, {
+                name: 'status',
+                type: 'string'
+            }, {
+                name: 'po_no',
+                type: 'string'
+            }, {
+                name: 'pr_no',
+                type: 'string'
+            }, {
+                name: 'urut',
+                type: 'integer'
+            }, {
+                name: 'uom',
+                type: 'string'
+            }, {
+                name: 'value'
+            }, {
+                name: 'statusppn'
+            }, {
+                name: 'valueppn'
+            }, {
+                name: 'holding_tax_status'
+            }, {
+                name: 'holding_tax'
+            }, {
+                name: 'holding_tax_val'
+            }, {
+                name: 'holding_tax_text'
+            }, {
+                name: 'deduction'
+            }, {
+                name: 'total_value'
+            }, {
+                name: 'grossup_status'
+            }, {
+                name: 'ppn_ref_number'
+            }, {
+                name: 'coa_kode'
+            }, {
+                name: 'coa_nama'
+            }]);
+
+        var storeRPI = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: rpilist})
+        });
+
+        var rpiColumn = [
+            new Ext.grid.RowNumberer(),
+            {header: "RPI No.", width: 100, sortable: true, dataIndex: 'trano'},
+            {header: "Work Id", width: 55, sortable: true, dataIndex: 'workid'},
+            {header: "Work Name", width: 150, sortable: true, dataIndex: 'workname'},
+            {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+            {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+            {header: "Currency", width: 55, sortable: true, dataIndex: 'val_kode'},
+            {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+            {header: "Qty", width: 80, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['qty']);
+                }},
+            {header: "Price", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['harga']);
+                }},
+            {header: "Total", width: 100, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total']);
+//                    return CommaFormatted((parseFloat(r.data['hargaUSD']) * parseFloat(r.data['qty'])).toString());
+                }},
+            {header: "Net Act", width: 100, sortable: true, dataIndex: 'net_act'},
+            {header: "Remark", width: 100, sortable: true, dataIndex: 'ket'},
+        ];
+
+        var bpvlist = Ext.data.Record.create([{
+                name: 'bpv_no',
+                type: 'string'
+            }, {
+                name: 'total_bpv',
+                type: 'float'
+            }, {
+                name: 'tgl_bpv',
+                type: 'string'
+            }
+        ]);
+
+        var storeBPV = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: bpvlist})
+        });
+
+        var bpvColumn = [
+            new Ext.grid.RowNumberer(),
+            {header: "BPV Number", width: 125, sortable: true, dataIndex: 'bpv_no'},
+            {header: "Total BPV", width: 125, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total_bpv']);
+                }},
+            {header: "Date Transaction", width: 150, sortable: true, dataIndex: 'tgl_bpv'}
+        ];
+
+        var paymentlist = Ext.data.Record.create([{
+                name: 'payment_trano',
+                type: 'string'
+            }, {
+                name: 'total_payment',
+                type: 'float'
+            }, {
+                name: 'tgl_payment',
+                type: 'string'
+            }
+        ]);
+
+        var storePayment = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: paymentlist})
+        });
+
+        var paymentColumn = [
+            new Ext.grid.RowNumberer(),
+            {header: "Payment(Bank) Number", width: 150, sortable: true, dataIndex: 'payment_trano'},
+            {header: "Total Payment", width: 125, sortable: true, css: 'text-align:right;', renderer: function(v, p, r) {
+                    return CommaFormatted(r.data['total_payment']);
+                }},
+            {header: "Date Transaction", width: 150, sortable: true, dataIndex: 'tgl_payment'}
+        ];
+
+
+        var record = Ext.data.Record.create([{
+                name: 'id',
+                type: 'integer'
+            }, {
+                name: 'asfno',
+                type: 'string'
+            }, {
+                name: 'asfcancelno',
+                type: 'string'
+            }, {
+                name: 'arf_no',
+                type: 'string'
+            }, {
+                name: 'arfcancel_no',
+                type: 'string'
+            }, {
+                name: 'tgl_asf',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'tgl_arf',
+                type: 'date',
+                dateFormat: 'Y-m-d'
+            }, {
+                name: 'urut',
+                type: 'string'
+            }, {
+                name: 'prj_kode',
+                type: 'string'
+            }, {
+                name: 'prj_nama',
+                type: 'string'
+            }, {
+                name: 'sit_kode',
+                type: 'string'
+            }, {
+                name: 'sit_nama',
+                type: 'string'
+            }, {
+                name: 'workidAsf',
+                type: 'string'
+            }, {
+                name: 'worknameAsf',
+                type: 'string'
+            }, {
+                name: 'kode_brgAsf',
+                type: 'string'
+            }, {
+                name: 'nama_brgAsf',
+                type: 'string'
+            }, {
+                name: 'qtyAsf',
+                type: 'string'
+            }, {
+                name: 'uom',
+                type: 'string'
+            }, {
+                name: 'hargaAsf',
+                type: 'float'
+            }, {
+                name: 'total_asf',
+                type: 'float'
+            }, {
+                name: 'totalPriceInArfh',
+                type: 'float'
+            }, {
+                name: 'ket',
+                type: 'string'
+            }, {
+                name: 'petugas',
+                type: 'string'
+            }, {
+                name: 'val_kode',
+                type: 'string'
+            }, {
+                name: 'rateidr',
+                type: 'float'
+            }, {
+                name: 'total_asf',
+                type: 'float'
+            },
+            {
+                name: 'total',
+                type: 'float'
+            },
+            {
+                name: 'totalPriceASF',
+                type: 'float'
+            }, {
+                name: 'status',
+                type: 'string'
+            }, {
+                name: 'cfs_kode',
+                type: 'string'
+            },
+            {
+                name: 'qtyAsfCancel',
+                type: 'string'
+            },
+            {
+                name: 'kode_brgAsfCancel',
+                type: 'string'
+            },
+            {
+                name: 'nama_brgAsfCancel',
+                type: 'string'
+            },
+            {
+                name: 'workidAsfCancel',
+                type: 'string'
+            },
+            {
+                name: 'worknameAsfCancel',
+                type: 'string'
+            },
+            {
+                name: 'hargaAsfCancel',
+                type: 'float'
+            },
+            {
+                name: 'total_asfcancel',
+                type: 'float'
+            }
+        ]);
+
+        var storeASF = new Ext.data.Store({
+            id: 'store-asf',
+            reader: new Ext.data.JsonReader({fields: record}),
+            listeners: {
+                'load': function(record) {
+                    hitungAsfTotal();
+                }
+            }
+        });
+        var storeASFCancel = new Ext.data.Store({
+            id: 'store-asfcancel',
+            reader: new Ext.data.JsonReader({fields: record}),
+            listeners: {
+                'load': function(record) {
+                    hitungAsfTotalCancel();
+                }
+            }
+        });
+
+        function hitungAsfTotal()
+        {
+            totalasf = 0;
+            storeASF.each(function(items) {
+                totalasf += (parseFloat(items.data['total_asf']));
+            });
+            Ext.getCmp('totalasffooter').setText('Total ASF : ' + Ext.util.Format.number(totalasf, '0,0.00'));
+        }
+        function hitungAsfTotalCancel()
+        {
+            totalasfcancel = 0;
+            storeASFCancel.each(function(items) {
+                totalasfcancel += (parseFloat(items.data['total_asf_cancel']));
+            });
+            Ext.getCmp('totalasffootercancel').setText('Total ASF : ' + Ext.util.Format.number(totalasfcancel, '0,0.00'));
+        }
+
+        var arfGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'arfgrid',
+            frame: true,
+            border: true,
+            title: 'ARF List',
+            collapsible: true,
+            features: [{ftype: 'grouping'}],
+//            plugins: [rowactions2, editor],
+            columns: arfColumns,
+//            autoWidth: true,
+            width: 675,
+            height: 150,
+            store: storeARF,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            }
+        });
+        var prGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'prgrid',
+            frame: true,
+            border: true,
+            hidden: true,
+            title: 'PR List',
+            collapsible: true,
+            features: [{ftype: 'grouping'}],
+//            plugins: [rowactions2, editor],
+            columns: prColumns,
+//            autoWidth: true,
+            width: 675,
+            height: 150,
+            store: storePR,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            }
+        });
+        var asfGrid = new Ext.grid.GridPanel({
+            store: storeASF,
+            title: 'ASF (Expense Claim)',
+//            renderTo: 'gridpanel',
+            id: 'asfgrid',
+            frame: true,
+            width: 675,
+            style: 'margin-top:10px',
+            height: 150,
+            columns: [new Ext.grid.RowNumberer(),
+                {
+                    header: 'ASF Number',
+                    dataIndex: 'asfno',
+                    sortable: true
+                }, {
+                    header: 'ARF Number',
+                    dataIndex: 'arf_no',
+                    sortable: true
+                }, {
+                    header: 'Work ID',
+                    dataIndex: 'workidAsf',
+                    sortable: true
+                },
+                {
+                    header: 'Work Name',
+                    dataIndex: 'worknameAsf',
+                    sortable: true
+                },
+                {
+                    header: 'Name Material',
+                    dataIndex: 'nama_brgAsf',
+                    sortable: true
+                },
+                {
+                    header: 'Qty',
+                    dataIndex: 'qtyAsf',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'qtyAsf',
+                        vtype: 'numeric',
+                        width: 100,
+                        listeners: {
+                            change: function(a, b) {
+//                            hitungSubtotal();
+                            }
+                        }
+                    }
+                },
+                {
+                    header: 'Price',
+                    dataIndex: 'hargaAsf',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'hargaAsf',
+                        vtype: 'numeric',
+                        width: 100,
+                        listeners: {
+                            change: function(a, b) {
+//                            hitungSubtotal();
+                            }
+                        }
+                    }
+                },
+                {
+                    header: 'Total',
+                    dataIndex: 'total_asf',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    },
+                },
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'temp_bbar',
+                style: "text-align:right;",
+                items: [{
+                        xtype: 'label',
+                        id: 'totalasffooter',
+                        style: 'color:red;font-weight:bold;margin-right:40px;font-size:12'
+                    }
+                ],
+                layout: 'fit'
+            })
+
+        });
+        var asfCancelGrid = new Ext.grid.GridPanel({
+            title: 'ASF (Amount Due To Company)',
+            store: storeASFCancel,
+            id: 'asfcancelgrid',
+            frame: true,
+            width: 675,
+            height: 150,
+            columns: [new Ext.grid.RowNumberer(),
+                {
+                    header: 'ASF Number',
+                    dataIndex: 'asfcancelno',
+                    sortable: true
+                }, {
+                    header: 'ARF Number',
+                    dataIndex: 'arfcancel_no',
+                    sortable: true
+                }, {
+                    header: 'Work ID',
+                    dataIndex: 'workidAsfCancel',
+                    sortable: true
+                },
+                {
+                    header: 'Work Name',
+                    dataIndex: 'worknameAsfCancel',
+                    sortable: true
+                },
+                {
+                    header: 'Name Material',
+                    dataIndex: 'nama_brgAsfCancel',
+                    sortable: true
+                },
+                {
+                    header: 'Qty',
+                    dataIndex: 'qtyAsfCancel',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'qtyAsfCancel',
+                        vtype: 'numeric',
+                        width: 100,
+                        listeners: {
+                            change: function(a, b) {
+//                            hitungSubtotal();
+                            }
+                        }
+                    }
+                },
+                {
+                    header: 'Price',
+                    dataIndex: 'hargaAsfCancel',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'hargaAsfCancel',
+                        vtype: 'numeric',
+                        width: 100,
+                        listeners: {
+                            change: function(a, b) {
+//                            hitungSubtotal();
+                            }
+                        }
+                    }
+                },
+                {
+                    header: 'Total',
+                    dataIndex: 'total_asfcancel',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    },
+                },
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'temp_bbarcancel',
+                style: "text-align:right;",
+                items: [{
+                        xtype: 'label',
+                        id: 'totalasffootercancel',
+                        style: 'color:red;font-weight:bold;margin-right:40px;font-size:12'
+                    }
+                ],
+                layout: 'fit'
+            })
+
+        });
+        var poGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'pogrid',
+            frame: true,
+            border: true,
+            hidden: true,
+            title: 'PO List',
+            collapsible: true,
+//            plugins: [rowactions2, editor],
+            columns: poColumn,
+//            autoWidth: true,
+            width: 675,
+            height: 150,
+            store: storePO,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            }, style: 'margin:5'
+        });
+        var rpiGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'rpigrid',
+            frame: true,
+            border: true,
+            hidden: true,
+            title: 'RPI List',
+            collapsible: true,
+//            plugins: [rowactions2, editor],
+            columns: rpiColumn,
+//            autoWidth: true,
+            width: 675,
+            height: 150,
+            store: storeRPI,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            }, style: 'margin:5'
+        });
+        var bpvGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'bpvgrid',
+            frame: true,
+            border: true,
+            title: 'BPV List',
+            collapsible: true,
+//            plugins: [rowactions2, editor],
+            columns: bpvColumn,
+//            autoWidth: true,
+            width: 465,
+            height: 150,
+            store: storeBPV,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            }, style: 'margin:5'
+        });
+        var paymentGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            id: 'paymentgrid',
+            frame: true,
+            border: true,
+            title: 'Payment List',
+            collapsible: true,
+//            plugins: [rowactions2, editor],
+            columns: paymentColumn,
+//            autoWidth: true,
+            width: 465,
+            height: 150,
+            store: storePayment,
+            viewConfig: {
+//                forceFit: true,
+                enableRowBody: true
+            },
+            style: 'margin:5',
+        });
+
+        var project_from = new Ext.form.FieldSet({
+            labelWidth: 100,
+            width: 300,
+            style: 'margin:5',
+            id: 'project_from',
+            title: 'Project From',
+            itemId: 'fieldset-project_from',
+            columnWidth: 0.5,
+            height: 150,
+            items: [{
+                    layout: 'form',
+                    style: 'margin-left:5px;',
+                    items: [
+                        {
+                            xtype: 'projectselector',
+                            anchor: '100%',
+                            id: 'project-select',
+                            Selectid: 'prj_kode',
+                            Nameid: 'prj_nama_text',
+                            ShowName: true,
+                            fieldLabel: 'Project Code',
+                            allowBlank: false,
+                            showAll: true,
+                            disabled: true,
+                            callback: function(prj) {
+                            }
+                        }, {
+                            xtype: 'siteselector',
+                            anchor: '100%',
+                            independent: false,
+                            id: 'site-select',
+                            SiteSelectid: 'sit_kode',
+                            SiteNameid: 'sit_nama_text',
+                            ProjectSelectid: 'prj_kode',
+                            ShowName: true,
+                            fieldLabel: 'Site Code ',
+                            allowBlank: false,
+                            showAll: true,
+                            disabled: true,
+                            callback: function(site) {
+                            }
+                        },
+//                        {
+//                            xtype: 'workidselector',
+//                            id: 'workid',
+//                            Selectid: 'workid_text',
+//                            width: 80,
+//                            anchor: '100%',
+//                            showName: true,
+//                            disabled: true,
+//                            fieldLabel: 'Work ID ',
+//                        }, {
+//                            xtype: 'itemselector',
+//                            fieldLabel: 'Product ID',
+//                            id: 'item-select',
+//                            Selectid: 'kode_brg_text',
+//                            Nameid: 'nama_brg_text',
+//                            showName: true,
+//                            disabled: true,
+//                            anchor: '100%',
+//                            prjKodeField: 'prj_kode'
+//                        }
+                    ]
+                }]
+        });
+
+        var project_to = new Ext.form.FieldSet({
+            labelWidth: 100,
+            width: 300,
+            style: 'margin:5',
+            id: 'project_to',
+            title: 'Project To',
+            itemId: 'fieldset-project_to',
+            columnWidth: 0.5,
+            height: 150,
+            items: [{
+                    layout: 'form',
+                    style: 'margin-left:5px;',
+                    items: [
+                        {
+                            xtype: 'projectselector',
+                            anchor: '100%',
+                            id: 'project-select2',
+                            Selectid: 'prj_kode2',
+                            Nameid: 'prj_nama_text2',
+                            ShowName: true,
+                            fieldLabel: 'Project Code',
+                            allowBlank: false,
+                            showAll: true,
+//                            disabled: true,
+                            callback: function(prj) {
+                            }
+                        }, {
+                            xtype: 'siteselector',
+                            anchor: '100%',
+                            independent: false,
+                            id: 'site-select2',
+                            SiteSelectid: 'sit_kode2',
+                            SiteNameid: 'sit_nama_text2',
+                            ProjectSelectid: 'prj_kode2',
+                            ShowName: true,
+                            fieldLabel: 'Site Code',
+                            allowBlank: false,
+                            showAll: true,
+//                            disabled: true,
+                            callback: function(site) {
+                            }
+                        }, {
+                            xtype: 'workidselector',
+                            id: 'workid-select',
+                            Selectid: 'workid',
+                            Nameid: 'workname',
+                            width: 80,
+                            anchor: '100%',
+                            showName: true,
+                            fieldLabel: 'Work ID',
+                            //overhead
+                        }, {
+                            xtype: 'itemselector',
+                            anchor: '100%',
+                            id: 'item-select',
+                            Selectid: 'kode_brg',
+                            Nameid: 'nama_brg',
+                            ShowName: true,
+                            fieldLabel: 'Product ID',
+                            allowBlank: false,
+                            useDisplayField: true,
+                            prjKodeField: 'prj_kode2'
+                        }
+                    ]
+                }]
+        });
+
+        var inv_value = new Ext.form.FieldSet({
+            labelWidth: 150,
+            id: 'form1',
+            width: 700,
+            style: 'margin:10 0 0 0',
+            items: [{
+//                            columnWidth: 0.5,
+                    layout: 'form',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                project_from,
+                                project_to
+                            ]
+                        },
+                        arfGrid,
+                        asfGrid,
+                        asfCancelGrid,
+                        prGrid, poGrid, rpiGrid
+                    ]}
+
+            ]
+
+        });
+        var inv_value2 = new Ext.form.FieldSet({
+            labelWidth: 150,
+            width: 500,
+            style: 'margin:10 0 0 0',
+            items: [{
+                    layout: 'column',
+                    items: [{
+//                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [bpvGrid, paymentGrid
+                            ]
+                        }]
+                }]
+
+        });
+
+
+
+
+        var panel = new Ext.form.FormPanel({
+            title: 'Transfet Budget Action',
+            id: 'transfer_budget_panel',
+            renderTo: 'transfer_budget_div',
+            frame: true,
+            width: 720,
+            items: [
+                {
+                    layout: 'column',
+                    items: [
+                        {layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'TBOQ Number',
+                                    id: 'tranoEdit',
+                                    width: 165,
+                                    disabled: true
+                                },
+                                {
+                                    xtype: 'tranoselector',
+                                    fieldLabel: 'Transaction Number',
+                                    id: 'tranos',
+                                    Selectid: 'ref_number',
+                                    width: 165,
+                                    disabled: true,
+                                    Tranotype: ['ARF', 'ARFO', 'BRFP', 'PR'],
+                                    Disabletype: true,
+                                    callbackFunc: function(trano, itemType) {
+
+                                        if (itemType == 'PR')
+                                            url = '/default/home/get-data-project/data/';
+                                        else
+                                            url = '/default/home/get-data-advance/data/';
+                                        Ext.Ajax.request({
+                                            scope: this,
+                                            results: 0,
+                                            url: url + trano,
+                                            method: 'POST',
+                                            success: function(result, request) {
+                                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                                if (returnData.posts != null || returnData.posts != undefined) {
+
+                                                    clearData();
+                                                    setTranoType(itemType);
+                                                    if (itemType == 'PR')
+                                                    {
+
+                                                        arfGrid.setVisible(false);
+                                                        asfGrid.setVisible(false);
+                                                        asfCancelGrid.setVisible(false);
+
+                                                        prGrid.setVisible(true);
+                                                        poGrid.setVisible(true);
+                                                        rpiGrid.setVisible(true);
+
+                                                        prGrid.getStore().loadData(returnData.posts);
+                                                        if (returnData.dataPO != null || returnData.dataPO != undefined)
+                                                            poGrid.getStore().loadData(returnData.dataPO);
+                                                        if (returnData.dataRpi != null || returnData.dataRpi != undefined)
+                                                            rpiGrid.getStore().loadData(returnData.dataRpi);
+                                                    }
+                                                    else {
+                                                        arfGrid.setVisible(true);
+                                                        asfGrid.setVisible(true);
+                                                        asfCancelGrid.setVisible(true);
+
+                                                        prGrid.setVisible(false);
+                                                        poGrid.setVisible(false);
+                                                        rpiGrid.setVisible(false);
+
+                                                        arfGrid.getStore().loadData(returnData.posts);
+                                                        if (returnData.dataAsf != null || returnData.dataAsf != undefined)
+                                                            asfGrid.getStore().loadData(returnData.dataAsf);
+                                                        if (returnData.dataAsfCancel != null || returnData.dataAsfCancel != undefined)
+                                                            asfCancelGrid.getStore().loadData(returnData.dataAsfCancel);
+                                                    }
+
+                                                    if (returnData.dataBpv != null || returnData.dataBpv != undefined)
+                                                        bpvGrid.getStore().loadData(returnData.dataBpv);
+                                                    if (returnData.dataPayment != null || returnData.dataPayment != undefined)
+                                                        paymentGrid.getStore().loadData(returnData.dataPayment);
+
+                                                    dataSample = returnData.posts[0];
+                                                    Ext.getCmp('prj_kode').setValue(dataSample.prj_kode);
+                                                    Ext.getCmp('sit_kode').setValue(dataSample.sit_kode);
+                                                    Ext.getCmp('prj_nama_text').setValue(dataSample.prj_nama);
+                                                    Ext.getCmp('sit_nama_text').setValue(dataSample.sit_nama);
+
+                                                }
+                                                else
+                                                    Ext.Msg.alert('Sorry!', 'Data not found or \n\
+                                                                                This Document still on Process (No Final Approval or Executed yet)');
+                                            }
+                                            ,
+                                            failure: function(action) {
+                                                if (action.failureType == 'server') {
+                                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                                }
+                                            }
+                                        });
+                                    }
+                                },
+                                inv_value,
+                                inv_value2
+
+                            ]}
+
+
+                    ]}
+
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function(btn, ev)
+                    {
+                        if (!inputHandler())
+                            Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+                                if (btn == 'yes')
+                                {
+                                    var wButt = new Ext.ux.workflowButton({
+                                        itemType: 'TBOQ',
+                                        showSubmitButton: true,
+                                        urlSubmit: '/sales/sales/doupdatetransferbudget',
+                                        isEdit: true,
+                                        submitParams: getParamForWorkflow(),
+                                        submitSuccessCallback: function() {
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/sales/sales/transferbudgetmenu',
+                                                scripts: true
+                                            });
+                                        },
+                                        cancelSuccessCallback: function() {
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/sales/sales/transferbudgetmenu',
+                                                params: params,
+                                                scripts: true
+                                            });
+                                        }
+                                    });
+
+                                    wButt.submitButton.fireEvent("click");
+
+                                }
+
+                            })
+                    }
+                },
+                {
+                    text: 'Reset',
+                    handler: function(btn, ev)
+                    {
+                        clearData();
+                    }
+                }]
+
+
+        });
+
+
+<?php if ($this->ref_data) { ?>
+            var refdata = <?= Zend_Json::encode($this->ref_data) ?>;
+    <?php if ($this->trano_type == 'PR') { ?>
+                Ext.each(refdata, function(r) {
+                    var d = new prlist(r);
+                    storePR.insert(0, d);
+                    prGrid.getView().refresh();
+                });
+    <?php } else { ?>
+                Ext.each(refdata, function(r) {
+                    var d = new arflist(r);
+                    storeARF.insert(0, d);
+                    arfGrid.getView().refresh();
+                });
+    <?php } ?>
+<?php } ?>
+
+<?php if ($this->poData) { ?>
+            var poData = <?= Zend_Json::encode($this->poData) ?>;
+            Ext.each(poData, function(r) {
+                var d = new polist(r);
+                storePO.insert(0, d);
+                poGrid.getView().refresh();
+            });
+<?php } ?>
+
+<?php if ($this->rpiData) { ?>
+            var rpiData = <?= Zend_Json::encode($this->rpiData) ?>;
+            Ext.each(rpiData, function(r) {
+                var d = new rpilist(r);
+                storeRPI.insert(0, d);
+                rpiGrid.getView().refresh();
+            });
+<?php } ?>
+
+<?php if ($this->payData) { ?>
+            var payData = <?= Zend_Json::encode($this->payData) ?>;
+            Ext.each(payData, function(r) {
+                var d = new paymentlist(r);
+                storePayment.insert(0, d);
+                paymentGrid.getView().refresh();
+            });
+<?php } ?>
+<?php if ($this->asfData) { ?>
+            var asfData = <?= Zend_Json::encode($this->asfData) ?>;
+            Ext.each(asfData, function(r) {
+                var d = new record(r);
+                storeASF.insert(0, d);
+                asfGrid.getView().refresh();
+            });
+<?php } ?>
+<?php if ($this->asfCancelData) { ?>
+            var asfCancelData = <?= Zend_Json::encode($this->asfCancelData) ?>;
+            Ext.each(asfCancelData, function(r) {
+                var d = new record(r);
+                storeASFCancel.insert(0, d);
+                asfCancelGrid.getView().refresh();
+            });
+<?php } ?>
+
+        setTranoType('<?= $this->trano_type ?>');
+
+        Ext.getCmp('prj_kode').setValue('<?= $this->prj_kode_from ?>');
+        Ext.getCmp('prj_kode2').setValue('<?= $this->prj_kode ?>');
+        Ext.getCmp('sit_kode').setValue('<?= $this->sit_kode_from ?>');
+        Ext.getCmp('sit_kode2').setValue('<?= $this->sit_kode ?>');
+        Ext.getCmp('workid').setValue('<?= $this->workid ?>');
+        Ext.getCmp('kode_brg').setValue('<?= $this->kode_brg ?>');
+        Ext.getCmp('ref_number').setValue('<?= $this->arfNo ?>');
+        Ext.getCmp('tranoEdit').setValue('<?= $this->trano ?>');
+
+
+    });
+
+
+
+
+
+</script>
+
+<div id="transfer_budget_div"></div>

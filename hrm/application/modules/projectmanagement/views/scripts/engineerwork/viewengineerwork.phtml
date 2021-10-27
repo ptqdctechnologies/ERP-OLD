@@ -1,0 +1,129 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function refreshData ()
+        {
+            workstore.clearFilter();
+            Ext.getCmp('search').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+
+        var datas = [
+                ['Work ID',1],
+                ['Work Name',2]
+            ];
+
+        var store = new Ext.data.ArrayStore({
+            fields: ['a', 'b'],
+            data : datas
+        });
+        var combo = new Ext.form.ComboBox({
+            store: store,
+            displayField:'a',
+            valueField: 'b',
+            typeAhead: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus:true,
+            name:'option',
+            width:100,
+            style: 'margin-left: 5px',
+            value:1,
+            id:'option'
+        });
+
+        var workstore = new Ext.data.Store({
+
+            url:'/projectmanagement/engineerwork/getviewengineerwork',
+            autoLoad:true,
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'workid',type:'String'},
+                {name:'workname',type:'String'}
+            ])
+
+        })
+
+        var grid = new Ext.grid.GridPanel ({
+
+            store:workstore,
+
+            viewConfig:{
+              forceFit:true  
+            },
+
+            title:'View Engineer Work',
+            renderTo:'viewengineerwork',
+            width:440,
+            height:400,
+            frame:true,
+            columns:[
+                {
+                    header:'Work ID',
+                    dataIndex:'workid',
+                    align:'center',
+                    width:60,
+                    sortable:true
+                },
+                {
+                    header:'Work Name',
+                    dataIndex:'workname',
+                    align:'center',
+                    width:200,
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar ({
+                id:'paging',
+                pagesize:20,
+                store:workstore,
+                displayInfo:true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[
+                {
+                    xtype:'tbtext',
+                    text:'Search',
+                    style: 'margin-left: 5px'
+                },'-',
+                combo,
+                {
+                    xtype: 'textfield',
+					id: 'search',
+                    style: 'margin-left: 10px;margin-right:10px',
+                    enableKeyEvents: true,
+                    listeners:{
+                        'keyup' : function (textfieldIni,event) {
+                            var isiTeks = textfieldIni.getValue();
+                            if (isiTeks != "" && isiTeks.toString().length >= 3)
+                            {
+                                var search = Ext.getCmp('search').getValue();
+                                var option = Ext.getCmp('option').getValue();
+                                workstore.proxy.setUrl('/projectmanagement/engineerwork/getviewengineerwork/search/' + search + '/option/' + option);
+                                workstore.reload();
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                },'-',{
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+                }
+            ]
+
+        })
+
+    })
+
+</script>
+
+    <div id="viewengineerwork"></div>
+

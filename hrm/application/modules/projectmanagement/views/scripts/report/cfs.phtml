@@ -1,0 +1,421 @@
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+?>
+<style type="text/css">
+		.tooltip {
+			border-bottom: 1px dotted #000000; color: #000000; outline: none;
+			cursor: help; text-decoration: none;
+			position: relative;
+		}
+		.tooltip span {
+			margin-left: -999em;
+			position: absolute;
+		}
+		.tooltip:hover span {
+			border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+			box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+			font-family: Calibri, Tahoma, Geneva, sans-serif;
+			position: absolute; left: 1em; top: 2em; z-index: 99;
+			margin-left: 0;
+		}
+		.tooltip:hover img {
+			border: 0; margin: -10px 0 0 -55px;
+			float: left; position: absolute;
+		}
+		.tooltip:hover em {
+			font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+			display: block; padding: 0.2em 0 0.6em 0;
+		}
+		.info { padding: 0.8em 1em; }
+		.custom { padding: 0.5em 0.8em 0.8em 2em; }
+		* html a:hover { background: transparent;}
+		.info {background: #FFFFAA; border: 1px solid #FFAD33; }
+</style>
+<style>
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.cache{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.parentContainer { /* The parent container */
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; /* Required to set */
+    height: 430px;/* Required to set */
+    overflow: hidden; /* Required to set */
+	font-size: 14px;
+}
+.tanggal {
+    width: 100%;
+}
+</style>
+
+<div class="title"><?=$this->prjKode?> COST ANALYSIS REPORT</div>
+<?php
+    if ($this->useCache && $this->time != '') {
+?>
+<div class="cache">
+<b>This Report is generated from cache, If there any changes to the data beetween <?=$this->time['generate']?> and <?=$this->time['expire']?> will not shown here.<br>
+Cache will expire at <?=$this->time['expire']?></b>
+</div>
+<?php
+    }
+?>
+<b>USD Exchange Rate : Rp. <?php echo $this->rateidr;?>, Last updated : <?php echo $this->tgl; ?></b>
+<br><b>This report is using updated exchange rate above.</b>
+
+<br>
+<br>
+<div class="tanggal" id="tanggal">
+<b style="color: #ff0000;">Cost In Progress (CIP) : Rp. <?=number_format($this->CIP,2)?></b>
+<?php
+    if ($this->startDate != '' && $this->endDate != '') {
+?>
+<b style="float: right;">Periode <?=$this->startDate?> - <?=$this->endDate?></b>
+<?php
+    }
+?>
+</div>
+<div class="parentContainer" id="parentCont">
+<table id="budgetTable" class="budgetTable">
+    <thead>
+<!--    	<tr>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>No.</b></th>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>Site Code</b></th>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>Name</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="10" style="background-color: #db9927;text-align: center;"><b>Revenue</b></th>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="5" rowspan="2"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" rowspan="2"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="3" style="background-color: #ff00ee;text-align: center;"><b>Costs</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" rowspan="2"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" rowspan="3"><b>&nbsp;</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="3" style="background-color: #00ffed;text-align: center;"><b>Margin</b></th>-->
+<!--        </tr>-->
+<!--		<tr>-->
+<!--            <th scope="col" class="rounded-q1" colspan="3" style="text-align: center;"><b>Budget</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Progress</b></th>-->
+<!--            <th scope="col" class="rounded-q1">&nbsp;</th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Billing</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2">&nbsp;</th>-->
+<!--            <th scope="col" class="rounded-q1" style="text-align: center;"><b>Actual</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Forecast</b></th>-->
+<!--            <th scope="col" class="rounded-q1" style="text-align: center;"><b>Current</b></th>-->
+<!--            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Final Margin</b></th>-->
+<!--		</tr>-->
+<!--        <tr>-->
+<!--            <th scope="col" class="rounded-q1">Original<br>Purchase Order</th>-->
+<!--            <th scope="col" class="rounded-q1">Variations</th>-->
+<!--            <th scope="col" class="rounded-q1">Revised<br>Budget</th>-->
+<!--            <th scope="col" class="rounded-q1">% Complete</th>-->
+<!--            <th scope="col" class="rounded-q1">Progress<br>Amount</th>-->
+<!--            <th scope="col" class="rounded-q1">Retention</th>-->
+<!--            <th scope="col" class="rounded-q1">Invoiced</th>-->
+<!--            <th scope="col" class="rounded-q1">Received</th>-->
+<!--            <th scope="col" class="rounded-q1">WIP</th>-->
+<!--            <th scope="col" class="rounded-q1">Outstanding<br>Payment</th>-->
+<!---->
+<!--            <th scope="col" class="rounded-q1">Commitment</th>-->
+<!--            <th scope="col" class="rounded-q1">Cash<br>Expenses</th>-->
+<!--            <th scope="col" class="rounded-q1">Total<br>Commitment</th>-->
+<!--            <th scope="col" class="rounded-q1">Current Forecast<br>at Completion</th>-->
+<!--            <th scope="col" class="rounded-q1">Commitment<br>Gain/(Overrun)</th>-->
+<!---->
+<!--            <th scope="col" class="rounded-q1">Previous Month<br>Cost to Date</th>-->
+<!--            <th scope="col" class="rounded-q1">Movement<br>this Month</th>-->
+<!--            <th scope="col" class="rounded-q1">Current<br>ERP Costs</th>-->
+<!--            <th scope="col" class="rounded-q1">Estimated Cost<br>to Complete</th>-->
+<!--            <th scope="col" class="rounded-q1">Forecast<br>Final Costs</th>-->
+<!--            <th scope="col" class="rounded-q1">Previous<br>Month Forecast</th>-->
+<!--            <th scope="col" class="rounded-q1">Movement</th>-->
+<!---->
+<!--            <th scope="col" class="rounded-q1">Current Achieved<br>Gross Margin</th>-->
+<!--            <th scope="col" class="rounded-q1">Final Margin</th>-->
+<!--            <th scope="col" class="rounded-q1">Final %</th>-->
+<!--        </tr>-->
+
+        <tr>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>No.</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Date Added<br>to CFS</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Site Code</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Name</b></th>
+            <th scope="col" class="rounded-q1" colspan="9" style="background-color: #db9927;text-align: center;"><b>Revenue</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3">&nbsp;</th>
+            <th scope="col" class="rounded-q1" rowspan="2">&nbsp;</th>
+            <th scope="col" class="rounded-q1" colspan="5" style="background-color: #ff00ee;text-align: center;"><b>Costs</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3">&nbsp;</th>
+            <th scope="col" class="rounded-q1" colspan="3" style="background-color: #00ffed;text-align: center;"><b>Margin</b></th>
+            <th scope="col" class="rounded-q1" rowspan="2">&nbsp;</th>
+        </tr>
+		<tr>
+            <th scope="col" class="rounded-q1" colspan="3" style="text-align: center;"><b>Budget</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Progress</b></th>
+<!--            <th scope="col" class="rounded-q1">&nbsp;</th>-->
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Billing</b></th>
+            <th scope="col" class="rounded-q1" colspan="2">&nbsp;</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;" colspan="3"><b>Actual</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Forecast</b></th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><b>Current</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Final Margin</b></th>
+		</tr>
+        <tr>
+            <th scope="col" class="rounded-q1">Original<br>Customer Order</th>
+            <th scope="col" class="rounded-q1">Variations</th>
+            <th scope="col" class="rounded-q1">Revised<br>Budget</th>
+            <th scope="col" class="rounded-q1">% Complete</th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Progress<br>Amount<span class="info">Revised Budget x % Complete</span></a></th>
+<!--            <th scope="col" class="rounded-q1">Retention</th>-->
+            <th scope="col" class="rounded-q1">Invoiced</th>
+            <th scope="col" class="rounded-q1">Received</th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >WIP<span class="info">Progress Amount - Invoiced</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Outstanding<br>Payment<span class="info">Invoiced - Received</span></a></th>
+
+
+            <th scope="col" class="rounded-q1">Movement<br>this Month</th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Commitment Cost<span class="info">PO + ARF</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Recorded Cost<span class="info">(RPI Approved + ASF Approved + Piecemeal) - Material Return</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Accrual<span class="info">(Forecast Final Costs x Progress) - Cash Expenses</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Estimated Cost<br>to Complete<span class="info">Forecast Final Costs - Recorded Cost</span></a></th>
+            <th scope="col" class="rounded-q1">Forecast<br>Final Costs</th>
+
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" style="white-space: normal;">Current Achieved<br>Gross Margin<span class="info">Recorded Cost - Progress Amount</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" style="white-space: normal;">Final Margin<span class="info">Revised Budget - Forecast Final Cost</span></a></th>
+            <th scope="col" class="rounded-q1">Final %</th>
+            <th scope="col" class="rounded-q1"><b>Notes</b></th>
+        </tr>
+
+    </thead>
+
+    <div style="overflow-y:auto">
+    <tbody>
+        <?php
+            $i = 1;
+            foreach($this->result as $key => $val)
+            {
+        ?>
+            <tr>
+<!--                <td style="background-color: #ffff00" colspan="3">--><?//=$key?><!--</td>-->
+<!--            <th scope="col" style="background-color: #ffff00" colspan="10">&nbsp;</th>-->
+<!--            <td>&nbsp;</td>-->
+<!--            <th scope="col" style="background-color: #ffff00" class="rounded-q1" colspan="5">&nbsp;</th>-->
+<!--            <td>&nbsp;</td>-->
+<!--            <th scope="col" style="background-color: #ffff00" class="rounded-q1" colspan="7">&nbsp;</th>-->
+<!--            <th scope="col" style="background-color: #ffff00" class="rounded-q1" colspan="4">&nbsp;</th>-->
+<!--            -->
+            <td style="background-color: #ffff00">&nbsp;</td>
+            <td style="background-color: #ffff00" colspan="2"><?=$key?></td>
+            <th scope="col" style="background-color: #ffff00" colspan="10">&nbsp;</th>
+            <td>&nbsp;</td>
+            <th scope="col" style="background-color: #ffff00" class="rounded-q1" colspan="6">&nbsp;</th>
+            <th scope="col" style="background-color: #ffff00" class="rounded-q1" colspan="4">&nbsp;</th>
+            </tr>
+        <?php
+                foreach($val['data'] as $key2 => $val2)
+                {
+        ?>
+            <tr>
+<!--                <td>--><?//=$i?><!--</td>-->
+<!--                <td>--><?//=$val2['sit_kode']?><!--</td>-->
+<!--                <td>--><?//=$val2['sit_nama']?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['boq2_ori'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //if ($val2['boq2_variations'] >= 0) { echo number_format($val2['boq2_variations'],2); } else { echo "(" . number_format(-1 * floatval($val2['boq2_variations']),2) . ")"; } ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['boq2_current'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['progress']); ?><!--%</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['progress_amount'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['retention'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['invoiced'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['received'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['wip'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['outstanding_payment'],2); ?><!--</td>-->
+<!--                <td>&nbsp;</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['commitment'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['cash_expenses'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['total_commitment'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['current_forecast'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['commitment_gain'],2); ?><!--</td>-->
+<!--                <td>&nbsp;</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['prev_month'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['movement_month'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['current_erp'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['estimated_complete'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['forecast_final_cost'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['prev_month_forecast'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['movement'],2); ?><!--</td>-->
+<!--                <td>&nbsp;</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['current_gross_margin'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['final_margin'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['final_persen'],2); ?><!--%</td>-->
+
+
+                <td><?=$i?></td>
+                <td><?=$val2['tglcfs']?></td>
+                <td><?=$val2['sit_kode']?></td>
+                <td><?=$val2['sit_nama']?></td>
+                <td align="right"><?php echo $val2['boq2_ori']; ?></td>
+                <td align="right"><?php echo $val2['boq2_variations']; ?></td>
+                <td align="right"><?php echo $val2['boq2_current']; ?></td>
+                <td align="right"><?php echo $val2['progress']; ?>%</td>
+                <td align="right"><?php echo $val2['progress_amount']; ?></td>
+<!--                <td align="right">--><?php //echo number_format($val2['retention'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['invoiced'],2); ?><!--</td>-->
+<!--                <td align="right">--><?php //echo number_format($val2['received'],2); ?><!--</td>-->
+<!--                <td align="right">N/A</td>-->
+                <td align="right">
+                <?php if ($val2['invoicedUSD'] > 0 && $val2['invoiced'] > 0) { ?>
+                    <a class="tooltip" href="#" ><?php echo $val2['invoiced']; ?>
+                        <span class="info">
+                            IDR&nbsp:&nbsp<?php echo $val2['invoicedIDR']; ?><br />
+                            USD&nbsp:&nbsp<?php echo $val2['invoicedUSD']; ?></span></a>
+                <?php } else if ($val2['invoicedUSD'] > 0 && $val2['invoiced'] == 0) { ?>
+                    <a class="tooltip" href="#" ><?php echo $val2['invoiced']; ?>
+                        <span class="info"><br />
+                            USD&nbsp:&nbsp<?php echo $val2['invoicedUSD']; ?></span></a>
+                <?php } else { ?>
+                    <?php echo $val2['invoiced']; ?>
+                <?php } ?>
+                </td>
+                <td align="right"><?php echo $val2['received']; ?></td>
+                <td align="right"><?php echo $val2['wip']; ?></td>
+                <td align="right"><?php echo $val2['outstanding_payment']; ?></td>
+                <td>&nbsp;</td>
+                <td align="right">N/A</td>
+                <td align="right"><?php echo $val2['commitment']; ?></td>
+                <td align="right">
+                <?php if ($val2['salary_exist'] != '') { ?>
+                    <a class="tooltip" href="#" ><?php echo $val2['cash_expenses']; ?>
+                        <span class="info">
+                            Salaries&nbsp:&nbsp<?php echo $val2['salary_exist']; ?><br />
+                            RPI+ASF&nbsp:&nbsp<?php echo $val2['rpi_asf_approved']; ?><br />
+                            Piecemeal&nbsp:&nbsp<?php echo $val2['piecemeal']; ?></span></a>
+                <?php } else if ($val2['material_return'] != 0) { ?>
+                    <a class="tooltip" href="#" ><?php echo $val2['cash_expenses']; ?>
+                        <span class="info"><br />
+                            RPI+ASF&nbsp:&nbsp<?php echo $val2['rpi_asf_approved']; ?><br />
+                            Piecemeal&nbsp:&nbsp<?php echo $val2['piecemeal']; ?><br />
+                            Material Return&nbsp:&nbsp<?php echo $val2['material_return']; ?></span></a>
+                <?php } else { ?>
+                    <?php echo $val2['cash_expenses']; ?>
+                <?php } ?>
+                </td>
+                <td align="right"><?php echo $val2['accrual']; ?></td>
+                <td align="right"><?php echo $val2['estimated_complete']; ?></td>
+                <td align="right"><?php echo $val2['forecast_final_cost']; ?></td>
+                <td>&nbsp;</td>
+                <td align="right"><?php echo $val2['current_gross_margin']; ?></td>
+                <td align="right"><?php echo $val2['final_margin']; ?></td>
+                <td align="right"><?php echo $val2['final_persen']; ?>%</td>
+                <td><?php echo $val2['progress_ket']; ?></td>
+            </tr>
+        <?php
+                $i++;
+                }
+        ?>
+        <tr>
+            <td colspan="4">&nbsp;</td>
+            <td colspan="21">&nbsp;</td>
+        </tr>
+        <tr style="background-color: #CFDCEE">
+            <td colspan="4" class="rounded-foot-left">&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_ori']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_variations']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_current']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['progress']; ?>%</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['progress_amount']; ?></td>
+<!--            <td align="right">N/A</td>-->
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['invoiced']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['received']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['wip']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['outstanding_payment']; ?></td>
+            <td>&nbsp;</td>
+            <td align="right">N/A</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['commitment']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['cash_expenses']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['accrual']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['estimated_complete']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['forecast_final_cost']; ?></td>
+            <td>&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['current_gross_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['final_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['final_persen']; ?>%</td>
+            <td>&nbsp;</td>
+        </tr>
+        <?php
+            }
+        ?>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4">&nbsp;</td>
+            <td colspan="21">&nbsp;</td>
+        </tr>
+        <tr style="background-color: #FFE800">
+        	<td colspan="4" class="rounded-foot-left"><b>Grand Total</b></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_ori']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_variations']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_current']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['progress']; ?>%</td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['progress_amount']; ?></td>
+<!--            <td align="right">N/A</td>-->
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['invoiced']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['received']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['wip']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['outstanding_payment']; ?></td>
+            <td>&nbsp;</td>
+            <td align="right">N/A</td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['commitment']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['cash_expenses']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['accrual']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['estimated_complete']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo$this->grandTotal['forecast_final_cost']; ?></td>
+            <td>&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['current_gross_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['final_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['final_persen']; ?>%</td>
+            <td>&nbsp;</td>
+        </tr>
+    </tfoot>
+    </div>
+</table>
+</div>
+<? //$this->paging($this->pageUrl,$this->totalResult,$this->limitPerPage,$this->current,$this->currentPage)?>
+<script type="text/javascript">
+//<![CDATA[
+
+var sizeT = '840px'
+
+if (screen.width >= 1200)
+    sizeT = '1000px';
+else if (screen.width >= 1000)
+    sizeT = '800px';
+
+document.getElementById("parentCont").style.width = sizeT;
+document.getElementById("tanggal").style.width = sizeT;
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 4,
+		headerRows : 3
+	});
+})();
+
+//]]>
+</script>

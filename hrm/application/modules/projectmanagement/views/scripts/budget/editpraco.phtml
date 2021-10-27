@@ -1,0 +1,746 @@
+<script type="text/javascript">
+
+var filelist = Ext.data.Record.create([ {
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'filename',
+    type: 'string'
+},{
+    name: 'savename',
+    type: 'string'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'path',
+    type: 'string'
+}]);
+
+var storeFile = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: filelist})
+});
+
+function init()
+    {
+         var jsonFile = <?php echo $this->file ?>;
+
+        storeFile.loadData(jsonFile);
+        Ext.getCmp('files-grid').getView().refresh();
+
+        Ext.getCmp('trano_text').setValue('<?php echo $this->trano; ?>');
+        Ext.getCmp('cus_kode_text').setValue('<?php echo $this->cusKode; ?>');
+        Ext.getCmp('cus_nama_text').setValue('<?php echo $this->cusNama; ?>');
+        Ext.getCmp('mgr_kode_text').setValue('<?php echo $this->mgrKode; ?>');
+        Ext.getCmp('mgr_nama_text').setValue('<?php echo $this->mgrNama; ?>');
+        Ext.getCmp('po_cus_text').setValue('<?php echo $this->poCus; ?>');
+        Ext.getCmp('total_idr').setValue('<?php echo $this->totalIDR; ?>');
+        Ext.getCmp('total_usd').setValue('<?php echo $this->totalUSD; ?>');
+        Ext.getCmp('ket_text').setValue('<?php echo $this->ket; ?>');
+        Ext.getCmp('source_text').setValue('<?php echo $this->source; ?>');
+    }
+
+function deleteFile()
+{
+    var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+	theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+    if (theFile != undefined)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn){
+            if (btn== 'yes')
+            {
+                if (theFile.data['status'] == 'new')
+                    var params = {filename:theFile.data['savename']};
+                    Ext.Ajax.request({
+                        url: '/procurement/procurement/deletefile',
+                        method:'POST',
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if (returnData.success)
+                            {
+                                storeFile.remove(theFile);
+                                Ext.getCmp('files-grid').getView().refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error!', returnData.msg);
+                                return false;
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.response.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                        },
+                        params: params
+                    });
+            }
+	    });
+    }
+};
+
+function showCustomerList()
+{
+    var columns = [
+                    {header:'Customer Code',width:100,sortable:true,dataIndex:'cus_kode'},
+                    {header:'Customer Name',width:150,sortable:true,dataIndex:'cus_nama'},
+                ];
+
+    data =  [
+
+            {name: 'cus_kode', mapping: 'cus_kode'},
+            {name: 'cus_nama', mapping: 'cus_nama'}
+            ];
+
+
+    urlJson = '/default/customer/list';
+
+    primaryKey = 'uid';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'cus_kode';
+				            txtBoxChange = 'cus_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-cus_kode_button';
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("cus_nama");
+                            Ext.getCmp('cus_kode_text').setValue(record);
+
+
+
+                            if (Ext.getCmp('cus_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('cus_nama_text').setValue(record2);
+                            }
+
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchCusKode = function(field,e){
+        newUrl = '/default/customer/listbyparams/name/uid/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchCusName = function(field,e){
+        newUrl = '/default/customer/listbyparams/name/Name/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-cus_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Customer Code:'
+            },
+             new txtboks(90,10,80,'customer_code',searchCusKode),
+             {
+            x: 180,
+            y: 12,
+            xtype: 'label',
+            text: 'Customer Name:'
+            },
+            new txtboks(260,10,80,'customer_name',searchCusName),
+             new grids('customer_list')
+        ]
+
+      });
+      aForm.title = 'Choose Customer';
+      aForm.show();
+}
+
+function showManagerList()
+{
+    var columns = [
+                    {header:'Uid',width:100,sortable:true,dataIndex:'uid'},
+                    {header:'Manager Name',width:150,sortable:true,dataIndex:'nama'},
+                ];
+
+    data =  [
+
+            {name: 'uid', mapping: 'uid'},
+            {name: 'nama', mapping: 'nama'},
+            ];
+
+
+    urlJson = '/default/manager/list';
+
+    primaryKey = 'uid';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'uid';
+				            txtBoxChange = 'mgr_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-mgr_kode_button';
+				            var uid = g.getStore().getAt(rowIndex).get(objectName);
+				           newUrl = '/default/manager/dblclick/name/uid/data/' + uid;
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("nama");
+                            Ext.getCmp('mgr_kode_text').setValue(record);
+
+
+
+                            if (Ext.getCmp('mgr_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('mgr_nama_text').setValue(record2);
+                            }
+
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchMgrKode = function(field,e){
+        newUrl = '/default/manager/dblclick/name/uid/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchMgrName = function(field,e){
+        newUrl = '/default/manager/dblclick/name/Name/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-mgr_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Manager Uid:'
+            },
+             new txtboks(90,10,80,'manager_code',searchMgrKode),
+             {
+            x: 180,
+            y: 12,
+            xtype: 'label',
+            text: 'Manager Name:'
+            },
+            new txtboks(260,10,80,'manager_name',searchMgrName),
+             new grids('manager_list')
+        ]
+
+      });
+      aForm.title = 'Choose Manager';
+      aForm.show();
+}
+
+function submitPraco()
+{
+    if (!Ext.getCmp('user-forms').getForm().isValid())
+     {
+         Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'Please Fill Blank Field!',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+           });
+         return false;
+     }
+
+    var parameter = '';
+    var fileJson = '';
+
+    storeFile.each(function(store){
+    fileJson += Ext.util.JSON.encode(store.data) + ',';
+    });
+    fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+    //Get add. Data
+    var trano = Ext.getCmp('trano_text').getValue();
+    var cusKode = Ext.getCmp('cus_kode_text').getValue();
+    var mgrKode = Ext.getCmp('mgr_kode_text').getValue();
+    var cusNama = Ext.getCmp('cus_nama_text').getValue();
+    var mgrNama = Ext.getCmp('mgr_nama_text').getValue();
+    var totalIDR = Ext.getCmp('total_idr').getValue().toString().replace(/\$|\,/g,'');
+    var totalUSD = Ext.getCmp('total_usd').getValue().toString().replace(/\$|\,/g,'');
+    var poCus = Ext.getCmp('po_cus_text').getValue();
+    var ket = Ext.getCmp('ket_text').getValue();
+    var source = Ext.getCmp('source_text').getValue();
+
+    parameter = '[{"trano":"' + trano + '","cus_kode":"' + cusKode + '","cus_nama":"' + cusNama + '", "mgr_kode":"' + mgrKode + '", "mgr_nama":"' + mgrNama + '", "total_idr":"' + totalIDR + '", "total_usd":"' + totalUSD + '", "ket":"' + ket + '", "source":"' + source + '", "po_cus":"' + poCus + '"}]';
+    params = {etc:parameter, file:fileJson};
+    myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+    myPanel.body.load({
+        url: '/projectmanagement/budget/apppraco/from/edit', //the url
+        scripts : true,
+        params: params //our params goes here
+    });
+}
+
+userForm = new Ext.extend(Ext.form.FormPanel, {
+    iconCls: 'silk-user',
+    frame: true,
+    id: 'user-forms',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Edit Existing Registered Customer PO',
+    width: 620,
+   labelWidth:120
+    ,
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    }
+    ,
+     buildForm : function() {
+        return [
+            {
+            layout : 'column',
+            items:[
+                {
+                    columnWidth:1,
+                    layout :'form',
+                    items:[
+                            {
+                                fieldLabel: 'trano',
+                                id : 'trano_text',
+                                xtype: 'textfield',
+                                disabled: true,
+                                width: 150
+                            },
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                        columnWidth:.37,
+                                        layout: 'form',
+                                        items: [{
+                                                    fieldLabel : 'Customer',
+                                                    id : 'cus_kode_text',
+                                                   triggerClass: 'teropong',
+                                                    xtype: 'trigger',
+                                                    onTriggerClick: function( ){
+                                                        showCustomerList();
+                                                            },
+                                                            editable: false,
+                                                            allowBlank: false,
+                                                            disabled:true,
+                                                            width: 100
+                                                }
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.49,
+                                            layout: 'form',
+                                            items: [{
+                                                        id : 'cus_nama_text',
+                                                        xtype: 'textfield',
+                                                        hideLabel: true,
+                                                        disabled: true,
+                                                        width: 150
+                                                    }
+                                                    ]
+                                           }
+                                    ]
+                            },
+                        {
+                                        layout:'column',
+                                        items:[
+                                               {
+                                                columnWidth:.37,
+                                                layout: 'form',
+                                                items: [{
+                                                            fieldLabel : 'Assign To',
+                                                            id : 'mgr_kode_text',
+                                                            xtype: 'trigger',
+                                                            triggerClass: 'teropong',
+                                                            onTriggerClick: function( ){
+                                                                showManagerList();
+                                                                    },
+                                                                    editable: false,
+                                                                    allowBlank: false,
+                                                                    width: 100
+
+                                                        }
+                                                        ]
+                                               },
+                                               {
+                                                    columnWidth:.49,
+                                                    layout: 'form',
+                                                    items: [{
+                                                                id : 'mgr_nama_text',
+                                                                xtype: 'textfield',
+                                                                hideLabel: true,
+                                                                disabled: true,
+                                                                width: 150
+                                                            }
+                                                            ]
+                                                   }
+                                            ]
+                                    },
+                        {
+                            fieldLabel: 'PO Customer',
+                            id : 'po_cus_text',
+                            xtype: 'textfield',
+
+                            width: 150
+                        },
+                        new Ext.ux.customRendererField({
+                        priceDelemiter:',',
+                        fieldLabel: 'Value IDR',
+                        id: 'total_idr',
+                        allowBlank : false,
+
+                        width: 150,
+                        style:"text-align:right"
+                        }),
+                        new Ext.ux.customRendererField({
+                        priceDelemiter:',',
+                        fieldLabel: 'Value USD',
+                        id: 'total_usd',
+                        allowBlank : false,
+
+                        width: 150,
+                        style:"text-align:right"
+                        }),
+                        {
+                            fieldLabel: 'Description',
+                            id: 'ket_text',
+                            xtype:'textarea',
+
+                            width: 250,
+                            height: 40
+                        },
+                        {
+                             fieldLabel : 'Confirmation From',
+                             id:'source_text',
+                             name:'source',
+                             xtype:'combo',
+                             store: new Ext.data.SimpleStore({
+                                         fields:['nilai', 'type']
+                                                 ,data:[
+                                                        ['Fax','Fax'],
+                                                        ['Hardcopy','Hardcopy'],
+                                                        ['Email','Email']
+
+                                                    ]
+
+                                             }),
+                             valueField:'type',
+                             displayField:'nilai',
+                             typeAhead: true,
+                             forceSelection: true,
+                             editable: false,
+                                value: 'Email',
+                             mode: 'local',
+                             triggerAction: 'all',
+                             selectOnFocus: true,
+                             emptyText: 'Select Type',
+                             width: 100
+
+                            }
+                    ]
+                }
+                ]}
+
+        ];
+
+    },
+
+     buildUI: function(){
+        return [
+//        {
+//            text: 'Save',
+//            iconCls: 'icon-save',
+//            handler: this.onUpdate,
+//            scope: this
+//        },
+        {
+            text: 'Update',
+            iconCls: 'silk-user-add',
+            handler: function(btn, ev){
+                submitPraco();
+            },
+            scope: this
+        }, {
+            text: 'Reset',
+            disabled : true,
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            scope: this
+        }, {
+            text: 'Cancel',
+            handler: function(btn, ev){
+	        	myPanel = Ext.getCmp('abs-budget-panel');
+	    	    myPanel.body.load({
+	    	        url: '/projectmanagement/budget/praco',
+	    	        scripts : true
+	            });
+            },
+            scope: this
+        }];
+    }
+
+});
+
+
+<?php echo $this->action('popupgrid','grid'); ?>
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    var userForms = new userForm({
+        renderTo: 'user-form',
+        listeners: {
+            create : function(fpanel, data) {
+                var rec = new userGrids.store.recordType(data);
+                userGrids.store.insert(0, rec);
+            }
+        }
+    });
+
+var fileColumns = [
+        new Ext.grid.RowNumberer(),
+        {header: "File Name",width: 130, dataIndex: 'filename'},
+        {header:'',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+            return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+        }}
+    ];
+
+    var fileUploads = new Ext.FormPanel({
+    renderTo: 'form_file',
+    fileUpload: true,
+    autoHeight: true,
+    frame: true,
+    style: 'margin-top: 10px',
+    width: 700,
+//     bodyStyle: 'padding: 10px 10px 10px 10px;',
+//     labelWidth: 50,
+     defaults: {
+         anchor: '95%',
+         allowBlank: false,
+         msgTarget: 'side'
+     },
+     items:[
+             {
+                layout : 'column',
+                items:[
+                        {
+                             columnWidth:.46,
+                             layout :'form',
+                             items:[
+                                {
+                                    xtype: 'fileuploadfield',
+                                    id: 'po-file',
+                                    emptyText: 'Select a File',
+                                    fieldLabel: 'Attach File',
+                                    allowBlank: false,
+                                    name: 'file-path',
+                                    buttonText: '',
+                                    buttonCfg: {
+                                        iconCls: 'upload-icon'
+                                    }
+                                },
+                                 {
+                                    xtype: 'button',
+                                    text: 'Upload',
+                                    style: 'float: right',
+                                    handler: function(){
+                                        if(fileUploads.getForm().isValid()){
+                                            form_action=1;
+                                            fileUploads.getForm().submit({
+                                                url: '/procurement/procurement/uploadfile/type/PRACO',
+                                                waitMsg: 'Uploading file...',
+                                                success: function(form,action){
+                                                    var returnData = action.result;
+                                                    if( returnData.success) {
+                                                        var c = new filelist({
+                                                            id:parseFloat(storeFile.getCount() + 1),
+                                                            filename: returnData.filename,
+                                                            savename: returnData.savename,
+                                                            path: returnData.path,
+                                                            status: 'new'
+                                                      });
+                                                      storeFile.add(c);
+                                                      Ext.getCmp('files-grid').getView().refresh();
+                                                        Ext.getCmp('po-file').setValue('');
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error', returnData.msg);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                             ]
+                        },
+                        {
+                             columnWidth:.5,
+                             layout :'form',
+                             items:[
+                                new Ext.grid.GridPanel ({
+                                    id:'files-grid',
+                                    iconCls: 'silk-grid',
+                                    height: 100,
+                                    style: 'margin-left: 5px',
+                                    store: storeFile,
+                                    trackMouseOver: true,
+                                    view : new Ext.grid.GridView({
+                                        forceFit: true
+                                    }),
+                                    columns: fileColumns
+                                })
+                             ]
+                        }
+                ]
+            }
+
+        ],
+        buttons: []
+    });
+
+    init();
+});
+</script>
+<div>
+<div id="form_file"></div>
+ <div id="user-form" style="float:left"></div>
+ </div>

@@ -1,0 +1,113 @@
+<script type="text/javascript">
+
+
+    var type = '<?=$this->type?>';
+    var trano = '<?=$this->trano?>';
+    var prj_kode = '<?=$this->prj_kode?>';
+    var sit_kode = '<?=$this->sit_kode?>';
+    var supplier = '<?=$this->supplier?>';
+
+//    console.log(type);
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var storepayment = new Ext.data.Store({
+
+        url:'/finance/report/getstorepayment/type/' + type + '/trano/' + trano + '/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode + '/supplier/' + supplier,
+        autoLoad:true,
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'ref_number'
+                },{
+                    name:'prj_kode'
+                },{
+                    name:'sit_kode'
+                },{
+                    name:'trano_value'
+                },{
+                    name:'total_bpv'
+                },{
+                    name:'total_payment'
+                },{
+                    name:'sup_nama'
+                }]
+            })
+
+        })
+
+        var gridpaymentreportAction = new Ext.grid.GridPanel ({
+
+            store:storepayment,
+            viewConfig:{
+                forceFit:true
+            },
+            frame:true,
+            renderTo:'grid-payment-report',
+            height:300,
+            columns:[{
+                header:'Trano',
+                dataIndex:'ref_number',
+                align:'center',
+                sortable:true
+            },{
+                header:'Project Code',
+                dataIndex:'prj_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Site Code',
+                dataIndex:'sit_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Supplier',
+                dataIndex:'sup_nama',
+                align:'center',
+                sortable:true
+            },{
+                header:'Value',
+                dataIndex:'trano_value',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },{
+                header:'Voucher Value',
+                dataIndex:'total_bpv',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },{
+                header:'Payment Value',
+                dataIndex:'total_payment',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-report',
+                pageSize: 40,
+                store: storepayment,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="grid-payment-report"></div>

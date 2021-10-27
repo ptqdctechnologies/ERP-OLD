@@ -1,0 +1,109 @@
+<?php 
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<style type="text/css">
+
+.parentContainer{ 
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; 
+    height: 420px; 
+    overflow: auto; 
+    font-size: 14px;
+}
+
+</style>
+
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead id="fixed">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Trans No</center></th>
+            <th scope="col"><center>Date</center></th>
+            <!--<th scope="col"><center>Work Id</center></th>
+            <th scope="col"><center>Work Name</center></th>-->
+            <th scope="col"><center>Advance is to be used for (purpose)</center></th>
+            <th scope="col"><center>Curr</center></th>
+            <th scope="col"><center>Total Advance</center></th>
+            <th scope="col"><center>Expense Claim</center></th>
+            <!--<th scope="col"><center>Balance</center></th>-->
+            <th scope="col"><center>Requestor</center></th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        	$nomer = $this->current;
+            for($i=0; $i<count($this->result); $i++)
+            {
+            	
+            	if (($i >= ($this->current - 1)) && ($i < ($this->current + $this->limitPerPage - 1)))
+            	{
+    	?>
+    	<tr>
+            <td><?=$nomer;?></td>
+            <td><a href="#" onclick="gotoDetail('<?=$this->result[$i]['trano'];?>')"><?=$this->result[$i]['trano'];?></a></td>
+            <td><?=$this->result[$i]['tgl'];?></td>
+            <!--<td><?//=$this->result[$i]['workid'];?></td>
+            <td><?//=$this->result[$i]['workname'];?></td>-->
+            <td><?=$this->result[$i]['ket'];?></td>
+            <td><?=$this->result[0]['val_kode'];?></td>
+            <td align="right"><?=number_format($this->result[$i]['total'],2);?></td>
+            <td align="right"><?=number_format($this->result[$i]['requestv'],2);?></td>
+            <!--<td align="right"><?=number_format($this->result[$i]['balance'],2);?></td>-->
+            <td><?=$this->result[$i]['pc_nama'];?></td>
+        </tr>
+
+        <?php        
+        			$nomer++;
+            	} 
+            $total = $this->result[$i]['total'];
+            $totalJumlah = $totalJumlah + $total;
+
+            $total2 = $this->result[$i]['requestv'];
+            $totalJumlah2 = $totalJumlah2 + $total2;
+
+            $total3 = $this->result[$i]['balance'];
+            $totalJumlah3 = $totalJumlah3 + $total3;
+
+            }
+        ?>
+       
+    			<tr style="background: #4C6891;">
+                            <td colspan="4" style="color:#FFFFFF;" align="right">Grand Total Advance: </td>
+                            <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah,2)?></td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah2,2)?></td>
+                            <!--<td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah3,2)?></td>-->
+                        </tr>
+    </tbody>
+</table>
+</div>
+<?=$this->paging($this->pageUrl,$this->totalResult,$this->limitPerPage,$this->current,$this->currentPage)?>
+<script type="text/javascript">
+
+function gotoDetail(trano)
+    {
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+	        url: '/report/asfdetail/trano/' + trano,
+                scripts: true
+
+	});
+    }
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 2,
+		headerRows : 1
+	});
+})();
+
+</script>

@@ -1,0 +1,130 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function refreshData ()
+        {
+            cfsstore.clearFilter();
+            Ext.getCmp('search').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+
+        var datas = [
+                ['CFS Code',1],
+                ['CFS Name',2]
+            ];
+
+        var store = new Ext.data.ArrayStore({
+            fields: ['a', 'b'],
+            data : datas
+        });
+        var combo = new Ext.form.ComboBox({
+            store: store,
+            displayField:'a',
+            valueField: 'b',
+            typeAhead: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus:true,
+            name:'option',
+            width:100,
+            style: 'margin-left: 5px',
+            value:1,
+            id:'option'
+        });
+
+        var cfsstore = new Ext.data.Store({
+
+            url:'/projectmanagement/cfs/getviewcfs',
+            autoLoad:true,
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'cfs_kode',type:'String'},
+                {name:'cfs_nama',type:'String'}
+            ])
+
+        })
+
+        var grid = new Ext.grid.GridPanel ({
+
+            store:cfsstore,
+
+            viewConfig:{
+              forceFit:true  
+            },
+
+            title:'View CFS List',
+            renderTo:'viewcfs',
+            width:440,
+            height:400,
+            frame:true,
+            columns:[
+                new Ext.grid.RowNumberer(),
+                {
+                    header:'CFS Code',
+                    dataIndex:'cfs_kode',
+                    align:'center',
+                    width:60,
+                    sortable:true
+                },
+                {
+                    header:'CFS Name',
+                    dataIndex:'cfs_nama',
+                    align:'center',
+                    width:200,
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar ({
+                id:'paging',
+                pagesize:20,
+                store:cfsstore,
+                displayInfo:true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[
+                {
+                    xtype:'tbtext',
+                    text:'Search',
+                    style: 'margin-left: 5px'
+                },'-',
+                combo,
+                {
+                    xtype: 'textfield',
+					id: 'search',
+                    style: 'margin-left: 10px;margin-right:10px',
+                    enableKeyEvents: true,
+                    listeners:{
+                        'keyup' : function (textfieldIni,event) {
+                            var isiTeks = textfieldIni.getValue();
+                            if (isiTeks != "" && isiTeks.toString().length >= 2)
+                            {
+                                var search = Ext.getCmp('search').getValue();
+                                var option = Ext.getCmp('option').getValue();
+                                cfsstore.proxy.setUrl('/projectmanagement/cfs/getviewcfs/search/' + search + '/option/' + option);
+                                cfsstore.reload();
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                },'-',{
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+                }
+            ]
+
+        })
+
+    })
+
+</script>
+
+    <div id="viewcfs"></div>
+

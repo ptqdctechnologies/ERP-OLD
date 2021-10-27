@@ -1,0 +1,644 @@
+ <script type="text/javascript">
+    Ext.onReady(function(){
+        Ext.QuickTips.init();
+
+        <?php echo $this->action('index','textfield',null); ?>
+
+        
+    function showAllErf(label,detailType,url,flagRev){
+            if(detailType=='')detailType='P';
+            
+             var bForm = new Ext.Window ({
+           	 id: 'b-form-panel-trano_button',
+  		    layout:'fit',
+  		    width: 350,
+  		    height: 125,
+                    modal: true,
+  		    style: 'margin-top: 10px',
+  		    labelAlign: 'right',
+  		    stateful: false,
+  		    items : [
+                                new Ext.form.FormPanel({
+                                    frame: true,
+                                    items: [{ 
+                                            xtype     :'tranoselector',
+                                            fieldLabel:label,
+                                            id        :'erf_no_text',
+                                            Selectid  : 'erf_no_texts',
+                                            Tranotype :'ERF',
+                                            flagRev : flagRev,
+                                            detailType:detailType,
+                                            width     : 150
+                                            }]
+                                        })
+                    ],
+                    buttons: [{
+                            text: 'Edit',
+                            id: 'save-to-pr',
+                            iconCls: 'silk-upd',
+                            handler: function(btn, ev) {
+                                var erfnum = Ext.getCmp('erf_no_texts').getValue();
+                                if (erfnum != undefined && erfnum != ""){
+                                       Ext.Ajax.request({
+                                            url: '/default/home/cekpayment/type/ERF/trano/' + erfnum,
+                                            method:'POST',
+                                            success: function(resp){
+                                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                                if (returnData.success)
+                                                {
+                                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                                    myPanel.body.load({
+                                                        url: url + erfnum,
+    //                                                    url: '/procurement/procurement/erfrevisi/trano/' + erfnum,
+                                                        scripts : true
+                                                                      });
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error', returnData.msg);
+                                                }
+                                            },
+                                        failure:function( action){
+                                            if(action.failureType == 'server'){
+                                              obj = Ext.util.JSON.decode(action.responseText);
+                                              Ext.Msg.alert('Error!', obj.errors.reason);
+                                            }else{
+                                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                            }
+                                        }
+                                    });
+                                        bForm.close();
+                                    }
+                                    else {
+                                        Ext.Msg.alert('Error!', 'Please select transaction number!');
+                                    }
+                                 }
+                                },{
+                                    text: 'Cancel',
+                                    id: 'cancel',
+                                    handler: function(btn, ev) {
+                                            bForm.close();
+ 	 				             }
+                                   }]
+                
+            })
+            bForm.show();
+            
+        }
+      
+    function showPaymentChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Payment Number',
+								    id : 'payment_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showPaymentList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+//                                                
+		 			        var payno = Ext.getCmp('payment_no_text').getValue();
+                                              
+		 			        if (payno != undefined)
+		 			        {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+//                                    url: '/finance/payment/editpaymenterf/trano/' + payno,
+                                    url: '/finance/payment/editpaymentvouchererf',
+                                    scripts : true,
+                                    params:{trano:payno}
+                                  });
+
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showPaymentList()
+    {
+        var columns = [ {header:'Payment Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Document Number',width:100,sortable:true,dataIndex:'doc_trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                    ];
+
+        urlJson = '/finance/payment/paymenterflist';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'doc_trano', mapping: 'doc_trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'},];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showPaymentChoose(trano);
+                                Ext.getCmp('payment_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/finance/payment/paymenterflistbyparam/name/trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchDocNo = function(field,e){
+            newUrl = '/finance/payment/paymenterflistbyparam/name/doc_trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/finance/payment/paymenterflistbyparam/name/prj_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/finance/payment/paymenterflistbyparam/name/sit_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'No Document'
+                  },
+                 new txtboks(240,10,80,'doc_trano',searchDocNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+
+        showAddERF = function (){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/procurement/erf/adderf',
+                scripts: true
+            });
+        };
+
+        showEditERF = function (){
+        	showAllErf('ERF Number','P','/procurement/erf/editerf/trano/',false);
+            };
+
+        showEditERFOverhead = function (){
+        	showAllErf('ERF Number (Overhead)','O','/procurement/erf/editerfbudget/trano/',false);
+        };
+
+        showEditERFSales = function (){
+        	showAllErf('ERF Number (Sales)','S','/procurement/erf/editerfsales/trano/',false);
+        };
+
+    	showAppERF = function(){
+    	    myPanel = Ext.getCmp('abs-budget-panel');
+    	    myPanel.body.load({
+    	        url: '/default/home/showprocessdocument/type/ERF',
+    	        scripts : true
+            });
+    	};
+
+        showPaymentERF = function(){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+//                url: '/finance/payment/paymenterf',
+                url: '/finance/payment/paymentvouchererf',
+                scripts : true
+            });
+	    };
+
+        showEditPaymentERF = function(){
+         showPaymentChoose();
+        };
+
+        function showERFRevisi ()
+        {
+            showAllErf('ERF Number','P','/procurement/erfrevisi/erfrevisi/trano/',true);
+        }
+
+        function showERFRevisiOH ()
+        {
+            showAllErf('ERF Number (Overhead)','O','/procurement/erfrevisi/erfrevisioh/trano/',true);
+        }
+
+        function showERFRevisiSales ()
+        {
+            showAllErf('ERF Number (Sales)','S','/procurement/erfrevisi/erfrevisisales/trano/',true);
+        }
+
+        var showAddERFPulsa = function()
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/procurement/erf-pulsa/add',
+                scripts : true
+            });
+        };
+
+        var showGenERFPulsa = function()
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/procurement/erf-pulsa/generate',
+                scripts : true
+            });
+        };
+
+
+        var showEditERFPulsa = function()
+        {
+
+            var transWindow = new Ext.ux.form.TransactionSelector({
+                url: '/procurement/erf-pulsa/get-trano',
+                storeItemList: [
+                    {name: 'trano'},
+                    {name: 'trano_ref'},
+                    {name: 'trans_id'},
+                    {name: 'prj_kode'},
+                    {name: 'sit_kode'},
+                    {name: 'manager'},
+                    {name: 'manager_name'},
+                    {name: 'caption_id'}
+                ],
+                root: 'data',
+                total: 'count',
+                urlKodeSearch: '/procurement/erf-pulsa/get-trano/trano/',
+                storePageSize: 100,
+                gridColumns: [
+                    new Ext.grid.RowNumberer({width: 30}),
+                    {
+                        header: 'Document ID',
+                        dataIndex: 'caption_id',
+                        width: 140
+                    },
+                    {
+                        header: 'ERF No',
+                        dataIndex: 'trano',
+                        width: 100
+                    },
+                    {
+                        header: 'Manager Name',
+                        dataIndex: 'manager_name',
+                        width: 100
+                    },
+                    {
+                        header: 'Project',
+                        dataIndex: 'prj_kode',
+                        width: 80
+                    },
+                    {
+                        header: 'Site',
+                        dataIndex: 'sit_kode',
+                        width: 60
+                    }
+                ],
+                title: 'Search',
+                windowsOnly: true,
+                windowsHeight: 400,
+                gridHeight: 300,
+                callbackGridClick: function(grid, rowIndex){
+                    var store = grid.getStore().getAt(rowIndex),
+                        trano = store.get("trano_ref");
+
+                    Ext.Ajax.request({
+                        url: '/default/home/cek-reject',
+                        params: {
+                            trano: trano
+                        },
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                            if (returnData.success)
+                            {
+
+                                var json = [];
+                                json.push({
+                                    trano: store.get("trano_ref"),
+                                    trans_id: store.get("trans_id")
+                                });
+
+                                json = Ext.util.JSON.encode(json);
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/procurement/erf-pulsa/edit',
+                                    scripts : true,
+                                    params: {
+                                        json: json
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', returnData.msg,function(){
+                                    transWindow.showWindow();
+                                });
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                        }
+                        }
+                    });
+                }
+            });
+
+            transWindow.showWindow();
+
+        };
+
+        var windowForm = ({
+            title: 'Entertainment Request Form Transaction',
+            id:'abs-budget-panel',
+            layout:'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [{
+                    xtype: 'tbbutton',
+                    text: 'Select Action',
+                    iconCls: 'menu-drop',
+                    menu:{
+                        items: [
+                            {
+                                id:'erf_add_button',
+                                text:'Create New ERF',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/action_paste.gif",
+				                handler:showAddERF
+                            },
+                            {
+                                id:'erf_edit_button',
+                                text:'Edit Existing ERF',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+				                handler:showEditERF
+                            },
+                            {
+                                id:'erf_edit_overhead_button',
+                                text:'Edit Existing ERF (Overhead)',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+				                handler:showEditERFOverhead
+                            },
+                            {
+                                id:'erf_edit_sales_button',
+                                text:'Edit Existing ERF (Sales)',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+				                handler:showEditERFSales
+                            },
+                            {
+                                id:'erf_revisi_button',
+                                text:'Revision ERF',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+                                handler:showERFRevisi
+//                                tooltip: 'This is a an example QuickTip for a toolbar item',
+//                                tooltipType:'title'
+                            },
+                            {
+                                id:'erf_revisi_OH_button',
+                                text:'Revision ERF (Overhead)',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+                                handler:showERFRevisiOH
+                            },
+                            {
+                                id:'erf_revisi_sales_button',
+                                text:'Revision ERF (Sales)',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/page_edit.gif",
+                                handler:showERFRevisiSales
+                            },
+                            {
+    						    id: 'app_button',
+    						    text: 'Verify & Approval',
+    						    cls:"x-btn-text-icon" ,
+    						    icon:"/images/icons/fam/page_script.gif",
+    						    handler:showAppERF
+    						},
+                            {
+                                id: 'erf_payment_button',
+                                text: 'Payment',
+                                cls:"x-btn-text-icon" ,
+                                icon:"/images/money.png",
+                                handler:showPaymentERF
+						    },
+                            {
+                                id: 'erf_edit_payment_button',
+                                text: 'Edit Payment',
+                                cls:"x-btn-text-icon" ,
+                                icon:"/images/money.png",
+                                handler:showEditPaymentERF
+                            },
+//                            '-',
+//                            {
+//                                id: 'erf_generate_pulsa_button',
+//                                text: 'Generate Checklist Item for ERF Pulsa',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/action_paste.gif",
+//                                handler:showGenERFPulsa
+//                            },
+//                            {
+//                                id: 'erf_pulsa_button',
+//                                text: 'Create New ERF Pulsa/Voucher',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/action_paste.gif",
+//                                handler:showAddERFPulsa
+//                            },
+//                            {
+//                                id:'erf_pulsa_edit_button',
+//                                text:'Edit Existing ERF Pulsa/Voucher',
+//                                cls:'x-btn-text-icon',
+//                                icon:"/images/icons/fam/page_edit.gif",
+//                                handler:showEditERFPulsa
+//                            },
+                        ]
+                    }
+            }]
+
+        });
+
+        viewPort = Ext.getCmp('viewport');
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+         myPanel = Ext.getCmp('abs-budget-panel');
+//            myPanel.body.load({
+//                url: '/procurement/procurement/allpr',
+//                scripts: true
+//            });
+        showSubmenu('abs-budget-panel');
+    });
+</script>

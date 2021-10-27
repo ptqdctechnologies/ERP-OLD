@@ -1,0 +1,242 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+        Ext.apply(Ext.form.VTypes, {
+            daterange : function(val, field) {
+                var date = field.parseDate(val);
+
+                if(!date){
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                * Always return true since we're only using this vtype to set the
+                * min/max allowed values (these are tested for after the vtype test)
+                */
+                return true;
+            }
+        });
+
+        var callbackFunc = function()
+        {
+            Ext.getCmp('user_text').setValue('');
+            Ext.getCmp('startdt').setValue('');
+            Ext.getCmp('enddt').setValue('');
+            Ext.getCmp('startdt2').setValue('');
+            Ext.getCmp('enddt2').setValue('');
+        };
+
+        var windowForm = ({
+
+            title:'ARF Aging Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[
+            {
+                text: 'ARF Start Date',
+                iconCls: 'icon-calendar',
+                style: {
+                    overflow: 'visible'     // For the Combo popup
+                },
+                menu: {
+                    xtype: 'menu',
+                    plain: true,
+                    items:
+                    [
+                        '<b class="menu-title">Search By ARF Start Date</b>',
+                        '<b class="menu-title" style="color:blue;">Start Date</b>',
+                        {
+                            xtype:'datefield',
+                            name: 'startdt',
+                            id: 'startdt',
+                            vtype: 'daterange',
+                            endDateField: 'enddt', // id of the end date field
+                            msgTarget:'side',
+                            format:'d-m-Y'
+                        },
+                        '<b class="menu-title" style="color:blue;">End Date</b>',
+                        {
+                            xtype:'datefield',
+                            name: 'enddt',
+                            id: 'enddt',
+                            vtype: 'daterange',
+                            startDateField: 'startdt',
+                            msgTarget:'side',
+                            format:'d-m-Y'
+                        },
+                        '-',
+                        {
+                            xtype: 'button',
+                            text: 'Clear',
+                            handler: function(){
+                                Ext.getCmp('startdt').setValue('');
+                                Ext.getCmp('enddt').setValue('');
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                text: 'ARF Due Date',
+                iconCls: 'icon-calendar',
+                style: {
+                    overflow: 'visible'     // For the Combo popup
+                },
+                menu: {
+                    xtype: 'menu',
+                    plain: true,
+                    items:
+                        [
+                            '<b class="menu-title">Search By ARF Due Date</b>',
+                            '<b class="menu-title" style="color:blue;">Start Date</b>',
+                            {
+                                xtype:'datefield',
+                                name: 'startdt2',
+                                id: 'startdt2',
+                                vtype: 'daterange',
+                                endDateField: 'enddt2', // id of the end date field
+                                msgTarget:'side',
+                                format:'d-m-Y'
+//                                listeners: {
+//                                    'select': function (datef, datev){
+//                                        Ext.getCmp('startdt').setValue('');
+//                                        Ext.getCmp('enddt').setValue('');
+//                                    }
+//                                }
+                            },
+                            '<b class="menu-title" style="color:blue;">End Date</b>',
+                            {
+                                xtype:'datefield',
+                                name: 'enddt2',
+                                id: 'enddt2',
+                                vtype: 'daterange',
+                                startDateField: 'startdt2',
+                                msgTarget:'side',
+                                format:'d-m-Y'
+                            },
+                            '-',
+                            {
+                                xtype: 'button',
+                                text: 'Clear',
+                                handler: function(){
+                                    Ext.getCmp('startdt2').setValue('');
+                                    Ext.getCmp('enddt2').setValue('');
+                                }
+                            }
+                        ]
+                }
+            }
+            ,'-',{
+                xtype:'label',
+                text:'ARF Number'
+            },'-',
+            {
+                xtype: 'tranoselector',
+                id: 'tranos',
+                Selectid: 'trano_text',
+                width: 120,
+                Tranotype: 'ARF',
+                Disabletype: true,
+                callbackFunc: callbackFunc
+            },'-',{
+                xtype:'label',
+                text:'Person Name'
+            },'-',
+            {
+                xtype: 'userselector',
+                id: 'users',
+                ShowName: false,
+                UserSelectid: 'user_text',
+                width: 120
+            },
+            {
+                xtype: 'button',
+                text: 'Show',
+                width:70,
+                id: 'show_report',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function(btn,ev)
+                {
+                    var startdate = Ext.getCmp('startdt').getValue();
+                    var enddate = Ext.getCmp('enddt').getValue();
+                    var startdate2 = Ext.getCmp('startdt2').getValue();
+                    var enddate2 = Ext.getCmp('enddt2').getValue();
+
+                    if (startdate != null && startdate != "" && startdate != undefined)
+                    {
+                        startdate = startdate.toDateString();
+                    }
+                    if (enddate != null && enddate != "" && enddate != undefined)
+                    {
+                        enddate = enddate.toDateString();
+                    }
+
+                    if (enddate != '' && startdate == '')
+                    {
+                        Ext.Msg.alert('Error','Please select Start Date for Search By ARF Start Date!');
+                        return false;
+                    }
+
+                    if (startdate2 != null && startdate2 != "" && startdate2 != undefined)
+                    {
+                        startdate2 = startdate2.toDateString();
+                    }
+                    if (enddate2 != null && enddate2 != "" && enddate2 != undefined)
+                    {
+                        enddate2 = enddate2.toDateString();
+                    }
+                    if (enddate2 != '' && startdate2 == '')
+                    {
+                        Ext.Msg.alert('Error','Please select Start Date for Search By ARF Due Date!');
+                        return false;
+                    }
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/finance/report/viewarfaging',
+                        params: {
+                            start_date : startdate,
+                            end_date : enddate,
+                            start_date2 : startdate2,
+                            end_date2 : enddate2,
+                            trano : Ext.getCmp('trano_text').getValue(),
+                            uid : Ext.getCmp('users').getUid()
+                        },
+                        scripts : true
+                    });
+                }
+            }
+        ]
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+    
+
+</script>

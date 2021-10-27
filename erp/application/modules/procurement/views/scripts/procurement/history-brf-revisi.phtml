@@ -1,0 +1,349 @@
+<?php // if ($this->noData) { ?>No Data to display....<? die;} ?>
+
+<!-- base library -->
+<link rel="stylesheet" type="text/css" href="/css/ext-all.css" />
+<link rel="stylesheet" type="text/css" href="/images/icons/silk.css" />
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GridSummary.css" />
+
+<!-- ** Javascript ** -->
+
+<script type="text/javascript" src="/js/layout/base/config.js"></script>
+
+<!-- ExtJS library: all widgets -->
+<script type="text/javascript" src="/js/ext-base.js"></script>
+<script type="text/javascript" src="/js/ext-all.js"></script>
+<script type="text/javascript" src="/js/layout/base/patchforextjs3-firefoxbugs.js"></script>
+<script type="text/javascript" src="/js/layout/ux/gridsummary.js"></script>
+
+<style>
+    #first {
+        width: 360px;
+        border: 1px solid #000;
+        padding: 5px;
+        margin-right: 10px;
+        margin-left: 10px;
+        float: left;
+    }
+    
+    #date {
+        width: 360px;
+        border: 0;
+        padding: 5px;
+        margin-right: 10px;
+        margin-left: 10px;
+        
+    }
+
+    #second {
+        width: 360px;
+        border: 1px solid #000;
+        padding: 5px;
+        float: left;
+    }
+    body {
+        font-size: 12px;
+    }
+    .header {
+        /*background-color: #01C9F9;*/
+        border: 1px #000000 solid;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        /*color: #404040;*/
+    }
+</style>
+
+<script type="text/javascript">
+    Ext.onReady(function(){
+        Ext.QuickTips.init();
+        
+        var dataBefore = <?=$this->json?>;
+        var dataAfter = <?=$this->json2?>;
+
+        function loadFirst(n)
+        {
+            var firstData = dataBefore[n];
+            storeFirst.loadData({posts: firstData['detail']});
+            gridFirst.getView().refresh();
+            
+            var html = '';
+            if (n > 0)
+            {
+                html = 'Before : ';// + firstData['uid'] + ' (' + firstData['action'] + ')';
+                supplier1='<b>Supplier :</b> ' + firstData['header']['sup_kode'] + ' - ' + firstData['header']['sup_nama'];                
+                deliver1 ='<b>Deliver To :</b> ' + firstData['header']['deliverytext'];
+                deliverDate1 ='<b>Delivery Date :</b> ' + firstData['header']['tgldeliesti'];
+                invoiceTo1='<b>Invoice To :</b> ' + firstData['header']['invoiceto'];
+                paymentTerm1 = '<b>Payment Term :</b> ' + firstData['header']['paymentterm'];
+                top1 = '<b>TOP :</b>' + firstData['header']['top']  + ' days';
+                remark1 = '<b>Remark :</b> ' + firstData['header']['ket'];
+                notes1 = '<b>Internal Notes :</b>' + firstData['header']['ketin'];
+            }
+
+            document.getElementById('header1').innerHTML = html;
+            document.getElementById('supplier1').innerHTML = supplier1;
+            document.getElementById('deliver1').innerHTML = deliver1;  
+            document.getElementById('deliverDate1').innerHTML = deliverDate1;    
+            document.getElementById('invoiceTo1').innerHTML = invoiceTo1;
+            document.getElementById('paymentTerm1').innerHTML = paymentTerm1;
+            document.getElementById('top1').innerHTML = top1;
+            document.getElementById('remark1').innerHTML = remark1;
+            document.getElementById('notes1').innerHTML = notes1;
+        }
+
+        function loadSecond(n)
+        {
+
+            var secondData = dataAfter[n];
+            storeSecond.loadData({posts: secondData['detail']});
+            gridSecond.getView().refresh();
+
+            var html = '';
+            if (n > 0)
+            {
+                html = 'After : ' + secondData['uid'] + ' (' + secondData['action'] + ')';
+                supplier2='<b>Supplier :</b> ' + secondData['header']['sup_kode'] + ' - ' + secondData['header']['sup_nama'];                
+                deliver2 ='<b>Deliver To :</b> ' + secondData['header']['deliverytext'];
+                deliverDate2 ='<b>Delivery Date :</b> ' + secondData['header']['tgldeliesti'];
+                invoiceTo2 ='<b>Invoice To :</b> ' + secondData['header']['invoiceto'];
+                paymentTerm2 = '<b>Payment Term :</b> ' + secondData['header']['paymentterm'];
+                top2 = '<b>TOP :</b> ' + secondData['header']['top']  + ' days';
+                remark2 = '<b>Remark :</b> ' + secondData['header']['ket'];
+                notes2 = '<b>Internal Notes :</b> ' + secondData['header']['ketin'];
+            }
+
+            document.getElementById('header2').innerHTML = html;
+            document.getElementById('supplier2').innerHTML = supplier2;
+            document.getElementById('deliver2').innerHTML = deliver2;  
+            document.getElementById('deliverDate2').innerHTML = deliverDate2;    
+            document.getElementById('invoiceTo2').innerHTML = invoiceTo2;
+            document.getElementById('paymentTerm2').innerHTML = paymentTerm2;
+            document.getElementById('top2').innerHTML = top2;
+            document.getElementById('remark2').innerHTML = remark2;
+            document.getElementById('notes2').innerHTML = notes2;          
+        }
+
+        var readerCombo = new Ext.data.JsonReader(
+            {
+                root : 'posts'
+            },
+            [
+                {name: 'id'},
+                {name: 'name'}
+            ]
+        );
+
+        var storeCombo = new Ext.data.Store({
+            id: 'store-combo',
+            reader: readerCombo
+        });
+        storeCombo.loadData(<?=$this->jsonCombo?>);
+
+        var readerData = new Ext.data.JsonReader(
+                {
+                    root : 'posts'
+                },
+                [
+                    {name: 'id'},
+                    {name: 'prj_kode'},
+                    {name: 'sit_kode'},
+                    {name: 'kode_brg'},
+                    {name: 'nama_brg'},
+                    {name: 'workid'},
+                    {name: 'qtyspl'},
+                    {name: 'hargaspl'},
+                    {name: 'totalspl'},
+                    {name: 'ppnspl'},
+                    {name: 'ket'}
+                ]
+        );
+
+        var storeFirst = new Ext.data.Store({
+            id: 'store-first',
+            reader: readerData,
+            sortInfo: { field: 'kode_brg', direction: 'ASC'}
+        });
+
+        var storeSecond = new Ext.data.Store({
+            id: 'store-second',
+            reader: readerData,
+            sortInfo: { field: 'kode_brg', direction: 'ASC'}
+        });
+
+        var summary = new Ext.ux.grid.GridSummary();
+        var summary2 = new Ext.ux.grid.GridSummary();
+
+        var columnsFirst = [
+            new Ext.grid.RowNumberer(),
+            {header: "Project-Site",width: 100, dataIndex: 'prj_kode', renderer: function(v,p,r){
+                return v + ' - ' + r.get("sit_kode");
+            }},
+            {header: "Product Code",width: 100, dataIndex: 'kode_brg'},
+            {header: "Name",width: 100, dataIndex: 'nama_brg'},
+            {header: "Qty",width: 80, align: 'right',dataIndex: 'qtyspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Price",width: 120, align: 'right',dataIndex: 'hargaspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Total",width: 120, align: 'right',dataIndex: 'totalspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "PPN",width: 120, align: 'right',dataIndex: 'ppnspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Description",width: 300, dataIndex: 'ket'}
+        ];
+
+        var columnsSecond = [
+            new Ext.grid.RowNumberer(),
+            {header: "Project-Site",width: 100, dataIndex: 'prj_kode', renderer: function(v,p,r){
+                return v + ' - ' + r.get("sit_kode");
+            }},
+            {header: "Product Code",width: 100, dataIndex: 'kode_brg'},
+            {header: "Name",width: 100, dataIndex: 'nama_brg'},
+            {header: "Qty",width: 80, align: 'right',dataIndex: 'qtyspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Price",width: 120, align: 'right',dataIndex: 'hargaspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Total",width: 120, align: 'right',dataIndex: 'totalspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "PPN",width: 120, align: 'right',dataIndex: 'ppnspl', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Description",width: 300, dataIndex: 'ket'}
+        ];
+
+        var gridFirst = new Ext.grid.GridPanel ({
+            id:'grid-first',
+            height: 200,
+            store: storeFirst,
+            trackMouseOver: true,
+            autoWidth: true,
+            view : new Ext.grid.GridView({
+//                forceFit: true
+            }),
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true,
+                listeners: {
+                    'rowselect': function(t, rowIndex, rec){
+                        var kode_brg = rec.get("kode_brg"),
+                            secondRow = gridSecond.getStore().findExact('kode_brg',kode_brg);
+
+                        gridSecond.getSelectionModel().clearSelections();
+                        if (secondRow >= 0)
+                        {
+                            gridSecond.getSelectionModel().selectRow(secondRow,false);
+                        }
+
+                    }
+                }
+            }),
+            columns: columnsFirst,
+            renderTo: 'grid1',
+            plugins: [summary]
+        });
+
+        var gridSecond = new Ext.grid.GridPanel ({
+            id:'grid-second',
+            height: 200,
+            store: storeSecond,
+            trackMouseOver: true,
+            autoWidth: true,
+            view : new Ext.grid.GridView({
+
+            }),
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true,
+                listeners: {
+                    'rowselect': function(t, rowIndex, rec){
+
+                    }
+                }
+            }),
+            columns: columnsSecond,
+            renderTo: 'grid2',
+            plugins: [summary2]
+        });
+        
+        var formDate = new Ext.form.FormPanel({
+            id: 'form-date',
+            frame: false,
+            border: false,
+            renderTo: 'form_date',
+            items: [
+                {
+                    id: 'combo-second',
+                    xtype: 'combo',
+                    width: 200,
+                    triggerAction: 'all',
+                    mode: 'local',
+                    fieldLabel: 'Revision ',
+                    editable: false,
+                    displayField: 'name',
+                    valueField: 'id',
+                    value: <?=$this->lastRev?>,
+                    store: storeCombo,
+                    listeners: {
+                        'select': function(t,n,o){
+                            loadSecond(n.get("id"));
+                            loadFirst(n.get("id"));
+                        }
+                    }
+                }
+            ]
+        });
+
+        loadFirst(<?=$this->lastRev?>);
+        loadSecond(<?=$this->lastRev?>);
+    });
+</script>
+
+<center><h1 style="font-size: 20px;">Revision History for PO : <?=$this->trano?></h1></center>
+<br>
+<div id="date"><div id="form_date"></div></div>
+<br>
+<div id="first">
+    <div id="header1" class="header"></div><br>
+    <div id="grid1"></div>
+    <br>
+    <p id="supplier1"></p>
+    <br>
+    <p id="deliver1"></p>
+    <br>
+    <p id="deliverDate1"></p>
+    <br>
+    <p id="invoiceTo1"></p>
+    <br>
+    <p id="paymentTerm1"></p>
+    <br>
+    <p id="top1"></p>
+    <br>
+    <p id="remark1"></p>
+    <br>
+    <p id="notes1"></p>
+</div>
+
+<div id="second">
+    <div id="header2" class="header"></div><br>
+    <div id="grid2"></div>
+    <br>
+    <p id="supplier2"></p>
+    <br>
+    <p id="deliver2"></p>
+    <br>
+    <p id="deliverDate2"></p>
+    <br>
+    <p id="invoiceTo2"></p>
+    <br>
+    <p id="paymentTerm2"></p>
+    <br>
+    <p id="top2"></p>
+    <br>
+    <p id="remark2"></p>
+    <br>
+    <p id="notes2"></p>
+</div>

@@ -1,0 +1,1944 @@
+<script type="text/javascript"><!--
+var t = 0;
+
+
+<?php echo $this->action('index','textfield'); ?>
+
+showAddDO = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/procurement/procurement/addafe',
+        scripts : true
+    });
+};
+
+
+//custom summary renderer example
+function totals(t, params, data){
+
+	 return CommaFormatted(t);
+
+}
+
+Ext.ux.grid.GridSummary.Calculations = {
+	    'jumlah': function(v, record, colName, data, rowIdx){
+            return data[colName] + Ext.num(parseFloat(v.toString().replace(/\$|\,/g,'')), 0);
+	    }
+};
+
+var summary = new Ext.ux.grid.GridSummary();
+
+
+ var boq3list = Ext.data.Record.create([{
+  name: 'id',
+    type: 'integer'
+},{
+    name: 'tgl',
+    type: 'date',
+    dateFormat: 'd-m-Y'
+},{
+    name: 'trano',
+    type: 'string'
+},{
+    name: 'prj_kode',
+    type: 'string'
+}, {
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'workid',
+    type: 'string'
+},{
+    name: 'workname',
+    type: 'string'
+},{
+    name: 'kode_brg',
+    type: 'string'
+},{
+    name: 'nama_brg',
+    type: 'string'
+},{
+    name: 'qty',
+    type: 'string'
+},{
+    name: 'uom',
+    type: 'string'
+},{
+    name: 'price',
+    type: 'float'
+},{
+    name: 'totalPrice',
+    type: 'float'
+},{
+    name: 'status',
+    type: 'string'
+}]);
+
+
+var afelist = Ext.data.Record.create([ {
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'tgl_dor',
+    type: 'date',
+    dateFormat: 'd-m-Y'
+},{
+    name: 'tgl_do',
+    type: 'date',
+    dateFormat: 'd-m-Y'
+},{
+    name: 'trano',
+    type: 'string'
+},{
+    name: 'prj_kode',
+    type: 'string'
+}, {
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'workid',
+    type: 'string'
+},{
+    name: 'workname',
+    type: 'string'
+},{
+    name: 'kode_brg',
+    type: 'string'
+},{
+    name: 'nama_brg',
+    type: 'string'
+},{
+    name: 'qty',
+    type: 'string'
+},{
+    name: 'uom',
+    type: 'string'
+},{
+    name: 'totalDO',
+    type: 'float'
+},{
+    name: 'deliver_to',
+    type: 'string'
+},{
+    name: 'dest_kode',
+    type: 'string'
+},{
+    name: 'dest_nama',
+    type: 'string'
+},{
+    name: 'from_kode',
+    type: 'string'
+},{
+    name: 'from_kode',
+    type: 'string'
+},{
+    name: 'alamat',
+    type: 'string'
+},{
+    name: 'alamat1',
+    type: 'string'
+},{
+    name: 'receiver_nama',
+    type: 'string'
+},{
+    name: 'receiver_tlp',
+    type: 'string'
+},{
+    name: 'ket',
+    type: 'string'
+}]);
+
+var storeDOR = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: dorlist}),
+    listeners: {
+		'add':function(t,r,o)
+		{
+            var myTrano = r[0].data['trano'];
+            var myWork = r[0].data['workid'];
+            var myBrg = r[0].data['kode_brg'];
+            storeDO.each(function(stores)
+                {
+                    if(stores.data['dor_number'] = myTrano && stores.data['workid'] == myWork && stores.data['kode_brg'] == myBrg)
+                    {
+                        var dod = storeDO.getAt(storeDO.find('id',stores.data['id']));
+                        if (dod != undefined)
+                        {
+                            dod.data['id'] = r[0].data['id'];
+                            r[0].data['totalDO'] = parseFloat(r[0].data['totalDO']) + parseFloat(dod.data['qty']);
+                        }
+                        dod = undefined;
+                    }
+                }
+            )
+
+
+		}
+    }
+});
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+var proxy = new Ext.data.HttpProxy({
+    api:{
+    create: '/default/prd/list'
+    }
+
+
+});
+
+var storeDO = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: dolist})
+});
+
+
+ var datas = new Ext.data.SimpleStore({
+        fields:['nilai', 'term']
+                ,data:[
+                       ['14','14'],
+                       ['30','30'],
+                       ['45','45']
+
+                   ]
+
+            });
+
+
+var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Project Name:</b> {prj_nama}</p><br>',
+            '<p><b>Site Name:</b> {sit_nama}</p><br>',
+            '<p><b>DOR Date:</b> {tgl_dor}</p><br>',
+            '<p><b>Uom:</b> {uom}</p><br>',
+            '<p><b>Work ID:</b> {workid}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p></div>'
+        )
+    });
+
+Ext.form.ImageField = Ext.extend(Ext.form.Field, {
+    autoCreate: {tag: 'img'}
+    ,setValue: function(new_value){
+        if (new_value == undefined || new_value == null) {
+            this.el.dom.src = '/images/no_image.png';
+        } else {
+            this.el.dom.src = '/images/' + new_value;
+        }
+    }
+    ,initValue : function(){
+          this.setValue(this.value);
+    }
+
+    ,initComponent: function() {
+        Ext.apply(this, {
+
+        });
+
+        Ext.form.ImageField.superclass.initComponent.apply(this);
+    }
+});
+
+Ext.reg('image_field', Ext.form.ImageField);
+
+function showDeliver()
+{
+    var bForm =  new Ext.Window({
+		    id: 'b-form-panel',
+		    layout:'fit',
+		    width: 700,
+		    height: 300,
+		    title: 'Delivery Detail',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+                    new Ext.form.FormPanel({
+						frame: true,
+						layout: 'form',
+                        items: [
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                            columnWidth:.450,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                        xtype: 'fieldset',
+                                                        id: 'fieldset-1',
+                                                        title: 'Delivery From',
+                                                        itemId: 'fieldset-from',
+                                                        width: 280,
+                                                        items: [
+                                                           {
+                                                                 id:'from_nama_text',
+                                                                 fieldLabel: 'From',
+                                                                 xtype: 'textfield',
+                                                                 readOnly: true,
+                                                                 width: 150
+                                                            },
+                                                            {
+                                                                fieldLabel: 'Address',
+                                                                id: 'alamat1_text',
+                                                                xtype:'textarea',
+                                                                readOnly: true,
+                                                                width: 150,
+                                                                height: 80
+                                                            }
+                                                        ]
+                                                }
+                                            ]
+                                       },
+                                       {
+                                            columnWidth:.100,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                    xtype: 'image_field',
+                                                    hideLabel: true,
+                                                    id: 'tanda-panah',
+                                                    value: 'arrow-right.png'
+                                                }
+                                            ]
+                                       },
+                                       {
+                                            columnWidth:.450,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                        xtype: 'fieldset',
+                                                        id: 'fieldset-2',
+                                                        title: 'Delivery To',
+                                                        itemId: 'fieldset-to',
+                                                        width: 280,
+                                                        items: [
+                                                           {
+                                                                 id:'dest_nama_text',
+                                                                 fieldLabel: 'Destination',
+                                                                 xtype: 'textfield',
+                                                                 readOnly: true,
+                                                                 width: 150
+                                                            },
+                                                            {
+                                                                fieldLabel: 'Address',
+                                                                id: 'alamat_text',
+                                                                xtype:'textarea',
+                                                                readOnly: true,
+                                                                width: 150,
+                                                                height: 80
+                                                            }
+                                                        ]
+                                                }
+                                            ]
+                                       }
+                                ]
+                            },
+                            {
+                                id:'receiver_text',
+                                fieldLabel: 'Receiver Name',
+                                xtype: 'textfield',
+                                readOnly: true,
+                                width: 100
+                            },
+                            {
+                                id:'receiver_phone_text',
+                                fieldLabel: 'Receiver Number',
+                                xtype: 'textfield',
+                                readOnly: true,
+                                width: 100
+                            }
+                        ]
+                    })
+				    ],
+		    buttons: [
+
+		              {
+	 			         text: 'OK',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+			  		    ]
+		});
+
+		bForm.show();
+        var recdor = Ext.getCmp('dor-detail-grid').getSelectionModel().getSelections();
+        Ext.getCmp('from_nama_text').setValue(recdor[0].data['from_nama']);
+        Ext.getCmp('dest_nama_text').setValue(recdor[0].data['dest_nama']);
+        Ext.getCmp('alamat1_text').setValue(recdor[0].data['alamat1']);
+        Ext.getCmp('alamat_text').setValue(recdor[0].data['alamat']);
+        Ext.getCmp('receiver_text').setValue(recdor[0].data['receiver_nama']);
+        Ext.getCmp('receiver_phone_text').setValue(recdor[0].data['receiver_tlp']);
+}
+
+function showFillDeliver()
+{
+    var bForm =  new Ext.Window({
+		    id: 'b-form-panel2',
+		    layout:'fit',
+		    width: 700,
+		    height: 320,
+		    title: 'Delivery Detail Form',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+                    new Ext.form.FormPanel({
+						frame: true,
+						layout: 'form',
+                        items: [
+                            {
+                                 fieldLabel : 'Deliver Type',
+                                 id:'deliver_to_text2',
+                                 name: 'tujuan',
+                                 xtype: 'combo',
+                                 width: 150,
+                                 allowBlank: false,
+                                 store: new Ext.data.SimpleStore({
+                                            fields:['type','name'],
+                                            data:[['wh-site','Warehouse to Site'],['wh-wh','Warehouse to Warehouse'],['sup-site','Supplier to Site']]
+                                 }),
+                                 valueField:'type',
+                                 displayField:'name',
+                                 typeAhead: true,
+                                 forceSelection: true,
+                                 editable: false,
+                                 mode: 'local',
+                                 triggerAction: 'all',
+                                 selectOnFocus: true,
+                                 emptyText: 'Select Type'
+                            },
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                            columnWidth:.450,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                        xtype: 'fieldset',
+                                                        id: 'fieldset-1',
+                                                        title: 'Delivery From',
+                                                        itemId: 'fieldset-from',
+                                                        width: 280,
+                                                        items: [
+                                                           {
+                                                                 id:'from_nama_text',
+                                                                 fieldLabel: 'From',
+                                                                 xtype: 'textfield',
+                                                                 width: 150
+                                                            },
+                                                            {
+                                                                fieldLabel: 'Address',
+                                                                id: 'alamat1_text',
+                                                                xtype:'textarea',
+                                                                width: 150,
+                                                                height: 80
+                                                            }
+                                                        ]
+                                                }
+                                            ]
+                                       },
+                                       {
+                                            columnWidth:.100,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                    xtype: 'image_field',
+                                                    hideLabel: true,
+                                                    id: 'tanda-panah',
+                                                    value: 'arrow-right.png'
+                                                }
+                                            ]
+                                       },
+                                       {
+                                            columnWidth:.450,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                        xtype: 'fieldset',
+                                                        id: 'fieldset-2',
+                                                        title: 'Delivery To',
+                                                        itemId: 'fieldset-to',
+                                                        width: 280,
+                                                        items: [
+                                                           {
+                                                                 id:'dest_nama_text',
+                                                                 fieldLabel: 'Destination',
+                                                                 xtype: 'textfield',
+                                                                 width: 150
+                                                            },
+                                                            {
+                                                                fieldLabel: 'Address',
+                                                                id: 'alamat_text',
+                                                                xtype:'textarea',
+                                                                width: 150,
+                                                                height: 80
+                                                            }
+                                                        ]
+                                                }
+                                            ]
+                                       }
+                                ]
+                            },
+                            {
+                                id:'receiver_text',
+                                fieldLabel: 'Receiver Name',
+                                xtype: 'textfield',
+                                width: 100
+                            },
+                            {
+                                id:'receiver_phone_text',
+                                fieldLabel: 'Receiver Number',
+                                xtype: 'textfield',
+                                width: 100
+                            }
+                        ]
+                    })
+				    ],
+		    buttons: [
+
+		              {
+	 			         text: 'OK',
+	 			         id: 'ok',
+	 			         handler: function(btn, ev) {
+                            storeDOR.each(function(store){
+                                store.data['deliver_to'] = Ext.getCmp('deliver_to_text2').getValue();
+                                store.data['dest_nama'] = Ext.getCmp('dest_nama_text').getValue();
+                                store.data['from_nama'] = Ext.getCmp('from_nama_text').getValue();
+                                store.data['alamat'] = Ext.getCmp('alamat_text').getValue();
+                                store.data['alamat1'] = Ext.getCmp('alamat1_text').getValue();
+                                store.data['receiver_nama'] = Ext.getCmp('receiver_text').getValue();
+                                store.data['receiver_tlp'] = Ext.getCmp('receiver_phone_text').getValue();
+                            });
+                            Ext.getCmp('deliver_to_text').setValue(Ext.getCmp('deliver_to_text2').getRawValue());
+                            bForm.close();
+			              }
+
+		              },
+                      {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+			  		    ]
+		});
+
+		bForm.show();
+}
+
+ var userColumns = [
+     new Ext.grid.RowNumberer(),
+     expander,
+      {header: "",width: 30, dataIndex: 'id',renderer: function (v,p,r) {
+//        if (!isMscWorkid(r.data['workid']))
+//        {
+	    	var qty = r.data['qty'];
+	    	percent = (r.data['totalDO'] / qty) * 100;
+//        }
+//        else
+//        {
+//	    	percent = (parseFloat(r.data['totalPriceDOR']) / parseFloat(r.data['totalPrice'])) * 100;
+//        }
+    	if (percent < 100){
+			return '<a href="#" onclick="addToDO(' + v + ');"><img src="/images/g_rec_add.png"></a>';
+    	}
+        else
+    	{
+    		p.attr ='ext:qtip="This item (' + r.data['kode_brg'] + ') must be created by DOR"';
+    		return '<img src="/images/icons/fam/page_tag_red.gif">';
+//    		return '<a href="#" onclick="addToAFE(' + v + ');"><img src="/images/icons/fam/page_tag_red.gif"></a>';
+    	}
+    }},
+    {header:'Trano',width:90,sortable:true,dataIndex:'trano'},
+    {header:'Project',width:80,sortable:true,dataIndex:'prj_kode'},
+    {header:'Site',width:40,sortable:true,dataIndex:'sit_kode'},
+    {header:'Product Id',width:65,sortable:true,dataIndex:'kode_brg'},
+    {header:'Product Name',width:150,sortable:true,dataIndex:'nama_brg'},
+//    {header:'Valuta',width:70,sortable:true,dataIndex:'val_kode'},
+    {header:'Qty',width:70,sortable:true,dataIndex:'qty',renderer:change,align:'right'},
+     {header: "Available", width: 100, renderer: function(v,p,r) {
+        var percent = 0;
+//        if (!isMscWorkid(r.data['workid']))
+//        {
+
+	        if (r.data['qty'] != 0 && r.data['totalDO'] != 0)
+	        {
+	            var qty = r.data['qty'];
+	        	percent = (r.data['totalDO'] / qty) * 100;
+	        	if (percent > 100)
+	            	percent = 100;
+	        	percent = percent.toFixed(2);
+				var warna = '#0a0';
+	        	if (percent > 75)
+	            	warna = '#FF3F7D';
+	        	else if (percent > 50)
+	            	warna = '#FFDA2F';
+
+                var avail = qty - r.data['totalDO'];
+                p.attr ='ext:qtip="Available : ' + avail + ', Already in DO : ' + r.data['totalDO'] + '"';
+	        }
+		return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+    }}
+ ]
+
+ var userColumns2 = [
+     new Ext.grid.RowNumberer(),
+     {header: "",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+  		return '<a href="#" onclick="editToDO(' + v + ');"><img src="/images/g_rec_upd.png"></a>&nbsp;<a href="#" onclick="delToDO(' + v + ',\'' + r.data['workid'] + '\');"><img src="/images/g_rec_del.png"></a>';
+      }},
+
+    {header:'Trano',width:90,sortable:true,dataIndex:'trano'},
+    {header:'Project',width:80,sortable:true,dataIndex:'prj_kode'},
+    {header:'Site',width:40,sortable:true,dataIndex:'sit_kode'},
+    {header:'Product Id',width:65,sortable:true,dataIndex:'kode_brg'},
+    {header:'Product Name',width:220,sortable:true,dataIndex:'nama_brg'},
+    {header:'Qty',width:80,sortable:true,dataIndex:'qty',renderer:change, summaryType: 'jumlah', summaryRenderer: totals,align:'right'}
+
+ ]
+
+function change(val)
+    {
+        return Ext.util.Format.number(val, '?0,000.00?');
+    }
+
+function getNewID()
+{
+    var maxRecordDOR = storeDOR.getCount();
+
+    var maxRecordDO = storeDO.getCount();
+
+	var newID = maxRecordDOR + maxRecordDO + 1;
+
+	return newID;
+}
+
+function getDORecord(workid,kode_brg,isEdit)
+{
+	//Clear filter
+	storeDOclearFilter();
+	storeDO.filterBy(function(record,id){
+		if (!isEdit)
+		{
+			if (record.get('workid') == workid.toString() && record.get('kode_brg') == kode_brg.toString())
+			{
+				return record.get('workid');
+			}
+		}
+		else
+		{
+			if (record.get('workid') == workid.toString() && (record.get('status') != '' || record.get('status') != undefined))
+			{
+				return record.get('workid');
+			}
+		}
+	});
+	if (storeDO.getCount() > 0)
+	{
+		var rec = storeDO.getAt(0);
+	}
+
+	storeDO.clearFilter();
+	return rec;
+}
+
+function resetButton()
+{
+//	Ext.getCmp('cancel-dor').setText('Cancel Add');
+//	Ext.getCmp('cancel-dor').disable();
+//	Ext.getCmp('save-dor').setText('Add to PR List(Cart)');
+// 	Ext.getCmp('save-dor').disable();
+	        url: '/logistic/logistic/adddo';
+
+}
+
+function clearDOForm()
+{
+    var teks = Ext.getCmp('do-form').findByType('textfield');
+    Ext.each(teks, function (t, index){
+			t.setValue('');
+        });
+    document.getElementById('qty').innerHTML = '0';
+    document.getElementById('tot-do').innerHTML = '0';
+    document.getElementById('balanceqty').innerHTML = '0';
+    document.getElementById('balance-do').innerHTML = '0';
+}
+
+function clearEditStatus()
+{
+    storeDO.each(function(store){
+            if (store.data['status'] == 'edit')
+            {
+                var e = storeDO.getAt(storeDO.find('id', store.data['id']));
+                e.data['status'] = '';
+            }
+    });
+    storeDOR.each(function(store){
+            if (store.data['status'] == 'edit')
+            {
+                var e = storeDOR.getAt(storeDOR.find('id', store.data['id']));
+                e.data['status'] = '';
+            }
+    });
+}
+
+function addToDO()
+{
+	//var ori = storePR.getAt(storePR.find('id', idPr));
+    var rec = Ext.getCmp('dor-detail-grid').getSelectionModel().getSelections();
+	if (rec[0] != undefined)
+	{
+            var qty = parseFloat(rec[0].data['qty']);
+            var qtyDO = parseFloat(rec[0].data['totalDO']);
+            var balanceDO = qty - qtyDO;
+            Ext.getCmp('dor_no_text').setValue(rec[0].data['trano']);
+            Ext.getCmp('dor-workid').setValue(rec[0].data['workid']);
+            Ext.getCmp('dor-workname').setValue(rec[0].data['workname']);
+            Ext.getCmp('kode_brg_text').setValue(rec[0].data['kode_brg']);
+            Ext.getCmp('nama_brg_text').setValue(rec[0].data['nama_brg']);
+            Ext.getCmp('prj_kode_text').setValue(rec[0].data['prj_kode']);
+            Ext.getCmp('prj_nama_text').setValue(rec[0].data['prj_nama']);
+            Ext.getCmp('sit_kode_text').setValue(rec[0].data['sit_kode']);
+            Ext.getCmp('sit_nama_text').setValue(rec[0].data['sit_nama']);
+            var delivery_text = '';
+            if (rec[0].data['deliver_to'] == 'wh-wh')
+                delivery_text = 'Warehouse to Warehouse';
+            else if (rec[0].data['deliver_to'] == 'wh-site')
+                delivery_text = 'Warehouse to Site';
+            else if (rec[0].data['deliver_to'] == 'sup-site')
+                delivery_text = 'Supplier to Site';
+            else
+                delivery_text = 'N/A';
+            if (rec[0].data['statusDeliver'] === true)
+                Ext.getCmp('label-status').setVisible(true);
+            else
+                Ext.getCmp('label-status').setVisible(false);
+            Ext.getCmp('deliver_to_text').setValue(delivery_text);
+            Ext.getCmp('qty-do').setValue(balanceDO);
+            Ext.getCmp('kode_brg_text').disable();
+
+            Ext.getCmp('uom_text').setValue(rec[0].data['uom']);
+            var piece = rec[0].data['uom'];
+            Ext.getCmp('do-grid').disable();
+            Ext.getCmp('dor-detail-grid').disable();
+            Ext.getCmp('cancel-do').setText('Cancel Add');
+            Ext.getCmp('cancel-do').enable();
+
+            var qty = parseFloat(rec[0].data['qty']);
+            var totDO =  parseFloat(rec[0].data['totalDO']);
+            var balanceqty = qty - totDO;
+
+			document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>DOR Qty :</td><td align="right"><b id="qty">' + qty.toFixed(4) + ' ' + piece + ' '  + '</b></td></tr><tr><td>In DO Qty :</td><td align="right"><b id="tot-do">' + totDO.toFixed(4) + ' ' + piece +  '</b></td></tr><tr><td>Balance qty:</td><td align="right"><b id="balanceqty" style="color:#FF3F7D">' + balanceqty.toFixed(4) + ' ' + piece +   '</b></td></tr><tr><td>New Balance qty :</td><td align="right"><b id="balance-do" style="color:#FF3F7D">0' + ' ' + piece + '</b></td></tr></table>';
+
+
+	}
+	else
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Error while fetching data...',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+  		return false;
+	}
+}
+
+function insertDOtoList()
+{
+
+    var cek = storeDOR.getAt(storeDOR.find('status', 'edit'));
+    var newQty = parseFloat(Ext.getCmp('qty-do').getValue().toString().replace(/\$|\,/g,''));
+
+    if (cek != undefined)
+    {
+        var dod = storeDO.getAt(storeDO.find('id',cek.data['id']));
+        if (cek.data['trano'] == dod.data['trano'])
+        {
+            dod.data['qty'] = newQty;
+            cek.data['totalDO'] = parseFloat(cek.data['totalDO']) + newQty;
+            clearEditStatus();
+            cek = undefined;
+        }
+        Ext.getCmp('save-do').setText('Add to DO list');
+    }
+    else
+    {
+        var recdor = Ext.getCmp('dor-detail-grid').getSelectionModel().getSelections();
+        var dor = storeDOR.getAt(storeDOR.find('id', recdor[0].data['id']));
+        var dod = storeDO.getAt(storeDO.find('id', recdor[0].data['id']));
+        if (recdor[0] != undefined && dod == undefined)
+        {
+             var d = new dolist({
+                trano : recdor[0].data['trano'],
+                tgl:recdor[0].data['tgl'],
+                urut: recdor[0].data['urut'],
+                workid: recdor[0].data['workid'],
+                workname: recdor[0].data['workname'],
+                pr_number: recdor[0].data['trano'],
+                prj_kode: recdor[0].data['prj_kode'],
+                sit_kode: recdor[0].data['sit_kode'],
+                prj_nama: recdor[0].data['prj_nama'],
+                sit_nama: recdor[0].data['sit_nama'],
+                kode_brg: recdor[0].data['kode_brg'],
+                nama_brg: recdor[0].data['nama_brg'],
+                dest_kode: recdor[0].data['dest_kode'],
+                dest_nama: recdor[0].data['dest_nama'],
+                from_kode: recdor[0].data['from_kode'],
+                from_nama: recdor[0].data['from_nama'],
+                alamat: recdor[0].data['alamat'],
+                alamat1: recdor[0].data['alamat1'],
+                deliver_to: recdor[0].data['deliver_to'],
+                receiver_nama: recdor[0].data['receiver_nama'],
+                receiver_tlp: recdor[0].data['receiver_tlp'],
+                qty:  newQty,
+                uom: recdor[0].data['uom'],
+                ket: Ext.getCmp('ket').getValue(),
+                id: dor.data['id']
+            });
+            storeDO.add(d);
+            dor.data['totalDO'] = parseFloat(dor.data['totalDO']) + newQty;
+            dor = undefined;
+            d = undefined;
+        }
+        else if (recdor[0] != undefined && dod != undefined)
+        {
+            dod.data['qty'] = parseFloat(dod.data['qty']) + newQty;
+            dor.data['totalDO'] = parseFloat(dor.data['totalDO']) + newQty;
+            dor = undefined;
+            dod = undefined;
+            d = undefined;
+        }
+    }
+    Ext.getCmp('dor-detail-grid').enable();
+    Ext.getCmp('do-grid').enable();
+    Ext.getCmp('dor-detail-grid').getView().refresh();
+    Ext.getCmp('do-grid').getView().refresh();
+    clearDOForm();
+    resetButton();
+}
+
+
+function delToDO()
+{
+	Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+		if (btn== 'yes')
+		{
+			var recdor = Ext.getCmp('dor-detail-grid').getSelectionModel().getSelections();
+			var recdod = Ext.getCmp('do-grid').getSelectionModel().getSelections();
+				var qtydod = parseFloat(recdod[0].data['qty']);
+				var inDOR = parseFloat(recpr[0].data['totalDO']);
+				recdor[0].data['totalDO'] = inDOR - qtydo;
+				storeDO.remove(recdod[0]);
+			clearDOForm();
+			resetButton();
+		}
+	});
+}
+
+function editToDO()
+{
+	Ext.getCmp('save-do').setText('Update to DO list');
+	var recdod = Ext.getCmp('do-grid').getSelectionModel().getSelections();
+
+    var recdor = storeDOR.getAt(storeDOR.find('id', recdod[0].data['id']));
+
+    Ext.getCmp('dor-detail-grid').disable();
+    Ext.getCmp('do-grid').disable();
+    Ext.getCmp('cancel-do').setText('Cancel Edit');
+    Ext.getCmp('cancel-do').enable();
+
+    if (recdod[0] != undefined && recdor != undefined)
+    {
+        var qty = parseFloat(recdor.data['qty']);
+
+        recdod[0].data['status'] = 'edit';
+        recdor.data['status'] = 'edit';
+        Ext.getCmp('dor_no_text').setValue(recdod[0].data['workid']);
+        Ext.getCmp('dor-workid').setValue(recdod[0].data['workid']);
+        Ext.getCmp('dor-workname').setValue(recdod[0].data['workname']);
+        Ext.getCmp('kode_brg_text').setValue(recdod[0].data['kode_brg']);
+        Ext.getCmp('nama_brg_text').setValue(recdod[0].data['nama_brg']);
+        Ext.getCmp('prj_kode_text').setValue(recdod[0].data['prj_kode']);
+        Ext.getCmp('prj_nama_text').setValue(recdod[0].data['prj_nama']);
+        Ext.getCmp('sit_kode_text').setValue(recdod[0].data['sit_kode']);
+        Ext.getCmp('sit_nama_text').setValue(recdod[0].data['sit_nama']);
+        Ext.getCmp('ket').setValue(recdod[0].data['ket']);
+        Ext.getCmp('uom_text').setValue(recdod[0].data['uom']);
+
+        Ext.getCmp('save-do').disable();
+
+        Ext.Ajax.request({
+			results: 0,
+	        url: '/default/home/getdodetail/prj_kode/' + recdor.data['prj_kode'] + '/sit_kode/' + recdor.data['sit_kode'] + '/workid/' + recdor.data['workid'] + '/kode_brg/' + recdor.data['kode_brg'] + '/trano/' + recdor.data['trano'],
+	        method:'POST',
+	        success: function(result, request){
+	        	   var returnData = Ext.util.JSON.decode(result.responseText);
+					if( returnData.success) {
+
+							var oriQtyDO = returnData.totalDO;
+							if (oriQtyDO != undefined)
+							{
+                                var oridor = storeDOR.getAt(storeDOR.find('status', 'edit'));
+								oridor.data['totalDO'] = oriQtyDO;
+
+						    	var piece = oridor.data['uom'];
+						    	var totDO = parseFloat(oriQtyDO);
+						    	var balanceqty = qty - totDO;
+                                document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>DOR Qty :</td><td align="right"><b id="qty">' + qty.toFixed(4) + ' ' + piece + ' '  + '</b></td></tr><tr><td>In DO Qty :</td><td align="right"><b id="tot-do">' + totDO.toFixed(4) + ' ' + piece +  '</b></td></tr><tr><td>Balance qty:</td><td align="right"><b id="balanceqty" style="color:#FF3F7D">' + balanceqty.toFixed(4) + ' ' + piece +   '</b></td></tr><tr><td>New Balance qty :</td><td align="right"><b id="balance-do" style="color:#FF3F7D">0' + ' ' + piece + '</b></td></tr></table>';
+ 						    }
+							else
+							{
+								Ext.MessageBox.show({
+							           title: 'Error',
+							           msg: 'Error while fetching data...',
+							           buttons: Ext.MessageBox.OK,
+							           icon: Ext.MessageBox.ERROR
+							       });
+							}
+
+					}
+				}
+			,
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}
+	      	}
+	    });
+
+
+
+    }
+    else
+    {
+        Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'Error while fetching data...',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+           });
+        return false;
+    }
+
+}
+
+function submitDOR(trano,isEmpty)
+{
+    Ext.Ajax.request({
+        results: 0,
+        url: '/default/home/getdosummary/data/'+trano,
+        method:'POST',
+        success: function(result, request){
+           var returnData = Ext.util.JSON.decode(result.responseText);
+           var empty = false;
+           if (isEmpty != undefined || isEmpty === true)
+            empty = true;
+           Ext.each(returnData.posts, function(op) {
+
+              var c = new dorlist({
+                    trano : op['trano'],
+                    tgl_pr : op['tgl'],
+                    urut: op['urut'],
+                    prj_kode: op['prj_kode'],
+                    prj_nama: op['prj_nama'],
+                    sit_kode: op['sit_kode'],
+                    sit_nama: op['sit_nama'],
+                    workid: op['workid'],
+                    workname: op['workname'],
+                    kode_brg: op['kode_brg'],
+                    nama_brg: op['nama_brg'],
+                    qty: op['qty'],
+                    uom: op['uom'],
+                    totalDO: op['totalDO'],
+                    dest_kode: returnData.header['dest_kode'],
+                    dest_nama: returnData.header['dest_nama'],
+                    from_kode: returnData.header['from_kode'],
+                    from_nama: returnData.header['from_nama'],
+                    alamat: returnData.header['alamat'],
+                    alamat1: returnData.header['alamat1'],
+                    deliver_to: returnData.header['deliver_to'],
+                    receiver_nama: returnData.header['receiver_nama'],
+                    receiver_tlp: returnData.header['receiver_tlp'],
+                    statusDeliver: empty,
+                    id: getNewID()
+
+              });
+              storeDOR.add(c);
+
+           });
+           Ext.getCmp('dor-detail-grid').getView().refresh();
+    }
+    });
+}
+
+function showDorList()
+{
+    var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                    {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                    {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                    {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                ];
+
+    var store = new Ext.ux.data.PagingJsonStore({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts',
+        fields: [
+			{name: 'id'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'sit_kode'},
+			{name: 'prj_nama'},
+			{name: 'sit_nama'}
+          ],
+        autoLoad: {params: {start: 0, limit: 50}},
+        url: '/pool_do.json'
+    });
+	store.load();
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: store,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:'dor_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        width:380,
+        height:250,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+                            closeForm = false;
+                            isDblClick = true;
+                            objectName = 'trano';
+                            txtBoxChange = 'trano_text';
+                            closeForm = true;
+                            formId = 'a-form-panel-trano_button';
+                            gri = 'pr_grid';
+                            var trano = g.getStore().getAt(rowIndex).get(objectName);
+                            var cekStore = storeDOR.find('trano',trano);
+                            if (cekStore >= 0)
+                            {
+                              Ext.Msg.alert('Error','This item already exist in DOR Detail!');
+                              return false;
+                            }
+                                Ext.Ajax.request({
+                                    results: 0,
+                                    url: '/default/home/getdordeliver/trano/'+trano,
+                                    method:'POST',
+                                    success: function(result, request){
+                                       var returnData = Ext.util.JSON.decode(result.responseText);
+                                       var header = returnData.posts;
+
+                                       if (storeDOR.getCount() > 0)
+                                       {
+                                           var dord = storeDOR.getAt(0);
+                                           if (dord.data['dest_nama'] == header['dest_nama'] && dord.data['alamat'] == header['alamat'])
+                                                submitDOR(trano);
+                                           else
+                                           {
+                                                Ext.Msg.alert('Error','This item\'s destination is different with existing DOR detail!');
+                                           }
+                                       }
+                                       else
+                                       {
+                                            if (header['dest_nama'] === "" || header['alamat'] === ""  )
+                                            {
+                                                submitDOR(trano,true);
+                                                Ext.Msg.alert('Warning','This item\'s destination is Empty, Please fill the Delivery Detail Form Below!');
+                                            }
+                                            else
+                                                submitDOR(trano);
+                                       }
+
+                                    }
+                                });
+                            }
+
+            }
+    });
+    }
+    Ext.override(Ext.PagingToolbar, {
+            doRefresh: function(){
+                this.clearFilter();
+                delete this.store.lastParams;
+                this.doLoad(this.cursor);
+            }
+            });
+
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchTrano = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['trano']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('dor_grid').getStore().reload();
+        Ext.getCmp('dor_grid').getView().refresh();
+    }
+    searchPrj_kode = function(field,e){
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['prj_kode']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('dor_grid').getStore().reload();
+        Ext.getCmp('dor_grid').getView().refresh();
+    }
+    searchSit_kode = function(field,e){
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['sit_kode']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('dor_grid').getStore().reload();
+        Ext.getCmp('dor_grid').getView().refresh();
+    }
+    searchPrj_name = function(field,e){
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['prj_nama']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('dor_grid').getStore().reload();
+        Ext.getCmp('dor_grid').getView().refresh();
+    }
+    searchSit_name = function(field,e){
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['sit_nama']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('dor_grid').getStore().reload();
+        Ext.getCmp('dor_grid').getView().refresh();
+    }
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-trano_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    stateful: false,
+    modal: true,
+    width: 400,
+    height: 400,
+    items : [
+        {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 37,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,35,80,'prj_kode',searchPrj_kode),
+           {
+               x : 6,
+               y: 62,
+               xtype: 'label',
+               text: 'Project Name'
+           },
+           new txtboks(80,60,80,'prj_nama',searchPrj_name),
+           {
+                 x: 180,
+                 y: 37,
+            	xtype: 'label',
+                text: 'Site Code'
+           },
+           new txtboks(240,35,80,'sit_kode',searchSit_kode),
+           {
+                x: 180,
+                y: 62,
+            	xtype: 'label',
+                text: 'Site Name'
+            },
+            new txtboks(240,60,80,'sit_nama',searchSit_name)
+        ,new grids('pr_list')
+    ]
+
+  });
+  aForm.title = 'Choose No Trans';
+  aForm.show();
+
+
+}
+
+function cekQty(newQty)
+{
+    var qtyDor = parseFloat(document.getElementById('qty').innerHTML);
+    var qtyDo = parseFloat(document.getElementById('tot-do').innerHTML);
+    var newBalance = newQty + qtyDo;
+    if (newBalance > qtyDor)
+    {
+            Ext.getCmp('save-do').disable();
+            Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'Request Quantity is over the Budget!',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+            });
+            Ext.getCmp('qty-do').setValue((qtyDor - qtyDo));
+             return false;
+    }
+    else
+    {
+        temp = qtyDor - newBalance;
+        document.getElementById('balance-do').innerHTML = temp.toFixed(4);
+        Ext.getCmp('save-do').enable();
+    }
+    return true;
+}
+
+
+function init()
+{
+
+
+}
+
+var textField =  new Ext.form.TextField();
+
+userForm = new Ext.extend(Ext.form.FormPanel,{
+
+     iconCls: 'silk-user',
+     title: 'Add New Delivery Order (DO)',
+     frame: true,
+     width: 500,
+     labelAlign: 'left',
+     initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    }
+    ,
+     buildForm : function() {
+        return [
+                {
+                     fieldLabel : 'Transporter',
+                     id:'transport_text',
+                     name: 'transport',
+                     xtype: 'combo',
+                     width: 180,
+                     allowBlank: false,
+                     store: new Ext.data.Store({
+                                proxy: new Ext.data.HttpProxy({
+                                    url: '/suplier/list'
+                                }),
+                                reader: new Ext.data.JsonReader({
+                                    totalProperty: 'count',
+                                    root: 'posts'
+                                }, [{
+                                        name: 'sup_nama'
+                                    }, {
+                                        name: 'sup_kode'
+                                    }, {
+                                        name: 'tlp'
+                                    }, {
+                                        name: 'fax'
+                                    }, {
+                                        name: 'alamat'
+                                }])
+                        }),
+                     valueField:'sup_kode',
+                     displayField:'sup_nama',
+                     typeAhead: true,
+                     forceSelection: true,
+                     editable: false,
+                     mode: 'remote',
+                     triggerAction: 'all',
+                     selectOnFocus: true,
+                     emptyText: 'Select Transporter',
+                     listeners : {
+                        'select' :
+                            function (c,store, index){
+                                Ext.getCmp('transporter_address_text').setValue(store.data['alamat']);
+                                Ext.getCmp('transporter_phone_text').setValue(store.data['tlp']);
+                                Ext.getCmp('transporter_fax_text').setValue(store.data['fax']);
+
+                        }
+                     }
+                },
+                {
+                    xtype: 'fieldset',
+                    id: 'fieldset',
+                    title: 'Transporter Detail',
+                    itemId: 'fieldset-item',
+                    items: [
+                            {
+                                layout:'column',
+                                items:[
+                                         {
+                                            columnWidth:.5,
+                                            layout: 'form',
+                                             items: [
+                                                        {
+                                                             fieldLabel:'Trans. Address',
+                                                             id:'transporter_address_text',
+                                                             name: 'transporter_address',
+                                                             xtype: 'textarea',
+                                                             width: 120,
+                                                             height: 70
+                                                         },
+                                                        {
+                                                             fieldLabel:'Trans. Phone',
+                                                             id:'transporter_phone_text',
+                                                             name: 'transporter_phone',
+                                                             width: 100,
+                                                             xtype: 'textfield'
+                                                         }
+                                                    ]
+                                        },
+                                        {
+                                            columnWidth:.5,
+                                            layout: 'form',
+                                            style: 'margin-left:6px;',
+                                            labelWidth: 120,
+                                            items: [
+                                                        {
+                                                             fieldLabel:'Trans.Fax',
+                                                             id:'transporter_fax_text',
+                                                             name: 'transporter_fax',
+                                                             width: 100,
+                                                             xtype: 'textfield'
+                                                         },
+                                                        {
+                                                             fieldLabel:'Trans. Contact Person',
+                                                             id:'transporter_contact_text',
+                                                             name: 'transporter_contact',
+                                                             width: 100,
+                                                             xtype: 'textfield'
+                                                         },
+                                                        {
+                                                             fieldLabel:'Trans. Handphone',
+                                                             id:'transporter_handphone_text',
+                                                             name: 'transporter_handphone',
+                                                             width: 100,
+                                                             xtype: 'textfield'
+                                                         }
+                                            ]
+                                        }
+
+                                    ]
+                             }
+                    ]
+                }
+     ];
+     },
+      buildUI: function(){
+        return [
+
+        {
+            text: 'Search DOR',
+            icon:"/images/g_rec_src.png",
+            handler: function(){ showDorList();}
+
+        },
+        {
+            text: 'Reset',
+            handler: function(btn, ev){
+
+        		this.getForm().reset();
+
+                storePR.removeAll();
+                init();
+            },
+            scope: this
+        },{
+           text: 'Cancel',
+           handler: function(btn, ev){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/logistic/logistic/do',
+                scripts : true
+            });
+           },
+           scope: this
+       }];
+    }
+ });
+
+userForm2 = new Ext.extend(Ext.form.FormPanel,{
+
+    renderTo: 'user-form2',
+    id: 'do-form',
+    iconCls: 'silk-user',
+    labelAlign: 'right',
+    title: 'Delivery Order (DO) Detail',
+    frame: true,
+    width: 430,
+    labelAlign: 'left',
+    style: 'margin-top: 10px',
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm2.superclass.initComponent.call(this);
+    }
+    ,
+    buildForm : function() {
+        return [
+                {
+                    xtype: 'fieldset',
+                    id: 'fieldset-dor',
+                    title: 'Delivery Order Request (DOR) Detail',
+                    itemId: 'fieldset-item-dor',
+                    items: [
+                        {
+                            fieldLabel : 'DOR Number',
+                            id : 'dor_no_text',
+                            xtype: 'textfield',
+                            disabled : true,
+                            width : 100
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.46,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    fieldLabel : 'Project',
+                                                    id : 'prj_kode_text',
+                                                    xtype: 'textfield',
+                                                    disabled : true,
+                                                    width : 70
+                                                }
+                                            ]
+                                   },
+                                    {
+                                        columnWidth:.54,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    hideLabel:true,
+                                                    id: 'prj_nama_text',
+                                                    xtype:'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                 }
+
+                                            ]
+                                    }
+                                ]
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.38,
+                                        layout: 'form',
+                                        items: [
+                                               {
+                                                    fieldLabel: 'Site',
+                                                    id: 'sit_kode_text',
+                                                    xtype:'textfield',
+                                                    width: 40,
+                                                    disabled:true
+                                               }
+                                            ]
+                                   },
+                                    {
+                                        columnWidth:.6,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    hideLabel:true,
+                                                    id: 'sit_nama_text',
+                                                    xtype:'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }
+
+                                            ]
+                                    }
+                                ]
+                         },
+
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.38,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    fieldLabel: 'Work ID',
+                                                    id: 'dor-workid',
+                                                    xtype:'textfield',
+                                                    disabled: true,
+                                                    width: 40
+                                                }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.6,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    hideLabel: true,
+                                                    id:'dor-workname',
+                                                    name: 'workname',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }
+                                            ]
+                                   }
+                                ]
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.46,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                 fieldLabel: 'Product ID',
+                                                 id:'kode_brg_text',
+                                                 name:'kode_brg',
+                                                 xtype:"textfield",
+                                                 disabled:true,
+                                                 width: 70
+                                                }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.54,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                    hideLabel: true,
+                                                    id:'nama_brg_text',
+                                                    name: 'nama_brg',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }
+                                            ]
+                                   }
+                                ]
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.6,
+                                        layout: 'form',
+                                        items: [
+                                                {
+                                                 fieldLabel: 'Delivery Type',
+                                                 id:'deliver_to_text',
+                                                 xtype:"textfield",
+                                                 disabled:true,
+                                                 width: 130
+                                                }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.1,
+                                        layout: 'form',
+                                        items: [
+                                                    {
+                                                        xtype: 'button',
+                                                        cls:"x-btn-icon" ,
+                                                        icon:"/images/icons/fam/information.png",
+                                                        handler: function ()
+                                                        {
+                                                            var dord = Ext.getCmp('dor-detail-grid').getSelectionModel().getSelections();
+                                                            if (dord[0].data['statusDeliver'] === true)
+                                                                showFillDeliver();
+                                                            else
+                                                                showDeliver();
+                                                        }
+                                                    }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.3,
+                                        layout: 'form',
+                                        items: [
+                                                    {
+                                                        xtype: 'label',
+                                                        id: 'label-status',
+                                                        text: 'Delivery Detail is Empty',
+                                                        hidden: true,
+                                                        style: 'color: #FF0000'
+                                                    }
+                                            ]
+                                   }
+                                ]
+                        }
+                    ]
+                },
+                {
+                    layout:'column',
+                    items:[
+                           {
+                                columnWidth:.435,
+                                layout: 'form',
+                                items: [
+                                        new Ext.ux.customRendererField({
+                                            priceDelemiter:',',
+                                            fieldLabel: 'Qty Request',
+                                            id: 'qty-do',
+                                            name:'qty',
+                                            allowBlank : false,
+                                            width: 60,
+                                            style:"text-align:right",
+                                            enableKeyEvents: true
+                                            ,listeners:
+                                                {
+
+                                                'keyup' : function (t,e) {
+                                                    var tombol = Ext.EventObject.getKey(e);
+                                                    if (!isNaN(t.getValue()))
+                                                    {
+                                                        var newQty = parseFloat(t.getValue());
+                                                        if (!cekQty(newQty))
+                                                            return false;
+                                                    }
+                                                    if (tombol == 13)
+                                                    {
+                                                        if (Ext.getCmp('do-form').getForm().isValid())
+                                                            insertDOtoList();
+                                                    }
+                                                }
+                                            }
+
+                                        })
+                                    ]
+                           },
+                           {
+                                columnWidth:.54,
+                                layout: 'form',
+                                items: [
+                                        {
+                                            hideLabel: true,
+                                            id: 'uom_text',
+                                            xtype:'textfield',
+                                            disabled: true,
+                                            width: 40
+                                        }
+                                    ]
+                           }
+                        ]
+                },
+                {
+                    fieldLabel: 'Notes',
+                    id: 'ket',
+                    xtype:'textfield',
+                    width: 250
+                }
+
+
+
+     ];
+     },
+      buildUI: function(){
+        return [
+
+        {
+             text: 'Add to DO List',
+             id: 'save-do',
+             iconCls: 'icon-add',
+             handler: function(){
+                 //var rec = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+                 //insertPOtoList(rec[0].data['id']);
+
+                 insertDOtoList();
+             }
+
+        },{
+             text: 'Cancel',
+             id: 'cancel-do',
+             iconCls: 'icon-cancel',
+             handler: function(btn,ev){
+                    clearDOForm();
+                    Ext.getCmp('dor-detail-grid').enable();
+                    Ext.getCmp('do-grid').enable();
+                    Ext.getCmp('dor-detail-grid').getView().refresh();
+                    Ext.getCmp('do-grid').getView().refresh();
+                    Ext.getCmp('save-do').disable();
+                    Ext.getCmp('cancel-do').disable();
+             }, scope: this
+       }
+   ];
+    }
+ });
+
+
+ userGrid = Ext.extend(Ext.grid.GridPanel, {
+    id:'dor-detail-grid',
+    title:'DOR Detail',
+    iconCls: 'silk-grid',
+    plugins: expander,
+    frame: true,
+    height: 250,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+
+    initComponent : function() {
+        userGrid.superclass.initComponent.call(this);
+    }
+
+});
+
+userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+
+    iconCls: 'silk-grid',
+    id: 'do-grid',
+    frame: true,
+    height: 250,
+    title: 'DO Cart',
+    style: 'margin-top: 10px',
+    initComponent : function() {
+        userGrid.superclass.initComponent.call(this);
+    }
+});
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+
+var userForms = new userForm({
+    renderTo : 'user-form'
+});
+
+var userGrids = new userGrid({
+    renderTo: 'user-grid',
+    store: storeDOR,
+    columns : userColumns,
+    width: 700,
+    bbar: new Ext.PagingToolbar({
+    id: 'paging',
+    pageSize: 100,
+    store: storeDOR,
+    displayInfo: true,
+    displayMsg: 'Displaying data {0} - {1} of {2}',
+    emptyMsg: "No data to display"
+    })
+});
+
+var userForms2 = new userForm2({
+    renderTo: 'user-form2'
+});
+
+var userGrids2 = new userGrid2({
+    renderTo:'user-grid2',
+    store: storeDO,
+    columns:userColumns2,
+    width:700,
+    plugins: [summary],
+    view : new Ext.grid.GridView({
+        	forceFit: false,
+        	listeners : {
+		    	refresh : function(grid){
+					if (t != undefined){
+
+
+				}}
+			}
+        }),
+
+    bbar: ['->',{
+             xtype: 'button',
+	         text: 'Save DO List(Cart)',
+	         iconCls: 'icon-save',
+	         handler: function()
+	         {
+                var json = '';
+                var parameter = '';
+                var tr = Ext.getCmp('transport_text').getValue();
+                var tr_nam = Ext.getCmp('transport_text').getRawValue();
+                var tr_add = Ext.getCmp('fieldset').findById('transporter_address_text').getValue();
+                var tr_pho = Ext.getCmp('fieldset').findById('transporter_phone_text').getValue();
+                var tr_fax = Ext.getCmp('fieldset').findById('transporter_fax_text').getValue();
+                var tr_cp = Ext.getCmp('fieldset').findById('transporter_contact_text').getValue();
+                var tr_hp = Ext.getCmp('fieldset').findById('transporter_handphone_text').getValue();
+
+                if (Ext.getCmp('do-grid').getStore().getCount() == 0)
+                {
+                    Ext.Msg.alert('Error','DO Cart still empty!');
+                    return false;
+                }
+                if (tr === "" || tr == undefined)
+                {
+                    Ext.Msg.alert('Error','Transporter not selected!');
+                    return false;
+                }
+
+                Ext.getCmp('do-grid').getStore().each(function(store){
+
+                json += Ext.util.JSON.encode(store.data) + ',';
+                });
+            	json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+
+
+                var dod = storeDO.getAt(0);
+                var dest_nama = dod.data['dest_nama'];
+                var alamat = dod.data['alamat'];
+                var from_nama = dod.data['from_nama'];
+                var alamat1 = dod.data['alamat1'];
+                var receiver_nama = dod.data['receiver_nama'];
+                var receiver_tlp = dod.data['receiver_tlp'];
+                parameter =  '[{';
+                parameter += '"trans_nama":"' + tr_nam + '"';
+                parameter += ',"trans_kode":"' + tr + '"';
+                parameter += ',"transalamat":"' + tr_add + '"';
+                parameter += ',"transtlp":"' + tr_pho + '"';
+                parameter += ',"transfax":"' + tr_fax + '"';
+                parameter += ',"transcontact":"' + tr_cp + '"';
+                parameter += ',"transhp":"' + tr_hp + '"';
+                parameter += ',"dest_nama":"' + dest_nama + '"';
+                parameter += ',"from_nama":"' + from_nama + '"';
+                parameter += ',"alamat":"' + alamat + '"';
+                parameter += ',"alamat1":"' + alamat1 + '"';
+                parameter += ',"receiver_nama":"' + receiver_nama + '"';
+                parameter += ',"receiver_tlp":"' + receiver_tlp + '"';
+                parameter += '}]';
+
+            	params = {posts:json, etc:parameter};
+            	myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        	    myPanel.body.load({
+        	        url: '/logistic/logistic/appdo', //the url
+        	        scripts : true,
+        	        params: params //our params goes here
+                });
+	         },
+	         scope: this
+        	},
+            {
+                xtype: 'button',
+	            text: 'Cancel DO List(Cart)',
+	            iconCls: 'icon-cancel',
+	            handler:showAddDO
+	         ,
+	         scope: this
+        	}
+      ]
+    });
+
+
+    init();
+    <?php
+    if ($this->json != '')
+    {
+    ?>
+    var json = <?php echo $this->json; ?>;
+    var etc = <?php echo $this->etc; ?>;
+
+    storeDO.loadData(json);
+    var groupStore = new Ext.data.GroupingStore({
+        id: 'group-store',
+        reader: new Ext.data.JsonReader({fields: dolist}),
+        groupField: 'trano',
+        sortInfo:{field:'trano',direction:'ASC'},
+    });
+    groupStore.loadData(json);
+    groupStore.each(function(store){
+        submitDOR(store.data['trano']);
+    });
+    groupStore = undefined;
+    Ext.getCmp('dor-detail-grid').getView().refresh();
+    Ext.getCmp('do-grid').getView().refresh();
+
+    Ext.getCmp('transport_text').setRawValue(etc[0]['trans_nama']);
+    Ext.getCmp('transporter_address_text').setValue(etc[0]['transalamat']);
+    Ext.getCmp('transporter_phone_text').setValue(etc[0]['transtlp']);
+    Ext.getCmp('transporter_fax_text').setValue(etc[0]['transfax']);
+    Ext.getCmp('transporter_contact_text').setValue(etc[0]['transcontact']);
+    Ext.getCmp('transporter_handphone_text').setValue(etc[0]['transhp']);
+
+    <?php
+    }
+
+    ?>
+
+
+});
+
+
+
+</script>
+
+<div id="user-form"></div>
+<div id="user-grid"></div>
+<div id="separator">
+<div id="user-form2" style="float:left"></div>
+<div class="sidebox" style="float:left;width:28em;">
+        <div class="boxhead"><h2>Available Qty</h2></div>
+        <div class="boxbody" id="a-qty"></div>
+</div>
+</div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

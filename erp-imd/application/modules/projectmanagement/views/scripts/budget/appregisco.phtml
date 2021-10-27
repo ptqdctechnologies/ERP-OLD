@@ -1,0 +1,279 @@
+<script type="text/javascript">
+
+    var uid = '';
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function showPM ()
+        {
+            var pmstore = new Ext.data.Store ({
+                autoLoad:true,
+                url:'/default/manager/list',
+                reader:new Ext.data.JsonReader ({
+                    root:'posts',
+                    totalProperty:'count',
+                    fields:[{
+                        name:'uid'
+                    },{
+                        name:'nama'
+                    }]
+                })
+            })
+
+            var pmgrid = new Ext.grid.GridPanel ({
+                store:pmstore,
+                viewConfig:{
+                    forceFit:true
+                },
+                height:300,
+                columns:[{
+                    header:'username',
+                    dataIndex:'uid'
+                },{
+                    header:'Name',
+                    dataIndex:'nama'
+                }],
+                listeners:
+                {
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var regisco = gridaktif.getStore().getAt(rowIndex);
+
+                        uid = regisco.get('uid');
+
+                        Ext.getCmp('assign-to').setValue(regisco.get('nama'));
+
+                        pmwindow.close();
+                    }
+                }
+            })
+
+            var pmwindow = new Ext.Window ({
+
+                title:'Choose Projet Manager',
+                id:'window-pm',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[pmgrid]
+
+            })
+
+            pmwindow.show();
+        }
+
+        var filestore = new Ext.data.Store ({
+            reader:new Ext.data.JsonReader ({
+                fields:[{
+                    name:'trano'
+                },{
+                    name:'uid'
+                },{
+                    name:'date'
+                },{
+                    name:'filename'
+                },{
+                    name:'savename'
+                }]
+            })
+        })
+
+        var filedata = <?=$this->file?>;
+
+        filestore.loadData(filedata);
+
+        var filegrid = new Ext.grid.GridPanel ({
+
+            title:'File Attachment',
+            frame:true,
+            width:460,
+            height:160,
+            renderTo:'grid-file',
+            store:filestore,
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'File Name',
+                dataIndex:'filename',
+                width:310,
+                sortable:true
+            },{
+                header:'Action',
+                css:'text-align:center',
+                width:100,
+                sortable:true,
+                renderer:function(v,p,r)
+                {
+                    return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;'
+                }
+            }]
+
+        })
+
+        var regispanel = new Ext.form.FormPanel ({
+
+            title:'Register Customer Order',
+            renderTo:'regis_co',
+            id:'regis-co',
+            width:460,
+            frame:true,
+            items:[{
+                xtype:'fieldset',
+                title:'Register Customer Order Information',
+                collapsible:true,
+                defaults:{
+                    labelStyle:"width:180"
+                },
+                items:[{
+                    xtype:'textfield',
+                    fieldLabel:'Register CO Number',
+                    width:200,
+                    value:'<?=$this->data[0]['trano']?>',
+                    readOnly:true,
+                    id:'trano'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer',
+                    width:200,
+                    value:'<?=$this->data[0]['cus_nama']?>',
+                    readOnly:true
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'PO Customer',
+                    width:200,
+                    value:'<?=$this->data[0]['pocustomer']?>',
+                    readOnly:true
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Value IDR',
+                    width:200,
+                    value:'<?=number_format($this->data[0]['total'])?>',
+                    readOnly:true,
+                    style:'text-align:right'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Value USD',
+                    width:200,
+                    value:'<?=number_format($this->data[0]['totalusd'])?>',
+                    readOnly:true,
+                    style:'text-align:right'
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'Description',
+                    width:200,
+                    height:80,
+                    value:'<?=$this->data[0]['ket']?>',
+                    readOnly:true
+                }]
+            },{
+                xtype:'fieldset',
+                title:'Assign To',
+                collapsible:true,
+                defaults:{
+                    labelStyle:"width:180"
+                },
+                items:[{
+                    xtype:'trigger',
+                    triggerClass: 'teropong',
+                    allowBlank: false,
+                    editable : false,
+                    fieldLabel:'Project Manager',
+                    width:200,
+                    allowBlank:false,
+                    id:'assign-to',
+                    onTriggerClick:function()
+                    {
+                        showPM();
+                    }
+                },{
+                    xtype:'textarea',
+                    width:200,
+                    height:80,
+                    fieldLabel:'Message',
+                    id:'message'
+                }]
+            }],
+            buttons:[{
+                text:'Submit',
+                iconCls: 'icon-reply',
+                scale:'large',
+                handler:function (btn,ev)
+                {
+                    if (!Ext.getCmp('regis-co').getForm().isValid())
+                    {
+                         Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    var pm = Ext.getCmp('assign-to').getValue();
+                    var message = Ext.getCmp('message').getValue();
+                    var trano = Ext.getCmp('trano').getValue();
+
+                    Ext.MessageBox.confirm('Confirm','Are sure want to assign this CO to ' + '<b><font color="#ff0000">'+ pm +'</font></b>',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var params = {
+                                pm:pm,
+                                message:message,
+                                trano:trano,
+                                uid:uid
+                            }
+
+                            Ext.Ajax.request({
+                                url:'/projectmanagement/budget/doinsertpm',
+                                method:'POST',
+                                params:params,
+                                success:function(result){
+
+                                    obj = Ext.util.JSON.decode(result.responseText);
+
+                                    if (obj.success)
+                                    {
+                                        Ext.Msg.alert ('Message','<b><font color="#ff0000">' + obj.number + '</font></b>' + ' success assign to ' + '<b><font color="#ff0000">' + obj.pm + '</font></b>');
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                        url: '/projectmanagement/project/show',
+                                        scripts : true
+                                        });
+
+                                        getConversation ();
+
+                                    }else
+                                    {
+                                        Ext.Msg.alert('Error', obj.msg);
+                                    }
+                                },
+                                failure:function( action){
+                                    if(action.failureType == 'server'){
+                                      obj = Ext.util.JSON.decode(action.response.responseText);
+                                      Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+                            })
+
+                        }
+
+                    })
+                }
+            }]
+
+
+        })
+
+
+    })
+
+</script>
+
+    <div id="grid-file" style="margin-bottom:10px"></div>
+    <div id="regis_co"></div>

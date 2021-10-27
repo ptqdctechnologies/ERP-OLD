@@ -1,0 +1,1523 @@
+<script type="text/javascript ">
+
+
+    var proxy = new Ext.data.HttpProxy({
+           url : 'what ever'
+        });
+
+    var filelist = Ext.data.Record.create([ {
+            name: 'id',
+            type: 'integer'
+        },{
+            name: 'filename',
+            type: 'string'
+        },{
+            name: 'savename',
+            type: 'string'
+        },{
+            name: 'status',
+            type: 'string'
+        },{
+            name: 'path',
+            type: 'string'
+    }]);
+
+    var storeFile = new Ext.data.Store({
+        proxy:proxy,
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method:'POST',
+            success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if(returnData.success) {
+                        Ext.getCmp('rate_text').setValue(returnData.rate);
+                    }
+                }
+                ,failure:function( action){
+            if(action.failureType == 'server'){
+            obj = Ext.util.JSON.decode(action.response.responseText);
+            Ext.Msg.alert('Error!', obj.errors.reason);
+            }
+            }
+        });
+    }
+
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+	        }
+    });
+
+    function deleterowgrid (idItem)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+            if (btn == 'yes')
+            {
+                var store = storeco;
+                var dat = store.getById(idItem);
+
+                if (dat)
+                {
+                    store.remove(dat);
+                    HitungTotal ();
+                }
+            }
+        });
+    }
+
+    var colist = Ext.data.Record.create([
+        {name:'trano'},
+        {name:'tgl'},
+        {name:'regis_no'},
+        {name:'prj_kode'},
+        {name:'prj_nama'},
+        {name:'sit_kode'},
+        {name:'sit_nama'},
+        {name:'cus_kode'},
+        {name:'cus_nama'},
+        {name:'pocustomer'},
+        {name:'total'},
+        {name:'totalusd'},
+        {name:'ket'},
+        {name:'uid'},
+        {name:'statusco'},
+        {name:'rateidr'},
+        {name:'type'}
+    ])
+
+    var proxy = new Ext.data.HttpProxy({
+       url : 'what ever'
+    });
+
+    var storeco = new Ext.data.Store ({
+        id:'store-co',
+        proxy:proxy,
+        reader:new Ext.data.JsonReader({
+            fields:colist
+        }),listeners:{
+            'load':function(records)
+            {
+                var status = '';
+
+                HitungTotal();
+
+                records.each(function(itemnya,indeks){
+                    status = itemnya.data['statusco'];
+                })
+
+                Ext.getCmp('co-status').setValue(status);
+                Ext.getCmp('co-status').disable();
+                
+            }
+        }
+    })
+
+    function HitungTotal ()
+    {
+        var totJumIDR = 0;
+        var totJumUSD = 0;
+
+        storeco.each(function(items){
+            totJumIDR += parseFloat(items.data['total']);
+            totJumUSD += parseFloat(items.data['totalusd']);
+        });
+
+        Ext.getCmp('gtotal-idr').setText('Total IDR : ' + Ext.util.Format.number(totJumIDR, '0,0'));
+        Ext.getCmp('gtotal-usd').setText('Total USD : ' + Ext.util.Format.number(totJumUSD, '0,0'));
+    }
+
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function setRegisForm (trano)
+        {
+            Ext.Ajax.request({
+                url:'/sales/sales/getregis/trano/' + trano,
+                method:'POST',
+                success:function (result,request)
+                {
+                    var returndata = Ext.util.JSON.decode (result.responseText);
+
+//                    console.log(returndata);
+                        if (returndata.dataregis != '' && returndata.dataregis != null)
+                        {
+                            Ext.getCmp('reg-co').setValue(returndata.dataregis.trano);
+                            Ext.getCmp('cus-kode').setValue(returndata.dataregis.cus_kode);
+                            Ext.getCmp('cus-name').setValue(returndata.dataregis.cus_nama);
+                            Ext.getCmp('value-idr').setValue(returndata.dataregis.total);
+                            Ext.getCmp('value-usd').setValue(returndata.dataregis.totalusd);
+                            Ext.getCmp('po-cus').setValue(returndata.dataregis.pocustomer);
+                            Ext.getCmp('desc').setValue(returndata.dataregis.ket);
+                            Ext.getCmp('source').setValue(returndata.dataregis.confirmation);
+                            Ext.getCmp('cus-kode-praco').setValue(returndata.dataregis.cus_kode);
+                            Ext.getCmp('cus-name-praco').setValue(returndata.dataregis.cus_nama);
+                        }
+                },
+                failure:function(action)
+                {
+                    if (action.failureType == 'server')
+                    {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert(('Error!'),obj.errors.reason);
+                    }
+                }
+            })
+        }
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;';
+            }}
+        ];
+
+        var gridattach = new Ext.grid.GridPanel ({
+            id:'files-grid',
+            iconCls: 'silk-grid',
+            height: 100,
+            store: storeFile,
+            trackMouseOver: true,
+            width:490,
+            view : new Ext.grid.GridView({
+                forceFit: true
+            }),
+            columns: fileColumns
+        })
+
+        var fileUploads = new Ext.FormPanel({
+
+            title:'File Attachment',
+            renderTo:'panel_attachment',
+            fileUpload: true,
+            width:500,
+            frame:true,
+            allowBlank: false,
+             msgTarget: 'side',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.7,
+                    layout:'form',
+                    items:[{
+                        xtype: 'fileuploadfield',
+                        id: 'regis-file',
+                        emptyText: 'Select a File',
+                        fieldLabel: 'Attach File',
+                        allowBlank: false,
+                        name: 'file-path',
+                        buttonText: '',
+                        buttonCfg: {
+                            iconCls: 'upload-icon'
+                        },
+                        width:200,
+                        anchor:'98%',
+                        disabled:true
+                    }]
+                },{
+                    columnWidth:0.2,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Upload',
+                        handler:function()
+                        {
+                            if (Ext.getCmp('regis-file').getValue() == '')
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Select a File',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+
+
+                            if(fileUploads.getForm().isValid()){
+                                form_action=1;
+                                fileUploads.getForm().submit({
+                                    url: '/procurement/procurement/uploadfile',
+                                    waitMsg: 'Uploading file...',
+                                    success: function(form,action){
+                                        var returnData = action.result;
+                                        if( returnData.success) {
+                                            var c = new filelist({
+                                                id:parseFloat(storeFile.getCount() + 1),
+                                                filename: returnData.filename,
+                                                savename: returnData.savename,
+                                                path: returnData.path,
+                                                status: 'new'
+                                          });
+                                          storeFile.add(c);
+                                          Ext.getCmp('files-grid').getView().refresh();
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', returnData.msg);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }]
+                }]
+            },gridattach]
+
+        })
+
+        function selectco()
+        {
+            var costore = new Ext.data.Store ({
+
+                autoLoad:true,
+                url:'/sales/sales/getcodata',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'tgl'
+                    },{
+                        name:'statusco'
+                    },{
+                        name:'regis_no'
+                    },{
+                        name:'prj_kode'
+                    },{
+                        name:'prj_nama'
+                    },{
+                        name:'sit_kode'
+                    },{
+                        name:'sit_nama'
+                    },{
+                        name:'ket'
+                    },{
+                        name:'cus_kode'
+                    },{
+                        name:'cus_nama'
+                    },{
+                        name:'total'
+                    },{
+                        name:'totalusd'
+                    },{
+                        name:'pocustomer'
+                    },{
+                        name:'user'
+                    }]
+                })
+
+            })
+
+            var cogrid = new Ext.grid.GridPanel ({
+                store:costore,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Register Number',
+                    dataIndex:'regis_no'
+                },{
+                    header:'Pra CO trano',
+                    dataIndex:'trano'
+                },{
+                    header:'Status',
+                    dataIndex:'statusco'
+                },{
+                    header:'Project Code',
+                    dataIndex:'prj_kode'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-co',
+                    pageSize: 20,
+                    store: costore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype: 'combo',
+                    width: 120,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name','nilai'],
+                        data:[
+                                ['Trano','trano'],
+                                ['Status','statusco'],
+                                ['Project Code','prj_kode'],
+                                ['PO Customer','pocustomer']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'trano',
+                    id:'co-option'
+                },'-',{
+                    xtype:'textfield',
+                    id:'co-search',
+                    style:'margin-left:10px',
+                    enableKeyEvents:true,
+                    width:100,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 2)
+                            {
+                                var option = Ext.getCmp('co-option').getValue();
+                                var search = Ext.getCmp('co-search').getValue();
+
+                                costore.proxy.setUrl('/sales/sales/getcodata/search/' + search + '/option/' + option);
+                                costore.reload();
+                                cogrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],listeners:{
+                    'rowdblclick':function (grid,row,e)
+                    {
+                        isDbClick = true;
+                        var co = grid.getStore().getAt(row);
+
+                        var trano = co.get('trano');
+                        var trano_regis = co.get('regis_no');
+                        var status = co.get('statusco');
+
+//                        console.log(status);
+
+                        Ext.getCmp('form-panel-co').getForm().reset();
+
+                        Ext.getCmp('co-trano').setValue(co.get('trano'));
+                        Ext.getCmp('co-status').setValue(co.get('statusco'));
+                        Ext.getCmp('reg-co').setValue(co.get('regis_no'));
+
+                        getExchangeRate();
+
+                        if (status == 'original')
+                        {
+                            Ext.getCmp('regis-file').setValue('');
+                            Ext.getCmp('regis-file').disable();
+                        }else
+                        {
+                            Ext.getCmp('regis-file').setValue('');
+                            Ext.getCmp('regis-file').enable();
+                        }
+
+                        Ext.getCmp('co-status').disable();
+
+                        storeco.proxy.setUrl('/sales/sales/getstoreco/trano/' + trano);
+                        storeco.reload();
+                        gridco.getView().refresh();
+
+                        storeFile.proxy.setUrl('/projectmanagement/budget/getregisfile/trano/' + trano_regis + '/praco/' + trano);
+                        storeFile.reload();
+                        Ext.getCmp('files-grid').getView().refresh();
+
+                        setRegisForm(trano_regis);
+
+
+
+                        cowindow.close();
+                    }
+                }
+
+            })
+
+            var cowindow = new Ext.Window ({
+
+                title:'Choose Customer Order',
+                id:'co-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[cogrid]
+            })
+
+            cowindow.show();
+        }
+
+        function customer ()
+        {
+
+            var customerstore = new Ext.data.Store ({
+
+                autoLoad:true,
+                url:'/sales/sales/getcustomer',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'cus_kode'
+                    },{
+                        name:'cus_nama'
+                    }]
+                })
+
+            })
+
+            var customergrid = new Ext.grid.GridPanel ({
+
+                store:customerstore,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Customer Code',
+                    dataIndex:'cus_kode'
+                },{
+                    header:'Customer Name',
+                    dataIndex:'cus_nama'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-customer',
+                    pageSize: 20,
+                    store: customerstore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype: 'combo',
+                    width: 120,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name','nilai'],
+                        data:[
+                                ['Customer Code','cus_kode'],
+                                ['Customer Name','cus_nama']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'cus_kode',
+                    id:'cus-option'
+                },'-',{
+                    xtype:'textfield',
+                    id:'cus-search',
+                    style:'margin-left:10px',
+                    enableKeyEvents:true,
+                    width:100,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 2)
+                            {
+                                var option = Ext.getCmp('cus-option').getValue();
+                                var search = Ext.getCmp('cus-search').getValue();
+
+                                customerstore.proxy.setUrl('/sales/sales/getcustomer/search/' + search + '/option/' + option);
+                                customerstore.reload();
+                                customergrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],listeners:{
+                    'rowdblclick':function (grid,row,e)
+                    {
+                        isDbClick = true;
+                        var customer = grid.getStore().getAt(row);
+
+                        Ext.getCmp('cus-kode-praco').setValue(customer.get('cus_kode'));
+                        Ext.getCmp('cus-name-praco').setValue(customer.get('cus_nama'));
+
+                        customerwindow.close();
+
+                    }
+                }
+
+
+            })
+
+            var customerwindow = new Ext.Window ({
+
+                title:'Choose Customer',
+                id:'customer-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[customergrid]
+            })
+
+            customerwindow.show();
+        }
+
+        function regisco ()
+        {
+            var storecoregis = new Ext.data.Store ({
+
+                autoLoad:true,
+                url:'/sales/sales/getregisco',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'cus_kode'
+                    },{
+                        name:'cus_nama'
+                    },{
+                        name:'pocustomer'
+                    },{
+                        name:'total'
+                    },{
+                        name:'totalusd'
+                    },{
+                        name:'ket'
+                    },{
+                        name:'confirmation'
+                    },{
+                        name:'tgl'
+                    },{
+                        name:'uid'
+                    }]
+            })
+
+            })
+
+            var coregisgrid = new Ext.grid.GridPanel ({
+
+                store:storecoregis,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Trano',
+                    dataIndex:'trano'
+                },{
+                    header:'Date',
+                    dataIndex:'tgl'
+                },{
+                    header:'Customer Code',
+                    dataIndex:'cus_kode'
+                }],listeners:{
+                    'rowdblclick':function (grid,row,e)
+                    {
+                        isDbClick = true;
+                        var coregis = grid.getStore().getAt(row);
+
+                        Ext.getCmp('reg-co').setValue(coregis.get('trano'));
+                        Ext.getCmp('cus-kode').setValue(coregis.get('cus_kode'));
+                        Ext.getCmp('cus-name').setValue(coregis.get('cus_nama'));
+                        Ext.getCmp('po-cus').setValue(coregis.get('pocustomer'));
+                        Ext.getCmp('value-idr').setValue(coregis.get('total'));
+                        Ext.getCmp('value-usd').setValue(coregis.get('totalusd'));
+                        Ext.getCmp('desc').setValue(coregis.get('ket'));
+
+                        coregiswindow.close();
+
+                    }
+                }
+
+            })
+
+
+            var coregiswindow = new Ext.Window ({
+
+                title:'Register Customer Order List',
+                id:'coregis-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    coregisgrid
+                ]
+            })
+
+            coregiswindow.show();
+
+        }
+
+        var coinfo = new Ext.form.FieldSet ({
+
+            title :'Register Customer Order Information',
+            id:'co-info',
+            layout:'form',
+            defaults:{
+                labelStyle: 'width:160;',
+                width:200,
+                labelWidth:158
+            },items:[{
+                xtype:'textfield',
+                fieldLabel:'Register Customer Order ',
+                id:'reg-co',
+                readOnly:true
+//                triggerClass: 'teropong',
+//                editable:false,
+//                stat:'enable',
+//                onTriggerClick:function ()
+//                {
+//                    if(Ext.getCmp('reg-co').stat == 'disable')
+//                        return false;
+//                    regisco();
+//                }
+            },{
+                layout:'column',
+                width:552,
+                items:[{
+                    columnWidth:0.45,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Customer ',
+                        anchor:'98%',
+                        readOnly:true,
+                        editable:false,
+                        stat:'disable',
+                        id:'cus-kode'
+                    }]
+                },{
+                    columnWidth:0.55,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Customer ',
+                        hideLabel:true,
+                        readOnly:true,
+                        id:'cus-name',
+                        readOnly:true,
+                        width:150
+                    }]
+                }]
+            },{
+                xtype:'textfield',
+                fieldLabel:'PO Customer ',
+                readOnly:true,
+                id:'po-cus'
+            },new Ext.ux.customRendererField ({
+                xtype:'textfield',
+                fieldLabel:'Value IDR ',
+                readOnly:true,
+                id:'value-idr',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:','
+            }),new Ext.ux.customRendererField({
+                xtype:'textfield',
+                fieldLabel:'value USD ',
+                readOnly:true,
+                id:'value-usd',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:','
+            }),{
+                xtype:'textarea',
+                fieldLabel:'Description ',
+                readOnly:true,
+                id:'desc'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Confirmation From',
+                id:'source',
+                readOnly:true
+            }]
+
+        })
+
+        var pracoform = new Ext.form.FieldSet ({
+
+            title:'Customer Order Input',
+            id:'co-input',
+            layout:'form',
+            defaults:{
+                labelStyle: 'width:160;',
+                width:200,
+                labelWidth:158
+            },
+            items:[{
+                layout:'column',
+                width:552,
+                items:[{
+                    columnWidth:0.45,
+                    layout:'form',
+                    items:[{
+                        xtype:'trigger',
+                        fieldLabel:'Customer ',
+                        anchor:'98%',
+                        triggerClass: 'teropong',
+                        disabled:true,
+                        editable:false,
+                        stat:'disable',
+                        id:'cus-kode-praco',
+                        onTriggerClick:function ()
+                        {
+                            if (Ext.getCmp('cus-kode-praco').stat == 'disable')
+                                return false;
+
+                            customer();
+                        }
+                    }]
+                },{
+                    columnWidth:0.55,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Customer ',
+                        hideLabel:true,
+                        disabled:true,
+                        id:'cus-name-praco',
+                        readOnly:true,
+                        width:150
+                    }]
+                }]
+            },{
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: true,
+                fieldLabel:'Project Code',
+                allowBlank:false
+            },{
+                xtype: 'siteselector',
+                anchor: '100%',
+                independent: false,
+                id: 'site-select',
+                SiteSelectid: 'sit_kode_text',
+                SiteNameid: 'sit_nama_text',
+                ProjectSelectid: 'prj_kode_text',
+                ShowName: true,
+                fieldLabel:'Site Code',
+                allowBlank:false
+            },{
+                xtype:'combo',
+                fieldLabel:'Type ',
+                id:'type',
+                allowBlank:false,
+                store:new Ext.data.SimpleStore ({
+                    fields: ['name','nilai'],
+                    data:[
+                        ['PROJECT','PROJECT'],
+                        ['SITAC','SITAC']
+                    ]
+                }),
+                displayField: 'name',
+                valueField: 'nilai',
+                forceSelection:true,
+                typeAhead: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                emptyText: 'Select Type',
+                width:140
+            },new Ext.ux.customRendererField({
+                xtype:'textfield',
+                fieldLabel:'Rateidr ',
+                readOnly:true,
+                id:'rate_text',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:',',
+                value:getExchangeRate()
+            }),new Ext.ux.customRendererField ({
+                xtype:'textfield',
+                fieldLabel:'Value IDR ',
+                id:'value-idr-praco',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:','
+            }),new Ext.ux.customRendererField({
+                xtype:'textfield',
+                fieldLabel:'value USD ',
+                id:'value-usd-praco',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:','
+            }),{
+                xtype:'textarea',
+                fieldLabel:'Description ',
+                id:'desc-praco'
+            }]
+
+        })
+
+        var panelcoform = new Ext.form.FormPanel ({
+
+            title:'Edit Existing Customer Order',
+            renderTo:'form_panel_co',
+            id:'form-panel-co',
+            frame:true,
+            width:600,
+            stat:'new',
+            idEdit:'',
+            items:[{
+                xtype:'trigger',
+                fieldLabel:'Select Customer Order',
+                id:'co-trano',
+                labelStyle: 'width:200;margin-left:10',
+                width:180,
+                triggerClass:'teropong',
+                stat:'enable',
+                editable:false,
+                onTriggerClick:function ()
+                {
+                    if (Ext.getCmp('co-trano').stat == 'disable')
+                                return false;
+                    selectco();
+                }
+            },{
+                xtype:'radiogroup',
+                fieldLabel:'Status Customer Order ',
+                id:'co-status',
+                labelStyle: 'width:200;margin-left:10',
+                width:300,
+                items:[{
+                    boxLabel:'Original',
+                    name:'co-status',
+                    inputValue:'original',
+                    checked:true
+                },{
+                    boxLabel:'Estimate',
+                    name:'co-status',
+                    inputValue:'estimate'
+                }],listeners:{
+                    'change':function (t,ch)
+                    {
+                        if (ch.getGroupValue() == 'estimate')
+                        {
+
+                            Ext.getCmp('reg-co').setValue('');
+                            Ext.getCmp('cus-kode').setValue('');
+                            Ext.getCmp('cus-name').setValue('');
+                            Ext.getCmp('po-cus').setValue('');
+                            Ext.getCmp('value-idr').setValue('');
+                            Ext.getCmp('value-usd').setValue('');
+                            Ext.getCmp('desc').setValue('');
+                            Ext.getCmp('source').setValue('');
+
+                            Ext.getCmp('reg-co').disable();
+                            Ext.getCmp('reg-co').stat = 'disable';
+
+                            Ext.getCmp('cus-kode').disable();
+                            Ext.getCmp('cus-name').disable();
+
+                            Ext.getCmp('po-cus').disable();
+                            Ext.getCmp('value-idr').disable();
+                            Ext.getCmp('value-usd').disable();
+                            Ext.getCmp('desc').disable();
+                            Ext.getCmp('source').disable();
+
+                            //customer order input validasi
+                            Ext.getCmp('cus-kode-praco').enable();
+                            Ext.getCmp('cus-kode-praco').stat = 'enable';
+
+                            Ext.getCmp('cus-kode-praco').setValue('');
+                            Ext.getCmp('cus-name-praco').setValue('');
+                            Ext.getCmp('prj_kode_text').setValue('');
+                            Ext.getCmp('sit_kode_text').setValue('');
+                            Ext.getCmp('prj_nama_text').setValue('');
+                            Ext.getCmp('sit_nama_text').setValue('');
+                            Ext.getCmp('value-idr-praco').setValue('');
+                            Ext.getCmp('value-usd-praco').setValue('');
+                            Ext.getCmp('desc-praco').setValue('');
+
+                            storeFile.removeAll();
+
+                            Ext.getCmp('regis-file').setValue('');
+                            Ext.getCmp('regis-file').enable();
+
+                        }else if (ch.getGroupValue() == 'original')
+                        {
+                            Ext.getCmp('reg-co').setValue('');
+                            Ext.getCmp('cus-kode').setValue('');
+                            Ext.getCmp('cus-name').setValue('');
+                            Ext.getCmp('po-cus').setValue('');
+                            Ext.getCmp('value-idr').setValue('');
+                            Ext.getCmp('value-usd').setValue('');
+                            Ext.getCmp('desc').setValue('');
+
+                            Ext.getCmp('reg-co').enable();
+                            Ext.getCmp('reg-co').stat = 'enable';
+
+                            Ext.getCmp('cus-kode').enable();
+                            Ext.getCmp('cus-kode').stat = 'enable';
+                            Ext.getCmp('cus-name').enable();
+
+                            Ext.getCmp('po-cus').enable();
+                            Ext.getCmp('value-idr').enable();
+                            Ext.getCmp('value-usd').enable();
+                            Ext.getCmp('desc').enable();
+                            Ext.getCmp('source').enable();
+
+
+                            //customer order input validasi
+                            Ext.getCmp('cus-kode-praco').disable();
+                            Ext.getCmp('cus-kode-praco').stat = 'disable';
+
+                            Ext.getCmp('cus-kode-praco').setValue('');
+                            Ext.getCmp('cus-name-praco').setValue('');
+                            Ext.getCmp('prj_kode_text').setValue('');
+                            Ext.getCmp('sit_kode_text').setValue('');
+                            Ext.getCmp('prj_nama_text').setValue('');
+                            Ext.getCmp('sit_nama_text').setValue('');
+                            Ext.getCmp('value-idr-praco').setValue('');
+                            Ext.getCmp('value-usd-praco').setValue('');
+                            Ext.getCmp('desc-praco').setValue('');
+
+                            storeFile.removeAll();
+
+                            Ext.getCmp('regis-file').setValue('');
+                            Ext.getCmp('regis-file').disable();
+
+                        }
+                    }
+                }
+            },
+//                {
+//                xtype:'textfield',
+//                fieldLabel:'Select Register Customer Order ',
+//                id:'reg-co',
+//                labelStyle: 'width:200;margin-left:10',
+//                width:180,
+//                readOnly:true
+////                triggerClass: 'teropong',
+////                editable:false,
+////                stat:'enable',
+////                onTriggerClick:function ()
+////                {
+////                    if(Ext.getCmp('reg-co').stat == 'disable')
+////                        return false;
+////                    regisco();
+////                }
+//            }
+                coinfo,pracoform],
+            buttons:[{
+                text:'Add to CO Pool',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    var status = Ext.getCmp('co-status').getValue().getGroupValue();
+                    var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                    var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+                    var type = Ext.getCmp('type').getValue();
+                    var tranoedit = Ext.getCmp('co-trano').getValue();
+
+
+                    Ext.Ajax.request({
+                        url:'/sales/sales/cekboq2/status/' + status + '/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode + '/type/' + type + '/tranoedit/' + tranoedit,
+                        method:'POST',
+                        success:function(result)
+                        {
+                            obj = Ext.util.JSON.decode(result.responseText);
+                            if (obj.success)
+                            {
+                                if (!Ext.getCmp('form-panel-co').getForm().isValid())
+                                {
+                                    Ext.Msg.alert('Error','Form not valid');
+                                    return false;
+                                }
+
+                                if (status == 'original' && Ext.getCmp('reg-co').getValue() == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Select Register Customer Order',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (status == 'estimate' && Ext.getCmp('cus-kode-praco').getValue() == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Select Customer',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (Ext.getCmp('prj_kode_text').getValue() == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Select your Project Code',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (Ext.getCmp('sit_kode_text').getValue() == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Select your Site Code',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                var valueidr_praco = parseFloat(Ext.getCmp('value-idr-praco').getValue().toString().replace(/\$|\,/g,''));
+                                var valueusd_praco = parseFloat(Ext.getCmp('value-usd-praco').getValue().toString().replace(/\$|\,/g,''));
+                                var valueidr = parseFloat(Ext.getCmp('value-idr').getValue().toString().replace(/\$|\,/g,''));
+                                var valueusd = parseFloat(Ext.getCmp('value-usd').getValue().toString().replace(/\$|\,/g,''));
+
+                                if (valueidr_praco == 0 && valueusd_praco == 0)
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Insert Value IDR OR Value USD',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (status == 'original' && valueidr_praco > valueidr)
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Value IDR grater than Value IDR register Customer Order',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (status == 'original' && valueusd_praco > valueusd)
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Value USD grater than Value USD register Customer Order',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                var totalIDRdiGrid = 0;
+                                var totalUSDdiGrid = 0;
+
+                                storeco.each(function(itemnya,indeks){
+                                    if (Ext.getCmp('form-panel-co').stat == 'edit')
+                                    {
+                                        if (Ext.getCmp('form-panel-co').idEdit == itemnya.id)
+                                        return true;
+                                    }
+                                    totalIDRdiGrid += parseFloat(itemnya.data['total'].toString().replace(/\$|\,/g,''));
+                                    totalUSDdiGrid += parseFloat(itemnya.data['totalusd'].toString().replace(/\$|\,/g,''));
+                                });
+
+                                var gridIDRbalance = valueidr - totalIDRdiGrid;
+                                var gridUSDbalance = valueusd - totalUSDdiGrid;
+                                if (status == 'original' && parseFloat(Ext.getCmp('value-idr-praco').getValue().toString().replace(/\$|\,/g,'')) > parseFloat(gridIDRbalance.toString().replace(/\$|\,/g,'')))
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry, Value IDR grater then grid balance',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (status == 'original' && parseFloat(Ext.getCmp('value-usd-praco').getValue().toString().replace(/\$|\,/g,'')) > parseFloat(gridUSDbalance.toString().replace(/\$|\,/g,'')))
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry, Value USD grater then grid balance',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (Ext.getCmp('desc-praco').getValue() == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry , Please Insert Description',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                if (Ext.getCmp('form-panel-co').stat == 'new')
+                                {
+                                    if (storeco.getCount() > 0)
+                                    {
+                                        var row = storeco.getAt(storeco.findExact('prj_kode',Ext.getCmp('prj_kode_text').getValue()));
+
+                                        if (row == null)
+                                        {
+                                            Ext.MessageBox.show({
+                                                title: 'Error',
+                                                msg: 'Sorry this document different Project Code ',
+                                                buttons: Ext.MessageBox.OK,
+                                                icon: Ext.MessageBox.ERROR
+                                                });
+                                                return false;
+                                        }
+
+                                        storeco.clearFilter();
+                                        storeco.filterBy(function(record,id){
+                                            if (record.get('type') == Ext.getCmp('type').getValue() && record.get('sit_kode') == Ext.getCmp('sit_kode_text').getValue())
+                                            {
+                                                return record;
+                                            }
+                                        });
+
+                                        if (storeco.getCount() > 0)
+                                        {
+                                            Ext.MessageBox.show({
+                                                title: 'Error',
+                                                msg: 'Sorry ,Please Choose different Site Code Or Type CO ',
+                                                buttons: Ext.MessageBox.OK,
+                                                icon: Ext.MessageBox.ERROR
+                                                });
+                                            storeco.clearFilter();
+                                            return false;
+                                        }
+
+                                        storeco.clearFilter();
+                                    }
+
+                                    if (status == 'estimate' && storeco.getCount() == 1)
+                                    {
+                                        return false;
+                                    }
+
+                                    var e = new colist ({
+                                    trano: Ext.getCmp('co-trano').getValue(),
+                                    regis_no:Ext.getCmp('reg-co').getValue(),
+                                    prj_kode:Ext.getCmp('prj_kode_text').getValue(),
+                                    prj_nama:Ext.getCmp('prj_nama_text').getValue(),
+                                    sit_kode:Ext.getCmp('sit_kode_text').getValue(),
+                                    sit_nama:Ext.getCmp('sit_nama_text').getValue(),
+                                    cus_kode:Ext.getCmp('cus-kode-praco').getValue(),
+                                    cus_nama:Ext.getCmp('cus-name-praco').getValue(),
+                                    pocustomer:Ext.getCmp('po-cus').getValue(),
+                                    total:parseFloat(Ext.getCmp('value-idr-praco').getValue().toString().replace(/\$|\,/g,'')),
+                                    totalusd:parseFloat(Ext.getCmp('value-usd-praco').getValue().toString().replace(/\$|\,/g,'')),
+                                    ket:Ext.getCmp('desc-praco').getValue(),
+                                    statusco:Ext.getCmp('co-status').getValue().getGroupValue(),
+                                    rate:parseFloat(Ext.getCmp('rate_text').getValue().toString().replace(/\$|\,/g,'')),
+                                    type:Ext.getCmp('type').getValue()
+                                    })
+
+                                    storeco.add(e);
+                                }else
+                                {
+                                    if (Ext.getCmp('form-panel-co').stat == 'edit')
+                                    {
+                                        var row = storeco.getById(Ext.getCmp('form-panel-co').idEdit);
+
+                                        row.data['prj_kode'] = Ext.getCmp('prj_kode_text').getValue();
+                                        row.data['prj_nama'] = Ext.getCmp('prj_nama_text').getValue();
+                                        row.data['sit_kode'] = Ext.getCmp('sit_kode_text').getValue();
+                                        row.data['sit_nama'] = Ext.getCmp('sit_nama_text').getValue();
+                                        row.data['cus_kode'] = Ext.getCmp('cus-kode-praco').getValue();
+                                        row.data['cus_nama'] = Ext.getCmp('cus-name-praco').getValue();
+                                        row.data['pocustomer'] = Ext.getCmp('po-cus').getValue();
+                                        row.data['total'] = parseFloat(Ext.getCmp('value-idr-praco').getValue().toString().replace(/\$|\,/g,''));
+                                        row.data['totalusd'] = parseFloat(Ext.getCmp('value-usd-praco').getValue().toString().replace(/\$|\,/g,''));
+                                        row.data['ket'] = Ext.getCmp('desc-praco').getValue();
+                                        row.data['type'] = Ext.getCmp('type').getValue();
+                                    }
+                                }
+
+                                Ext.getCmp('form-panel-co').stat = 'new';
+                                Ext.getCmp('form-panel-co').idEdit = '';
+                                Ext.getCmp('grid-pool-co').getView().refresh();
+
+                                Ext.getCmp('co-status').disable();
+                                Ext.getCmp('reg-co').stat = 'disable';
+                                var tmp = Ext.getCmp('co-status').getValue().getGroupValue();
+                                Ext.getCmp('co-status').setValue(tmp);
+
+                                Ext.getCmp('cus-kode-praco').disable();
+                                Ext.getCmp('cus-kode-praco').stat = 'disable';
+                                Ext.getCmp('prj_kode_text').disable();
+
+                                Ext.getCmp('sit_kode_text').setValue('');
+                                Ext.getCmp('sit_nama_text').setValue('');
+                                Ext.getCmp('value-idr-praco').setValue('');
+                                Ext.getCmp('value-usd-praco').setValue('');
+                                Ext.getCmp('desc-praco').setValue('');
+
+                                HitungTotal();
+
+
+                            }else
+                            {
+                                Ext.Msg.alert('Error','Sorry,' + obj.message);
+                                return false;
+                            }
+                        },
+                        failure:function( action){
+                            if(action.failureType == 'server'){
+                              obj = Ext.util.JSON.decode(action.response.responseText);
+                              Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        }
+                    })
+
+
+                }
+            },{
+                text:'Reset',
+                handler:function (btn,ev)
+                {
+                    Ext.getCmp('prj_kode_text').setValue('');
+                    Ext.getCmp('sit_kode_text').setValue('');
+                    Ext.getCmp('prj_nama_text').setValue('');
+                    Ext.getCmp('sit_nama_text').setValue('');
+
+                    Ext.getCmp('co-trano').enable();
+                    Ext.getCmp('co-trano').stat = 'enable';
+
+                    storeco.removeAll();
+
+                    Ext.getCmp('form-panel-co').getForm().reset();
+                }
+            },{
+                text:'Cancel',
+                handler:function (btn,ev)
+                {
+                    mypanel = Ext.getCmp('abs-budget-panel');
+                    mypanel.body.load({
+                        url:'/sales/sales/co',
+                        scripts:true
+                    });
+                }
+            }]
+
+        })
+
+        var gridco = new Ext.grid.GridPanel ({
+
+            store:storeco,
+            renderTo:'grid_pool_co',
+            id:'grid-pool-co',
+            frame:true,
+            width:600,
+            height:200,
+            columns:[new Ext.grid.RowNumberer(),{
+                header: "Action",
+                width: 60,
+                dataIndex: 'id',
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#"><img src="/images/g_rec_upd.png"></a>&nbsp;<a href="#" onclick="deleterowgrid(\'' + r.id + '\')"><img src="/images/g_rec_del.png"></a>';
+                }
+            },{
+                header:'CO regis number',
+                dataIndex:'regis_no'
+            },{
+                header:'Project Code',
+                dataIndex:'prj_kode'
+            },{
+                header:'Site Code',
+                dataIndex:'sit_kode'
+            },{
+                header:'Customer Code',
+                dataIndex:'cus_kode'
+            },{
+                header:'PO Customer',
+                dataIndex:'pocustomer'
+            },{
+                header:'Type',
+                dataIndex:'type'
+            },{
+                header:'Value IDR',
+                dataIndex:'total'
+            },{
+                header:'Value USD',
+                dataIndex:'totalusd'
+            },{
+                header:'Description',
+                dataIndex:'ket'
+            }],listeners:{
+                'rowdblclick':function (grid,row,e)
+                {
+                    var dat = storeco.getAt(row);
+//                    Ext.getCmp('reg-co').setValue(dat.data['regis_no']);
+                    Ext.getCmp('prj_kode_text').setValue(dat.data['prj_kode']);
+                    Ext.getCmp('prj_nama_text').setValue(dat.data['prj_nama']);
+                    Ext.getCmp('sit_kode_text').setValue(dat.data['sit_kode']);
+                    Ext.getCmp('sit_nama_text').setValue(dat.data['sit_nama']);
+                    Ext.getCmp('cus-kode-praco').setValue(dat.data['cus_kode']);
+                    Ext.getCmp('cus-name-praco').setValue(dat.data['cus_nama']);
+//                    Ext.getCmp('po-cus').setValue(dat.data['pocustomer']);
+                    Ext.getCmp('value-idr-praco').setValue(dat.data['total']);
+                    Ext.getCmp('value-usd-praco').setValue(dat.data['totalusd']);
+                    Ext.getCmp('desc-praco').setValue(dat.data['ket']);
+                    Ext.getCmp('type').setValue(dat.data['type']);
+
+                    Ext.getCmp('form-panel-co').stat = 'edit';
+                    Ext.getCmp('form-panel-co').idEdit = dat.id;
+
+                    Ext.getCmp('reg-co').disable();
+                    Ext.getCmp('reg-co').stat = 'disable';
+
+                    getExchangeRate();
+                }
+            },
+            bbar:new Ext.Toolbar({
+                id: 'gtotal-bbar',
+                style:"text-align:right",
+                items: [
+                        {
+                         xtype: 'label',
+                         id: 'gtotal-idr'
+                        },'-',
+                        {
+                         xtype: 'label',
+                         id: 'gtotal-usd'
+                        }
+                    ],
+                layout: 'fit'
+            }),
+            buttons:[{
+                text:'Submit Customer Order',
+                iconCls:'icon-save',
+                handler:function (btn,ev)
+                {
+                    var count = storeco.getCount();
+                    if (count == 0)
+                    {
+                        Ext.MessageBox.show({
+                            title: 'Error',
+                            msg: 'Sorry ,Please Insert Customer Order Into Pool',
+                            buttons: Ext.MessageBox.OK,
+                            icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var codata = '';
+                            storeco.each(function(store){
+                                codata += Ext.util.JSON.encode(store.data) + ',';
+                            })
+                            codata = '[' + codata.substring(0, codata.length - 1) + ']';
+
+                            var fileJson = '';
+                            storeFile.each(function(store){
+                                fileJson += Ext.util.JSON.encode(store.data) + ',';
+                            });
+                            fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+                            var params = {
+                                codata:codata,file:fileJson
+                            }
+
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                            url: '/sales/sales/appco/from/edit',
+                            params:params,
+                            scripts : true
+                            });
+                        }
+
+                    })
+
+                }
+            }]
+
+        })
+
+        var cotrano = '<?=$this->cotrano?>';
+        var registrano = '<?=$this->registrano?>';
+
+        if (cotrano != '' && cotrano != null)
+        {
+            Ext.getCmp('co-trano').setValue(cotrano);
+//            Ext.getCmp('co-status').setValue(co.get('statusco'));
+
+            Ext.getCmp('co-trano').disable();
+            Ext.getCmp('co-trano').stat = 'disable';
+
+            storeco.proxy.setUrl('/sales/sales/getstoreco/trano/' + cotrano);
+            storeco.reload();
+            gridco.getView().refresh();
+
+            storeFile.proxy.setUrl('/projectmanagement/budget/getregisfile/trano/' + registrano + '/praco/' + cotrano);
+            storeFile.reload();
+            Ext.getCmp('files-grid').getView().refresh();
+
+            if (registrano != null && registrano != '')
+            {
+                setRegisForm(registrano);
+            }
+
+            getExchangeRate();
+
+        }
+
+    })
+
+
+
+
+</script>
+
+    <div id="panel_attachment"></div>
+    <div id="form_panel_co" style="margin-top:10px;"></div>
+    <div id="grid_pool_co" style="margin-top:10px;"></div>

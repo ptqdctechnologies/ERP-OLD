@@ -1,0 +1,460 @@
+<script type="text/javascript">
+
+    function showsupplier ()
+    {
+        var storesupplier = new Ext.data.Store ({
+
+            url:'/logistic/logistic/getviewsupplier',
+            autoLoad:true,
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'sup_kode'
+                },{
+                    name:'sup_nama'
+                }]
+            })
+
+        })
+
+        var gridsupplier = new Ext.grid.GridPanel ({
+
+            store:storesupplier,
+            height:300,
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),
+                {
+                header:'Supplier Code',
+                dataIndex:'sup_kode',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Supplier Name',
+                dataIndex:'sup_nama',
+                sortable:true,
+                width:120,
+                align:'center'
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-supplier',
+                pageSize: 30,
+                store: storesupplier,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype:'combo',
+                id:'option-supplier',
+                width:100,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            [1,'Supplier Code'],
+                            [2,'Supplier Name']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:1
+            },'-',{
+                xtype:'textfield',
+                id:'search-supplier',
+                enableKeyEvents:true,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var optionrefnumber = Ext.getCmp('option-supplier').getValue();
+                            var searchrefnumber = Ext.getCmp('search-supplier').getValue();
+
+                            storesupplier.proxy.url= '/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                            storesupplier.proxy.setUrl('/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber);
+                            storesupplier.proxy.api.read['url']= '/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                            storesupplier.load();
+                            gridsupplier.getView().refresh();
+                        }
+                    }
+                }
+            }],listeners:{
+                'rowdblclick':function (gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+
+                    var supplier = gridaktif.getStore().getAt(rowIndex);
+
+                    var sup_kode = supplier.get('sup_kode');
+
+                    Ext.getCmp('sup_kode').setValue(sup_kode);
+
+                    windowsupplier.close();
+                }
+            }
+
+        })
+
+        var windowsupplier = new Ext.Window ({
+
+        title:'Choose Supplier',
+        id:'choose-supplier',
+        layout:'absolute',
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        closeAction: 'close',
+        width: 500,
+        height: 330,
+        loadMask:true,
+        items:[gridsupplier]
+
+        })
+
+        windowsupplier.show();
+    }
+
+    function showfixedasset ()
+    {
+
+        var fixedassetstore = new Ext.data.Store ({
+            autoLoad:true,
+            url:'/logistic/fixedasset/getfixedasset',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'code'
+                },{
+                    name:'location'
+                },{
+                    name:'storage'
+                },{
+                    name:'clasification'
+                },{
+                    name:'old_code'
+                },{
+                    name:'marking_date',type:'date'
+                },{
+                    name:'accessories'
+                },{
+                    name:'brand'
+                },{
+                    name:'type'
+                },{
+                    name:'serial_number'
+                },{
+                    name:"description"
+                },{
+                    name:'purchase_status'
+                },{
+                    name:'purchase_date',type:'date'
+                },{
+                    name:'condition'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'purchase_price'
+                },{
+                    name:'depr_rate'
+                },{
+                    name:'depr_exp'
+                },{
+                    name:'input_date'
+                },{
+                    name:'uid'
+                },{
+                    name:'status_aktif'
+                },{
+                    name:'token'
+                },{
+                    naem:'id'
+                }]
+            })
+
+        })
+
+        var fixedassetgrid = new Ext.grid.GridPanel ({
+
+            store:fixedassetstore,
+            viewConfig:{
+                forceFit:true
+            },
+            height:300,
+            columns:[{
+                header:'Code',
+                dataIndex:'code',
+                align:'center',
+                sortable:true
+            },{
+                header:'Description',
+                dataIndex:'description',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-fixedaseet',
+                pageSize: 20,
+                store: fixedassetstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                        ['Code','code'],
+                        ['Description','description']
+                    ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'Code',
+                id:'option'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                style:'margin-left:10px',
+                enableKeyEvents:true,
+                width:100,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            fixedassetstore.proxy.url= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.proxy.setUrl('/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option);
+                            fixedassetstore.proxy.api.read['url']= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.load();
+                            fixedassetgrid.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function(gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+                    var asset = gridaktif.getStore().getAt(rowIndex);
+                    Ext.getCmp('code').setValue(asset.get('code'));
+
+                    fixedassetwindow.close();
+
+                }
+            }
+
+
+        })
+
+        var fixedassetwindow = new Ext.Window ({
+
+            title:'Fixed Asset List',
+            id:'fixedasset-list-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[
+                fixedassetgrid
+            ]
+
+        })
+
+        fixedassetwindow.show();
+    }
+
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var windowForm = ({
+
+            title:'Fixed Asset Transaction Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'tbtext',
+                text: 'Asset Code',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'trigger',
+                triggerClass: 'teropong',
+                editable : false,
+                id:'code',
+                width:100,
+                onTriggerClick:
+                function ()
+                {
+                    showfixedasset();
+                }
+            },'-',{
+                xtype:'tbtext',
+                text: 'Date',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'datefield',
+                id:'date'
+            },'-',{
+                xtype:'tbtext',
+                text: 'PIC',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'userselector',
+                id:'pic',
+                UserSelectid:'uid',
+                width:120
+            },'-',{
+                xtype:'tbtext',
+                text: 'Status',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'combo',
+                id:'status',
+                width:100,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['IN USE','IN USE'],
+                            ['STORAGE','STORAGE'],
+                            ['SERVICE','SERVICE'],
+                            ['CALIBRATE','CALIBRATE']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                fieldLabel:'Status '
+            },'-',{
+                xtype:'tbtext',
+                text: 'Supplier',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'trigger',
+                triggerClass: 'teropong',
+                editable : false,
+                id:'sup_kode',
+                width:100,
+                onTriggerClick:
+                function ()
+                {
+                    showsupplier();
+                }
+            },{
+                xtype:'button',
+                text:'Show',
+                width:70,
+                id: 'show_report',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function(btn,ev)
+                {
+                    var tgl = Ext.getCmp('date').getValue();
+
+                    if (tgl != null && tgl != "" && tgl != undefined)
+                    {
+                        tgl = tgl.toDateString();
+                    }
+
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        params:{
+                            code:Ext.getCmp('code').getValue(),
+                            date:tgl,
+                            pic:Ext.getCmp('pic').getUid(),
+                            status:Ext.getCmp('status').getValue(),
+                            sup_kode:Ext.getCmp('sup_kode').getValue()
+                        },
+                        url: '/logistic/report/viewassetreport',
+                        scripts : true
+                    });
+                }
+            },'-',{
+                xtype: 'button',
+                text: 'Clear',
+                width:70,
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                id: 'clear',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('code').setValue('');
+                    Ext.getCmp('date').setValue('');
+                    Ext.getCmp('uid').setValue('');
+                    Ext.getCmp('status').setValue('');
+                    Ext.getCmp('sup_kode').setValue('');
+                }
+            }]
+
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        panelBaru.body.load({
+            url: '/logistic/report/viewassetreport',
+            scripts: true
+        });
+        showSubmenu('abs-budget-panel');
+
+
+    })
+
+
+</script>

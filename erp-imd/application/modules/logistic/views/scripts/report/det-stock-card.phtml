@@ -1,0 +1,193 @@
+<?php
+if (count($this->result) == 0) {
+    echo "No Data to display...";
+    die();
+}
+?>
+<?php
+//if (!$this->flagSaldo)  {
+//    echo "Harap Tentukan Saldo Awal";
+//    die();
+//}
+//
+?>
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        padding-left: 100px;
+        border: none;
+        width: 840px;
+        height: 600px;
+        overflow:  inherit;
+        font-size: 12px;
+    }
+    .parentContainer2{
+        font-size: 12px;
+        padding-left: 70px;
+    }
+    .tdstyle{
+        padding-left: 10px;
+    }
+    .title{
+        font-size: 16px;
+    }
+    .stockTable {
+        width: 100%;
+        font-size: 11px;
+        font-weight: normal;
+    }
+</style>
+
+
+<div align="left" style="padding-left: 70px;"><img src="/images/imd.gif" alt= "logo imd" /></div>
+<br />
+<br />
+<div class="title" align="center"><b>Detail Stock Card Report</b></div>
+<br />
+
+<!--<h3>MATERIAL FROM SUPPLIER REPORT</h3>-->
+<table class="parentContainer2">
+
+    <tr>
+        <td>Date Printed</td> 
+        <td>:</>
+        <td class="tdstyle"><? echo date("Y-m-d") ?></td>       
+
+    </tr>   
+    <tr>
+        <td>Product ID</td> 
+        <td>:</>
+        <td class="tdstyle"><? echo $this->productid ?></td>       
+
+    </tr>   <!--
+    -->    <tr>
+        <td>Product Name</td>     
+        <td>:</>
+        <td class="tdstyle"><? echo $this->productname ?></td>                       
+    </tr>
+<!--    <tr>
+        <td>Balance</td>     
+        <td>:</>
+        <td class="tdstyle"><? //echo number_format($this->saldoawal, 2)     ?></td>                       
+    </tr>-->
+</table>
+
+<br />
+
+<div class="parentContainer">
+
+    <table id="budgetTable" class="stockTable">
+        <thead id="fixed">
+            <tr>
+                <th scope="col"><center>No</center></th>
+        <th scope="col"><center>Trano</center></th>
+        <th scope="col"><center>Date Transaction</center></th>
+        <th scope="col"><center>Beginning Balance</center></th>
+        <th scope="col"><center>In</center></th>
+        <th scope="col"><center>Out</center></th>
+        <th scope="col"><center>Balance</center></th>
+        <!--<th scope="col"><center>Fisik</center></th>-->
+        </tr>
+        </thead>
+        <tbody>
+
+            <?php
+            if ($this->result != '') {
+                $nomer = $this->current;
+                $tmp = array();
+                $totalin = 0;
+                $totalout = 0;
+                $balance = 0;
+
+                $i = 0;
+                ?>
+
+                <tr>
+                    <td>-</td>
+                    <td><? echo '<b>Beginning Balance</b>'; ?></td>
+                    <td><? echo '-'; ?></td>
+                    <td align="right"><?= $this->result['0']['saldo'] ?></td>
+                    <td align="right">0.00</td>
+                    <td align="right">0.00</td>
+                    <td align="right"><b><?= $this->result['0']['saldo'] ?></b></td>
+                </tr>
+
+                <?
+                foreach ($this->result as $key => $val) {
+                if ($val['saldo'] != '0')
+                continue;
+                ?>
+
+                <?php if ($val['kode_brg'] != '' && ($val['gdg_kode'] != '' && $val['tgl'] != '')) { ?>
+
+                    <tr> 
+                        <td><? echo $nomer ?></td>
+                        <td><? echo $val['trano'] ?></td>
+                        <td><? echo ($val['tgl']!= ''?date("Y-m-d", strtotime($val['tgl'])):'-') ?></td>
+                        <td align="right"><?= $val['saldo'] ?></td>
+                        <td align="right"><?= $val['masuk'] ?></td>
+                        <td align="right"><?= $val['keluar'] ?></td>
+                        <td align="right"><b><? echo number_format($val['balance'], 2) ?></b></td>
+                    </tr>
+
+                    <? } ?>
+
+                    <?php
+                    $totalin += $val['masuk'];
+                    $totalout += $val['keluar'];
+                    $balance = $val['balance'];
+
+                    $nomer++;
+                    ?>
+
+                    <?php
+                    $i++;
+                }
+                ?>
+                <tr style="background: #4C6891;">
+                    <td colspan="4" style="color:#FFFFFF;" align="center"><?php
+                        if ($i == 0) {
+                            echo 'Total';
+                        } else {
+                            echo 'Total Saldo Akhir';
+                        }
+                        ?></td>
+                    <td style="color:#FFFFFF;" align="right"><?= number_format($totalin, 2) ?></td>
+                    <td style="color:#FFFFFF;" align="right"><?= number_format($totalout, 2) ?></td>
+                    <td style="color:#FFFFFF;" align="right"> <?= number_format($balance, 2); ?></td>
+                    <td>&nbsp;</td>
+                </tr>
+            <?php } ?>
+<?php ?>
+        </tbody>
+    </table>
+</div>
+<?= $this->pagingDefault($this->pageUrl, $this->totalResult, $this->limitPerPage, $this->current, $this->currentPage, $this->pagingParam) ?>
+
+<script type="text/javascript">
+
+
+
+    function gotoDetail(trano)
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/report/podetail/trano/' + trano,
+            scripts: true
+
+        });
+    }
+
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 2,
+            headerRows: 1
+        });
+    })();
+
+    ///
+
+</script>

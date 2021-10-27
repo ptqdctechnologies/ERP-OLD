@@ -1,0 +1,108 @@
+<?php
+if (count($this->result) == 0) {
+    echo "No Data to display...";
+    die();
+}
+?>
+
+<style type="text/css">
+
+    .parentContainer{ 
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 870px; 
+        height: 420px; 
+        overflow: auto; 
+        font-size: 14px;
+    }
+
+</style>
+
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+            <tr>
+                <th scope="col"><center>No</center></th>
+        <th scope="col"><center>Trans No</center></th>
+        <th scope="col"><center>Date</center></th>
+        <th scope="col"><center>Work Id</center></th>
+        <th scope="col"><center>Work Name</center></th>
+        <th scope="col"><center>Supplier Code</center></th>
+        <th scope="col"><center>Supplier Name</center></th>
+        <th scope="col"><center>Total IDR</center></th>
+        <th scope="col"><center>Total USD</center></th>
+        <th scope="col"><center>Requestor</center></th>
+        <th scope="col"><center>Tax Invoice Number</center></th>
+        </tr>
+        </thead>
+        <tbody>
+            <?php
+            $nomer = $this->current;
+            for ($i = 0; $i < count($this->result); $i++) {
+                                
+                if ($this->result[$i]['trano'] == NULL) continue;
+
+
+                if (($i >= ($this->current - 1)) && ($i < ($this->current + $this->limitPerPage - 1))) {
+                    ?>
+                    <tr>
+                        <td><?= $nomer; ?></td>
+                        <td><a href="#" onclick="gotoDetail('<?= $this->result[$i]['trano']; ?>')"><?= $this->result[$i]['trano']; ?></a></td>
+                        <td><?= $this->result[$i]['tgl']; ?></td>
+                        <td><?= $this->result[$i]['workid']; ?></td>
+                        <td><?= $this->result[$i]['workname']; ?></td>
+                        <td><?= $this->result[$i]['sup_kode']; ?></td>
+                        <td><?= $this->result[$i]['sup_nama']; ?></td>
+                        <td align="right"><?= number_format($this->result[$i]['total_IDR'], 2); ?></td>
+                        <td align="right"><?= number_format($this->result[$i]['total_USD'], 2); ?></td>
+                        <td><?= $this->result[$i]['pc_nama']; ?></td>
+                        <td><?= $this->result[$i]['ppn_ref_number']; ?></td>
+                    </tr>
+
+                    <?php
+                    $nomer++;
+                }
+
+                    $total = $this->result[$i]['total_IDR'];
+                    $totalJumlah = $totalJumlah + $total;
+
+                    $total2 = $this->result[$i]['total_USD'];
+                    $totalJumlah2 = $totalJumlah2 + $total2;
+                
+            }
+            ?>
+
+            <tr style="background: #4C6891;">
+                <td colspan="6" style="color:#FFFFFF;" align="right">Total: </td>
+                <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                <td style="color:#FFFFFF;" align="right"><?= number_format($totalJumlah, 2) ?></td>
+                <td style="color:#FFFFFF;" align="right"><?= number_format($totalJumlah2, 2) ?></td>
+                <td style="color:#FFFFFF;" align="right">&nbsp;</td>
+                <td style="color:#FFFFFF;" align="right">&nbsp;</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<?= $this->paging($this->pageUrl, $this->totalResult, $this->limitPerPage, $this->current, $this->currentPage) ?>
+<script type="text/javascript">
+
+    function gotoDetail(trano)
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/report/rpidetail/trano/' + trano,
+            scripts: true
+
+        });
+    }
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 2,
+            headerRows: 1
+        });
+    })();
+
+</script>

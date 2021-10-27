@@ -1,0 +1,221 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        function showDocs(isPrint)
+        {
+            if (isPrint == undefined)
+                isPrint = false;
+
+            var order = Ext.getCmp('order_by').getValue(),
+                trano = Ext.getCmp('trano_text').getValue(),
+                type = Ext.getCmp('combo-type').getRawValue(),
+                prjKode = Ext.getCmp('prj_kode_text').getValue(),
+                startd = Ext.getCmp('startdt').getValue(),
+                endd = Ext.getCmp('enddt').getValue();
+
+            var params = {
+                trano: trano,
+                type: type,
+                prj_kode: prjKode,
+                orderby: order,
+                start_date: startd,
+                end_date: endd
+            };
+
+            params.encoded_params = Ext.util.JSON.encode(params);
+
+            if (!isPrint)
+            {
+                myPanel = Ext.getCmp('result-panel');
+                myPanel.body.load({
+                    url: '/default/report/show-my-approved-document',
+                    scripts : true,
+                    params: params
+                });
+            }
+            else
+            {
+                params.print = true;
+                params.encoded_params = '';
+                location.href= '/default/report/show-my-approved-document/' + Ext.util.urlEncodeZend(params);
+            }
+
+        }
+
+        new Ext.Panel({
+
+            id: 'search-panel',
+            title: 'Search My Approved Document',
+            renderTo: 'panels',
+            frame: true,
+            layout: 'form',
+            width: 550,
+            labelAlign: 'left',
+            labelWidth: 130,
+            items: [
+                {
+                    layout : 'column',
+                    items:[
+                        {
+                            columnWidth:.5,
+                            layout :'form',
+                            items:[
+                                {
+                                    id: 'combo-type',
+                                    fieldLabel: 'Transaction Type',
+                                    hiddenName : 'workflow_item_type_id',
+                                    width: 100,
+                                    xtype: 'combo',
+                                    triggerAction: 'all',
+                                    mode: 'remote',
+                                    editable: false,
+                                    displayField: 'name',
+                                    valueField: 'workflow_item_type_id',
+                                    store: new Ext.data.JsonStore({
+                                        url: '/admin/workflow/listworkflowitemtype/all/true',
+                                        root: 'posts',
+                                        fields:[
+                                            { name: "name"},{ name: "workflow_item_type_id"}
+                                        ]
+                                    }),
+                                    listeners: {
+                                        'select': function(t,n,o){
+                                            showDocs(false);
+                                        }
+                                    }
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    id: 'trano_text',
+                                    fieldLabel: 'Trano',
+                                    width: 120
+                                },
+                                {
+                                    xtype: 'projectselector',
+                                    anchor: '100%',
+                                    id: 'project-select',
+                                    Selectid: 'prj_kode_text',
+                                    ShowName: false,
+                                    fieldLabel:'Project Code ',
+                                    callback: function(rec){
+                                        showDocs('','',rec.prj_kode);
+                                    }
+                                },
+                                {
+                                    fieldLabel : 'Order By',
+                                    id:'order_by',
+                                    xtype:'combo',
+                                    store: new Ext.data.SimpleStore({
+                                        fields:['field', 'value']
+                                        ,data:[
+                                            ['Project Code','prj_kode'],
+                                            ['Trano','item_id']
+                                        ]
+
+                                    }),
+                                    valueField:'value',
+                                    displayField:'field',
+                                    typeAhead: true,
+                                    mode: 'local',
+                                    triggerAction: 'all',
+                                    allowBlank: false,
+                                    selectOnFocus:true,
+                                    forceSelection:false,
+                                    width: 140
+
+                                }
+                            ]
+                        },{
+                            columnWidth:.5,
+                            layout: 'form',
+                            items :[
+                                {
+                                    xtype: 'fieldset',
+                                    title: 'Approval Date Range',
+                                    items: [
+                                        {
+                                            fieldLabel: 'Start Date',
+                                            xtype:'datefield',
+                                            name: 'startdt',
+                                            id: 'startdt',
+                                            vtype: 'daterange',
+                                            endDateField: 'enddt', // id of the end date field
+                                            msgTarget:'side',
+                                            format:'d-m-Y'
+                                        },
+                                        {
+                                            fieldLabel: 'End Date',
+                                            xtype:'datefield',
+                                            name: 'enddt',
+                                            id: 'enddt',
+                                            vtype: 'daterange',
+                                            startDateField: 'startdt',
+                                            msgTarget:'side',
+                                            format:'d-m-Y'
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Export to Excel',
+                    icon:"/images/print.png",
+                    handler: function(){ showDocs(true)}
+
+                },
+                {
+                    text: 'Search',
+                    id: 'btn-search',
+                    icon:"/images/g_rec_src.png",
+                    handler: function(){ showDocs()}
+
+                }
+            ]
+
+        });
+
+        new Ext.Panel({
+
+            id: 'result-panel',
+            renderTo: 'panels2',
+            border: false,
+            layout: 'fit'
+        });
+    });
+</script>
+
+<!--<div id="grids"></div>-->
+<div id="panels"></div><br />
+<div id="panels2"></div>
+

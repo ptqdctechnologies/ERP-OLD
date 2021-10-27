@@ -1,0 +1,182 @@
+<script type="text/javascript">
+    
+var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/default/report/getdatamdimdo/prj_kode/<?php echo $this->prjKode ?>/sit_kode/<?php echo $this->sitKode ?>'
+	});
+	
+        var reader = new Ext.data.JsonReader({
+        //idProperty: 'mdi_no',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'mdi_no', type: 'string'},
+            {name: 'tgl_mdi', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},      
+            {name: 'qty_mdi',type:'float'},
+            {name: 'qty_mdo',type:'float'},
+            {name: 'balance',type:'float'},
+//            {name: 'gqty_mdi',type:'float'},
+//            {name: 'gqty_mdo',type:'float'},
+//            {name: 'gbalance',type:'float'}
+        ]
+    );
+
+        var summary = new Ext.grid.GroupSummary();
+
+    	var qty_mdi;
+    	var qty_mdo;
+    	var balance;
+
+    var store = new Ext.ux.MultiGroupingStore({
+        proxy: proxy          
+       ,reader: reader
+       ,sortInfo: {field: 'mdi_no', direction: 'ASC'}
+       ,groupField: ['mdi_no','kode_brg']
+     });
+
+	  store.on('load', function(s,r,o) {
+	  	qty_mdi = Ext.util.Format.number(r[0].data['qty_mdi'], '?0,000.0000?');
+	  	qty_mdo = Ext.util.Format.number(r[0].data['qty_mdo'], '?0,000.0000?');
+	  	balance = Ext.util.Format.number(r[0].data['balance'], '?0,000.0000?');
+	  	grid = Ext.getCmp('multi-grid');
+
+//    	var tb1 = new Ext.Toolbar({
+//    		renderTo : grid.bbar,
+//    		items: [
+//   				'<b>Grand Total MDI = ' + qty_mdi + '</b>'
+//
+//                        ]
+//    		});
+
+//        var tb3 = new Ext.Toolbar({
+//    		renderTo : grid.bbar,
+//    		items: [
+//    				'<b>Grand Total MDO = ' + qty_mdo + '</b>'
+//
+//    			]
+//
+//            });
+//        var tb4 = new Ext.Toolbar({
+//    		renderTo : grid.bbar,
+//    		items: [
+//    				'<b>Grand Total Balance = ' + balance + '</b>'
+//
+//    			]
+
+//            });
+        
+        var tb2 = new Ext.PagingToolbar({
+            	renderTo: grid.bbar,
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            });
+        
+    		grid.syncSize();
+	});
+        
+	  store.load();
+
+    var groupView = new Ext.ux.MultiGroupingView({
+        hideGroupedColumn :true
+       ,startCollapsed: true
+       ,emptyGroupText: 'All Group Fields Empty'
+       ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+       ,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Record" : "Records"]})'
+       ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+       });
+    
+    var grid = new Ext.ux.MultiGroupingPanel({
+        stateful: false,
+        id: 'multi-grid',
+        store: store,
+        columns: [
+            {
+                id: 'mdi_no',
+                header: 'MDI No:',
+                width: 200,
+                sortable: true,
+                dataIndex: 'mdi_no',
+                summaryType: 'count',
+                hideable: false
+            },
+            {
+                header: 'Date',
+                width: 100,
+                sortable: true,
+                dataIndex: 'tgl_mdi',
+                renderer: Ext.util.Format.dateRenderer('m/d/Y')
+            },
+            {
+                header: 'Product Id',
+                width: 100,
+                sortable: true,
+                dataIndex: 'kode_brg'          
+            },
+            {
+                header: 'Description',
+                width: 200,
+                sortable: true,
+                dataIndex: 'nama_brg'          
+            },
+            {
+                header: 'Qty MDI',
+                width: 100,
+                sortable: true,
+                dataIndex: 'qty_mdi',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },       
+            {
+                header: 'Qty MDO',
+                width: 100,
+                sortable: true,
+                dataIndex: 'qty_mdo',
+                renderer: change,
+                align: 'right',
+                summaryType: 'sum'
+            },     
+            {
+                header: 'Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'balance',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },   
+        ],      
+
+        view : groupView,	
+        plugins: summary,
+		loadMask: true,
+        bbar:[ 
+
+              ],
+        frame: true,
+        width: 935,
+        height: 450,  
+        trackMouseOver: false,
+        title: '',
+        iconCls: 'icon-grid',
+        renderTo: 'list-timesheet'
+    }
+    ); 
+
+    grid.loadMask.el.mask();  
+	
+    function change(val)
+    {
+        return '<div style="text-align:right;">' + Ext.util.Format.number(val, '?0,000.00?') + '</div>';
+    }
+    
+</script>
+
+<div id='list-timesheet'></div>

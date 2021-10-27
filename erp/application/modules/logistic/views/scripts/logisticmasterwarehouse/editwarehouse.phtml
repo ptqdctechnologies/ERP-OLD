@@ -1,0 +1,183 @@
+<script type="text/javascript">
+
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        },
+        emailText: "Not a valid email address. Must be in the following format: yourname@company.domain",
+        emailRe: /^(\s*[a-zA-Z0-9\._%-]+@[a-zA-Z0-9\.-]+\.[a-zA-Z]{2,4})\s*$/,
+        email: function(v) {
+            return this.emailRe.test(v);
+        }
+
+    });
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var editwarehouse = new Ext.FormPanel({
+            title: 'Edit Warehouse',
+            id: 'edit-warehouse',
+            iconCls: 'silk-user',
+            frame: true,
+            renderTo: 'editwarehouse',
+            width: 360,
+            labelWidth: 140,
+            items: [
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'Warehouse Code',
+                    name: 'gdg_kode',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    value: '<?php echo $this->tampil['gdg_kode'] ?>'
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Warehouse Name',
+                    name: 'gdg_nama',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    value: '<?php echo $this->tampil['gdg_nama'] ?>'
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Warehouse Address',
+                    name: 'alamat1',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    value: '<?php echo $this->tampil['alamat1'] ?>'
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Description',
+                    name: 'ket',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    value: '<?php echo $this->tampil['ket'] ?>'
+                },
+                {
+                    xtype: 'combo',
+                    fieldLabel: 'Active Status ',
+                    labelStyle: 'margin-left:10px;width:120',
+                    width: 60,
+                    labelWidth: 20,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['name', 'nilai'],
+                        data: [
+                            ['Yes', '1'],
+                            ['No', '0']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    id: 'stsactive',
+                    hiddenName: 'stsactive',
+                    value: '<?php echo $this->tampil['stsactive'] ?>',
+                    listeners: {
+                        'select': function(combo, record, index)
+                        {
+//                            var status = record.data.name;
+//
+//                            if (status == 'NO')
+//                            {
+//                                Ext.getCmp('piece_meal_price').setValue('');
+//                                Ext.getCmp('piece_meal_price').disable();
+//                            } else
+//                            {
+//                                Ext.getCmp('piece_meal_price').enable()
+//                            }
+                        }
+                    }
+                },
+               
+                {
+                    fieldLabel: 'Is Temporary',
+                    id: 'sts_temporary',
+                    hiddenName: 'sts_temporary',
+                    labelStyle: 'margin-left:10px;width:120',
+                    xtype: 'combo',
+                    width: 60,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['type', 'name'],
+                        data: [
+                            ['1', 'Yes'],
+                            ['0', 'No']
+                        ]
+                    }),
+                    valueField: 'type',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    emptyText: 'Select Type',
+                    value: '<?php echo $this->tampil['sts_temporary'] ?>'
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Edit',
+                    handler: function(btn, ev)
+                    {
+                        if (!Ext.getCmp('edit-warehouse').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error', 'Please fill in all required fields');
+                            return false;
+                        }
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);                 
+                        Ext.getCmp('edit-warehouse').getForm().submit({
+                            method: 'POST',
+                            url: '/logistic/logisticmasterwarehouse/geteditwarehouse/id/<?= $this->tampil['id'] ?>',
+                            success: function(thisForm, response)
+                            {
+                                Ext.getBody().unmask();
+                                Ext.Msg.alert('Success', 'Warehouse has ben Update');
+                                myPanel = Ext.getCmp('master_warehouse');
+                                myPanel.body.load({
+                                    url: '/logistic/logisticmasterwarehouse/warehouse',
+                                    scripts: true
+                                });
+                            }
+                        })
+                    }
+                }, {
+                    text: 'Cancel',
+                    handler: function(btn, ev) {
+                        myPanel = Ext.getCmp('master_warehouse');
+                        myPanel.body.load({
+                            url: '/logistic/logisticmasterwarehouse/warehouse',
+                            scripts: true
+                        });
+                    }
+                }
+            ]
+
+        })
+
+
+    })
+
+
+</script>
+
+<div id="editwarehouse"></div>
+

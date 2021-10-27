@@ -1,0 +1,247 @@
+<script type="text/javascript">
+
+    var brandstore = new Ext.data.Store ({
+
+        url:'/logistic/logisticbarang/getbrand',
+        autoLoad:true,
+        id:'brandstore',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'mrk_kode'
+            },{
+                name:'mrk_nama'
+            },{
+                name:'ket'
+            }]
+
+        })
+
+    })
+
+    function editbrand (id)
+    {
+        var brand = brandstore.getAt(brandstore.findExact('id',id));
+        var code_brand = brand.get('mrk_kode');
+        var name_brand = brand.get('mrk_nama');
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Edit Brand',
+            id:'edit-brand',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Brand Code ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'brand-code',
+                maxLength:2,
+                value:code_brand
+            },{
+                xtype:'textfield',
+                fieldLabel:'Brand Name ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'brand-name',
+                value:name_brand
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('edit-brand').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doupdatebrand/id/' + id,
+                        success:function(thisForm,response){
+                            windowinsert.close();
+
+                            brandstore.reload();
+                            Ext.getCmp('brand-list').getView().refresh();
+
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function insertbrand ()
+        {
+            var formpanelbrand = new Ext.form.FormPanel ({
+
+                    title:'Insert Brand',
+                    id:'insert-brand',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Brand Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'brand-code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Brand Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'brand-name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-brand').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertbrand',
+                                success:function(thisForm,response){
+                                    windowinsertbrand.close();
+
+                                    brandstore.reload();
+                                    Ext.getCmp('brand-list').getView().refresh();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsertbrand.close();
+                        }
+                    }]
+
+                })
+
+
+            var windowinsertbrand = new Ext.Window ({
+
+                id:'window-insert-brand',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanelbrand]
+
+            })
+
+            windowinsertbrand.show();
+        }
+
+        var brandgrid = new Ext.grid.GridPanel ({
+
+            store:brandstore,
+            title:'Brand List',
+            id:'brand-list',
+            renderTo:'brand_list',
+            viewConfig:{
+                forceFit:true
+            },
+            width:340,
+            height:260,
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),
+            {
+                id:'edit',
+                header:'Edit',
+                width:40,
+                sortable:true,
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="editbrand(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                }
+            },{
+                header:'Brand Code',
+                dataIndex:'mrk_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Brand Name',
+                dataIndex:'mrk_nama',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-brand',
+                pageSize: 20,
+                store: brandstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                xtype:'button',
+                text:'Create New',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    insertbrand();
+                }
+            }]
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="brand_list"></div>
+ 

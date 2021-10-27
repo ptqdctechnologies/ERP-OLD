@@ -1,0 +1,1730 @@
+<script type="text/javascript">
+
+function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn) {
+                if (btn == 'yes')
+                {
+                if (theFile.data['status'] == 'new')
+                    var params = {filename: theFile.data['savename']};
+                    Ext.Ajax.request({
+                        url: '/procurement/procurement/deletefile',
+                        method: 'POST',
+                        success: function(result, request) {
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if (returnData.success)
+                            {
+                                storeFile.remove(theFile);
+                                Ext.getCmp('files-grid').getView().refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error!', returnData.msg);
+                                return false;
+                            }
+                        },
+                        failure: function(action) {
+                            if (action.failureType == 'server') {
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            } else {
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        },
+                        params: params
+                    });
+                }
+            });
+        }
+    }
+    ;
+    
+    
+    
+            var filelist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'filename',
+            type: 'string'
+        }, {
+            name: 'savename',
+            type: 'string'
+        }, {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'path',
+            type: 'string'
+        }]);
+
+
+        var storeFile = new Ext.data.Store({
+//                id:'store-file',
+//                proxy:proxy,
+                reader: new Ext.data.JsonReader({fields: filelist})
+            });
+
+    Ext.onReady(function() {
+
+        var BUDGET_TYPE = 'project';
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            },
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() {
+                    return this.numericRe.test(v)
+                };
+            }
+
+        });
+
+        Ext.QuickTips.init();
+
+        var grid, data, fileUploads;
+        var summary = new Ext.ux.grid.GridSummary();
+
+        Ext.Ajax.on('requestcomplete', function(connection, response, options) {
+// Check if this is a form upload
+            var form = Ext.getDom(options.form);
+            if (form && (options.isUpload || /multipart\/form-data/i.test(form.getAttribute("enctype")))) {
+// Check if the server returned an error
+// (here I assume that the server returns an error by setting the body id of the returned HTML page to "error")
+
+                var doc = response.responseXML;
+                if (doc && doc.body && /413 Request Entity Too Large/i.test(doc.body.innerHTML)) {
+// Call failure and callback
+                    Ext.callback(options.failure, options.scope, [response, options]);
+                    Ext.callback(options.callback, options.scope, [options, false, response]);
+// Stop original code from calling success and callback
+                    delete options.success;
+                    delete options.failure;
+                }
+            }
+        });
+
+        var loadBOQ3Grid = function(prj, sit, budgetType, noRemove)
+        {
+            if (noRemove == undefined)
+                noRemove = false;
+            if (budgetType == undefined)
+                budgetType = 'project';
+
+            if (prj == '' || sit == '')
+            {
+                Ext.Msg.alert('Error', 'Please select Project or Site');
+                return false;
+            }
+
+            Ext.Ajax.request({
+                //url: '/procurement/bt-request/get-budget',
+                url: '/procurement/bt-request/getboq3forbrf',
+                method: 'POST',
+                params: {
+                    prj_kode: prj,
+                    sit_kode: sit,
+                    budget_type: budgetType
+                },
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        loadBOQ3(returnData.data, noRemove);
+                    }
+                    else
+                    {
+                        Ext.Msg.alert("Error", returnData.msg);
+                        return false;
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+
+        /*Bypass Upload Old
+         * @type Ext.ux.uploadFile var uploadFile = new Ext.ux.uploadFile({
+            renderTo: 'upload-file',
+            title: 'Upload Document for this Bussiness Trip',
+            width: 500,
+            frame: true
+        });*/
+
+        var storeBoq3 = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: boq3List}),
+            getBalance: function(prjKode, sitKode, workid, kodeBrg)
+            {
+                var totalBalance = 0;
+                this.each(function(r) {
+                    if (r.get("prj_kode") == prjKode && r.get("sit_kode") == sitKode && r.get("workid") == workid && r.get("kode_brg") == kodeBrg)
+                    {
+                        totalBalance += r.get("totalBalance");
+                    }
+                });
+
+                return totalBalance;
+            }
+        });
+
+        var storeTrans = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: transportList})
+        });
+
+        var storePayment = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: paymentList}),
+            getBalance: function(prjKode, sitKode, workid, kodeBrg)
+            {
+                var totalPayment = 0;
+                this.each(function(r) {
+                    if (r.get("prj_kode") == prjKode && r.get("sit_kode") == sitKode && r.get("workid") == workid && r.get("kode_brg") == kodeBrg)
+                    {
+                        totalPayment += r.get("total");
+                    }
+                });
+
+                return totalPayment;
+            },
+            getTotal: function() {
+                var totalPayment = 0;
+                this.each(function(r) {
+                    totalPayment += r.get("total");
+                });
+
+                return totalPayment;
+            }
+        });
+
+        var boq3List = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'prj_kode', type: 'string'},
+            {name: 'sit_kode', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'workname', type: 'string'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'qty', type: 'float'},
+            {name: 'price', type: 'float'},
+            {name: 'hargaIDR', type: 'float'},
+            {name: 'hargaUSD', type: 'float'},
+            {name: 'val_kode', type: 'string'},
+            {name: 'totalCost', type: 'float'},
+            {name: 'totalCancel', type: 'float'},
+            {name: 'total', type: 'float'},
+            {name: 'totalBalance', type: 'float'},
+            {name: 'uom', type: 'string'},
+            {name: 'cfs_kode', type: 'string'},
+            {name: 'cfs_nama', type: 'string'},
+            {name: 'invalid', type: 'boolean'},
+        ]);
+
+        var transportList = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'transport_type', type: 'string'},
+            {name: 'transport_booking', type: 'string'},
+            {name: 'departure', type: 'date', format: 'Y-m-d'},
+            {name: 'arrival', type: 'date', format: 'Y-m-d'},
+            {name: 'fare', type: 'float'}
+        ]);
+
+        var paymentList = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'nama_item', type: 'string'},
+            {name: 'sequence', type: 'float'},
+            {name: 'allowance', type: 'float'},
+            {name: 'transport', type: 'float'},
+            {name: 'airport_tax', type: 'float'},
+            {name: 'accomodation', type: 'float'},
+            {name: 'others', type: 'float'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'qty', type: 'float'},
+            {name: 'harga', type: 'float'},
+            {name: 'prj_kode', type: 'string'},
+            {name: 'sit_kode', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'total', type: 'float'},
+            {name: 'record'}
+        ]);
+
+        var loadBOQ3 = function(boq3, noRemove)
+        {
+            storeBoq3.removeAll();
+
+            if (noRemove != true)
+            {
+                storePayment.removeAll();
+                total_sequence = 1;
+            }
+            Ext.each(boq3, function(i) {
+                var d = new boq3List(i);
+                storeBoq3.add(d);
+            });
+        };
+
+        var editor = new Ext.ux.grid.RowEditor({
+            saveText: 'Update',
+            clicksToEdit: ''
+        });
+
+        var rowactions2 = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        storeTrans.remove(record);
+                                        transportGrid.getView().refresh();
+                                    }
+                                }
+                        );
+
+                    }
+                }
+            ],
+            header: '',
+            width: 20
+        });
+
+        var rowactions3 = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'icon-edit',
+                    qtip: 'Edit',
+                    id: 'edit',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record.get("record");
+                        Ext.getCmp('nama_brg').setValue(rec.get("nama_brg"));
+                        Ext.getCmp('kode_brg').setValue(rec.get("kode_brg"));
+//                    Ext.getCmp('total_budget').setValue(rec.get("totalBalance"));
+                        Ext.getCmp('val_kode').setValue(rec.get("val_kode"));
+                        Ext.getCmp('sequence').setValue(record.get("sequence"));
+                        Ext.getCmp('allowance').setValue(record.get("allowance"));
+                        Ext.getCmp('transport').setValue(record.get("transport"));
+                        Ext.getCmp('airport_tax').setValue(record.get("airport_tax"));
+                        Ext.getCmp('accomodation').setValue(record.get("accomodation"));
+                        Ext.getCmp('others').setValue(record.get("others"));
+
+                        Ext.getCmp('form-payment-detail').records = rec;
+                        Ext.getCmp('form-payment-detail').editRecord = record;
+                        Ext.getCmp('form-payment-detail').edit = true;
+                    }
+                }
+            ],
+            header: 'edit',
+            width: 200
+        });
+
+        var rowactions4 = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        var thisSeq = parseInt(rec.get("sequence")),
+                                                nextSeq = thisSeq;
+
+                                        if (storePayment.getCount() > 1)
+                                        {
+                                            storePayment.each(function(r) {
+                                                if ((r.get("id") != rec.get("id")) && r.get("sequence") >= thisSeq)
+                                                {
+                                                    r.beginEdit();
+                                                    r.set('sequence', nextSeq);
+                                                    nextSeq++;
+                                                    r.endEdit();
+                                                    r.commit();
+                                                }
+                                            });
+                                        }
+                                        storePayment.remove(record);
+                                        paymentGrid.getView().refresh();
+                                        total_sequence--;
+                                        Ext.getCmp("sequence").setValue(total_sequence);
+
+                                        Ext.getCmp('nama_brg').setValue('');
+                                        Ext.getCmp('kode_brg').setValue('');
+//                                Ext.getCmp('total_budget').setValue('');
+                                        Ext.getCmp('val_kode').setValue('');
+                                        Ext.getCmp('sequence').setValue(total_sequence);
+
+                                        Ext.getCmp('form-payment-detail').records = null;
+                                        Ext.getCmp('form-payment-detail').editRecord = null;
+                                        Ext.getCmp('form-payment-detail').edit = false;
+
+                                        Ext.getCmp('allowance').setValue(0);
+                                        Ext.getCmp('transport').setValue(0);
+                                        Ext.getCmp('airport_tax').setValue(0);
+                                        Ext.getCmp('accomodation').setValue(0);
+                                        Ext.getCmp('others').setValue(0);
+                                    }
+                                }
+                        );
+
+                    }
+                }
+            ],
+            header: 'delete',
+            width: 200
+        });
+        
+        var comboTrans = new Ext.form.ComboBox({
+            store: new Ext.data.SimpleStore({
+                fields: ['name', 'nilai'],
+                data: [
+                    ['Bus', 'bus'],
+                    ['Rail', 'rail'],
+                    ['Air', 'air'],
+                    ['Sea', 'sea'],
+                    ['QDC Vehicle', 'qdc'],
+                    ['Train', 'train']
+                ]
+            }),
+            valueField: 'nilai',
+            displayField: 'name',
+            typeAhead: true,
+            forceSelection: true,
+            editable: false,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus: true,
+//            allowBlank:false,
+            id: 'type-journal',
+            listeners: {
+//            'select' : { fn:
+//                function(c, row, index)
+//                {
+//                    jurnal.printTitle = row.get("name");
+//                    if (row.get("nilai") == "JS")
+//                    {
+//                        Ext.getCmp('acc-numbers').Tranotype = ['ASF','ASFO'];
+//                    }
+//                    else
+//                    {
+//                        Ext.getCmp('acc-numbers').Tranotype = '';
+//                    }
+//                }
+//            }
+            }
+        });
+
+        var total_sequence = 1;
+
+        var transportGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            frame: false,
+            border: false,
+            plugins: [rowactions2, editor],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions2,
+                {
+                    header: 'Transport Type',
+                    dataIndex: 'transport_type',
+                    sortable: true,
+                    width: 100,
+                    editor: comboTrans
+                },
+                {
+                    header: 'Transport Booking/Flight No',
+                    dataIndex: 'transport_booking',
+                    sortable: true,
+                    width: 100,
+                    editor: {
+                        xtype: 'textfield'
+                    }
+                },
+                {
+                    header: 'Time of Depart',
+                    dataIndex: 'departure',
+                    sortable: true,
+                    width: 100,
+                    editor: {
+                        xtype: 'datefield',
+                        id: 'depart_time',
+                        vtype: 'daterange',
+                        endDateField: 'arrival_time', // id of the end date field
+                        format: 'd-m-Y'
+                    }
+                },
+                {
+                    header: 'Time of Arrival',
+                    dataIndex: 'arrival',
+                    sortable: true,
+                    width: 100,
+                    editor: {
+                        xtype: 'datefield',
+                        id: 'arrival_time',
+                        vtype: 'daterange',
+                        startDateField: 'depart_time', // id of the end date field
+                        format: 'd-m-Y'
+                    }
+                },
+                {
+                    header: 'Quoted Fare (IDR)',
+                    dataIndex: 'fare',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right',
+                    editor: {
+                        xtype: 'numberfield',
+                        allowNegative: false
+                    }
+                }
+
+            ],
+            autoWidth: true,
+            height: 150,
+            store: storeTrans,
+            viewConfig: {
+                forceFit: true,
+                enableRowBody: true
+            },
+            tbar: [
+                {
+                    xtype: 'button',
+                    iconCls: 'icon-add-new',
+                    text: 'Add',
+                    handler: function() {
+                        var e = new transportList({
+                        });
+                        editor.stopEditing();
+                        storeTrans.insert(0, e);
+                        transportGrid.getSelectionModel().selectRow(0);
+                        editor.startEditing(0);
+                    }
+                }
+            ]
+        });
+
+        var paymentGrid = new Ext.grid.GridPanel({
+            renderTo: 'payment-grid',
+            stateful: false,
+            frame: true,
+            border: true,
+            title: 'Business Trip Request Item',
+            plugins: [rowactions3, rowactions4, summary],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions3,
+                rowactions4,
+                {
+                    header: 'Payment Sequence',
+                    dataIndex: 'sequence',
+                    sortable: true,
+                    width: 60
+                },
+                {
+                    header: 'Allowance',
+                    dataIndex: 'allowance',
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Transport',
+                    dataIndex: 'transport',
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Airport Tax',
+                    dataIndex: 'airport_tax',
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Accomodation',
+                    dataIndex: 'accomodation',
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Others',
+                    dataIndex: 'others',
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                }
+
+            ],
+            autoWidth: true,
+            height: 250,
+            store: storePayment,
+            viewConfig: {
+                forceFit: true,
+                enableRowBody: true
+            },
+            bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style: "text-align:right",
+                items: [{
+                        xtype: 'label',
+                        ref: '../paymentTotal',
+                        style: 'color:red;font-weight:bold;margin-right:20px;font-size:12'
+                    }],
+                layout: 'fit'
+            }),
+            refreshTotal: function()
+            {
+                var total = 0;
+                this.getStore().each(function(r) {
+                    total += parseFloat(r.get("total"));
+                });
+                this.getBottomToolbar().get(0).setText('Total Business Trip : ' + Ext.util.Format.number(total, '0,0.00') + ' || ' + 'Total Sequence : ' + (total_sequence - 1));
+            },
+            buttons: [
+                {
+                    text: 'Submit BRF',
+                    handler: function() {
+                        var data = formpanel.getForm().getValues(),
+                                transport = '',
+                                payment = '';
+
+                        if ((data.tgl_awal == '' || data.tgl_awal == '01-01-1970') || (data.tgl_akhir == '' || data.tgl_akhir == '01-01-1970'))
+                        {
+                            Ext.Msg.alert('Error', 'Travel date is not selected');
+                            return false;
+                        }
+                        data.requester = Ext.getCmp('uid_requester').getUid();
+                        data.totalsequence = total_sequence - 1;
+                        
+                        if (transportGrid.getStore().getCount() > 0)
+                        {
+//                        transport = Ext.encode(Ext.pluck(transportGrid.getStore().data.items, 'data'));
+                            transportGrid.getStore().each(function(store) {
+                                transport += Ext.util.JSON.encode(store.data) + ',';
+                            });
+                            transport = '[' + transport.substring(0, transport.length - 1) + ']';
+                        }
+                        if (paymentGrid.getStore().getCount() > 0)
+                        {
+                            paymentGrid.getStore().each(function(store) {
+                                var json = {};
+                                Ext.each(store.data['record'], function(r) {
+                                    json = r.data;
+                                });
+                                store.data['record'] = json;
+                                payment += Ext.util.JSON.encode(store.data) + ',';
+                            });
+                            payment = '[' + payment.substring(0, payment.length - 1) + ']';
+                        }
+                        else
+                        {
+                            Ext.Msg.alert('Error', 'Please insert payment sequence');
+                            return false;
+                        }
+
+                        Ext.Ajax.request({
+                            url: '/procurement/bt-request/cek-payment',
+                            method: 'POST',
+                            params: {
+                                payment: payment,
+                                budget_type: BUDGET_TYPE,
+                            },
+                            success: function(result, request) {
+                                var filedata = '';
+                                    storeFile.each(function(store) {
+                                        filedata += Ext.util.JSON.encode(store.data) + ',';
+                                    });
+
+                                    filedata = '[' + filedata.substring(0, filedata.length - 1) + ']';
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+//                                if (returnData.success) {
+                                if (true) {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/procurement/bt-request/app',
+                                        scripts: true,
+                                        params: {
+                                            payment: payment,
+                                            transport: transport,
+                                            data: Ext.encode(data),
+                                            budget_type: BUDGET_TYPE,
+                                            filedata: filedata,
+                                            sequences: sequence,
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert("Error", returnData.msg);
+                                    return false;
+                                }
+                            },
+                            failure: function(action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            }
+                        });
+
+                    }
+                }
+            ]
+        });
+
+        var formpanel = new Ext.form.FormPanel({
+            title: 'Add Bussiness Request Request Form',
+            renderTo: 'form-add',
+            frame: true,
+            autoWidth: true,
+//        bodyStyle: 'padding: 10px 10px 0 10px;',
+            labelWidth: 100,
+            defaults: {
+                anchor: '95%'
+            },
+            items: [
+                {
+                    xtype: 'fieldset',
+                    title: 'Please Choose Project & Site BOQ3',
+                    items: [
+                        {
+                            xtype: 'budgettypeselector',
+                            anchor: '100%',
+                            id: 'budget-select',
+                            Selectid: 'budget_type',
+                            fieldLabel: 'Budget Type',
+                            allowBlank: false,
+                            callback: function(rec) {
+                                Ext.getCmp('project-select').enable();
+                                Ext.getCmp('site-select').enable();
+                                Ext.getCmp('project-select').reset();
+                                Ext.getCmp('site-select').reset();
+
+                                BUDGET_TYPE = rec;
+
+                                if (rec == 'overhead')
+                                {
+                                    Ext.getCmp('project-select').setTypeOverhead(true);
+                                    if (Ext.getCmp('item-select') != undefined)
+                                        Ext.getCmp('item-select').destroy();
+                                    Ext.getCmp('fieldset-budget-detail').insert(0, itemsOverhead);
+                                    if (Ext.getCmp('seq-select') != undefined)
+                                    Ext.getCmp('seq-select').destroy();
+                                    Ext.getCmp('fieldset-budget-detail').insert(1, short);
+                                }
+                                else
+                                {
+                                    Ext.getCmp('project-select').setTypeProject(true);
+                                    if (Ext.getCmp('item-select') != undefined)
+                                        Ext.getCmp('item-select').destroy();
+                                    Ext.getCmp('fieldset-budget-detail').insert(0, itemsProject);
+                                    if (Ext.getCmp('seq-select') != undefined)
+                                    Ext.getCmp('seq-select').destroy();
+                                    Ext.getCmp('fieldset-budget-detail').insert(1, short);
+                                }
+
+                                Ext.getCmp('fieldset-budget-detail').doLayout();
+                            }
+                        },
+                        {
+                            xtype: 'projectselector',
+                            anchor: '100%',
+                            id: 'project-select',
+                            Selectid: 'prj_kode',
+                            Nameid: 'prj_nama_text',
+                            ShowName: true,
+                            fieldLabel: 'Project Code',
+                            allowBlank: false,
+                            showAll: true,
+                            callback: function(prj) {
+                                Ext.getCmp('site-select').clearAllValue();
+                                Ext.getCmp('uid_requester').projectCode = prj.prj_kode;
+                            }
+                        }, {
+                            xtype: 'siteselector',
+                            anchor: '100%',
+                            independent: false,
+                            id: 'site-select',
+                            SiteSelectid: 'sit_kode',
+                            SiteNameid: 'sit_nama_text',
+                            ProjectSelectid: 'prj_kode',
+                            ShowName: true,
+                            fieldLabel: 'Site Code',
+                            allowBlank: false,
+                            showAll: true,
+                            callback: function(site) {
+                                var prj = Ext.getCmp('prj_kode').getValue(),
+                                        sit = site.sit_kode,
+                                        type = BUDGET_TYPE;
+                                loadBOQ3Grid(prj, sit, type);
+                            }
+                        },
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Please Fill this Form below',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: .46,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'userselector',
+                                            fieldLabel: 'Requester',
+                                            ShowName: true,
+                                            id: 'uid_requester',
+                                            UserSelectid: 'requester',
+                                            width: 200,
+                                            projectCode: '',
+                                            chainWithJob: true,
+                                            jobTitleId: 'job_title',
+                                            callback: function(role) {
+                                                if (role)
+                                                    Ext.getCmp('department').setValue(role.role_name);
+                                                else
+                                                    Ext.getCmp('department').setValue('');
+                                            }
+                                        },
+                                        {
+                                            fieldLabel: 'Job Title',
+                                            name: 'job_title',
+                                            id: 'job_title',
+                                            xtype: 'combo',
+                                            triggerAction: 'all',
+                                            forceSelection: true,
+                                            typeAhead: true,
+                                            mode: 'local',
+                                            displayField: 'display_name',
+                                            valueField: 'id_role',
+                                            store: new Ext.data.JsonStore({
+                                                autoLoad: true,
+                                                url: '/admin/userrole/listroletype',
+                                                root: 'posts',
+                                                fields: [
+                                                    {name: "display_name"}, {name: "id_role"}, {name: 'role_name'}
+                                                ]
+                                            }),
+                                            listeners: {
+                                                'select': function(c, rec) {
+                                                    Ext.getCmp('department').setValue(rec.get("role_name"));
+                                                }
+                                            }
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Department',
+                                            id: 'department',
+                                            name: 'department',
+                                            readOnly: true
+                                        },
+                                        {
+                                            xtype: 'textarea',
+                                            fieldLabel: 'Reason to travel',
+                                            name: 'reason',
+                                            id: 'reason',
+                                            width: 200,
+                                            height: 80,
+                                            enableKeyEvents: true,
+                                            listeners: {
+                                                'keyup': function(t, e) {
+                                                    oldtext = t.getValue();
+                                                    new_text = oldtext.replace(/\r?\n/g, " ");
+                                                    this.setValue(new_text);
+                                                }
+                                            }
+                                        },
+                                        {
+                                            xtype: 'datefield',
+                                            fieldLabel: 'Date commence travel',
+                                            name: 'tgl_awal',
+                                            id: 'tgl_awal',
+                                            vtype: 'daterange',
+                                            minValue : beginDate(),
+                                            endDateField: 'tgl_akhir', // id of the end date field
+                                            allowBlank: false,
+                                            msgTarget: 'side',
+                                            format: 'd-m-Y'
+                                        }, {
+                                            xtype: 'datefield',
+                                            fieldLabel: 'Date end travel',
+                                            name: 'tgl_akhir',
+                                            id: 'tgl_akhir',
+                                            vtype: 'daterange',
+                                            startDateField: 'tgl_awal',
+                                            allowBlank: false,
+                                            msgTarget: 'side',
+                                            format: 'd-m-Y'
+                                        }
+                                    ]
+                                },
+                                {
+                                    columnWidth: .46,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Head station location',
+                                            id: 'head_station',
+                                            name: 'head_station'
+                                        },
+                                        {
+                                            xtype: 'textarea',
+                                            fieldLabel: 'Business Trip location',
+                                            id: 'bt_location',
+                                            name: 'bt_location',
+                                            width: 200, enableKeyEvents: true,
+                                            listeners: {
+                                                'keyup': function(t, e) {
+                                                    oldtext = t.getValue();
+                                                    new_text = oldtext.replace(/\r?\n/g, " ");
+                                                    this.setValue(new_text);
+                                                }
+                                            }
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Contact Phone No.',
+                                            id: 'contact_phone',
+                                            name: 'contact_phone'
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'The following condition will apply in travelling to and returning from your temporary work location',
+                    items: [
+                        new Ext.form.CheckboxGroup({
+                            id: 'transport_type',
+                            xtype: 'checkboxgroup',
+                            fieldLabel: 'Transport Type Applicable',
+                            itemCls: 'x-check-group-alt',
+                            // Put all controls in a single column with width 100%
+                            columns: 6,
+                            width: 400,
+                            items: [
+                                {boxLabel: 'Bus', name: 'bus'},
+                                {boxLabel: 'Rail', name: 'rail'},
+                                {boxLabel: 'Air', name: 'air'},
+                                {boxLabel: 'Sea', name: 'sea'},
+                                {boxLabel: 'QDC Vehicle', name: 'qdc'},
+                                {boxLabel: 'Train', name: 'train'}
+                            ]
+                        }),
+                        new Ext.form.RadioGroup({
+                            id: 'travel_arrangement',
+                            xtype: 'radiogroup',
+                            fieldLabel: 'Travel Arrangement',
+                            itemCls: 'x-check-group-alt',
+                            allowBlank : false,
+                            blankText : 'You must select one item in this group',
+                            // Put all controls in a single column with width 100%
+                            columns: 3,
+                            width: 400,
+                            items: [
+                                {boxLabel: 'Day Trip Travel', name: 'travel_arrangement', inputValue: 'day_trip', checked: true},
+                                {boxLabel: 'Short Term', name: 'travel_arrangement', inputValue: 'short'},
+                                {boxLabel: 'Long Term', name: 'travel_arrangement', inputValue: 'long'}
+                            ],
+                            listeners: {
+                            'change': function(t, ch)
+                            {
+                                if (ch.getGroupValue() == 'long')
+                                {
+                                    if (Ext.getCmp('seq-select') != undefined)
+                                     Ext.getCmp('seq-select').destroy();
+                                      Ext.getCmp('fieldset-budget-detail').insert(1, long)
+                                } else
+                                {
+                                    if (Ext.getCmp('seq-select') != undefined)
+                                     Ext.getCmp('seq-select').destroy();
+                                    Ext.getCmp('fieldset-budget-detail').insert(1, short);
+                                }
+                                 Ext.getCmp('fieldset-budget-detail').doLayout();
+                            }
+                            }
+                        }),
+                        new Ext.form.RadioGroup({
+                            id: 'payment_applicable',
+                            xtype: 'radiogroup',
+                            fieldLabel: 'Payments Applicable',
+                            itemCls: 'x-check-group-alt',
+                            // Put all controls in a single column with width 100%
+                            columns: 2,
+                            width: 200,
+                            items: [
+                                {boxLabel: 'Lumpsum', name: 'payment_applicable', inputValue: 'lumpsum'},
+                                {boxLabel: 'Non Lumpsum', name: 'payment_applicable', inputValue: 'non_lumpsum', checked: true}
+                            ]
+                        }),
+                        new Ext.form.RadioGroup({
+                            id: 'accomodation_check',
+                            xtype: 'radiogroup',
+                            fieldLabel: 'Accomodation (where applicable)',
+                            itemCls: 'x-check-group-alt',
+                            // Put all controls in a single column with width 100%
+                            columns: 2,
+                            width: 200,
+                            items: [
+                                {boxLabel: 'Arrange by Company', name: 'accomodation', inputValue: 'company'},
+                                {boxLabel: 'Arrange by Employee', name: 'accomodation', inputValue: 'employee'}
+                            ]
+                        })
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Transport Details',
+                    items: [
+                        transportGrid
+                    ]
+                }
+            ],
+//        buttons:[
+//            {
+//                text:'Submit',
+//                handler:function(btn,ev)
+//                {
+//                    var prj = Ext.getCmp('prj_kode_text').getValue(),
+//                        sit = Ext.getCmp('sit_kode_text').getValue();
+//
+//                    loadBOQ3Grid(prj,sit);
+//                }
+//            },
+//            {
+//                text:'Cancel',
+//                handler:function(btn,ev)
+//                {
+//                    myPanel = Ext.getCmp('abs-budget-panel');
+//                    myPanel.body.load({
+//                        url: '/procurement/entertainment-request',
+//                        scripts : true
+//                    })
+//                }
+//            }
+//        ]
+        });
+
+//    var expander = new Ext.ux.grid.RowExpander({
+//        tpl : new Ext.Template(
+//                '<div style="margin-left:50px;"><p><b>Workname :</b> {workname}</p>',
+//                '<p><b>Site Name:</b> {sit_nama}</p>',
+//                '<p><b>Remark:</b> {ket}</p>',
+//                '</div>'
+//        )
+//    });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-add',
+                    qtip: 'Add',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        if (record.get("invalid") !== true)
+                        {
+                            grid.getSelectionModel().clearSelections();
+                            grid.getSelectionModel().selectRow(row);
+                            if(Ext.getCmp('budget_type').getValue()=='Project')
+                            {
+                                Ext.getCmp('kode_brg').setValue(record.get("kode_brg"));
+                                Ext.getCmp('nama_brg').setValue(record.get("nama_brg"));
+
+                            }
+                            else
+                            {
+                                Ext.getCmp('kode_brg').setValue(record.get("workid"));
+                                Ext.getCmp('nama_brg').setValue(record.get("workname"));
+
+                            }
+                                
+//                        Ext.getCmp('total_budget').setValue(record.get("totalBalance"));
+                            Ext.getCmp('val_kode').setValue(record.get("val_kode"));
+                            Ext.getCmp('sequence').setValue(total_sequence);
+
+                            Ext.getCmp('form-payment-detail').records = record;
+                            Ext.getCmp('form-payment-detail').editRecord = null;
+                            Ext.getCmp('form-payment-detail').edit = false;
+
+                            Ext.getCmp('allowance').setValue(0);
+                            Ext.getCmp('transport').setValue(0);
+                            Ext.getCmp('airport_tax').setValue(0);
+                            Ext.getCmp('accomodation').setValue(0);
+                            Ext.getCmp('others').setValue(0);
+                        }
+                        else
+                        {
+                            Ext.Msg.alert("Error", "This Budget is not available.");
+                            return false;
+                        }
+                    }
+                }
+            ],
+            header: '',
+            width: 12
+        });
+
+        var boq3Grid = new Ext.grid.GridPanel({
+            renderTo: 'boq3-grid',
+            stateful: false,
+            frame: true,
+            border: true,
+            plugins: [rowactions],
+            title: 'Please select Your budget for this Business Trip',
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {header: "Workid", dataIndex: 'workid', width: 80},
+                {header: "Workname", dataIndex: 'workname', width: 80},
+                {header: "Product Id", dataIndex: 'kode_brg', width: 100},
+                {header: "Name", dataIndex: 'nama_brg', width: 120},
+                {header: "Valuta", dataIndex: 'val_kode', width: 30},
+                {header: "Total Budget", dataIndex: 'total', width: 100, css: 'text-align:right;', renderer: function(v, p, r) {
+                        return Ext.util.Format.number(v, '0,0.00');
+                    }},
+                {header: "Total Cost", dataIndex: 'totalCost', width: 100, css: 'text-align:right;', renderer: function(v, p, r) {
+                        return Ext.util.Format.number(v, '0,0.00');
+                    }},
+                {header: "Available", dataIndex: 'totalBalance', width: 100, css: 'text-align:right;', renderer: function(v, p, r) {
+                        return Ext.util.Format.number(v, '0,0.00');
+                    }},
+                {header: "Applied", dataIndex: 'totalBalance', width: 100, renderer: function(v, p, r) {
+
+                        var percent = 0;
+                        var warna = '#0a0';
+
+                        percent =parseFloat((r.data["totalCost"] / r.data["total"]) * 100);
+                        //if (percent >= 100)
+                            //percent = 100;
+
+                        //if (percent > 75)
+                            //warna = '#FF3F7D';
+                        //else if (percent > 50)
+                            //warna = '#FFDA2F';
+                        if (percent.toFixed(2) > 50)
+                        {
+                            warna = '#FFDA2F';
+                        }
+
+                        if (percent.toFixed(2) > 75)
+                        {
+                            warna = '#FF3F7D';
+                        }
+                
+                        if(percent.toFixed(2) >= 100 || r.data['total'] ==0)
+                        {
+                                percent=100;
+                                warna = '#FF3F7D';                    
+                        }
+                        
+
+                        return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent.toFixed(2) + '%;"><div class="meter-text"><b>' + percent.toFixed(2) + '%</b></div></div></div>';
+                    }}
+            ],
+            autoWidth: true,
+            height: 250,
+            store: storeBoq3,
+            viewConfig: {
+                forceFit: true,
+                enableRowBody: true
+            }
+        });
+
+        var itemsOverhead = {
+            xtype: 'itemselector',
+            anchor: '100%',
+            id: 'item-select',
+            Selectid: 'kode_brg',
+            Nameid: 'nama_brg',
+            ShowName: true,
+            fieldLabel: 'Budget Name',
+            allowBlank: false,
+            useDisplayField: true,
+            SelectWidth: 120,
+            callback: function(prj) {
+//                            Ext.getCmp('site-select').clearAllValue();
+            }
+        };
+        
+        var long = {
+            xtype: 'textfield',
+            fieldLabel: 'Sequence Request',
+            name: 'sequencereq',
+            dataIndex : 'totalseq',
+            allowBlank: false,
+            id: 'seq-select',
+            value:0,
+            width: 120
+        };
+        
+        var short = {
+            xtype: 'textfield',
+            fieldLabel: 'Sequence Request',
+            name : 'sequencereq',
+            dataIndex: 'totalseq',
+            disabled: true,
+            id: 'seq-select',
+            value:1,
+            width: 120
+        };
+
+
+        var itemsProject = {
+            xtype: 'compositefield',
+            id: 'item-select',
+            fieldLabel: 'Budget Name',
+//                        msgTarget : 'under',
+//                        defaults: {
+//                            flex: 1
+//                        },
+            items: [
+                {
+                    xtype: 'displayfield',
+                    id: 'kode_brg',
+                    style: 'font-size: 12px;',
+                    value: 'product',
+                    width: 60
+                },
+                {
+                    xtype: 'displayfield',
+                    id: 'nama_brg',
+                    style: 'font-size: 12px;',
+                    value: 'name',
+                    width: 250
+                }
+            ]
+        };
+
+        var formPayment = new Ext.Panel({
+            renderTo: 'form-payment',
+            autoWidth: true,
+            frame: true,
+            border: true,
+            height: 340,
+            edit: false,
+            editRecord: null,
+            title: 'Business Trip Cost Payment',
+            items: [
+                {
+                    xtype: 'fieldset',
+                    title: 'Budget Detail',
+                    id: 'fieldset-budget-detail',
+                    defaults: {
+                        labelWidth: 150
+                    },
+                    layout: 'form',
+                    items: [
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Budget Request for BT',
+                            msgTarget: 'under',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    xtype: 'textfield',
+                                    id: 'requested_budget',
+                                    name: 'requested_budget',
+                                    style: 'text-align:right',
+                                    priceDelemiter: ',',
+                                    width: 120
+                                }),
+                                {
+                                    xtype: 'displayfield',
+                                    width: 50,
+                                    value: 'IDR',
+                                    style: 'font-size: 12px;',
+                                    id: 'val_kode'
+                                }
+                            ]
+                        }
+                    ]
+                },
+                new Ext.form.FormPanel({
+                    id: 'form-payment-detail',
+                    records: null,
+                    items: [
+                        {
+                            xtype: 'fieldset',
+                            title: 'Payment Sequence',
+                            items: [
+                                {
+                                    xtype: 'displayfield',
+                                    fieldLabel: 'Sequence',
+                                    style: 'font-size: 12px;font-weight: bold;text-align: center;',
+                                    width: 50,
+//                                readOnly: true,
+                                    id: 'sequence'
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .26,
+                                            layout: 'form',
+                                            items: [
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'Allowance',
+                                                    name: 'allowance',
+                                                    id: 'allowance',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    width: 100
+                                                }),
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'Transport',
+                                                    name: 'transport',
+                                                    id: 'transport',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    width: 100
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .26,
+                                            layout: 'form',
+                                            items: [
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'Airport Tax',
+                                                    name: 'airport_tax',
+                                                    id: 'airport_tax',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    width: 100
+                                                }),
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'Accomodation',
+                                                    name: 'accomodation',
+                                                    id: 'accomodation',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    width: 100
+                                                }),
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .26,
+                                            layout: 'form',
+                                            items: [
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'Others',
+                                                    name: 'others',
+                                                    id: 'others',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    width: 100
+                                                })
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    buttons: [
+                        {
+                            text: 'Add',
+                            handler: function()
+                            {
+                                Ext.getCmp('travel_arrangement').setReadOnly(true);
+                                Ext.getCmp('seq-select').setReadOnly(true);
+                                
+                                
+                                var form = Ext.getCmp('form-payment-detail').getForm(),
+                                        data = form.getValues(),
+                                        record = Ext.getCmp('form-payment-detail').records;    
+                                                
+                                var totalPayment = storePayment.getBalance(record.get("prj_kode"), record.get("sit_kode"), record.get("workid"), record.get("kode_brg")),
+                                        totalBalance = record.get("totalBalance"),
+                                        totalPaymentGrid = storePayment.getTotal(),
+                                        totalRequested = parseFloat(Ext.getCmp('requested_budget').getValue().toString().replace(/\$|\,/g, ''));
+
+                                if (totalRequested == 0 || totalRequested == null)
+                                {
+                                    Ext.Msg.alert('Error', 'Please specify Your Requested Budget');
+                                    return false;
+                                }
+                                
+                                if (data.allowance == '')
+                                    data.allowance = 0;
+                                else
+                                    data.allowance = parseFloat(data.allowance.toString().replace(/\$|\,/g, ''));
+                                if (data.transport == '')
+                                    data.transport = 0;
+                                else
+                                    data.transport = parseFloat(data.transport.toString().replace(/\$|\,/g, ''));
+                                if (data.airport_tax == '')
+                                    data.airport_tax = 0;
+                                else
+                                    data.airport_tax = parseFloat(data.airport_tax.toString().replace(/\$|\,/g, ''));
+                                if (data.accomodation == '')
+                                    data.accomodation = 0;
+                                else
+                                    data.accomodation = parseFloat(data.accomodation.toString().replace(/\$|\,/g, ''));
+                                if (data.others == '')
+                                    data.others = 0;
+                                else
+                                    data.others = parseFloat(data.others.toString().replace(/\$|\,/g, ''));
+
+                                var total = data.allowance + data.transport + data.airport_tax + data.accomodation + data.others;
+                                var sequences =  parseFloat(Ext.getCmp('sequence').getValue().toString().replace(/\$|\,/g, ''));
+                                var sequencereqs =  parseFloat(Ext.getCmp('seq-select').getValue().toString().replace(/\$|\,/g, ''));
+                              
+                                if (total <= 0)
+                                {
+                                    Ext.Msg.alert("Error", "Payment Sequence is all empty, please input at least one of payment.");
+                                    return false;
+                                }
+                                
+                                if(Ext.getCmp('sequence').getValue()==''){
+                                    Ext.Msg.alert('Error','Please Choose Lumpsum');
+                                    return false;
+                                }
+                                
+                                
+                                if (sequences > sequencereqs)
+                                {
+                                    Ext.Msg.alert('Error', 'Total Sequence more than Sequence Request');
+                                    return false;
+                                }
+                                
+                                if (sequencereqs <= 0)
+                                {
+                                    Ext.Msg.alert('Error', 'coba aja');
+                                    return false;
+                                }
+                                
+
+                                if (moneycomp((totalPaymentGrid + total), '>', totalRequested) && !Ext.getCmp('form-payment-detail').edit)
+                                {
+                                    Ext.Msg.alert('Error', 'Your request budget is not sufficient');
+                                    return false;
+                                }
+                                
+                                var cekTotal = totalPayment + total;
+                                if (Ext.getCmp('form-payment-detail').edit == true)
+                                    cekTotal -= total;
+
+                                if (moneycomp(cekTotal, '<=', totalBalance, 2))
+                                {
+                                    data.prj_kode = record.get("prj_kode");
+                                    data.sit_kode = record.get("sit_kode");
+                                    data.workid = record.get("workid");
+
+                                    if (BUDGET_TYPE == 'project')
+                                    {
+                                        data.kode_brg = record.get("kode_brg");
+                                        data.nama_brg = record.get("nama_brg");
+                                    }
+                                    else
+                                    {
+                                        data.kode_brg = Ext.getCmp('kode_brg').getValue();
+                                        data.nama_brg = Ext.getCmp('nama_brg').getValue();
+                                    }
+                                    data.total = total;
+
+                                    data.record = record;
+
+                                    if (Ext.getCmp('form-payment-detail').edit == true)
+                                    {
+                                        var r = Ext.getCmp('form-payment-detail').editRecord;
+                                        r.beginEdit();
+                                        r.set('allowance', data.allowance);
+                                        r.set('transport', data.transport);
+                                        r.set('airport_tax', data.airport_tax);
+                                        r.set('accomodation', data.accomodation);
+                                        r.set('others', data.others);
+                                        r.set('total', data.total);
+                                        r.endEdit();
+                                        r.commit();
+                                        Ext.getCmp('form-payment-detail').editRecord = null;
+                                        Ext.getCmp('form-payment-detail').edit = false;
+                                    }
+                                    else
+                                    {
+                                        data.sequence = total_sequence;
+                                        var e = new paymentList(data);
+                                        storePayment.insert(0, e);
+                                        total_sequence += 1;
+                                    }
+
+                                    paymentGrid.getView().refresh();
+                                    Ext.getCmp('form-payment-detail').getForm().reset();
+                                    Ext.getCmp('sequence').setValue(total_sequence);
+                                    paymentGrid.refreshTotal();
+
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert("Error", "You cannot make another payment request for this Budget.<br>Available Budget to request: <b>" + record.get("val_kode") + " " + Ext.util.Format.number((totalBalance - totalPayment), '0,0.00') + "</b>");
+                                    return false;
+                                }
+                            }
+                        },
+                        {
+                            text: 'Reset',
+                            handler: function() {
+                                Ext.getCmp('nama_brg').setValue('');
+                                Ext.getCmp('kode_brg').setValue('');
+//                            Ext.getCmp('total_budget').setValue('');
+                                Ext.getCmp('val_kode').setValue('');
+                                Ext.getCmp('sequence').setValue(total_sequence);
+
+                                Ext.getCmp('form-payment-detail').records = null;
+                                Ext.getCmp('form-payment-detail').editRecord = null;
+                                Ext.getCmp('form-payment-detail').edit = false;
+
+                                Ext.getCmp('allowance').setValue(0);
+                                Ext.getCmp('transport').setValue(0);
+                                Ext.getCmp('airport_tax').setValue(0);
+                                Ext.getCmp('accomodation').setValue(0);
+                                Ext.getCmp('others').setValue(0);
+                            }
+                        }
+                    ]
+                })
+            ]
+        });
+
+
+        Ext.getCmp('project-select').disable();
+        Ext.getCmp('site-select').disable();
+
+<?php if ($this->return) { ?>
+            var payment = <?= $this->payment ?>;
+            Ext.each(payment, function(r) {
+                r.record = new boq3List(r.record);
+                var d = new paymentList(r);
+                storePayment.insert(0, d);
+                paymentGrid.getView().refresh();
+            });
+
+    <?php if ($this->transport) { ?>
+                var transport = <?= $this->transport ?>;
+                Ext.each(transport, function(r) {
+                    var d = new transportList(r);
+                    storeTrans.insert(0, d);
+                    transportGrid.getView().refresh();
+                });
+    <?php } ?>
+
+            var formValue = <?= $this->data ?>;
+    <?php $this->data = Zend_Json::decode($this->data); ?>
+    <?php $this->payment = Zend_Json::decode($this->payment); ?>
+            formpanel.getForm().setValues(formValue);
+            formPayment.getForm().setValues(formValue);
+            Ext.getCmp('uid_requester').setUid('<?= $this->data['requester'] ?>');
+            Ext.getCmp('uid_requester').setUserName('<?= QDC_User_Ldap::factory(array("uid" => $this->data['requester']))->getName() ?>');
+            Ext.getCmp('requester').setValue('<?= QDC_User_Ldap::factory(array("uid" => $this->data['requester']))->getName() ?>');
+            Ext.getCmp('prj_kode').setValue('<?= $this->data['prj_kode'] ?>');
+            Ext.getCmp('sequence').setValue('<?= count($this->payment) + 1 ?>');
+            total_sequence = <?= count($this->payment) + 1 ?>;
+            Ext.getCmp('sit_kode').setValue('<?= $this->data['sit_kode'] ?>');
+            Ext.getCmp('prj_nama_text').setValue('<?= $this->data['prj_nama'] ?>');
+            Ext.getCmp('sit_nama_text').setValue('<?= $this->data['sit_nama'] ?>');
+            Ext.getCmp('budget_type').setValue('<?= strtolower($this->data['budget_type']) ?>');
+            Ext.getCmp('tgl_awal').setValue('<?= date("d-m-Y", strtotime($this->data['tgl_awal'])) ?>');
+            Ext.getCmp('tgl_akhir').setValue('<?= date("d-m-Y", strtotime($this->data['tgl_akhir'])) ?>');
+            loadBOQ3Grid('<?= $this->data['prj_kode'] ?>', '<?= $this->data['sit_kode'] ?>', '<?= $this->data['budget_type'] ?>', true);
+/*
+ * Bypass Upload Old
+        <?php if ($this->file) { ?>
+                var files = <?= $this->file ?>,
+                        jsonFile = {data: files};
+            
+                uploadFile.loadData(jsonFile);
+    <?php } ?>*/
+<?php } ?>
+ var fileColumns = [
+                new Ext.grid.RowNumberer(),
+                {header: "File Name", width: 130, dataIndex: 'filename'},
+                {header: 'Action', width: 40, sortable: true, css: 'text-align:center;', renderer: function(v, p, r) {
+                        return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+                    }}
+            ];
+            
+       function beginDate(){
+            var std = new Date();
+            std = std.setMonth(std.getMonth() - 26);
+            std = new Date(std);
+            return std;
+       }
+       
+        var gridattach = new Ext.grid.GridPanel({
+                    id: 'files-grid',
+                    iconCls: 'silk-grid',
+                    height: 100,
+                    store: storeFile,
+                    trackMouseOver: true,
+                    width: 490,
+                    view: new Ext.grid.GridView({
+                        forceFit: true
+                    }),
+                    columns: fileColumns
+                })    
+    
+        var fileUploads = new Ext.FormPanel({
+                    title: 'File Attachment',
+                    renderTo: 'panel_attachment',
+                    fileUpload: true,
+                    width: 500,
+                    frame: true,
+                    allowBlank: false,
+                    msgTarget: 'side',
+                    items: [{
+                            layout: 'column',
+                            items: [{
+                                    columnWidth: 0.7,
+                                    layout: 'form',
+                                    items: [{
+                                            xtype: 'fileuploadfield',
+                                            id: 'po-file',
+                                            emptyText: 'Select a File',
+                                            fieldLabel: 'Attach File',
+                                            allowBlank: false,
+                                            name: 'file-path',
+                                            buttonText: '',
+                                            buttonCfg: {
+                                                iconCls: 'upload-icon'
+                                            },
+                                            width: 200,
+                                            anchor: '98%'
+                                        }]
+                                }, {
+                                    columnWidth: 0.2,
+                                    layout: 'form',
+                                    items: [{
+                                            xtype: 'button',
+                                            text: 'Upload',
+                                            handler: function()
+                                            {
+                                                if (fileUploads.getForm().isValid()) {
+                                                    form_action = 1;
+                                                    fileUploads.getForm().submit({
+                                                        url: '/procurement/procurement/uploadfile/type/RPI',
+                                                        waitMsg: 'Uploading file...',
+                                                        success: function(form, action) {
+                                                            var returnData = action.result;
+                                                            if (returnData.success) {
+                                                                var c = new filelist({
+                                                                    id: parseFloat(storeFile.getCount() + 1),
+                                                                    filename: returnData.filename,
+                                                                    savename: returnData.savename,
+                                                                    path: returnData.path,
+                                                                    status: 'new'
+                                                                });
+                                                                storeFile.add(c);
+                                                                Ext.getCmp('files-grid').getView().refresh();
+                                                                Ext.getCmp('po-file').setValue('');
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.Msg.alert('Error', returnData.msg);
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }]
+                                }]
+                        }, gridattach],
+        buttons: []
+                });
+//                init();
+                var jsonFile = '<?php echo $this->file ?>';
+                storeFile.loadData(jsonFile);
+                Ext.getCmp('files-grid').getView().refresh();
+
+
+
+
+    })
+
+
+</script>
+
+<!--<div id="upload-file"></div>bypass upload old-->
+<div id="panel_attachment" style="margin-bottom:10px"></div>
+<br />
+<div id="form-add"></div>
+<br />
+<div id="boq3-grid"></div>
+<br />
+<div id="form-payment"></div>
+<br />
+<div id="payment-grid"></div>

@@ -1,0 +1,983 @@
+<style>
+
+.last-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.all-approve{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 200px;
+    overflow: auto;
+}
+.body {
+	width: 100%;
+    overflow: auto;
+}
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.etc {
+	width: 100%;
+	height: 50px;
+}
+.kanan-etc {
+	float: right;
+	width: 48%;
+}
+.kiri-etc {
+	float: left;
+	width: 48%;
+}
+.blok {
+	font-size: 12px;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.budgetTable {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+#approval {
+    width: 100%;
+    font-size: 12px;
+	font-weight: bold;
+    margin-top: 10px;
+}
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon2 {
+        padding-left:10px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    span .rolename {
+        color:#333;
+    }
+</style>
+
+<style type="text/css">
+/*css for afe &boq3 table*/
+table.boq
+{
+    width: 100%;
+background-color: #fafafa;
+border: 1px #000000 solid;
+border-collapse: collapse;
+border-spacing: 0px; }
+
+
+td.boqheader
+{ background-color: #99CCCC;
+border: 1px #000000 solid;
+font-weight: bold;
+font-size: 14px;
+text-align: center;
+color: #404040; }
+
+
+td.boqisi
+{ border-bottom: 1px #6699CC dotted;
+font-weight: normal;
+font-size: .7em;
+color: #404040;
+background-color: #fafafa;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 8px;
+padding-right: 8px; }
+/*end here*/
+
+</style>
+
+
+<script type="text/javascript">
+
+function approveDocs(params,dataArray)
+{
+    var addurl = '';
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['uid_next'] + '/uid_next/' + dataArray.data['uid_next'] +  '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'] + '/workflow_item_type_id/' + dataArray.data['workflow_item_type_id'] + '/trano/' + dataArray.data['trano'];
+    Ext.getBody().mask('Loading..','x-mask-loading',false);
+    Ext.Ajax.request({
+	        url: '/admin/workflow/approve' + addurl,
+	        method:'POST',
+	        success: function(resp){
+                                Ext.getBody().unmask();
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+                    if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        showNextPerson(returnData.user,params,false,returnData.prj_kode,true);
+                        return false;
+                    }
+                    else
+                    {
+                        if (Ext.getCmp('choose-next'))
+                            Ext.getCmp('choose-next').close();
+                        getDocs();
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/default/home/showprocessdocument',
+                            scripts : true
+                        });
+                    }
+				}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+	        },
+	    	failure:function( action){
+                  Ext.getBody().unmask();
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+}
+function saveData(params)
+{
+
+    if (params == "" || params == '')
+        return false;
+
+    Ext.Ajax.request({
+        url: '/projectmanagement/timesheet/savetimesheet',
+        method:'POST',
+        success: function(resp){
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                Ext.Msg.alert('Success', 'Timesheet has been saved into Draft!');
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/projectmanagement/timesheet/timesheet',
+                    scripts : true
+                });
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+
+}
+
+function submitData(params,dataArray)
+{
+    var addurl = '';
+
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['uid_next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'] + '/workflow_item_type_id/' + dataArray.data['workflow_item_type_id'] + '/trano/' + dataArray.data['trano'];
+    Ext.getBody().mask('Loading..','x-mask-loading',false);
+    Ext.Ajax.request({
+        url: '/projectmanagement/timesheet/inserttimesheet' + addurl,
+        method:'POST',
+        success: function(resp){
+            Ext.getBody().unmask();
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                if (returnData.user != undefined && returnData.number == undefined)
+                {
+                    if (Ext.getCmp('choose-next'))
+                        Ext.getCmp('choose-next').close();
+                    showNextPerson(returnData.user,params,'',returnData.prjKode);
+                    return false;
+                }
+                else
+                {
+                    if (returnData.error == undefined || returnData.error == "")
+                    {
+
+                        if (Ext.getCmp('choose-next'))
+                            Ext.getCmp('choose-next').close();
+                        Ext.Msg.alert('Success', 'Timesheet has been saved and submitted to current Workflow!' + '<br><br>Your Timesheet number is <b><font color="#ff0000">' + returnData.number + '</font></b>');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/projectmanagement/timesheet/timesheet',
+                            scripts : true
+                        });
+                    }
+                    else
+                    {
+                        var errorMsg = '';
+                        var successMsg = '';
+                        var winTitle = '';
+                        if (Ext.getCmp('choose-next'))
+                            Ext.getCmp('choose-next').close();
+                        if (returnData.allfailed == undefined || returnData.allfailed == '')
+                        {
+                            winTitle = 'Success Submitting Timesheet';
+                            successMsg = '<center>Timesheet has been saved and submitted to current Workflow!' + '<br>Your Timesheet number is <b><font color="#ff0000">' + returnData.number + '</font></b><br><br><b>However, there\'s some Error on Your Workflow while System Submitting Your Timesheet, Please see the information below.</b></center>';
+                        }
+                        else
+                        {
+                            winTitle = 'Error Submitting Timesheet';
+                            successMsg = '<center><b>There\'s some Error on Your Workflow while System Submitting Your Timesheet, Please see the information below.</b></center>'
+                        }
+                        var errRows =  Ext.util.JSON.decode(returnData.error);
+                        Ext.each(errRows.msg,function(rows){
+                            errorMsg += "<li>" + rows + "</li>";
+                        });
+                        if (errorMsg != "" || errorMsg != '')
+                            errorMsg = "<ul>" + errorMsg +  "</ul>";
+
+                        var nav = new Ext.Panel({
+                            region: 'north',
+                            margins:'3 0 3 3',
+                            cmargins:'3 3 3 3',
+                            html: successMsg
+                        });
+
+                        var nav2 = new Ext.Panel({
+                            region: 'center',
+                            title: 'Error Description',
+                            margins:'3 0 3 3',
+                            cmargins:'3 3 3 3',
+		                    autoScroll: true,
+                            html: errorMsg
+                        });
+
+                        var win = new Ext.Window({
+                            title: winTitle,
+                            closeAction: 'close',
+                            width:300,
+                            height:350,
+                            plain:true,
+                            layout: 'border',
+                            modal: true,
+                            closable: false,
+                            items: [
+                                nav,
+                                nav2
+                            ],
+                            buttons: [
+                                {
+                                    text: 'OK',
+                                    handler: function(){
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/projectmanagement/timesheet/timesheet',
+                                            scripts : true
+                                        });
+                                        win.close();
+                                    }
+                                }
+                            ]
+                        });
+
+                        win.show(this);
+                    }
+                }
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+        Ext.getBody().unmask();
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+
+}
+
+function submitData2(params,dataArray)
+{
+    var addurl = '';
+    
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['uid_next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'] + '/workflow_item_type_id/' + dataArray.data['workflow_item_type_id'] + '/trano/' + dataArray.data['trano'];
+    Ext.getBody().mask('Loading..','x-mask-loading',false);
+    Ext.Ajax.request({
+        url: '/projectmanagement/timesheet/updatetimesheet'  + addurl,
+        method:'POST',
+        success: function(resp){
+            Ext.getBody().unmask();
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                if (returnData.user != undefined && returnData.number == undefined)
+                {
+                    if (Ext.getCmp('choose-next'))
+                        Ext.getCmp('choose-next').close();
+                    showNextPerson(returnData.user,params,true);
+                    return false;
+                }
+                else
+                {
+
+                    if (Ext.getCmp('choose-next'))
+                        Ext.getCmp('choose-next').close();
+                    Ext.Msg.alert('Success', 'Timesheet has been saved and submitted to current Workflow!');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/projectmanagement/timesheet/timesheet',
+                        scripts : true
+                    });
+                }
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+          Ext.getBody().unmask();
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+
+}
+
+function showNextPerson(userArray,params,isEdit,prjKode,approval)
+{
+    if (approval == undefined ||approval == '')
+        approval = false;
+    if (isEdit == undefined || isEdit == "")
+        isEdit = false;
+    var addlist = Ext.data.Record.create([
+             {name: 'id', type: 'string'},
+             {name: 'workflow_id', type: 'string'},
+             {name: 'workflow_item_id', type: 'string'},
+             {name: 'workflow_item_type_id', type: 'string'},
+             {name: 'workflow_item_name', type: 'string'},
+             {name: 'workflow_structure_id', type: 'string'},
+             {name: 'next', type: 'string'},
+             {name: 'uid_next', type: 'string'},
+             {name: 'trano', type: 'string'},
+             {name: 'name', type: 'string'},
+             {name: 'role_name', type: 'string'},
+             {name: 'prj_kode', type: 'string'}
+        ]);
+
+     var storeUser = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: addlist})
+    });
+
+    var groupByRole = '';
+    var groupByType = '';
+
+    Ext.each(userArray, function (t, index){
+        var d = new addlist({
+            id: t.id,
+            workflow_id: t.workflow_id,
+            workflow_item_id: t.workflow_item_id,
+            workflow_item_type_id: t.workflow_item_type_id,
+            workflow_item_name: t.workflow_item_name,
+            workflow_structure_id: t.workflow_structure_id,
+            uid_next: t.uid_next,
+            trano: t.trano,
+            next: t.next,
+            name: t.name,
+            role_name: t.role_name,
+            prj_kode: t.prj_kode
+        });
+        storeUser.add(d);
+        d = undefined;
+        var cek = groupByRole.search(t.role_name);
+        if (cek < 0)
+        {
+            if (groupByRole != "")
+                groupByRole = groupByRole + "," + t.role_name;
+            else
+                groupByRole = t.role_name;
+        }
+        cek = groupByType.search(t.workflow_item_name);
+        if (cek < 0)
+        {
+            if (groupByType != "")
+                groupByType = groupByType + "," + t.workflow_item_name;
+            else
+                groupByType = t.workflow_item_name;
+        }
+    });
+
+    var userColumns =  [
+        new Ext.grid.RowNumberer(),
+        {header: "Receiver", dataIndex: 'name', width: 220, renderer: function (v,p,r) {
+            return '<div class="personicon"><b>' + r.data.name + '</b>&nbsp;,&nbsp;' + r.data.role_name + '<br>Transaction Type: <b>' + r.data.workflow_item_name + '</b><br>Project : <b>' + r.data.prj_kode + '</b></div>';
+        }}
+    ];
+
+    var storeFilter = new Ext.data.SimpleStore({
+        fields: ['val','filter'],
+        data : [
+            ['role','Person\'s Role'],
+            ['type','Transaction Type']
+        ]
+    });
+    var storeFilter2 = new Ext.data.ArrayStore({
+        fields: ['filter']
+    });
+    var combo = new Ext.form.ComboBox({
+        store: storeFilter,
+        id: 'combofilter',
+        displayField:'filter',
+        valueField:'val',
+        fieldLabel: 'Filter By',
+        editable: false,
+        typeAhead: true,
+        mode: 'local',
+        forceSelection: true,
+        triggerAction: 'all',
+        emptyText:'Select Criteria...',
+        selectOnFocus:true,
+        listeners: {
+            select: { fn:
+                    function(t,rec,indeks)
+                    {
+                       combo2.clearValue();
+                       storeFilter2.removeAll();
+                       var combolist = Ext.data.Record.create([
+                         {name: 'filter', type: 'string'}
+                       ]);
+                       var teks = t.getValue();
+                       switch(teks)
+                       {
+                           case 'role':
+                            var arrayInsert = groupByRole.split(",");
+                           break;
+                           case 'type':
+                            var arrayInsert = groupByType.split(",");
+                           break;
+                       }
+                       Ext.each(arrayInsert,function(rows){
+                           var d = new combolist({
+                                filter: rows
+                           });
+                           storeFilter2.add(d);
+                       });
+                       combo2.setVisible(true);
+                    }
+            }
+        }
+    });
+
+    var combo2 = new Ext.form.ComboBox({
+        id: 'combofilter2',
+        store: storeFilter2,
+        displayField:'filter',
+        valueField:'filter',
+        fieldLabel: 'Value',
+        editable: false,
+        hidden: true,
+        typeAhead: true,
+        mode: 'local',
+        forceSelection: true,
+        triggerAction: 'all',
+        emptyText:'Select Value..',
+        selectOnFocus:true,
+        listeners: {
+            select: { fn:
+                    function(t,rec,indeks)
+                    {
+                       var parentCombo = Ext.getCmp('combofilter').getValue();
+                       var teks = t.getValue();
+                       storeUser.clearFilter();
+                       switch(parentCombo)
+                       {
+                           case 'role':
+                            storeUser.filter('role_name',teks,true,false);
+                           break;
+                           case 'type':
+                            storeUser.filter('workflow_item_name',teks,true,false);
+                           break;
+                       }
+                       Ext.getCmp('user-grids').getView().refresh();
+                    }
+            }
+        }
+    });
+
+    var bForm = new Ext.Window ({
+    id: 'choose-next',
+    layout: 'border',
+    width: 350,
+    height: 400,
+    modal: true,
+    resizable: false,
+    title: 'Choose Document Receiver For Project ' + prjKode,
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    stateful: false,
+    items : [
+            new Ext.form.FormPanel({
+                frame: true,
+                region: 'north',
+                width: 348,
+                height: 70,
+                items: [
+                        combo,
+                        combo2
+                ]
+            }),
+
+
+                    new Ext.grid.GridPanel({
+                        id: 'user-grids',
+                        region: 'center',
+                        width: 348,
+                        height: 248,
+                        loadMask: true,
+                        columns: userColumns,
+                        store: storeUser,
+                        sm: new Ext.grid.RowSelectionModel({
+                            singleSelect:true
+                        }),
+                        viewConfig: {
+                            forceFit: true,
+                            enableRowBody:true,
+                            showPreview:true,
+                            getRowClass : function(record, rowIndex, p, ds) {
+                                            return 'x-grid3-row-collapsed';
+                                          }
+                        },
+                        listeners: {
+                            'rowdblclick': function(g, rowIndex, e){
+                                    var record = g.getStore().getAt(rowIndex);
+                                    if (approval)
+                                    {
+                                        approveDocs(params,record)
+                                    }
+                                    else
+                                    {
+                                        if (isEdit)
+                                            submitData2(params,record);
+                                        else
+                                            submitData(params,record);
+                                    }
+//                                    bForm.close();
+                            }
+                        }
+                    })
+//                ]
+//                })
+            ],
+             buttons: [
+                      {
+                         text: 'OK',
+                         id: 'ok-next',
+                         iconCls: 'silk-upd',
+                         handler: function(btn, ev) {
+                            var row = Ext.getCmp('user-grids').getSelectionModel().getSelections();
+                            var record = row[0];
+                            if (approval)
+                            {
+                                approveDocs(params,record)
+                            }
+                            else
+                            {
+                                if (isEdit)
+                                    submitData2(params,record);
+                                else
+                                    submitData(params,record);
+                            }
+//                            bForm.close();
+                          }
+
+                      },
+                      {
+                         text: 'Cancel',
+                         id: 'cancel',
+                         handler: function(btn, ev) {
+                             bForm.close();
+                             bForm = '';
+                          }
+
+                      }
+
+
+                        ]
+        });
+        bForm.show();
+};
+
+<?php
+
+if ($this->approve)
+{
+?>
+
+var trano = '<?=$this->docsID?>';
+var uid = '<?=$this->uid?>';
+var user_id = '<?=$this->userID?>';
+
+
+
+<?php if ($this->reject) { ?>
+
+var cancelButton = new Ext.Button({
+    text: 'Goto Edit Timesheet',
+    iconCls: 'icon-go',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/projectmanagement/timesheet/edittimesheet/trano/<?php echo $this->trano; ?>/prj_kode/<?php echo $this->prjKode; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'cancel-button'
+});
+
+<?php } else { ?>
+
+var okButton = new Ext.Button({
+    text: 'Approve',
+    iconCls: 'icon-add',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText2
+    });
+
+	function showResultText2(btn, text){
+		var comment='';
+		if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+		params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+		approveDocs(params);
+	}
+	},
+	renderTo: 'ok-button'
+});
+
+var cancelButton = new Ext.Button({
+    text: 'Reject',
+    iconCls: 'icon-cancel',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText
+    });
+
+	function showResultText(btn, text){
+		var comment='';
+        if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+        params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+        Ext.getBody().mask('Loading..','x-mask-loading',false);
+    	Ext.Ajax.request({
+            url: '/admin/workflow/reject',
+            method:'POST',
+            success: function(resp){
+                        Ext.getBody().unmask();
+    			var returnData = Ext.util.JSON.decode(resp.responseText);
+    			if (returnData.success)
+    			{
+//    				Ext.Msg.alert('Success', 'Document has been rejected!');
+    				getDocs();
+    				myPanel = Ext.getCmp('abs-budget-panel');
+    			    myPanel.body.load({
+    			        url: '/default/home/showprocessdocument',
+    			        scripts : true
+    		        });
+    			}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+            },
+        	failure:function( action){
+              Ext.getBody().unmask();
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+          	}
+          	},
+            params: params
+        });
+    };
+
+
+	},
+	renderTo: 'cancel-button'
+});
+
+var backButton = new Ext.Button({
+    text: 'Cancel',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '<?php echo $this->urlBack; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'back-button'
+});
+
+<?php
+	}
+}
+elseif (!$this->approve)
+{
+?>
+var json = '<?php echo $this->jsonResult; ?>';
+var jsonEtc = '<?php echo $this->jsonEtc; ?>';
+
+<?php if ($this->draft) { ?>
+//        var saveButton = new Ext.Button({
+//            text: 'Save Into Draft',
+//            iconCls: 'silk-book',
+//            scale: 'large',
+//            tooltip: 'Save this timesheet into Draft, not publishing into Workflow',
+//            handler: function (){
+//                this.disable();
+//                params = {posts:json, etc: jsonEtc};
+//                saveData(params);
+//            },
+//			renderTo: 'save-button'
+//        });
+<?php } ?>
+        var okButton = new Ext.Button({
+            text: 'Submit Into Workflow',
+            iconCls: 'icon-save',
+            scale: 'large',
+            tooltip: 'Publish timesheet into Workflow',
+            handler: function (){
+                this.disable();
+			<?php
+			if (!$this->edit || $this->draft)
+			{
+			?>
+
+			params = {posts:json, etc: jsonEtc};
+			submitData(params);
+                },
+			renderTo: 'ok-button'
+        });
+
+        var cancelButton = new Ext.Button({
+            text: 'Cancel',
+            iconCls: 'icon-cancel',
+            scale: 'large',
+            handler: function (){
+				params = {posts:json, etc: jsonEtc};
+				myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+			    myPanel.body.load({
+                    <?php if (!$this->draft) { ?>
+			        url: '/projectmanagement/timesheet/edittimesheet/returnback/true', //the url
+                    <?php } else { ?>
+			        url: '/projectmanagement/timesheet/timesheetdraft', //the url
+                    <?php } ?>
+			        scripts : true,
+			        params: params //our params goes here
+			    });
+			},
+			renderTo: 'cancel-button'
+        });
+		    <?php } else { ?>
+            params = {posts:json, etc: jsonEtc};
+			submitData2(params);
+            },
+			renderTo: 'ok-button'
+        });
+        var cancelButton = new Ext.Button({
+            text: 'Cancel',
+            iconCls: 'icon-cancel',
+            scale: 'large',
+            handler: function (){
+				params = {posts:json, etc: jsonEtc, trano: '<?php echo $this->etc[0]['trano']; ?>'};
+				myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+			    myPanel.body.load({
+			        url: '/projectmanagement/timesheet/edittimesheet/returnback/true', //the url
+			        scripts : true,
+			        params: params //our params goes here
+			    });
+			},
+			renderTo: 'cancel-button'
+        });
+		    <?php } ?>
+
+<?php
+}
+
+if (($this->edit || $this->approve) && !$this->draft)
+{
+//	$rev = " (Rev. " . $this->etc[0]['rev'] . ")";
+    $displayNum = '<div class="blok">Timesheet Number : ' . $this->trano . '</div><br>';
+}
+
+?>
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+<div class="title">TIMESHEET</div>
+
+<?php if ($this->reject) { ?>
+<div class="last-reject">
+    This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s',strtotime($this->lastReject['date'])); ?>
+    <br />
+    Comment : <?php echo $this->lastReject['comment']; ?>
+</div>
+<?php } ?>
+
+<div class="etc">
+	<div class="kiri-etc">
+        <?=$displayNum?>
+        <div class="blok">User Submitter : <?=$this->uidSubmit?></div>
+        <div class="blok">Date Submit : <?=$this->dateSubmit?></div>
+	</div>
+
+</div>
+
+<br></br>
+<table class="boq" cellspacing="0" style="width: 700px;">
+<tr>
+<td class="boqheader">Project</td>
+<td class="boqheader">Total Hour</td>
+</tr>
+<?php
+        foreach($this->data as $key => $val) {
+            $name = '';
+            if ($val['name'] != '')
+                $name = " ( Behalf of :  " . $val['name'] . " )";
+            foreach($val['project'] as $key2 => $val2) {
+?>
+<tr>
+<td class="boqisi"><?php echo $val2['prj_kode'] . " - " . $val2['prj_nama'] . $name; ?></td>
+<td class="boqisi" align="right"><?php echo number_format($val2['hour']); ?></td>
+</tr>
+<?php
+            }
+        }
+?>
+<tr>
+<td class="boqisi" style="background-color: #FFE800"><b>Grand Total</b></td>
+<td class="boqisi" align="right" style="background-color: #FFE800"><b><?php echo number_format($this->sum); ?></b></td>
+</tr>
+</table>
+
+<?php if ($this->approve) { ?>
+<div style="text-align: center; width: 300px;border:solid 1px #DEDEDE;margin-top:20px;">
+
+    View Timesheet Detail <input type="submit" value="View" onclick="window.open('/projectmanagement/timesheet/detailtimesheet/trano/<?=$this->trano ?>/prj_kode/<?=$this->prjKode ?>','mywin','toolbar=0');"></input>
+
+</div>
+<?php } ?>
+     <?php
+    if ( $this->etc[0]['user_approval'] != '')
+    {
+    ?>
+    <div class="all-approve">
+    <b>Approval History</b></br>
+    <ul>
+    <?php
+        foreach ($this->etc[0]['user_approval'] as $key => $val)
+        {
+    ?>
+            <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+    <?
+        }
+    ?>
+    </ul>
+    </div>
+    <?php
+    }
+    ?>
+
+	<div style="margin-top:15px;">
+		<div id="back-button"  style="margin-left:5px;float: right;"></div>
+		<div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+		<div id="ok-button"  style="margin-left:5px;float: right;"></div>
+        <?php if ($this->draft) { ?>
+        <!--<div id="save-button"  style="float: right;"></div>-->
+        <?php }  ?>
+    </div>
+</div>

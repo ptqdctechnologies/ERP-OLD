@@ -1,0 +1,524 @@
+<style>
+    .body {
+        width: 720px;
+        overflow: auto;
+    }
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .etc {
+        width: 100%;
+        height: 50px;
+    }
+    .kanan-etc {
+        float: right;
+        width: 48%;
+    }
+    .kiri-etc {
+        float: left;
+        width: 48%;
+    }
+    .blok {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .budgetTable {
+        width: 100%;
+        font-size: 12px;
+        font-weight: normal;
+    }
+
+    .last-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#EFEFEF;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .all-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#F6CBCA;
+        color:#222222;
+        padding:4px;
+        text-align:left;
+    }
+    .all-approve{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        /*background:#CEE6C3;*/
+        color:#222222;
+        padding:4px;
+        text-align:left;
+        height: 200px;
+        overflow: auto;
+    }    
+
+</style>
+
+<script type="text/javascript">
+
+<?php
+if (!$this->show) {
+    if ($this->approve) {
+        ?>
+
+            var trano = '<?= $this->docsID ?>';
+            var uid = '<?= $this->uid ?>';
+            var user_id = '<?= $this->userID ?>';
+
+
+
+        <?php if ($this->reject) { ?>
+
+                var cancelButton = new Ext.Button({
+                    text: 'Goto Edit PR',
+                    iconCls: 'icon-go',
+                    scale: 'large',
+                    handler: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/logistic/ican',
+                            scripts: true
+                        });
+                    },
+                    renderTo: 'cancel-button'
+                });
+
+        <?php } else { ?>
+
+                var okButton = new Ext.Button({
+                    text: 'Approve',
+                    iconCls: 'icon-add',
+                    scale: 'large',
+                    handler: function() {
+                        Ext.MessageBox.show({
+                            title: 'Comment',
+                            msg: 'Please enter comment:',
+                            width: 300,
+                            buttons: Ext.MessageBox.OKCANCEL,
+                            multiline: true,
+                            fn: showResultText2
+                        });
+
+                        function showResultText2(btn, text) {
+                            var comment = '';
+                            if (btn == 'ok')
+                            {
+                                comment = text;
+                            }
+                            else if (btn == 'cancel')
+                                return false;
+                            params = {trans: trano, user: uid, comment: comment, user_id: user_id};
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.Ajax.request({
+                                url: '/admin/workflow/approve',
+                                method: 'POST',
+                                success: function(resp) {
+                                    Ext.getBody().unmask();
+                                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                                    if (returnData.success)
+                                    {
+                                        //					Ext.Msg.alert('Success', 'Document has been approved!');
+                                        getDocs();
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/default/home/showprocessdocument',
+                                            scripts: true
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', returnData.msg);
+                                    }
+                                },
+                                failure: function(action) {
+                                    Ext.getBody().unmask();
+                                    if (action.failureType == 'server') {
+                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    } else {
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                },
+                                params: params
+                            });
+                        }
+                    },
+                    renderTo: 'ok-button'
+                });
+
+                var cancelButton = new Ext.Button({
+                    text: 'Reject',
+                    iconCls: 'icon-cancel',
+                    scale: 'large',
+                    handler: function() {
+                        Ext.MessageBox.show({
+                            title: 'Comment',
+                            msg: 'Please enter comment:',
+                            width: 300,
+                            buttons: Ext.MessageBox.OKCANCEL,
+                            multiline: true,
+                            fn: showResultText
+                        });
+
+                        function showResultText(btn, text) {
+                            var comment = '';
+                            if (btn == 'ok')
+                            {
+                                comment = text;
+                            }
+                            else if (btn == 'cancel')
+                                return false;
+                            params = {trans: trano, user: uid, comment: comment, user_id: user_id};
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.Ajax.request({
+                                url: '/admin/workflow/reject',
+                                method: 'POST',
+                                success: function(resp) {
+                                    Ext.getBody().unmask();
+                                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                                    if (returnData.success)
+                                    {
+                                        //    				Ext.Msg.alert('Success', 'Document has been rejected!');
+                                        getDocs();
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/default/home/showprocessdocument',
+                                            scripts: true
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', returnData.msg);
+                                    }
+                                },
+                                failure: function(action) {
+                                    Ext.getBody().unmask();
+                                    if (action.failureType == 'server') {
+                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    } else {
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                },
+                                params: params
+                            });
+                        }
+                        ;
+
+
+                    },
+                    renderTo: 'cancel-button'
+                });
+
+                var backButton = new Ext.Button({
+                    text: 'Cancel',
+                    scale: 'large',
+                    handler: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '<?php echo $this->urlBack; ?>',
+                            scripts: true
+                        });
+                    },
+                    renderTo: 'back-button'
+                });
+
+            <?php
+        }
+    } elseif (!$this->approve) {
+        ?>
+            var json = '<?php echo $this->jsonResult; ?>';
+
+            var okButton = new Ext.Button({
+                text: 'Submit',
+                iconCls: 'icon-save',
+                scale: 'large',
+                handler: function() {
+        <?php
+        if (!$this->edit) {
+            ?>
+                        Ext.MessageBox.show({
+                        title: 'Comment',
+                        msg: 'Please enter comment:',
+                        width:300,
+                        buttons: Ext.MessageBox.OKCANCEL,
+                        multiline: true,
+                        fn: showResultText2
+                        });
+    
+                        function showResultText2(btn, text){
+                                var comment='';
+                                if (btn == 'ok')
+                        {
+                                        comment = text;
+                        }
+                        else if (btn == 'cancel')
+                            return false;
+                        parameter = '[{"do_no":"<?= $this->etc[0]['do_no'] ?> ","prj_kode":"<?= $this->etc[0]['prj_kode'] ?> ","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>" ,"delivery":"<?= $this->etc[0]['delivery'] ?>", "receive": "<?= $this->etc[0]['receive'] ?>"}]';
+                        
+                        params = {posts: json, etc: parameter, comment: comment};
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.Ajax.request({
+                            url: '/logistic/logistic/insertilov',
+                            method: 'POST',
+                            success: function(resp) {
+                                Ext.getBody().unmask();
+                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                if (returnData.success)
+                                {
+                                    Ext.Msg.alert('Success', 'Material Cancel has been saved and submitted to current Workflow!');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/logistic/logistic/addilov',
+                                        scripts: true
+                                    });
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error', returnData.msg);
+                                }
+                            },
+                            failure: function(action) {
+                                Ext.getBody().unmask();
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            },
+                            params: params
+                        });
+                       };
+        <?php } else { ?>
+                        Ext.MessageBox.show({
+                        title: 'Comment',
+                        msg: 'Please enter comment:',
+                        width:300,
+                        buttons: Ext.MessageBox.OKCANCEL,
+                        multiline: true,
+                        fn: showResultText2
+                        });
+    
+                        function showResultText2(btn, text){
+                                var comment='';
+                                if (btn == 'ok')
+                        {
+                                        comment = text;
+                        }
+                        else if (btn == 'cancel')
+                            return false;
+                        parameter = '[{"trano":"<?= $this->etc[0]['trano'] ?> ","prj_kode":"<?= $this->etc[0]['prj_kode'] ?> ","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>" ,"delivery":"<?= $this->etc[0]['delivery'] ?>", "receive": "<?= $this->etc[0]['receive'] ?>"}]';
+
+                        params = {posts: json, etc: parameter, comment: comment};
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.Ajax.request({
+                            url: '/logistic/logistic/updateilov',
+                            method: 'POST',
+                            success: function(resp) {
+                                Ext.getBody().unmask();
+                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                if (returnData.success)
+                                {
+                                    Ext.Msg.alert('Success', 'Material Return has been saved and submitted to current Workflow!');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/logistic/logistic/ilov',
+                                        scripts: true
+                                    });
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error', returnData.msg);
+                                }
+                            },
+                            failure: function(action) {
+                                Ext.getBody().unmask();
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            },
+                            params: params
+                        });
+                      };
+        <?php } ?>
+                },
+                renderTo: 'ok-button'
+            });
+
+            var cancelButton = new Ext.Button({
+                text: 'Cancel',
+                iconCls: 'icon-cancel',
+                scale: 'large',
+                handler: function() {
+        <?php
+        if (!$this->edit) {
+            ?>
+                        params = {posts: json, trano: '<?= $this->etc[0]['trano'] ?>'};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/logistic/logistic/addilov/returnback/true', //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+
+            <?php
+        } else {
+            $tra_no = $this->etc[0]['trano']
+            ?>
+                        var trano = '<?= $tra_no ?>';
+                        params = {posts: json};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/logistic/logistic/editilov/trano/' + trano, //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+        <?php } ?>
+                },
+                renderTo: 'cancel-button'
+            });
+        <?php
+    }
+}
+if ($this->edit || $this->approve) {
+
+    $displayNum = '<div class="blok">Material Return Number : ' . $this->etc[0]['trano'] . '</div>';
+}
+?>
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+    <div class="title">Material Return</div>
+
+    <?php if ($this->reject) { ?>
+        <div class="last-reject">
+            This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s', strtotime($this->lastReject['date'])); ?>
+            <br />
+            Comment : <?php echo $this->lastReject['comment']; ?>
+        </div>
+    <?php } ?>
+
+    <div class="etc">
+        <div class="kiri-etc">
+            <?= $displayNum ?>
+            <div class="blok">DO Number : <?= $this->etc[0]['do_no'] ?></div>
+            <div class="blok">Delivery By : <?= $this->etc[0]['delivery'] ?></div>
+            <div class="blok">Receive By : <?= $this->etc[0]['receive'] ?></div>
+        </div>
+        <div class="kanan-etc">
+            <div class="blok">Project : <?= $this->etc[0]['prj_kode'] ?> - <?= $this->etc[0]['prj_nama'] ?></div>
+            <div class="blok">Site : <?= $this->etc[0]['sit_kode'] ?> - <?= $this->etc[0]['sit_nama'] ?></div>
+        </div>
+    </div>
+
+
+    <table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No</center></th>
+        <th scope="col"><center>Product ID</center></th>
+        <th scope="col"><center>Description</center></th>
+        <th scope="col"><center>Valuta</center></th>
+        <th scope="col"><center>UOM</center></th>
+        <th scope="col"><center>Qty</center></th>
+        <th scope="col"><center>Unit Price</center></th>
+        <th scope="col"><center>Total</center></th>
+        </tr>
+        <?php
+        $totals = 0;
+        for ($i = 0; $i < (count($this->result)); $i++) {
+            foreach ($this->result[$i] as $key => $val) {
+                if ($val == '')
+                    $this->result[$i][$key] = "&nbsp;";
+            }
+
+            $total = $this->result[$i]['totalPrice'];
+            
+            ?>
+            <tr>
+                <th scope="row" class="spec"><?= ($i + 1) ?></th>
+                <td><?= $this->result[$i]['kode_brg'] ?></td>
+                <td><?= $this->result[$i]['nama_brg'] ?></td>
+                <td align="center"><?= $this->result[$i]['val_kode'] ?></td>
+                <td><?= $this->result[$i]['uom'] ?></td>
+                <td align="right"><?= number_format($this->result[$i]['qty'], 4) ?></td>
+                <td align="right"><?= number_format($this->result[$i]['price'],4) ?></td>
+                <td align="right"><?= number_format($total,4) ?></td>
+            </tr>
+            <?php
+            $totals += ($this->result[$i]['val_kode'] == 'IDR' ? $total : ($this->result[$i]['totalPrice'] * $this->rate));
+            
+        }
+        ?>
+        <tr>
+            <th scope="row" class="spec" colspan="7">Grand Total</th>
+            <td align="right"><?= number_format($totals, 2) ?></td>
+        </tr>
+    </table>
+
+    <?php
+    if ($this->etc[0]['user_approval'] != '') {
+        ?>
+        <div class="all-approve">
+            <b>Approval History</b></br>
+            <ul>
+                <?php
+                foreach ($this->etc[0]['user_approval'] as $key => $val) {
+                    ?>
+                    <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+                    <?
+                    }
+                    ?>
+                </ul>
+            </div>
+            <?php
+        }
+        ?>
+        <!--
+        <?php
+        if ($this->allReject != '') {
+            ?>
+                                <div class="all-reject">
+                                <b>Rejection History</b></br>
+                                <ul>
+            <?php
+            foreach ($this->allReject as $key => $val) {
+                ?>
+                                                            <li><?php echo date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")"; ?><br />Comment : <?php echo $val['comment']; ?></li>
+                                                    <?
+                                                        }
+                                                    ?>
+                                                    </ul>
+                                                    </div>
+                <?php
+            }
+            ?>
+            -->
+
+            <?php if (!$this->show) { ?>
+                <div style="margin-top:15px;">
+                    <div id="back-button"  style="margin-left:5px;float: right;"></div>
+                    <div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+                    <div id="ok-button"  style="float: right;"></div>
+                </div>
+            <?php } ?>
+</div>

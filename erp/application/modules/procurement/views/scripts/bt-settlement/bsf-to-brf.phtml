@@ -1,0 +1,120 @@
+<script type="text/javascript">
+
+    function showBRF(trano) {
+        popup('/procurement/bt-request/app/approve/1/trano_show/' + trano + '/show/true');
+    }
+    function showBRFP(trano) {
+        popup('/procurement/bt-request/app/approve/1/trano_show/' + trano + '/show/true/item_type/BRFP/payment/true');
+    }
+    function showBSF(trano) {
+        popup('/procurement/bt-settlement/app/approve/1/trano_show/' + trano + '/show/true');
+    }
+    Ext.onReady(function(){
+
+        var url = '/procurement/bt-settlement/get-data';
+
+        var proxy = new Ext.data.HttpProxy({
+            url: url
+        });
+
+        var reader = new Ext.data.JsonReader({
+            totalProperty: 'count',
+            root: 'data'
+        }, [
+            {name: 'brf_trano'},
+            {name: 'brfp_trano'},
+            {name: 'bsf_trano'},
+        ]);
+
+        var store = new Ext.data.Store({
+            proxy: proxy,
+            reader: reader,
+            id: 'item-store'
+        });
+
+        var form = new Ext.FormPanel({
+            title: 'Choose Transaction',
+            frame: true,
+            height: 80,
+            width: 300,
+            renderTo: 'forms',
+            items: [
+                {
+                    xtype:'tranoselector',
+                    fieldLabel: 'Select Trano',
+                    Tranotype: ['BRF','BSF'],
+                    id:'trano_select',
+                    Selectid: 'trano',
+                    allowBlank:false,
+                    width: 150,
+                    callbackFunc: function(trano, itemType)
+                    {
+                        var newUrl = url + '/trano/' + trano + '/item_type/' + itemType;
+                        store.proxy = new Ext.data.HttpProxy({
+                            url: newUrl
+                        });
+                        store.reload();
+                    }
+                },
+            ]
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'silk-magnifier',
+                    qtip:'Show Document',
+                    callback: function (grid,record,action,row,col)
+                    {
+
+                    }
+                }
+            ]
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            stateful: false,
+            renderTo: 'grids',
+            plugins: [rowactions],
+            columns: [
+                new Ext.grid.RowNumberer(),
+//                rowactions,
+                {
+                    header:'BRF Trano',
+                    dataIndex:'brf_trano',
+                    sortable:true,
+                    width: 120,
+                    renderer: function(v,p,r){
+                        return '<a href="#" onclick="showBRF(\'' + v + '\');">' + v + '</a>';
+                    }
+                },
+                {
+                    header:'BRF Payment Trano',
+                    dataIndex:'brfp_trano',
+                    sortable:true,
+                    width: 120,
+                    renderer: function(v,p,r){
+                        return '<a href="#" onclick="showBRFP(\'' + v + '\');">' + v + '</a>';
+                    }
+                },
+                {
+                    header:'BSF Trano',
+                    dataIndex:'bsf_trano',
+                    sortable:true,
+                    width: 120,
+                    renderer: function(v,p,r){
+                        return '<a href="#" onclick="showBSF(\'' + v + '\');">' + v + '</a>';
+                    }
+                },
+
+            ],
+            autoWidth: true,
+            height: 250,
+            store: store
+        });
+    });
+</script>
+
+<div id="forms"></div><br>
+<div id="grids"></div>

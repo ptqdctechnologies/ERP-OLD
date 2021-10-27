@@ -1,0 +1,282 @@
+
+<script type="text/javascript">
+    
+var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/default/report/getdataarfasf/prj_kode/<?php echo $this->prjKode ?>'
+	});
+	
+        var reader = new Ext.data.JsonReader({
+        //idProperty: 'po_no',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'arf_num', type: 'string'},
+            {name: 'asf_no', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'requestor', type: 'string'},
+            {name: 'tgl_arf', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'tgl_asf', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},      
+            {name: 'total_arf',type:'float'},
+            {name: 'total_asf',type:'float'},
+            {name: 'gTotalAsf',type:'float'},
+            {name: 'gTotalArf',type:'float'},
+            {name: 'gTotalAsfcancel',type:'float'},
+            {name: 'gTotalBalance',type:'float'},
+            {name: 'total_asfcancel',type:'float'},
+            {name: 'balance',type:'float'},
+            {name: 'aging_arf_days'},
+            {name: 'invalid'},
+            {name: 'invalid_ket'},
+            {name: 'cancel_ket'}    
+            ]
+    );
+
+      Ext.grid.GroupSummary.Calculations['totalBalance'] = function(v, record, field){
+          return v + (record.data.total_arf - record.data.total_asf - record.data.total_asfcancel);
+      };
+    var summary = new Ext.grid.GroupSummary();
+
+
+    var store = new Ext.ux.MultiGroupingStore({
+        proxy: proxy          
+       ,reader: reader
+       ,sortInfo: {field: 'arf_num', direction: 'ASC'}
+       ,groupField: ['arf_num','workid']
+     });
+   	
+	var totalArf = '';
+	var totalAsf = '';
+	var totalAsfcancel = '';
+	var totalBalance = '';
+    
+    var groupView = new Ext.ux.MultiGroupingView({
+        hideGroupedColumn :true
+//       ,forceFit: true
+       ,enableRowBody:true
+       ,getRowClass:function(record, rowIndex, p, store) {
+    	   p.body = record.get('invalid_ket');
+    	   if (p.body) 
+        	   return 'x-grid3-row-with-body3';
+    	   else
+    	   {
+				p.body = record.get('cancel_ket');
+				if (p.body) 
+		       		return 'x-grid3-row-with-body2';
+				else
+					return '';
+    	   }
+    	}
+       ,startCollapsed: true
+       ,emptyGroupText: 'NULL'
+       ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+//       ,groupTextTpl: 'Help = {text} ' //({[values.rs.length]} {[values.rs.length > 1 ? "Records" : "Record"]})',
+//       ,groupTextTpl: '{text} date: {[Ext.util.Format.date(values.rs[0].data["tgl_po"],\'m-d-Y\')]}'
+       ,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Record" : "Records"]})'
+       ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+       });
+
+    store.on('load', function(s,r,o) {
+	  	totalArf = Ext.util.Format.number(r[0].data['gTotalArf'], '?0,000.00?');
+	  	totalAsf = Ext.util.Format.number(r[0].data['gTotalAsf'], '?0,000.00?');
+	  	totalAsfcancel = Ext.util.Format.number(r[0].data['gTotalAsfcancel'], '?0,000.00?');
+	  	totalBalance = Ext.util.Format.number(r[0].data['gTotalBalance'], '?0,000.00?');
+		document.getElementById(Ext.getCmp('arf').items.items[0].id).innerHTML = '<b>Grand Total ARF = ' + totalArf + '</b>';
+		document.getElementById(Ext.getCmp('asf').items.items[0].id).innerHTML = '<b>Grand Total ASF = ' + totalAsf + '</b>';
+		document.getElementById(Ext.getCmp('asfcancel').items.items[0].id).innerHTML = '<b>Grand Total ASF Cancel = ' + totalAsfcancel + '</b>';
+		document.getElementById(Ext.getCmp('balance').items.items[0].id).innerHTML = '<b>Grand Total Balance = ' + totalBalance + '</b>';        
+	});  
+    
+    store.load();
+
+//    var grid = new Ext.grid.GridPanel({
+    var grid = new Ext.ux.MultiGroupingPanel({
+        stateful: false,
+        store: store,
+        columns: [
+            {
+                id: 'arf_num',
+                header: 'ARF Number',
+                width: 200,
+                sortable: true,
+                dataIndex: 'arf_num',
+                summaryType: 'count',
+                hideable: false
+            },{
+            id: 'workid',
+            header: 'Work ID',
+            width: 200,
+            sortable: true,
+            dataIndex: 'workid',
+            summaryType: 'count',
+            hideable: false
+       		},{
+                id: 'asf_no',
+                header: 'ASF Number',
+                width: 200,
+                sortable: true,
+                dataIndex: 'asf_no',
+                hideable: false
+           	},{
+                header: 'ASF Date',
+                width: 100,
+                sortable: true,
+//                hidden: true,
+                dataIndex: 'tgl_asf',
+                renderer: Ext.util.Format.dateRenderer('m/d/Y')
+            },{
+                header: 'Requestor',
+                width: 100,
+                sortable: true,
+                dataIndex: 'requestor'
+            },{
+                header: 'Product Id',
+                width: 100,
+                sortable: true,
+                dataIndex: 'kode_brg'          
+            },
+            {
+                header: 'Description',
+                width: 200,
+                sortable: true,
+                dataIndex: 'nama_brg'          
+            },
+            {
+                header: 'Total ARF',
+                width: 100,
+                sortable: true,
+                dataIndex: 'total_arf',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },    
+            {
+                header: 'Total ASF',
+                width: 100,
+                sortable: true,
+                dataIndex: 'total_asf',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },
+
+            {
+                header: 'Total ASF Cancel',
+                width: 100,
+                sortable: true,
+                dataIndex: 'total_asfcancel',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },
+            {
+                header: 'Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'balance',
+                align: 'right',
+                renderer: change,
+                summaryType: 'totalBalance'
+            },
+            {
+                header: 'Aging ARF',
+                width: 100,
+                sortable: true,
+                dataIndex: 'aging_arf_days',
+                renderer : function (v)
+                {
+					return v + ' days';
+                }
+            }
+        ],
+
+//        view: new Ext.grid.GroupingView({
+//            forceFit: true,
+//            showGroupName: false,
+//            enableNoGroups: false,
+//            enableGroupingMenu: false,
+//            hideGroupedColumn: true,
+//            groupTextTpl: '{text} date: {[Ext.util.Format.date(values.rs[0].data["tgl_po"],\'m-d-Y\')]}'
+//         
+//        }),        
+
+        view : groupView,	
+        plugins: summary,
+		loadMask: true,
+//        tbar : [{
+//            text: 'Toggle',
+//            tooltip: 'Toggle the visibility of summary row',
+//            handler: function(){summary.toggleSummaries();}
+//        }],
+        bbar:[ 
+              ],
+        frame: true,
+        width: 935,
+        height: 450,  
+        trackMouseOver: false,
+        title: '',
+        iconCls: 'icon-grid',
+        renderTo: 'list-timesheet'
+    }); 
+    
+    var tb1 = new Ext.Toolbar({
+        id: 'arf',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total ARF =' + totalArf + '</b>'
+			]
+
+        });
+    var tb3 = new Ext.Toolbar({
+        id: 'asf',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total ASF =' + totalAsf + '</b>'
+			]
+
+        });
+    var tb5 = new Ext.Toolbar({
+        id: 'asfcancel',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total ASF Cancel =' + totalAsfcancel + '</b>'
+			]
+
+        });
+    var tb4 = new Ext.Toolbar({
+        id: 'balance',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total Balance =' + totalBalance + '</b>'
+			]
+
+        });
+    
+    var tb2 = new Ext.PagingToolbar({
+        	renderTo: grid.bbar,
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+    
+    grid.loadMask.el.mask();  
+    //number format function
+    function change(val)
+    {
+        return '<div style="text-align:right;">' + Ext.util.Format.number(val, '?0,000.00?') + '</div>';
+    }
+
+
+
+    
+
+    
+</script>
+
+<div id='list-timesheet'></div>

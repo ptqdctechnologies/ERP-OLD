@@ -1,0 +1,138 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var warehousestore = new Ext.data.Store({
+            url: '/logistic/logisticmasterwarehouse/getwarehouse',
+            autoLoad: true,
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total'
+            }, [
+                {name: 'gdg_kode', type: 'String'},
+                {name: 'gdg_nama', type: 'String'},
+                {name: 'alamat1', type: 'String'},
+                {name: 'ket', type: 'String'},
+                {name: 'stsactive', type: 'int'},
+                {name: 'sts_temporary', type: 'int'},
+                {name: 'id', type: 'int'}
+            ])
+
+        })
+
+
+        var grid = new Ext.grid.GridPanel({
+            store: warehousestore,
+            title: 'View Warehouse',
+            renderTo: 'viewwarehouse',
+            height: 326,
+            width: 850,
+            columns: [
+                {
+                    header: 'Code',
+                    width: 50,
+                    dataIndex: 'gdg_kode',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Name',
+                    width: 140,
+                    dataIndex: 'gdg_nama',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Address',
+                    width: 400,
+                    dataIndex: 'alamat1',
+                    align: 'center',
+                    sortable: true
+                },
+                {
+                    header: 'Description',
+                    width: 150,
+                    dataIndex: 'ket',
+                    align: 'center',
+                    sortable: true
+                },
+                {
+                    header: 'Is active?',
+                    width: 75,
+                    dataIndex: 'stsactive',
+                    align: 'center',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v == 1 ? 'Yes' : 'No';
+                    }
+                },
+                {
+                    header: 'Is Temporary?',
+                    width: 75,
+                    dataIndex: 'sts_temporary',
+                    align: 'center',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v == 1 ? 'Yes' : 'No';
+                    }
+                }
+            ],
+            bbar: new Ext.PagingToolbar({
+                id: 'paging',
+                pageSize: 10,
+                store: warehousestore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar: [
+                {
+                    text: 'Warehouse Name',
+                    xtype: 'label',
+                    style: 'margin-left: 5px'
+
+                }, {
+                    xtype: 'textfield',
+                    id: 'search',
+                    style: 'margin-left: 5px'
+
+                }, {
+                    text: 'Search',
+                    iconCls: 'search-icon',
+                    handler: searchData,
+                    scope: this
+                },
+                '-',
+                {
+                    text: 'refresh',
+                    iconCls: 'icon-refresh',
+                    handler: refreshData,
+                    scope: this
+                }, '-'
+            ]
+
+        })
+
+        function searchData()
+        {
+            var search = Ext.getCmp('search').getValue();
+            warehousestore.proxy.setUrl('/logistic/logisticmasterwarehouse/getwarehouse/search/' + search);
+            warehousestore.reload();
+            grid.getView().refresh();
+        }
+
+        function refreshData()
+        {
+            warehousestore.clearFilter();
+            Ext.getCmp('search').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+
+
+    }) /* End OnreadyFunction */
+
+
+</script>
+
+<div id="viewwarehouse"></div>

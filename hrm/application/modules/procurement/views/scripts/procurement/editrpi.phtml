@@ -1,0 +1,2193 @@
+<script type="text/javascript">
+
+<?php echo $this->action('index','textfield',null); ?>
+
+var isBack = false;
+var ori;
+var limitTotal;
+var proxy = new Ext.data.HttpProxy({
+	   url : '/default/home/getposummary'
+	});
+
+var rpilist = Ext.data.Record.create([{
+    name: 'workid',
+    type: 'string'
+}, {
+    name: 'trano',
+    type: 'string'
+},{
+    name: 'workname',
+    type: 'string'
+}, {
+    name: 'prj_kode',
+    type: 'string'
+},{
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'nama_brg',
+    type: 'string'
+},{
+    name: 'kode_brg',
+    type: 'string'
+},{
+    name: 'tgl',
+    type: 'date',
+    dateFormat: 'Y-m-d'
+},{
+    name: 'qty',
+    type: 'float'
+},{
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'harga',
+    type: 'float'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'ppn',
+    type: 'float'
+},{
+    name: 'val_kode',
+    type: 'string'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'po_no',
+    type: 'string'
+},{
+    name: 'pr_no',
+    type: 'string'
+},{
+    name: 'urut',
+    type: 'integer'
+},{
+    name: 'uom',
+    type: 'string'
+},{
+    name: 'qtyPO',
+    type: 'float'
+},{
+    name: 'pricePO',
+    type: 'float'
+},{
+    name: 'totalPricePO',
+    type: 'float'
+},{
+    name: 'totalRPI',
+    type: 'float'
+},{
+    name: 'totalPriceRPI',
+    type: 'float'
+}]);
+
+var polist = Ext.data.Record.create([
+    {name: 'id'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'},
+    {name: 'prj_nama'},
+    {name: 'sit_nama'},
+    {name: 'pr_no'},
+    {name: 'tglpr'},
+    {name: 'pomyob'},
+    {name: 'workid'},
+    {name: 'workname'},
+    {name: 'kode_brg'},
+    {name: 'nama_brg'},
+    {name: 'qty'},
+    {name: 'price'},
+    {name: 'harga'},
+    {name: 'val_kode'},
+    {name: 'totalRPI'},
+    {name: 'totalPriceRPI'},
+    {name: 'totalPrice'},
+    {name: 'totalIDR'},
+    {name: 'totalUSD'},
+    {name: 'ppn'},
+    {name: 'uom'}
+])
+
+var storeRPI = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: rpilist})
+});
+
+
+var proxy2 = new Ext.data.HttpProxy({
+    api: {
+        create : '/procurement/procurement/insertpr',
+       //update: '/procurement/procurement/list/type/prd',
+        destroy: '/procurement/procurement/list/type/prd'
+         }
+});
+
+var reader2 = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    idProperty: 'trano',
+    root: 'posts'
+}, [
+    {name: 'trano'}
+]);
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    idProperty: 'id',
+    root: 'posts'
+}, [
+    {name: 'id'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'},
+    {name: 'prj_nama'},
+    {name: 'sit_nama'},
+    {name: 'pr_no'},
+    {name: 'tglpr'},
+    {name: 'pomyob'},
+    {name: 'workid'},
+    {name: 'workname'},
+    {name: 'kode_brg'},
+    {name: 'nama_brg'},
+    {name: 'qty'},
+    {name: 'price'},
+    {name: 'harga'},
+    {name: 'val_kode'},
+    {name: 'totalRPI'},
+    {name: 'totalPriceRPI'},
+    {name: 'totalPrice'},
+    {name: 'totalIDR'},
+    {name: 'totalUSD'},
+    {name: 'ppn'},
+    {name: 'uom'}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+var store = new Ext.data.Store({
+    id: 'po',
+    proxy: proxy,
+    reader: reader,
+    listeners: {
+		'load':function(t,r,o)
+		{
+			addEditedPO();
+		}
+    }
+});
+
+function cekQty(values)
+{
+    if (!isNaN(values))
+        {
+            var newQty = parseFloat(values);
+
+            var po = parseFloat(document.getElementById('po').innerHTML);
+            var inrpi = parseFloat(document.getElementById('inrpi').innerHTML);
+            var newBalance = newQty + inrpi;
+            if (newBalance > po)
+            {
+                Ext.getCmp('save-to-rpi').disable();
+                Ext.MessageBox.show({
+                       title: 'Error',
+                       msg: 'Request Quantity is more than PO!',
+                       buttons: Ext.MessageBox.OK,
+                       icon: Ext.MessageBox.ERROR
+                   });
+                return false;
+            }
+            else
+            {
+                var po_val = parseFloat(document.getElementById('po_val').innerHTML.replace(/\$|\,/g,''));
+                var inrpi_val = parseFloat(document.getElementById('inrpi_val').innerHTML.replace(/\$|\,/g,''));
+                var piece = Ext.getCmp('uom_text').getValue();
+                var price = Ext.getCmp('price_text').getValue();
+                var valuta = Ext.getCmp('rpi-val').getValue();
+                price = parseFloat(price.replace(/\$|\,/g,''));
+                temp = po - newBalance;
+                newval = po_val - (newBalance * price);
+                document.getElementById('newbalance').innerHTML = temp.toFixed(4) + ' ' + piece;
+                document.getElementById('newbalance_val').innerHTML = CommaFormatted(newval.toFixed(2)) + ' ' + valuta;
+                Ext.getCmp('save-to-rpi').enable();
+                return true;
+            }
+        }
+}
+
+function checkList()
+{
+
+    storeRPI.clearFilter();
+    var gridpo = Ext.getCmp('po-grid').getSelectionModel().getSelections();
+    if (gridpo[0] != undefined)
+	    var oripo = store.getAt(store.findExact('id', gridpo[0].data['id']));
+    else
+        return false;
+
+//    if(!isMscWorkid(oriboq.data['workid']))
+//    {
+//    var col = storeARF.queryBy(function(record,id){
+//
+//         return record.get('workid') == oriboq.data['workid']  && record.get('kode_brg') == oriboq.data['kode_brg'];
+//
+//    });
+//    }
+//    else
+//    {
+        var col = storeRPI.queryBy(function(record,id){
+
+         return record.get('workid') == oripo.data['workid'] && record.get('kode_brg') == oripo.data['kode_brg'] && record.get('pr_no') == oripo.data['pr_no'];
+            });
+//    }
+
+    if (col.length == 0)
+    {
+        return false;
+    }
+    else
+    {
+        var qty = Ext.getCmp('rpi-qty').getValue().toString().replace(/\$|\,/g,'');
+        var priceRpi   =parseFloat(Ext.getCmp('price_text').getValue().toString().replace(/\$|\,/g,''));
+        var totalRpi   =parseFloat(qty*priceRpi);
+        var inrpi = parseFloat(col.items[0].data['totalRPI'].toString().replace(/\$|\,/g,''));
+        var inrpi_val = parseFloat(col.items[0].data['totalPriceRPI'].toString().replace(/\$|\,/g,''));
+
+        if(col.items[0].data['status'] == 'delete')
+        {
+
+            col.items[0].data['qty'] = qty;
+            col.items[0].data['harga'] = priceRpi;
+            col.items[0].data['total'] = totalRpi;
+            col.items[0].data['status'] = '';
+            var ppn = 0;
+            if (Ext.getCmp('ppn_vat_text').getValue() != '')
+                ppn = (qty * priceRpi) * 0.1;
+            col.items[0].data['ppn'] = ppn;
+            col.items[0].data['totalRPI'] = inrpi + qty;
+            col.items[0].data['totalPriceRPI'] = inrpi_val + (qty*priceRpi);
+
+            filterDelete();
+            return true;
+
+        }
+        else
+        {
+            Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Use Edit To Update this Item!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+            });
+            return true;
+
+        }
+    }
+
+}
+
+function filterDelete()
+{
+    //clearFilter
+    storeRPI.clearFilter();
+
+//    storeARF.each(function(stores){
+
+        storeRPI.filterBy(function(record,id) {
+        if(record.get('status') == 'delete')
+            return false;
+        else
+            return true;
+        });
+
+//    });
+}
+
+function clearRPIForm()
+{
+	var teks = Ext.getCmp('rpi-form').findByType('textfield');
+    Ext.each(teks, function (t, index){
+			t.setValue('');
+        });
+    if (document.getElementById('po') != undefined)
+        document.getElementById('po').innerHTML = '0';
+    if (document.getElementById('inrpi') != undefined)
+        document.getElementById('inrpi').innerHTML = '0';
+    if (document.getElementById('balance') != undefined)
+        document.getElementById('balance').innerHTML = '0';
+    if (document.getElementById('newbalance') != undefined)
+        document.getElementById('newbalance').innerHTML = '0';
+    if (document.getElementById('po_val') != undefined)
+        document.getElementById('po_val').innerHTML = '0';
+    if (document.getElementById('inrpi_val') != undefined)
+        document.getElementById('inrpi_val').innerHTML = '0';
+    if (document.getElementById('balance_val') != undefined)
+        document.getElementById('balance_val').innerHTML = '0';
+    if (document.getElementById('newbalance_val') != undefined)
+        document.getElementById('newbalance_val').innerHTML = '0';
+	Ext.getCmp('kode_brg_text').disable();
+	Ext.getCmp('price_text').disable();
+}
+
+function addToRPI(idPo)
+{
+	ori = store.getAt(store.findExact('id', idPo));
+	if (ori != undefined)
+	{
+		Ext.getCmp('save-to-rpi').setText('Add to RPI List(Cart)');
+		Ext.getCmp('rpi-workid').setValue(ori.data['workid']);
+		Ext.getCmp('kode_brg_text').setValue(ori.data['kode_brg']);
+		Ext.getCmp('nama_brg_text').setValue(ori.data['nama_brg']);
+		Ext.getCmp('rpi-val').setValue(ori.data['val_kode']);
+		Ext.getCmp('uom_text').setValue(ori.data['uom']);
+		Ext.getCmp('price_text').setValue(CommaFormatted(ori.data['price']));
+		Ext.getCmp('kode_brg_text').disable();
+		Ext.getCmp('rpi-qty').setValue('');
+
+		var piece = ori.data['uom'];
+		var valuta = ori.data['val_kode'];
+
+		Ext.getCmp('save-to-rpi').disable();
+		Ext.getCmp('rpi-grid').disable();
+		Ext.getCmp('po-grid').disable();
+		Ext.getCmp('cancel-to-rpi').setText('Cancel Add');
+		Ext.getCmp('cancel-to-rpi').enable();
+
+		var qty = parseFloat(ori.data['qty']);
+		var price = parseFloat(ori.data['totalPrice']);
+    	var inRPI = parseFloat(ori.data['totalRPI']);
+    	var inRPI_val = parseFloat(ori.data['totalPriceRPI']);
+    	var balance = qty - inRPI;
+    	var balance_val = price - inRPI_val;
+		document.getElementById('a-qty').innerHTML = '<table class="tablebox" style="width:100%;"><tr><td>PO :</td><td align="right"><b id="po">' + qty.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="po_val">' + CommaFormatted(price.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>In RPI:</td><td align="right"><b id="inrpi">' + inRPI.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="inrpi_val">' + CommaFormatted(inRPI_val.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>Balance :</td><td align="right"><b id="balance" style="color:#FF3F7D">' + balance.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="balance_val" style="color:#FF3F7D">' + CommaFormatted(balance_val.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>New Balance :</td><td align="right"><b id="newbalance" style="color:#FF3F7D">0</b></td><td align="right"><b id="newbalance_val" style="color:#FF3F7D">0</b></td></tr></table>';
+
+	}
+	else
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Error while fetching data...',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+  		return false;
+	}
+}
+
+function insertToRPI()
+{
+    var qty = Ext.getCmp('rpi-qty').getValue().toString().replace(/\$|\,/g,'');
+        if (cekQty(qty))
+        {
+            if(checkList())
+            {
+                addEditedPO();
+                clearRPIForm();
+                clearButton();
+                refreshGrid();
+
+            }
+            else
+            {
+             var po_no = Ext.getCmp('po_no_text').getValue();
+
+            var gridrpi = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+
+            if (gridrpi[0] != undefined)
+            {
+                var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+            }
+        
+            if (orirpi != undefined)
+            {
+
+                var oldqty = parseFloat(orirpi.data['qty']);
+                var prjKode = orirpi.data['prj_kode'];
+                var sitKode = orirpi.data['sit_kode'];
+
+
+                if (orirpi.data['status'] == 'edit')
+                {
+
+                    var inrpi = parseFloat(orirpi.data['totalRPI'].toString().replace(/\$|\,/g,''));
+                    var inrpi_val = parseFloat(orirpi.data['totalPriceRPI'].toString().replace(/\$|\,/g,''));
+
+                    orirpi.data['qty'] = qty;
+                    qty = parseFloat(qty);
+                                      
+                    var pricerpi = parseFloat(Ext.getCmp('price_text').getValue().toString().replace(/\$|\,/g,''));
+                    var qtyrpi = parseFloat(Ext.getCmp('rpi-qty').getValue().toString().replace(/\$|\,/g,''));
+
+                    orirpi.data['total'] = 	(qtyrpi * pricerpi);
+                    orirpi.data['status'] = '';
+
+                    var ppn = 0;
+                    if (Ext.getCmp('ppn_vat_text').getValue() != '')
+                        ppn = (qtyrpi * pricerpi) * 0.1;
+                    orirpi.data['ppn'] = ppn;
+                    orirpi.data['totalRPI'] = inrpi + qty;
+                    orirpi.data['totalPriceRPI'] = inrpi_val + (qty*pricerpi);
+                    addEditedPO();
+                }
+
+            orirpi = undefined;
+//            ori = undefined;
+             clearRPIForm();
+             clearButton();
+             refreshGrid();
+
+            }
+            else
+            {
+
+                var inrpi = parseFloat(ori.data['totalRPI']);
+                var price = parseFloat(ori.data['price']);
+                var priceRpi = parseFloat(ori.data['totalPriceRPI']);
+
+                 var newTotalRPI = inrpi + parseFloat(qty);
+                 var newTotalPriceRPI = priceRpi + (parseFloat(qty) * price);
+
+                var ppn = 0;
+                if (Ext.getCmp('ppn_vat_text').getValue() != '')
+                    ppn = parseFloat(Ext.getCmp('ppn_vat_text').getValue().toString().replace(/\$|\,/g,''));
+                var e = new rpilist({
+                    workid: ori.data['workid'],
+                    workname: ori.data['workname'],
+                    po_no: Ext.getCmp('po_no_text').getValue(),
+                    pr_no: ori.data['pr_no'],
+                    prj_kode: ori.data['prj_kode'],
+                    sit_kode: ori.data['sit_kode'],
+                    prj_nama: ori.data['prj_nama'],
+                    sit_nama: ori.data['sit_nama'],
+                    kode_brg: ori.data['kode_brg'],
+                    nama_brg: ori.data['nama_brg'],
+                    harga: ori.data['price'],
+                    val_kode: ori.data['val_kode'],
+                    uom: ori.data['uom'],
+                    id: ori.data['id'],
+                    qty: qty,
+                    ppn: ppn,
+                    total: (parseFloat(qty) * price),
+                    qtyPO:ori.data['qty'],
+                    pricePO: ori.data['harga'],
+                    totalPricePO : ori.data['totalPrice'],
+                    totalRPI : newTotalRPI,
+                    totalPriceRPI : newTotalPriceRPI
+                });
+
+//                 orirpi.data['totalRPI'] = newTotalRPI;
+//                 orirpi.data['totalPriceRPI'] = newTotalPriceRPI;
+
+                
+                 storeRPI.add(e);
+                 ori = undefined;
+                 e = undefined;
+
+                 addEditedPO();
+                 clearRPIForm();
+                 clearButton();
+                 refreshGrid();
+                 filterDelete();
+            }
+        }
+        }
+}
+
+function delToRPI(idBoq,workid)
+{
+	Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+		if (btn == 'yes')
+		{
+            var gridrpi = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+            var b = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+
+//				var a = store.getAt(store.findExact('id', idBoq));
+//				var b = storeRPI.getAt(storeRPI.findExact('id', idBoq));
+				if (b != undefined)
+				{
+                    b.data['status'] = 'delete';
+                    
+					var qtyrpi = parseFloat(b.data['qty']);
+					var inRPI = parseFloat(b.data['totalRPI']);
+					var inRPIPrice = parseFloat(b.data['totalPriceRPI']);
+					var price = parseFloat(b.data['price']);
+					b.data['totalRPI'] = inRPI - qtyrpi;
+					b.data['totalPriceRPI'] = inRPIPrice - (qtyrpi * price);
+
+                    addEditedPO();
+					filterDelete();
+//					storeRPI.remove(b);
+					Ext.getCmp('rpi-grid').getView().refresh();
+					Ext.getCmp('po-grid').getView().refresh();
+				}
+			clearRPIForm();
+			clearButton();
+            refreshGrid()
+		}
+
+	});
+}
+
+function editToRPI(idPo)
+{
+	Ext.getCmp('save-to-rpi').setText('Update to PR List(Cart)');
+    var gridarf = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+	var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridarf[0].data['id']));
+
+//	ori = store.getAt(store.findExact('id', idPo));
+	Ext.getCmp('rpi-grid').disable();
+	Ext.getCmp('po-grid').disable();
+	Ext.getCmp('cancel-to-rpi').setText('Cancel Edit');
+	Ext.getCmp('cancel-to-rpi').enable();
+	if (orirpi != undefined)
+	{
+		orirpi.data['status'] = 'edit';
+		Ext.getCmp('rpi-workid').setValue(orirpi.data['workid']);
+		Ext.getCmp('rpi-qty').setValue(orirpi.data['qty']);
+		Ext.getCmp('kode_brg_text').setValue(orirpi.data['kode_brg']);
+		Ext.getCmp('nama_brg_text').setValue(orirpi.data['nama_brg']);
+		Ext.getCmp('price_text').setValue(CommaFormatted(orirpi.data['harga']));
+		Ext.getCmp('uom_text').setValue(orirpi.data['uom']);
+		Ext.getCmp('rpi-val').setValue(orirpi.data['val_kode']);
+
+		Ext.getCmp('save-to-rpi').disable();
+
+		var newqty = parseFloat(orirpi.data['qty'].toString().replace(/\$|\,/g,''));
+        var newtotalPrice = parseFloat(orirpi.data['total'].toString().replace(/\$|\,/g,''));
+
+		var qty = parseFloat(orirpi.data['qtyPO'].toString().replace(/\$|\,/g,''));
+        var price = parseFloat(orirpi.data['totalPricePO'].toString().replace(/\$|\,/g,''));
+
+    	var inRPI = parseFloat(orirpi.data['totalRPI'].toString().replace(/\$|\,/g,''));
+        var inRPI_val = parseFloat(orirpi.data['totalPriceRPI'].toString().replace(/\$|\,/g,''));
+
+        var newInRPI = inRPI - newqty;
+        orirpi.data['totalRPI'] = newInRPI.toString().replace(/\$|\,/g,'');
+
+        var newInRPI_val = inRPI_val - newtotalPrice;
+        orirpi.data['totalPriceRPI'] = newInRPI_val.toString().replace(/\$|\,/g,'');
+        addEditedPO();
+
+        var piece = orirpi.data['uom'];
+
+        var valuta = orirpi.data['val_kode'];
+
+        var balance = qty - newInRPI;
+        var newbalance = balance - newqty;
+        var balance_val = price - newInRPI_val;
+        var newbalance_val = balance_val - newtotalPrice;
+        document.getElementById('a-qty').innerHTML = '<table class="tablebox" style="width:100%;"><tr><td>PO :</td><td align="right"><b id="po">' + qty.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="po_val">' + CommaFormatted(price.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>In RPI:</td><td align="right"><b id="inrpi">' + newInRPI.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="inrpi_val">' + CommaFormatted(inRPI_val.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>Balance :</td><td align="right"><b id="balance" style="color:#FF3F7D">' + balance.toFixed(4) + ' ' + piece + '</b></td><td align="right"><b id="balance_val" style="color:#FF3F7D">' + CommaFormatted(balance_val.toFixed(2)) + ' ' + valuta + '</b></td></tr><tr><td>New Balance :</td><td align="right"><b id="newbalance" style="color:#FF3F7D">'+ CommaFormatted(newbalance.toFixed(2)) + ' ' + valuta +'</b></td><td align="right"><b id="newbalance_val" style="color:#FF3F7D">'+ CommaFormatted(newbalance_val.toFixed(2)) + ' ' + valuta +'</b></td></tr></table>';
+
+	}
+}
+
+function clearButton()
+{
+	Ext.getCmp('cancel-to-rpi').setText('Cancel Add');
+	Ext.getCmp('cancel-to-rpi').disable();
+	Ext.getCmp('save-to-rpi').setText('Add to RPI List(Cart)');
+ 	Ext.getCmp('save-to-rpi').disable();
+}
+
+function refreshGrid()
+{
+	Ext.getCmp('po-grid').enable();
+	Ext.getCmp('rpi-grid').enable();
+    Ext.getCmp('po-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('rpi-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('rpi-grid').getView().refresh();
+    Ext.getCmp('po-grid').getView().refresh();
+}
+
+function addEditedPO()
+{
+	if(store.getCount() > 0)
+	{
+		storeRPI.each(function(stores){
+		if(stores.data['id'] != undefined)
+		{
+
+				var col = store.queryBy(function(record,id){
+
+					 return record.get('workid') == stores.data['workid']  && record.get('kode_brg') == stores.data['kode_brg'] && record.get('pr_no') == stores.data['pr_no'];
+
+				});
+				if (col.length != 0)
+				{
+                    col.items[0].data['totalRPI'] = stores.data['totalRPI'];
+                    col.items[0].data['totalPriceRPI'] = stores.data['totalPriceRPI'];
+                     Ext.getCmp('po-grid').getView().refresh();
+				}
+                else
+                {
+
+					var lastID = stores.data['id'];
+
+							var e = new polist (
+    								 {
+	    							 'id':lastID,
+						             'prj_kode':stores.data['prj_kode'],
+						             'prj_nama':stores.data['prj_nama'],
+						             'sit_kode':stores.data['sit_kode'],
+						             'sit_nama':stores.data['sit_nama'],
+						             'po_no':stores.data['po_no'],
+						             'tglpr':stores.data['tglpr'],
+						             'pomyob':stores.data['pomyob'],
+							         'workid':stores.data['workid'],
+						             'workname':stores.data['workname'],
+						             'kode_brg':stores.data['kode_brg'],
+						             'nama_brg':stores.data['nama_brg'],
+						             'qty':stores.data['qtyPO'],
+						             'price':stores.data['pricePO'],
+						             'harga':stores.data['pricePO'],
+						             'val_kode':stores.data['val_kode'],
+						             'totalRPI':stores.data['totalRPI'],
+						             'totalPriceRPI':stores.data['totalPriceRPI'],
+						             'totalPrice':stores.data['totalPricePO'],
+						             'totalIDR':stores.data['totalIDR'],
+						             'totalUSD':stores.data['totalUSD'],
+						             'ppn':stores.data['ppn'],
+						             'uom':stores.data['uom']
+									});
+							store.add(e);
+							e = undefined;	    				
+				        	Ext.getCmp('po-grid').getView().refresh();
+
+
+				}
+		}
+	},this);
+	}
+	Ext.getCmp('po-grid').getView().refresh();
+}
+
+Ext.onReady(function() {
+	Ext.QuickTips.init();
+
+
+
+	var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:30px;"><p><b>Site:</b> {sit_kode}, {sit_nama}</p>',
+            '<p><b>Work ID:</b> {workid}&nbsp;<b>Work Name:</b> {workname}</p>',
+            '<p><b>PR No:</b> {pr_no}&nbsp;<b>PR Date:</b> {tglpr}</p>',
+            '<p><b>MYOB:</b> {pomyob}</p></div>'
+        )
+    });
+
+	var expander2 = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:30px;"><p><b>Site:</b> {sit_kode}, {sit_nama}</p>',
+            '<p><b>Work ID:</b> {workid}&nbsp;<b>Work Name:</b> {workname}</p>',
+            '<p><b>PR No:</b> {pr_no}</p>',
+            '<p><b>PO No:</b> {po_no}</p></div>'
+        )
+    });
+
+	var summary = new Ext.ux.grid.GridSummary();
+
+	function totalPrice(v, params, r) {
+        return v? (CommaFormatted(v)) : 0;
+	}
+
+
+	function submitPO()
+	{
+		var trano = Ext.getCmp('po_no_text').getValue();
+		if (trano == undefined || trano == '')
+			return false;
+		var newUrl = '/default/home/getposummary/data/' + trano ;
+	    store.proxy.setUrl(newUrl);
+	    store.reload();
+
+	    var poGrid = Ext.getCmp('po-grid');
+	    poGrid.getStore().proxy.setUrl(newUrl);
+	    poGrid.getBottomToolbar().store.proxy.api.read['url'] = newUrl;
+	    poGrid.getBottomToolbar().store.proxy.url = newUrl;
+	    poGrid.getBottomToolbar().store.proxy.setUrl(newUrl);
+	}
+
+
+	function getRPIRecord(workid,kode_brg,isEdit)
+	{
+		//Clear filter
+		storeRPI.clearFilter();
+		storeRPI.filterBy(function(record,id){
+			if (!isEdit)
+			{
+				if (record.get('workid') == workid.toString() && record.get('kode_brg') == kode_brg.toString())
+				{
+					return record.get('workid');
+				}
+			}
+			else
+			{
+				if (record.get('workid') == workid.toString() && (record.get('status') != '' || record.get('status') != undefined))
+				{
+					return record.get('workid');
+				}
+			}
+		});
+		if (storeRPI.getCount() > 0)
+		{
+			var rec = storeRPI.getAt(0);
+		}
+
+		storeRPI.clearFilter();
+		return rec;
+	}
+
+	function getOriRecordForRPI(workid)
+	{
+		//Clear filter
+		store.clearFilter();
+		store.filterBy(function(record,id){
+				return record.get('workid') == workid;
+		});
+		if (store.getCount() > 0)
+		{
+			var rec = store.getAt(0);
+		}
+
+		store.clearFilter();
+		return rec;
+	}
+
+	var getDetail =
+	{
+		PR: function (workid,kode_brg)
+		{
+			var prjKode = Ext.getCmp('prj_kode_text').getValue();
+			var sitKode = Ext.getCmp('sit_kode_text').getValue();
+			Ext.Ajax.request({
+				scope: this,
+				results: 0,
+		        url: '/default/home/getbarangdetail/type/PR/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/workid/' + workid + '/kode_brg/' + kode_brg,
+		        method:'POST',
+		        success: function(result, request){
+		        	   var returnData = Ext.util.JSON.decode(result.responseText);
+						if( returnData.success) {
+							this.results = returnData.qty;
+						}
+					}
+				,
+		    	failure:function( action){
+		      	if(action.failureType == 'server'){
+		          obj = Ext.util.JSON.decode(action.response.responseText);
+		          Ext.Msg.alert('Error!', obj.errors.reason);
+		      	}
+		      	}
+		    });
+
+		}
+	};
+
+
+
+	var userColumns =  [
+	                    new Ext.grid.RowNumberer(),
+	                    expander,
+	                    {header: "",width: 30, dataIndex: 'id',renderer: function (v,p,r) {
+                            var percent = 0;
+	                        if (!isMscWorkid(r.data['workid']))
+	                        {
+	                	    	var qty = r.data['qty'];
+	                	    	percent = (r.data['totalRPI'] / qty) * 100;
+	                        }
+	                        else
+	                        {
+	                	    	percent = (parseFloat(r.data['totalPriceRPI']) / parseFloat(r.data['totalPrice'])) * 100;
+	                        }
+	                    	if (percent < 100)
+	                			return '<a href="#" onclick="addToRPI(' + v + ');"><img src="/images/g_rec_add.png"></a>';
+	                    	else
+	                    	{
+	                    		p.attr ='ext:qtip="This item (' + r.data['kode_brg'] + ') has been full payed."';
+	                    		return '<img src="/images/icons/fam/page_tag_red.gif">';
+//	                    		return '<a href="#" onclick="addToAFE(' + v + ');"><img src="/images/icons/fam/page_tag_red.gif"></a>';
+	                    	}
+	                    }},
+	                    {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                    {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                    {header: "Qty", width: 80, sortable: true, dataIndex: 'qty',css:'text-align:right;'},
+	                    {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                    {header: "Price", width: 90, sortable: true, dataIndex: 'price',css:'text-align:right;'},
+	                    {header: "Total", width: 110, sortable: true, dataIndex: 'price',css:'text-align:right;',
+		                    renderer: function(v,p,r) {
+		                    	var total = r.data['qty'] * r.data['price'];
+								return r.data['val_kode'] + ' ' + CommaFormatted(total);
+	                    	}
+	                    },
+	                    {header: "Available", width: 100, renderer: function(v,p,r) {
+	                        var percent = 0;                     
+	                	        if (r.data['qty'] != 0 && r.data['totalRPI'] != 0)
+	                	        {
+	                	            var qty = r.data['qty'];
+	                	        	percent = (r.data['totalRPI'] / qty) * 100;
+	                	        	var total  = parseFloat(r.data['totalPrice']);
+	                	        	var totalRPI = parseFloat(r.data['totalPriceRPI']);
+	                	        	if (percent > 100)
+	                	            	percent = 100;
+	                	        	percent = percent.toFixed(2);
+	                				var warna = '#0a0';
+	                	        	if (percent > 75)
+	                	            	warna = '#FF3F7D';
+	                	        	else if (percent > 50)
+	                	            	warna = '#FFDA2F';
+	                	        }
+
+                            
+	                        p.attr ='ext:qtip="Total RPI already Invoiced : ' + r.data['val_kode'] + ' ' + CommaFormatted(totalRPI) + ' from Total PO Price : ' + r.data['val_kode'] + ' ' + CommaFormatted(total) + '"';
+	                		return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+	                    }}
+	                ];
+
+	var userColumns2 =  [
+	                     new Ext.grid.RowNumberer(),
+	                     expander2,
+	                     {header: "",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+	                 		return '<a href="#" onclick="editToRPI(' + v + ');"><img src="/images/g_rec_upd.png"></a>&nbsp;<a href="#" onclick="delToRPI();"><img src="/images/g_rec_del.png"></a>';
+	                     }},
+	                     {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                     {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                     {header: "Qty", width: 80, sortable: true, dataIndex: 'qty', summaryType: 'sum',css:'text-align:right;',summaryRenderer:function(v, params, r) {
+                                return v? (v.toFixed(4)) : 0;
+                            }},
+	                     {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                     {header: "Price", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'harga',
+			                    renderer: function(v,p,r) {
+								return r.data['val_kode'] + ' ' + CommaFormatted(v);
+	                    	}
+	                     },
+	                     {header: "Total", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'total', summaryType: 'sum',summaryRenderer: totalPrice, renderer: function (v,p,r) {
+	 							return r.data['val_kode'] + ' ' + CommaFormatted((parseFloat(r.data['harga']) * parseFloat(r.data['qty'])).toString());
+	                     }}
+
+	                 ];
+
+	function getExchangeRate()
+	{
+		Ext.Ajax.request({
+		    url: '/default/valuta/getexchangerate',
+		    method:'POST',
+		    success: function(result, request){
+			   		var returnData = Ext.util.JSON.decode(result.responseText);
+					if(returnData.success) {
+						Ext.getCmp('rateidr').setValue(returnData.rate);
+					}
+				}
+				,failure:function( action){
+			if(action.failureType == 'server'){
+		    obj = Ext.util.JSON.decode(action.response.responseText);
+		    Ext.Msg.alert('Error!', obj.errors.reason);
+			}
+			}
+		});
+	}
+
+
+	function getNewID()
+	{
+		//count the max record from origin Store
+		var maxRec = store.getTotalCount();
+		//filter PO Store
+		storePR.filterBy(function(record,id){
+			if (isMscWorkid(record.get('workid')))
+			{
+				return record.get('workid');
+			}
+		});
+		//count the max record from filtered PO Store
+		var maxRecFilter = storeRPI.getCount();
+
+		var newID = maxRec + maxRecFilter + 1;
+
+		//Clear filter
+		storeRPI.clearFilter();
+		return newID;
+	}
+
+	function init()
+	{
+		getExchangeRate();
+	}
+
+	function getPoDetail(trano)
+	{
+        var rpino = '<?php echo $this->trano ?>';
+		Ext.Ajax.request({
+			scope: this,
+			results: 0,
+	        url: '/default/home/getpodetail/trano/' + trano + '/lastrpi/'+ rpino,
+	        method:'POST',
+	        success: function(result, request){
+	        	   var returnData = Ext.util.JSON.decode(result.responseText);
+				   Ext.getCmp('po_value').setValue(returnData.jumlahspl);
+				   Ext.getCmp('val_kode').setValue(returnData.val_kode);
+				   Ext.getCmp('val_kode2').setValue(returnData.val_kode);
+				   Ext.getCmp('val_kode3').setValue(returnData.val_kode);
+				   Ext.getCmp('val_kode4').setValue(returnData.val_kode);
+				   Ext.getCmp('payment_term').setValue(returnData.paymentterm);
+				   Ext.getCmp('ppn_value').setValue(returnData.ppnspl);
+				   Ext.getCmp('po_ket').setValue(returnData.ket.replace(/\"|\'/g,''));
+				   Ext.getCmp('sup_kode').setValue(returnData.sup_kode);
+				   Ext.getCmp('sup_nama').setValue(returnData.sup_nama);
+
+
+//				   Ext.getCmp('fieldset-project').get('prj_kode').setValue(returnData.prj_kode);
+//				   Ext.getCmp('fieldset-project').get('prj_nama').setValue(returnData.ptj_nama);
+//				   Ext.getCmp('fieldset-project').get('sit_kode').setValue(returnData.sit_kode);
+//				   Ext.getCmp('fieldset-project').get('sit_nama').setValue(returnData.sit_nama);
+				   Ext.getCmp('sup_bank').setValue(returnData.bank);
+				   totalLimit = undefined;
+				   if (returnData.val_kode == 'IDR')
+				   {
+					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalIDR));
+					   totalLimit = parseFloat(returnData.jumlahspl) - parseFloat(returnData.RPIinvoice.totalIDR);
+				   }
+				   else
+				   {
+					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalUSD));
+					   totalLimit = parseFloat(returnData.jumlahspl) - parseFloat(returnData.RPIinvoice.totalUSD);
+				   }
+				   Ext.getCmp('balance_value').setValue(CommaFormatted(totalLimit));
+//				   if (returnData.ppn != undefined && returnData.ppn != '' && returnData.ppn > 0)
+//				   {
+//						Ext.getCmp('vat-radio').setDisabled(true);
+//				   }
+
+				}
+			,
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}
+	      	}
+	    });
+
+	};
+
+	function showPoList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        var store = new Ext.ux.data.PagingJsonStore({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts',
+        fields: [
+			{name: 'id'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'sit_kode'},
+			{name: 'prj_nama'},
+			{name: 'sit_nama'}
+          ],
+        autoLoad: {params: {start: 0, limit: 50}},
+        url: '/pool_po.json'
+        });
+        store.load();
+
+        yAxis=100;
+        var grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: store,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:'po_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 50,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:250,
+            width:380,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('po_no_text').setValue(trano);
+                                getPoDetail(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+
+        Ext.override(Ext.PagingToolbar, {
+            doRefresh: function(){
+                this.clearFilter();
+                delete this.store.lastParams;
+                this.doLoad(this.cursor);
+            }
+            });
+        }
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PO
+        searchTrano = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['trano']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+
+    searchPrj_kode = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['prj_kode']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+    }
+    searchSit_kode = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['sit_kode']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchPrj_name = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['prj_nama']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchSit_name = function(field,e){
+
+        var docs = field.getValue();
+        store.clearFilter();
+        store.filterBy(function(record,id){
+           reg = new RegExp(docs, "gi");
+            if(reg.test(record.data['sit_nama']))
+            {
+                return true;
+            }
+        });
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 37,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,35,80,'prj_kode',searchPrj_kode),
+           {
+               x : 6,
+               y: 62,
+               xtype: 'label',
+               text: 'Project Name'
+           },
+           new txtboks(80,60,80,'prj_nama',searchPrj_name),
+           {
+                 x: 180,
+                 y: 37,
+            	xtype: 'label',
+                text: 'Site Code'
+           },
+           new txtboks(240,35,80,'sit_kode',searchSit_kode),
+           {
+                x: 180,
+                y: 62,
+            	xtype: 'label',
+                text: 'Site Name'
+            },
+            new txtboks(240,60,80,'sit_nama',searchSit_name)
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose PO';
+      aForm.show();
+    }
+
+
+	function showRPI(trano)
+	{
+    var rpino = '<?php echo $this->trano ?>';
+		var invoicelist = Ext.data.Record.create([
+	        {
+			    name: 'trano'
+			},
+			{
+			    name: 'tgl',
+			    type: 'date',
+			    format: 'Y-m-d'
+			},
+			{
+			    name: 'total'
+			},
+			{
+			    name: 'totalIDR'
+			},
+			{
+			    name: 'totalUSD'
+			}
+
+		]);
+
+		var proxy = new Ext.data.HttpProxy({
+		    url : '/default/home/getrpihistory/trano/' + trano +'/rpino/'+rpino
+		});
+
+		var storeInvoice = new Ext.data.Store({
+		    proxy: proxy,
+		    reader: new Ext.data.JsonReader({
+		    totalProperty: 'count',
+		    idProperty: 'id',
+		    root: 'posts',
+		    fields: invoicelist})
+		});
+
+		var columns = [ new Ext.grid.RowNumberer(),
+			       		{header:'RPI No.',width:100,sortable:true,dataIndex:'trano'},
+		                {header:'Date',width:100,sortable:true,dataIndex:'tgl',renderer:Ext.util.Format.dateRenderer('d/m/Y')},
+		                {header:'Total',width:100,sortable:true,dataIndex:'total'}
+                    ];
+
+		storeInvoice.load();
+
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 300,
+		    title: 'PO Invoice History',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						layout: 'fit',
+						items: [
+								new Ext.grid.GridPanel({
+									store: storeInvoice,
+						            columns: columns,
+									id: 'rpi-history-grid',
+						            loadMask: true,
+						            view: new Ext.grid.GridView({
+							            		forceFit: true
+							            	})
+									})
+								]
+						})
+				    ],
+		    buttons: [
+
+		              {
+	 			         text: 'OK',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+			  		    ]
+		});
+
+		bForm.show();
+
+	}
+
+	var datas = new Ext.data.SimpleStore({
+	    fields:['type','name']
+	            ,data:[['WH','Warehouse'],['SITE','Site']]
+	        });
+
+	var userForm = new Ext.FormPanel({
+	    renderTo: 'user-form',
+	    id: 'po-form',
+	    iconCls: 'silk-user',
+	    labelAlign: 'right',
+	    collapsible: true,
+	    title: 'Edit Existing RPI Transaction',
+	    frame: true,
+	    width: 800,
+	    labelAlign: 'left',
+//	    style: 'margin-top: 10px',
+	    items: [
+				{
+				    layout:'column',
+				    items:[
+				           {
+				            columnWidth:.5,
+				            layout: 'form',
+				        	items: [
+					    	    {
+								    fieldLabel : 'PO Number',
+								    id : 'po_no_text',
+								    name: 'po_no',
+								    xtype: 'trigger',
+                                    disabled: true,
+								    triggerClass: 'teropong',
+						            allowBlank: false,
+                                    style:"font-weight:bold;color:black",
+						            editable : false,
+								    onTriggerClick:
+						                function ()
+						                {
+					                		if (!this.disabled)
+												showPoList();
+					                		else
+						                		return false;
+						                },
+						        	scope: this,
+						        	width: 120
+						    	},
+						    	{
+						            layout:'column',
+						            items:[
+						                   {
+							                columnWidth:.53,
+						                    layout: 'form',
+						                	items: [
+								                	new Ext.ux.customRendererField({
+								                        fieldLabel: 'PO Value',
+								            			id:'po_value',
+								            			priceDelemiter:',',
+								            			style:"text-align:right;font-weight:bold;color:black",
+								                        width:100,
+								                        disabled: true
+								                    })
+									    			]
+						                   },
+						                   {
+								                columnWidth:.3,
+							                    layout: 'form',
+							                	items: [{
+														    hideLabel: true,
+														    id : 'val_kode',
+														    name: 'val_kode',
+														    xtype: 'textfield',
+														    disabled: true,
+                                                            style:"font-weight:bold;color:black",
+														    width: 40
+												    	}
+										    			]
+							                   }
+										]
+						    	},
+						    	{
+						            layout:'column',
+						            items:[
+						                   {
+							                columnWidth:.53,
+						                    layout: 'form',
+						                	items: [
+													new Ext.ux.customRendererField({
+													    fieldLabel : 'PO Value Already Invoiced',
+													    id : 'po_invoice_value',
+														priceDelemiter:',',
+														style:"text-align:right;font-weight:bold;color:black",
+													    width:100,
+													    disabled: true
+													})
+									    			]
+						                   },
+						                   {
+								                columnWidth:.11,
+							                    layout: 'form',
+							                	items: [{
+														    hideLabel: true,
+														    id : 'val_kode2',
+														    xtype: 'textfield',
+														    disabled: true,
+                                                            style:"font-weight:bold;color:black",
+														    width: 40
+												    	}
+										    			]
+						                   },
+						                   {
+								                columnWidth:.2,
+							                    layout: 'form',
+							                	items: [{
+														    xtype: 'button',
+														    cls:"x-btn-icon" ,
+											                icon:"/images/icons/fam/information.png",
+											                handler: function ()
+											                {
+																if (Ext.getCmp('po_no_text').getValue() != '')
+																	showRPI(Ext.getCmp('po_no_text').getValue());
+											                }
+												    	}
+										    			]
+						                   }
+										]
+						    	},
+						    	{
+						            layout:'column',
+						            items:[
+						                   {
+							                columnWidth:.53,
+						                    layout: 'form',
+						                	items: [
+													new Ext.ux.customRendererField({
+														fieldLabel : 'Balance',
+													    id : 'balance_value',
+														priceDelemiter:',',
+														style:"text-align:right;font-weight:bold;color:black",
+													    width:100,
+													    disabled: true
+													})
+								                	]
+						                   },
+						                   {
+								                columnWidth:.3,
+							                    layout: 'form',
+							                	items: [{
+														    hideLabel: true,
+														    id : 'val_kode4',
+														    xtype: 'textfield',
+														    disabled: true,
+                                                            style:"font-weight:bold;color:black",
+														    width: 40
+												    	}
+										    			]
+							                   }
+										]
+						    		},
+						    	{
+					            layout:'column',
+					            items:[
+					                   {
+						                columnWidth:.53,
+					                    layout: 'form',
+					                	items: [
+												new Ext.ux.customRendererField({
+													fieldLabel : 'PPN/VAT',
+												    id : 'ppn_value',
+													priceDelemiter:',',
+													style:"text-align:right;font-weight:bold;color:black",
+												    width:100,
+												    disabled: true
+												})
+							                	]
+					                   },
+					                   {
+							                columnWidth:.3,
+						                    layout: 'form',
+						                	items: [{
+													    hideLabel: true,
+													    id : 'val_kode3',
+													    xtype: 'textfield',
+													    disabled: true,
+                                                        style:"font-weight:bold;color:black",
+													    width: 40
+											    	}
+									    			]
+						                   }
+									]
+					    		},
+						    	{
+						            layout:'column',
+						            items:[
+						                   {
+							                columnWidth:.33,
+						                    layout: 'form',
+						                	items: [{
+													    fieldLabel : 'Payment Term',
+													    id : 'payment_term',
+													    xtype: 'textfield',
+													    disabled: true,
+                                                        style:"font-weight:bold;color:black",
+													    width: 23
+											    	}
+									    			]
+						                   },
+						                   {
+								                columnWidth:.3,
+							                    layout: 'form',
+							                	items: [{
+														    id : 'hari',
+														    fieldLabel: 'days',
+														    labelSeparator: '',
+														    width: 40
+												    	}
+										    			]
+							                   }
+										]
+					    		},
+					    		{
+								    fieldLabel : 'PO Remark/Notes',
+								    id : 'po_ket',
+								    xtype: 'textarea',
+						            readOnly : true,
+								    height: 120,
+								    width: 230
+						    	}
+
+				           	]
+				           },
+				           {
+					            columnWidth:.5,
+					            layout: 'form',
+					        	items: [
+//							        	{
+//							                xtype:'fieldset',
+//							                title: 'Project & Site',
+//							                id: 'fieldset-project',
+//							                fieldLabel : 'Detail ',
+//							                collapsible: true,
+//							                autoHeight:true,
+//							                layout: 'form',
+//							                items: [
+//														{
+//															fieldLabel: 'Project Code',
+//														    xtype: 'textfield',
+//															disabled: true,
+//															id: 'prj_kode'
+//														},
+//														{
+//															fieldLabel: 'Project Name',
+//														    xtype: 'textfield',
+//															disabled: true,
+//															id: 'prj_nama'
+//														},
+//														{
+//															fieldLabel: 'Site Code',
+//														    xtype: 'textfield',
+//															disabled: true,
+//															id: 'sit_kode'
+//														},
+//														{
+//															fieldLabel: 'Site Name',
+//														    xtype: 'textfield',
+//															disabled: true,
+//															id: 'sit_nama'
+//														}
+//									                ]
+//				        				},
+								    	{
+								            layout:'column',
+								            items:[
+								                   {
+									                columnWidth:.47,
+								                    layout: 'form',
+								                	items: [{
+															    fieldLabel : 'Supplier Code',
+															    id : 'sup_kode',
+															    xtype: 'textfield',
+															    disabled: true,
+                                                                style:"font-weight:bold;color:black",
+															    width: 75
+													    	}
+											    			]
+								                   },
+								                   {
+										                columnWidth:.53,
+									                    layout: 'form',
+									                	items: [{
+																    id : 'sup_nama',
+																    xtype: 'textfield',
+																    hideLabel: true,
+																    disabled: true,
+                                                                    style:"font-weight:bold;color:black",
+																    width: 150
+														    	}
+												    			]
+									                   }
+												]
+							    		},
+							        	{
+										    fieldLabel : 'Supplier Invoice No.',
+										    id : 'sup_invoice_text',
+										    xtype: 'textfield',
+								            allowBlank: false,
+								            width: 100
+								    	},
+								    	{fieldLabel: 'Status Delivery',
+								             name: 'statusbrg',
+								             hiddenName : 'statusbrg',
+								             xtype: 'combo',
+								             triggerAction: 'all',
+								             mode: 'local',
+								             displayField: 'name',
+								             valueField: 'type',
+								             store: datas,
+								             width: 90
+							            },
+							            new Ext.ux.customRendererField({
+											fieldLabel : 'Exchange Rate',
+										    id : 'rateidr',
+										    name: 'rateidr',
+											priceDelemiter:',',
+											style:"text-align:right",
+										    width:70
+										}),
+
+										{
+									    	fieldLabel: 'Payment transfer to',
+								            xtype:'fieldset',
+
+								            items :[
+										            {
+											            xtype: 'radiogroup',
+											            hideLabel: true,
+											            id: 'payment',
+											            items: [
+											                {boxLabel: 'Transfer', name: 'payment', id: 'payment-1', inputValue: 1, checked: true},
+											                {boxLabel: 'Cheque', name: 'payment', id: 'payment-2', inputValue: 2},
+											                {boxLabel: 'Cash', name: 'payment', id: 'payment-3', inputValue: 3}
+											            ]
+											        },
+											        {
+														xtype: 'textarea',
+														hideLabel: true,
+														width: 250,
+														readOnly: true,
+														id: 'sup_bank'
+
+											        }
+								            		]
+								        },
+                                        {
+                                            fieldLabel : 'RPI Notes',
+                                            id : 'rpi_ket',
+                                            xtype: 'textarea',
+                                            height: 60,
+                                            width: 265
+                                        }
+
+
+//										{
+//										    layout:'column',
+//										    items:[
+//										           {
+//										            columnWidth:.53,
+//										            layout: 'form',
+//										        	items: [{
+//															    fieldLabel : 'PPN/VAT',
+//															    id : 'ppn_value',
+//															    xtype: 'textfield',
+//															    disabled: true,
+//															    width: 100
+//													    	}
+//											    			]
+//										           },
+//										           {
+//										                columnWidth:.3,
+//										                layout: 'form',
+//										            	items: [{
+//																    hideLabel: true,
+//																    id : 'val_kode2',
+//																    xtype: 'textfield',
+//																    disabled: true,
+//																    width: 40
+//														    	}
+//												    			]
+//										               }
+//												]
+//											}
+							        	]
+				           }
+				           ]
+				},
+				{
+			    	hideLabel: true,
+			    	title: 'Document Verification',
+		            xtype:'fieldset',
+		            labelWidth: 200,
+		            items :[
+							{
+								layout:'column',
+								items:[
+							       {
+							        columnWidth:.5,
+							        layout: 'form',
+							    	items: [
+										{
+										    xtype: 'radiogroup',
+								            id: 'invoice-radio',
+										    fieldLabel: 'Receipt/Invoice Origin',
+										    items: [
+										        {boxLabel: 'Yes', name: 'invoice_origin', id: 'invoice-1', inputValue: 1, checked: true},
+										        {boxLabel: 'No', name: 'invoice_origin', id: 'invoice-2', inputValue: 2},
+										        {boxLabel: 'N/A', name: 'invoice_origin', id: 'invoice-3', inputValue: 3}
+										    ]
+										},
+										{
+										    xtype: 'radiogroup',
+										    fieldLabel: 'VAT/PPN Origin',
+										    id: 'vat-radio',
+										    items: [
+										        {boxLabel: 'Yes', name: 'ppn_origin', id: 'ppn-1', inputValue: 1, checked: true},
+										        {boxLabel: 'No', name: 'ppn_origin', id: 'ppn-2', inputValue: 2},
+										        {boxLabel: 'N/A', name: 'ppn_origin', id: 'ppn-3', inputValue: 3}
+										    ]
+										}
+//										,{
+//										    xtype: 'radiogroup',
+//								            id: 'dp-radio',
+//										    fieldLabel: 'Invoice for Down Payment',
+//										    items: [
+//										        {boxLabel: 'Yes', name: 'dp_origin', id: 'dp-1', inputValue: 1, checked: true},
+//										        {boxLabel: 'No', name: 'dp_origin', id: 'dp-2', inputValue: 2}
+//										    ]
+//										}
+										]
+							       },
+							       {
+								        columnWidth:.5,
+								        layout: 'form',
+								    	items: [
+											{
+											    xtype: 'radiogroup',
+									            id: 'do-radio',
+											    fieldLabel: 'BAST/FAT/PAT/DO Origin',
+											    items: [
+											        {boxLabel: 'Yes', name: 'do_origin', id: 'do-1', inputValue: 1, checked: true},
+											        {boxLabel: 'No', name: 'do_origin', id: 'do-2', inputValue: 2},
+											        {boxLabel: 'N/A', name: 'do_origin', id: 'do-3', inputValue: 3}
+											    ]
+											},
+											{
+											    xtype: 'radiogroup',
+									            id: 'sign-radio',
+											    fieldLabel: 'BAST/FAT/PAT/DO Signed by QDC\'s staff',
+											    items: [
+											        {boxLabel: 'Yes', name: 'do_signed_origin', id: 'sign-1', inputValue: 1, checked: true},
+											        {boxLabel: 'No', name: 'do_signed_origin', id: 'sign-2', inputValue: 2},
+											        {boxLabel: 'N/A', name: 'do_signed_origin', id: 'sign-3', inputValue: 3}
+											    ]
+											}
+											]
+							       }
+									]
+							}
+				            ]
+				},
+                {
+                    fieldLabel: 'Internal Notes',
+                    id: 'ketin_text',
+                    xtype:'textarea',
+
+                    width: 250,
+                    height: 80
+                }
+		    	],
+    	buttons: [
+    	          {
+    	            text: 'Submit',
+    	            id: 'po-submit',
+    	            iconCls: 'silk-add',
+    	            handler: function() {
+        	            Ext.getCmp('po_no_text').disable();
+    	        		submitPO();
+    	        		Ext.getCmp('po-submit').disable();
+    	      	  },
+    	            scope: this
+    	          },
+    	          {
+    	              text: 'Reset',
+    	              handler: function(btn, ev){
+    	        	  	  cancelRPIList();
+    	              },
+    	              scope: this
+    	           }, {
+    	               text: 'Cancel',
+    	               handler: function(btn, ev){
+    	   	        	myPanel = Ext.getCmp('abs-budget-panel');
+    	   	    	    myPanel.body.load({
+    	   	    	        url: '/procurement/procurement/rpi',
+    	   	    	        scripts : true
+    	   	            });
+    	               },
+    	               scope: this
+    	           } ]
+	});
+
+	userForm2 = new Ext.FormPanel({
+	    renderTo: 'user-form2',
+	    id: 'rpi-form',
+	    iconCls: 'silk-user',
+	    labelAlign: 'right',
+	    title: 'Detail Request Payment for Invoice (RPI)',
+	    frame: true,
+	    width: 500,
+	    labelAlign: 'left',
+	    style: 'margin-top: 10px',
+	    items: [
+	            {
+	            layout:'column',
+	            items:[
+	                   {columnWidth:.390,
+	                    layout: 'form',
+	                	items: [
+	                	        {
+	                    	        fieldLabel: 'Work ID',
+	                    	        id: 'rpi-workid',
+	                    	        xtype:'textfield',
+	                        	    disabled: true,
+                                    style:"font-weight:bold;color:black",
+	                        	    width: 55
+	                	        },
+			        	        {fieldLabel: 'Product ID',
+						             id:'kode_brg_text',
+						             name:'kode_brg',
+						             allowBlank: false,
+						             xtype:"textfield",
+						             disabled: true,
+                                    style:"font-weight:bold;color:black",
+							         width: 75
+					             }
+
+	                	       ]
+	                   },
+	                   {columnWidth:.6,
+	                       layout: 'form',
+	                       labelWidth: 80,
+	                   		items: [
+								{
+								    layout:'column',
+								    items:[
+								           {columnWidth:.49,
+								            layout: 'form',
+								        	items: [
+						                           	{
+								            	        fieldLabel: 'Qty Request',
+								            	        xtype:'textfield',
+						                    	        id: 'rpi-qty',
+								            	        allowBlank : false,
+						                        	    width: 55,
+						                        	    style:"text-align:right",
+						                        	    enableKeyEvents: true,
+						                        	    listeners: {
+						                           			'blur': function(t) {
+								                           		if (!isNaN(t.getValue()))
+																{
+								                           			t.setValue(CommaFormatted(t.getValue()));
+																}
+								        	        		},
+								        	        		'focus': function(t) {
+									        	        		if (t.getValue().search(",")>0)
+																	t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+								        	        		},
+															'keyup' : function (t,e) {
+																cekQty(t.getValue());
+						                       				}
+						                           		}
+								        	        }]
+								           },
+								           {columnWidth:.3,
+									            layout: 'form',
+									        	items: [
+												           {
+															    hideLabel: true,
+															    id: 'uom_text',
+															    xtype:'textfield',
+															    disabled: true,
+                                                               style:"font-weight:bold;color:black",
+															    width: 30
+															}
+														]
+								           }
+							           ]
+								},
+								{
+								    layout:'column',
+								    items:[
+								           {columnWidth:.65,
+								            layout: 'form',
+								        	items: [
+							                    {
+							                    	fieldLabel:'Unit Price',
+							        			    id:'price_text',
+							        			    name: 'price',
+							        			    allowBlank: false,
+							        	            xtype: 'textfield',
+					                        	    style:"text-align:right;font-weight:bold;color:black",
+					                        	    width: 100,
+							        			    disabled:true
+							        		    }
+						        		    ]
+								           },
+											{columnWidth:.170,
+									            layout: 'form',
+									        	items: [
+												           {
+															    hideLabel: true,
+															    id: 'rpi-val',
+															    xtype:'textfield',
+                                                               style:"font-weight:bold;color:black",
+															    disabled: true,
+															    width: 40
+															}
+														]
+								           }
+										]
+								}
+
+			        	       ]
+	                   }
+	                   ]
+	            },
+	            {
+	            	fieldLabel:'Product Name',
+				    id:'nama_brg_text',
+				    name: 'nama_brg',
+				    allowBlank: false,
+		            xtype: 'textfield',
+			        width: 315,
+                    style:"font-weight:bold;color:black",
+				    disabled:true
+			    },{
+	            	fieldLabel:'PPN/Vat 10%',
+				    id:'ppn_vat_text',
+				    name: 'ppn_vat',
+				    allowBlank: false,
+		            xtype: 'textfield',
+			        width: 100,
+                    style:"font-weight:bold;color:black",
+				    disabled:true
+			    }
+
+	            ],
+	       buttons: [{
+				         text: 'Add to RPI List(Cart)',
+				         id: 'save-to-rpi',
+				         iconCls: 'icon-add',
+				         handler: function(btn, ev) {
+                                insertToRPI();
+
+					       },
+				         scope: this
+				         },
+				         {
+					         text: 'Cancel Add',
+					         id: 'cancel-to-rpi',
+					         iconCls: 'icon-cancel',
+					         handler: function(btn, ev) {
+
+					         if (btn.text == 'Cancel Edit')
+					         {
+
+					        	 	var gridrpi = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+                                    var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+//					        	 	var b = store.getAt(store.findExact('id', ori.data['id']));
+				         			if (orirpi != undefined)
+				         			{
+										orirpi.data['totalRPI'] = parseFloat(orirpi.data['totalRPI'].toString().replace(/\$|\,/g,'')) + parseFloat(orirpi.data['qty'].toString().replace(/\$|\,/g,''));
+                                        orirpi.data['totalPriceRPI'] = parseFloat(orirpi.data['totalPriceRPI'].toString().replace(/\$|\,/g,'')) + (parseFloat(orirpi.data['qty'].toString().replace(/\$|\,/g,'')*parseFloat(orirpi.data['harga'].toString().replace(/\$|\,/g,''))));
+										orirpi.data['status'] == '';
+                                         addEditedPO();
+				         			}
+
+					         }
+								clearRPIForm();
+								refreshGrid();
+								clearButton();
+								orirpi = undefined;
+						        ori = undefined;
+				         	},
+					         scope: this
+				         }
+
+	       			]
+	});
+
+	userGrid = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'PO Detail',
+	    height: 200,
+	    width: 800,
+	    stateful: false,
+        plugins: [expander, summary],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	        userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertpr',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+	userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'RPI List(Cart)',
+	    height: 200,
+	    width: 750,
+	    stateful: false,
+        plugins: [expander2, summary],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	    	userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertrpi',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+
+	var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        id: 'po-grid',
+        store: store,
+        columns : userColumns,
+        loadMask: true,
+        bbar: new Ext.PagingToolbar({
+            id: 'paging',
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })
+    });
+
+	var userGrids2 = new userGrid2({
+        renderTo: 'user-grid2',
+        id: 'rpi-grid',
+        store: storeRPI,
+        columns : userColumns2,
+        loadMask: true,
+        bbar: ['->',{
+             xtype: 'button',
+	         text: 'Save RPI List(Cart)',
+	         iconCls: 'icon-save',
+	         handler: function()
+	         {
+				if (storeRPI.getCount() == 0)
+				{
+					return false;
+				}
+
+	         	var json = '';
+	         	var parameter = '';
+	        	Ext.getCmp('rpi-grid').getStore().each(function(store){
+
+	            	json += Ext.util.JSON.encode(store.data) + ',';
+	            	});
+            	json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+            	//Get add. Data
+                var trano = '<?php echo $this->trano; ?>';
+            	var po_no = Ext.getCmp('po_no_text').getValue();
+            	var rpi_ket = Ext.getCmp('rpi_ket').getValue().replace(/\"|\'|\r|\n/g,' ');
+            	var ketin = Ext.getCmp('ketin_text').getValue().replace(/\"|\'|\r|\n/g,' ');
+            	var po_invoiced = Ext.getCmp('po_invoice_value').getValue().toString().replace(/\$|\,/g,'');
+            	var balance = Ext.getCmp('balance_value').getValue().toString().replace(/\$|\,/g,'');
+            	var ppn = Ext.getCmp('ppn_value').getValue().toString().replace(/\$|\,/g,'');
+            	var supKode = Ext.getCmp('sup_kode').getValue();
+            	var supNama = Ext.getCmp('sup_nama').getValue();
+            	var supInvoice = Ext.getCmp('sup_invoice_text').getValue().replace(/\"|\'/g,'');
+            	var rate = Ext.getCmp('rateidr').getValue();
+            	var invoice = Ext.getCmp('invoice-radio').getValue().getGroupValue();
+            	var vat = Ext.getCmp('vat-radio').getValue().getGroupValue();
+            	var dos = Ext.getCmp('do-radio').getValue().getGroupValue();
+            	var sign = Ext.getCmp('sign-radio').getValue().getGroupValue();
+
+				parameter = '[{"trano":"' + trano + '","po_no":"' + po_no + '", "sup_kode":"' + supKode + '", "sup_nama":"' + supNama + '", "sup_invoice":"' + supInvoice + '", "rate_idr":"' + rate + '", "invoice_radio":"' + invoice + '", "po_invoice":"' + po_invoiced + '", "balance":"' + balance + '", "rpi_ket":"' + rpi_ket + '", "ppn":"' + ppn + '", "vat_radio":"' + vat + '", "do_radio":"' + dos + '", "sign_radio":"' + sign + '", "ketin":"' + ketin + '"}]';
+            	params = {posts:json, etc:parameter};
+            	myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        	    myPanel.body.load({
+        	        url: '/procurement/procurement/apprpi/from/edit', //the url
+        	        scripts : true,
+        	        params: params //our params goes here
+                });
+	         },
+	         scope: this
+        	}
+                ,
+                {
+                xtype: 'button',
+	         text: 'Cancel RPI List(Cart)',
+	         iconCls: 'icon-cancel',
+	         handler: function (){
+		         	cancelRPIList();
+		         	},
+	         scope: this
+        	}
+                ]
+    });
+
+	init();
+	function cancelRPIList()
+	{
+		Ext.getCmp('po_no_text').enable();
+		Ext.getCmp('po-submit').enable();
+	    var teks = Ext.getCmp('po-form').findByType('textfield');
+	    Ext.each(teks, function(t, index) {
+	        t.setValue('');
+	    });
+	    Ext.getCmp('po_invoice_value').setValue('0');
+	    Ext.getCmp('po_value').setValue('0');
+	    Ext.getCmp('ppn_value').setValue('0');
+	    Ext.getCmp('balance_value').setValue('0');
+		var radio = Ext.getCmp('po-form').findByType('radiobutton');
+		Ext.each(radio, function(t, index) {
+		    t.setValue(true);
+		});
+		store.removeAll();
+		storeRPI.removeAll();
+		Ext.getCmp('po-grid').getView().refresh();
+		Ext.getCmp('rpi-grid').getView().refresh();
+	  	init();
+	}
+	 <?php
+    if ($this->json != '')
+    {
+    ?>
+		var jsonRPI = <?php echo $this->json ?>;
+		var jsonEtc = '<?php echo $this->etc ?>';
+		var etc = Ext.util.JSON.decode(jsonEtc);
+       
+		Ext.getCmp('sup_invoice_text').setValue(etc[0].sup_invoice);
+		Ext.getCmp('invoice-radio').setValue(etc[0].invoice_radio);
+		Ext.getCmp('vat-radio').setValue(etc[0].vat_radio);
+		Ext.getCmp('do-radio').setValue(etc[0].do_radio);
+		Ext.getCmp('sign-radio').setValue(etc[0].sign_radio);
+		storeRPI.loadData(jsonRPI);
+
+		Ext.getCmp('po_no_text').setValue('<?php echo $this->po_no ?>');
+		Ext.getCmp('ketin_text').setValue(etc[0].ketin);
+		Ext.getCmp('rpi_ket').setValue(etc[0].rpi_ket);
+		getPoDetail('<?php echo $this->po_no ?>');
+		submitPO();
+
+	<?php
+    }
+    ?>
+});
+</script>
+
+<div id="user-form"></div>
+
+<div id="user-grid"></div>
+<div id="separator">
+<div id="user-form2" style="float:left;"></div>
+<div class="sidebox" style="float:left;width:30em;">
+	<div class="boxhead"><h2>Available Qty & Total Price</h2></div>
+	<div class="boxbody" id="a-qty">
+
+	</div>
+</div>
+</div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

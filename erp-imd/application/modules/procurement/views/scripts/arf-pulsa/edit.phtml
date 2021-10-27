@@ -1,0 +1,490 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+
+    var grid, data;
+
+    Ext.Ajax.on('requestcomplete', function(connection, response, options) {
+// Check if this is a form upload
+        var form = Ext.getDom(options.form);
+        if (form && (options.isUpload || /multipart\/form-data/i.test(form.getAttribute("enctype")))) {
+// Check if the server returned an error
+// (here I assume that the server returns an error by setting the body id of the returned HTML page to "error")
+
+            var doc = response.responseXML;
+            if (doc && doc.body && /413 Request Entity Too Large/i.test(doc.body.innerHTML)) {
+// Call failure and callback
+                Ext.callback(options.failure, options.scope, [response, options]);
+                Ext.callback(options.callback, options.scope, [options, false, response]);
+// Stop original code from calling success and callback
+                delete options.success;
+                delete options.failure;
+            }
+        }
+    });
+
+    var uploadFile = new Ext.ux.uploadFile({
+        renderTo: 'upload-file',
+        width: 500,
+        frame: true
+    });
+
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        root: 'data',
+        fields: [
+            {name: 'prj_kode'},
+            {name: 'prj_nama'},
+            {name: 'sit_kode'},
+            {name: 'sit_nama'},
+            {name: 'kode_brg'},
+            {name: 'nama_brg'},
+            {name: 'workid'},
+            {name: 'workname'},
+            {name: 'qty'},
+            {name: 'harga'},
+            {name: 'total'},
+            {name: 'manager'},
+            {name: 'requester'},
+            {name: 'invalid'},
+            {name: 'invalid_msg'},
+            {name: 'trano'},
+            {name: 'trano_ref'},
+            {name: 'caption_id'}
+        ]
+    });
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        hideMode:"display",
+        actions:[
+            {
+                iconCls:'silk-delete',
+                qtip:'Delete',
+                id: 'delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    var rec = record;
+                    Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                            function(btn) {
+                                if (btn == 'yes')
+                                {
+                                    store.removeAt(row);
+                                }
+                            }
+                    );
+
+                }
+            },
+            {
+                iconCls:'silk-magnifier',
+                qtip:'Show Error Message',
+                callback: function (grid,record,action,row,col)
+                {
+                    if (record.get("invalid_msg") != '' && record.get("invalid_msg") != undefined)
+                        Ext.Msg.alert("Error Message",record.get("invalid_msg"));
+                }
+            }
+        ],
+        header: '',
+        width: 20
+    });
+
+    var store = new Ext.data.Store({
+        id: 'item-store',
+        reader: reader,
+        url: '/procurement/arf-pulsa/edit-get-data',
+        baseParams: {
+            json: '<?=$this->json?>'
+        },
+        autoLoad: true
+    });
+
+    var rowEditor = new Ext.ux.grid.RowEditor({
+        saveText: 'Update',
+        clicksToEdit: 1
+    });
+
+    rowEditor.on('beforecheckchanges',function(ed,rec) {
+        if (Ext.getCmp('uid_manager').getUid() != '')
+            rec.data["manager"] = Ext.getCmp('uid_manager').getUid();
+        if (Ext.getCmp('uid_requester').getUid())
+            rec.data["requester"] = Ext.getCmp('uid_requester').getUid();
+
+        if (Ext.getCmp('item-select').getKode())
+        {
+            rec.data["kode_brg"] = Ext.getCmp('item-select').getKode();
+            rec.data["nama_brg"] = Ext.getCmp('item-select').getName();
+        }
+    });
+
+    rowEditor.on('filtercell',function(ed, fields, rec){
+        Ext.each(fields, function (t, index){
+            if (t.id == 'uid_manager')
+            {
+                if (rec.get("manager"))
+                    Ext.getCmp('manager_text').setValue(rec.get("manager"));
+            }
+            if (t.id == 'uid_requester')
+            {
+                if (rec.get("requester"))
+                    Ext.getCmp('requester_text').setValue(rec.get("requester"));
+            }
+            if(t.id == 'item-select')
+            {
+                if (rec.get("kode_brg"))
+                    Ext.getCmp('kode_brg_text').setValue(rec.get("kode_brg"));
+            }
+        });
+    });
+
+    rowEditor.on('afteredit',function(ed,obj,rec,index){
+        var recs = store.getAt(index);
+
+        if (Ext.getCmp('uid_manager').getUid() != '')
+            recs.data["manager"] = Ext.getCmp('uid_manager').getUid();
+        if (Ext.getCmp('uid_requester').getUid())
+            recs.data["requester"] = Ext.getCmp('uid_requester').getUid();
+        if (recs.get("qty") < 0 || recs.get("harga") < 0)
+        {
+            ed.record.reject();
+            Ext.Msg.alert("Error","Qty or Price cannot be minus");
+            return false;
+        }
+
+        if (Ext.getCmp('item-select').getKode())
+        {
+            recs.data["kode_brg"] = Ext.getCmp('item-select').getKode();
+            recs.data["nama_brg"] = Ext.getCmp('item-select').getName();
+        }
+
+        var json = Ext.util.JSON.encode(recs.data);
+        json = '[' + json + ']';
+        var callback = function(record,result){
+            record.data["invalid"] = false;
+            record.data["invalid_msg"] = '';
+            record.data['total'] = parseFloat(record.data['qty']) * parseFloat(record.data['harga']);
+            ed.record.commit(); //Commit changes into store
+        };
+        Ext.Ajax.request({
+            url: '/procurement/arf-pulsa/cek-arf-pulsa',
+            method:'POST',
+            params: {json: json},
+            success: function(result, request){
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if(returnData.success) {
+                    callback(recs,returnData);
+                }
+                else
+                {
+                    ed.record.reject();
+                    Ext.Msg.alert("Error",returnData.msg);
+                    return false;
+                }
+            }
+            ,failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    },this);
+
+    rowEditor.on('stopedit', function(ed,fields,rec) {
+        Ext.getCmp('manager_text').setValue('');
+        Ext.getCmp('requester_text').setValue('');
+        Ext.getCmp('kode_brg_text').setValue('');
+    },this);
+
+    grid = new Ext.grid.GridPanel({
+        id: 'edit-grid',
+        store: store,
+        title: 'Edit ARF Pulsa',
+        autoWidth: true,
+        height: 400,
+        frame: true,
+        view: new Ext.grid.GridView({
+            enableRowBody:true,
+            forceFit: true,
+            getRowClass:function(record, rowIndex, p, store) {
+                if(record.get("invalid") == true)
+                    return 'x-grid3-row-with-body3';
+            }
+        }),
+        renderTo:'fi-grid',
+        tbar: [{
+            text: 'Refresh',
+            iconCls: 'silk-table-refresh',
+            handler: function(){
+                Ext.MessageBox.confirm('Confirm', 'This action will remove all changes on grid, Refresh data now?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                grid.getStore().reload();
+                            }
+                        }
+                );
+
+            },
+            scope: this
+        }],
+        buttons: [{
+            text: 'Submit',
+            iconCls: 'icon-save',
+            handler: function(){
+                if (grid.getStore().getCount() == 0)
+                    return false;
+                Ext.MessageBox.confirm('Confirm', 'This action will submit ARF Pulsa, The invalid items (marked with red row) will not submitted, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                var json='', stillInvalid = false, row = 1, errMsg = '';
+
+                                store.each(function(stores){
+                                    if (stores.get("invalid") != true)
+                                    {
+                                        var manager = stores.get("manager");
+                                        var requester = stores.get("requester");
+                                        if (manager == '' || manager == undefined)
+                                        {
+                                            stillInvalid = true;
+                                            errMsg = "Manager is still empty on row " + row;
+                                            return false;
+                                        }
+
+                                        if (requester == '' || requester == undefined)
+                                        {
+                                            stillInvalid = true;
+                                            errMsg = "Requester is still empty on row " + row;
+                                            return false;
+                                        }
+                                        var encode = Ext.util.JSON.encode(stores.data);
+                                        if (encode != undefined)
+                                            json += encode + ',';
+
+                                    }
+                                    row++;
+                                });
+
+                                if (stillInvalid)
+                                {
+                                    Ext.Msg.alert("Error",errMsg);
+                                    return false;
+                                }
+
+                                json = '[' + json.substring(0, json.length - 1) + ']';
+
+                                params = {
+                                    json:json,
+                                    file: uploadFile.getJSONFromStore(),
+                                    useOverride: true
+                                };
+
+                                var callback = function() {
+                                    store.sort([{ field : 'prj_kode', direction: 'ASC' },{ field : 'sit_kode', direction: 'ASC' }]);
+                                    Ext.MessageBox.show({
+                                        title: 'Comment',
+                                        msg: 'Please enter comment:',
+                                        width:300,
+                                        buttons: Ext.MessageBox.OK,
+                                        multiline: true,
+                                        fn: function(btn, text)
+                                        {
+                                            if (btn == 'ok')
+                                            {
+                                                params.comment = text;
+                                                Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                                Ext.Ajax.request ({
+                                                    url:'/procurement/arf-pulsa/update-arf-pulsa',
+                                                    method:'POST',
+                                                    params:params,
+                                                    success:function(result){
+                                                        Ext.getBody().unmask();
+                                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                                        if (obj.success)
+                                                        {
+                                                            Ext.Msg.alert ('Message','Success, Data has been saved and resubmitted into workflow');
+                                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                                            myPanel.body.load({
+                                                                url: '/procurement/arf-pulsa/add',
+                                                                scripts : true
+                                                            });
+                                                        }
+                                                    },
+                                                    failure:function( action){
+                                                        Ext.getBody().unmask();
+                                                        if(action.failureType == 'server'){
+                                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                                        }else{
+                                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+
+                                };
+
+                                Ext.Ajax.request({
+                                    url: '/procurement/arf-pulsa/cek-arf-pulsa',
+                                    method:'POST',
+                                    params: {
+                                        json: json
+                                    },
+                                    success: function(result, request){
+                                        var returnData = Ext.util.JSON.decode(result.responseText);
+                                        if(returnData.success) {
+                                            callback();
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert("Error",returnData.msg);
+                                            return false;
+                                        }
+                                    }
+                                    ,failure:function( action){
+                                        if(action.failureType == 'server'){
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                );
+
+            },
+            scope: this
+        },{
+            text: 'Cancel',
+            iconCls: 'icon-cancel',
+            handler: function(){
+                Ext.getCmp('form-file').enable();
+                Ext.getCmp('request-grid').getStore().removeAll();
+                Ext.getCmp('request-grid').disable();
+            }
+        }],
+        plugins: [rowEditor,rowactions],
+        columns: [
+            new Ext.grid.RowNumberer(),
+            rowactions,
+            {
+                header: 'Project',
+                dataIndex: 'prj_kode',
+                width: 100,
+                sortable: true
+            },{
+                header: 'Site',
+                dataIndex: 'sit_kode',
+                width: 80,
+                sortable: true
+            },{
+                header: 'Workid',
+                dataIndex: 'workid',
+                width: 80,
+                sortable: true
+            },{
+                header: 'Item',
+                dataIndex: 'kode_brg',
+                width: 120,
+                sortable: true,
+                renderer: function (v,p,r)
+                {
+                    return v + ' - ' + r.get("nama_brg");
+                },
+                editor: {
+                    xtype: 'itemselector',
+                    id: 'item-select',
+                    Selectid: 'kode_brg_text',
+                    Nameid: 'nama_brg_text',
+                    showName: false,
+                    editorInstance: rowEditor,
+                    SelectWidth: 100
+                }
+            },{
+                header: 'Qty',
+                dataIndex: 'qty',
+                width: 80,
+                sortable: true,
+                align: 'right',
+                renderer: function(v,p,r)
+                {
+                    return Ext.util.Format.number(v,'?0,000.0000');
+                },
+                editor: {
+                    xtype: 'numberfield',
+                    allowBlank: false,
+                    minValue: 0
+                }
+            },{
+                header: 'Price',
+                dataIndex: 'harga',
+                width: 100,
+                sortable: true,
+                align: 'right',
+                renderer: function(v,p,r)
+                {
+                    return Ext.util.Format.number(v,'?0,000.00');
+                },
+                editor: {
+                    xtype: 'numberfield',
+                    allowBlank: false,
+                    minValue: 0
+                }
+            },{
+                header: 'Total',
+                dataIndex: 'total',
+                width: 100,
+                sortable: true,
+                align: 'right',
+                renderer: function(v,p,r)
+                {
+                    return Ext.util.Format.number(v,'?0,000.00');
+                }
+            },{
+                header: 'Manager',
+                dataIndex: 'manager',
+                width: 100,
+                editor: {
+                    xtype: 'userselector',
+                    ShowName: false,
+                    id: 'uid_manager',
+                    UserSelectid: 'manager_text',
+                    editorInstance: rowEditor,
+                    width: 200
+                }
+            },{
+                header: 'Requester',
+                dataIndex: 'requester',
+                width: 100,
+                editor: {
+                    xtype: 'userselector',
+                    ShowName: false,
+                    id: 'uid_requester',
+                    UserSelectid: 'requester_text',
+                    editorInstance: rowEditor,
+                    width: 200
+                }
+            },{
+                header: 'Ket',
+                dataIndex: 'invalid_msg',
+                width: 170
+            }
+        ]
+    });
+
+    var jsonFile = <?=$this->file?>;
+    uploadFile.store.loadData(jsonFile);
+});
+</script>
+
+<div id="upload-file"></div>
+<br />
+<div id="fi-grid"></div>

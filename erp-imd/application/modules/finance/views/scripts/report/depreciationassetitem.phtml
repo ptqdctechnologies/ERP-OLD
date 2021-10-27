@@ -1,0 +1,451 @@
+<script type="text/javascript">
+
+    function showBarcode(text)
+    {
+        var MIF = new Ext.ux.ManagedIFramePanel({
+            border: false,
+            bodyBorder: false,
+            defaultSrc: '/extjs4/barcode/get-barcode/text/' + text,
+            autoScroll    : true
+        });
+
+        var win = new Ext.Window({
+            title: 'QR Code',
+            stateful: false,
+            layout: 'fit',
+            height: 250,
+            width: 200,
+            tbar: [
+                {
+                    xtype: 'tbbutton',
+                    text: 'Print',
+                    iconCls: 'silk-printer',
+                    handler: function(){
+                        var wins = window.open('/extjs4/barcode/get-barcode/text/' + text, '');
+                        //Print after a timeout to be cross-browser compatible.
+                        setTimeout(function() {
+                            wins.document.close();
+
+                            wins.print();
+                            wins.close();
+                        }, 1000);
+                    }
+                }
+            ],
+            items: [
+                MIF
+            ],
+            modal: true,
+            layout: 'fit'
+        });
+
+        win.show();
+    }
+
+    function viewdepreciation (token)
+    {
+        var storedepreciation = new Ext.data.Store ({
+
+            id:'store-depreciation',
+            url:'/finance/depreciationasset/getdepreciation/token/' + token,
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'token'
+                    },{
+                        name:'nilai'
+                    },{
+                        name:'periode'
+                    },{
+                        name:'tahun'
+                    }]
+                })
+
+        })
+
+        var summary = new Ext.ux.grid.GridSummary();
+
+        var griddepreciation = new Ext.grid.GridPanel ({
+
+            store:storedepreciation,
+            height:300,
+            viewConfig:{
+                forceFit:true
+            },
+            plugins:summary,
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Trano',
+                dataIndex:'trano',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Date',
+                dataIndex:'date',
+                sortable:true,
+                width:120,
+                align:'center',
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'PIC',
+                dataIndex:'uid',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Value',
+                dataIndex:'nilai',
+                sortable:true,
+                width:120,
+                align:'right',
+                renderer: function(v,p,r){
+                    var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                },
+                summaryType:'sum'
+            },{
+                header:'Periode',
+                dataIndex:'periode',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Years',
+                dataIndex:'tahun',
+                sortable:true,
+                width:120,
+                align:'center'
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-refnumber',
+                pageSize: 20,
+                store: storedepreciation,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+
+        var windowdepreciation = new Ext.Window ({
+
+            title:'Detail Depreciation Asset',
+            id:'window-insert',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 600,
+            height:332,
+            loadMask:true,
+            items:[griddepreciation]
+
+        })
+
+        windowdepreciation.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var fixedassetstore = new Ext.data.Store ({
+
+            id:'fixedasset-store',
+            url:'/logistic/fixedasset/getfixedasset',
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'code'
+                    },{
+                        name:'location'
+                    },{
+                        name:'storage'
+                    },{
+                        name:'clasification'
+                    },{
+                        name:'old_code'
+                    },{
+                        name:'marking_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'accessories'
+                    },{
+                        name:'brand'
+                    },{
+                        name:'type'
+                    },{
+                        name:'serial_number'
+                    },{
+                        name:'description'
+                    },{
+                        name:'purchase_status'
+                    },{
+                        name:'purchase_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'condition'
+                    },{
+                        name:'val_kode'
+                    },{
+                        name:'purchase_price'
+                    },{
+                        name:'depr_rate'
+                    },{
+                        name:'depr_exp'
+                    },{
+                        name:'input_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'id'
+                    },{
+                        name:'token'
+                    },{
+                        name:'status_aktif'
+                    },{
+                        name:'total_depr'
+                    },{
+                        name:'book_value'
+                    }]
+                })
+
+        })
+
+        var fixedassetgrid = new Ext.grid.GridPanel ({
+
+                    store:fixedassetstore,
+                    height:400,
+                    frame:true,
+                    title:'Fixed Asset Depreciation By Items',
+                    id:'fixed-asset-list',
+                    renderTo:'fixed_asset_list',
+                    columns:[
+                        new Ext.grid.RowNumberer(),{
+                            header: "Action",
+                            width: 40,
+                            dataIndex: 'id',
+                            css:'text-align:center;',
+                            renderer: function (v,p,r) {
+                                return '<a href="#" onclick="viewdepreciation(\'' + r.data['token'] + '\')"><img src="/images/application_go.png"></a>';
+//                                &nbsp;<a href="#" onclick="showBarcode(\'' + r.data['token'] + '\')"><img src="/images/search-icon.png"></a>';
+                            }
+                        },{
+                            header: 'Code',
+                            dataIndex: 'code',
+                            width: 100,
+                            sortable: true
+                        },
+//                            {
+//                            header: 'Location',
+//                            dataIndex: 'location',
+//                            width: 100,
+//                            sortable: true
+//                        },
+                            {
+                            header: 'Storage',
+                            dataIndex: 'storage',
+                            width: 100,
+                            sortable: true
+                        },
+//                            {
+//                            header: 'Clasification',
+//                            dataIndex: 'clasification',
+//                            width: 100,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Code Part Old',
+//                            dataIndex: 'old_code',
+//                            width: 120,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Purchase date',
+//                            dataIndex: 'marking_date',
+//                            width: 80,
+//                            sortable: true,
+//                            renderer: Ext.util.Format.dateRenderer('d M Y')
+//                        },{
+//                            header: 'Accessories',
+//                            dataIndex: 'accessories',
+//                            width: 160,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Brand',
+//                            dataIndex: 'brand',
+//                            width: 80,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Type',
+//                            dataIndex: 'type',
+//                            width: 80,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Serial Number',
+//                            dataIndex: 'serial_number',
+//                            width: 80,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Description',
+//                            dataIndex: 'description',
+//                            width: 160,
+//                            sortable: true
+//                        },
+//                            {
+//                            header: 'Purchase Status',
+//                            dataIndex: 'purchase_status',
+//                            width: 100,
+//                            sortable: true
+//                        },
+                            {
+                            header: 'Purchase Date',
+                            dataIndex: 'purchase_date',
+                            width: 80,
+                            sortable: true,
+                            renderer: Ext.util.Format.dateRenderer('d M Y')
+                        },
+                            {
+                            header: 'Condition',
+                            dataIndex: 'condition',
+                            width: 80,
+                            sortable: true
+                        },
+                            {
+                            header: 'Asset Status',
+                            dataIndex: 'status_aktif',
+                            width: 80,
+                            sortable: true
+                        },
+                            {
+                            header: 'Purchase Price',
+                            dataIndex: 'purchase_price',
+                            width: 100,
+                            sortable: true,
+                            align:'right',
+                            renderer: function(v,p,r){
+                                var value = Ext.util.Format.number(v,'?0,000.00');
+                                return value;
+                            }
+                        },{
+                            header: 'Total Depreciation',
+                            dataIndex: 'total_depr',
+                            width: 100,
+                            sortable: true,
+                            align:'right',
+                            renderer: function(v,p,r){
+                                var value = Ext.util.Format.number(v,'?0,000.00');
+                                return value;
+                            }
+                        },{
+                            header: 'Book Value',
+                            dataIndex: 'book_value',
+                            width: 100,
+                            sortable: true,
+                            align:'right',
+                            renderer: function(v,p,r){
+                                var value = Ext.util.Format.number(v,'?0,000.00');
+                                return value;
+                            }
+                        }
+                        ],
+                        bbar:new Ext.PagingToolbar ({
+                            id: 'paging-fixedasset',
+                            pageSize: 20,
+                            store: fixedassetstore,
+                            displayInfo: true,
+                            displayMsg: 'Displaying data {0} - {1} of {2}',
+                            emptyMsg: "No data to display"
+                        }),
+                        tbar:[{
+                                text:'Search By',
+                                xtype:'label',
+                                style:'margin-left:5px'
+                            },'-',{
+                                xtype: 'combo',
+                                width: 100,
+                                allowBlank: false,
+                                store: new Ext.data.SimpleStore({
+                                    fields:['name','nilai'],
+                                    data:[
+                                            ['Code','code'],
+                                            ['Location','location'],
+                                            ['Storage','storage'],
+                                            ['Clasification','clasification'],
+                                            ['Brand','brand'],
+                                            ['Description','description']
+                                        ]
+                                }),
+                                valueField:'nilai',
+                                displayField:'name',
+                                typeAhead: true,
+                                forceSelection: true,
+                                editable: false,
+                                mode: 'local',
+                                triggerAction: 'all',
+                                selectOnFocus: true,
+                                value:'Code',
+                                id:'option'
+                            },'-',{
+                                xtype:'textfield',
+                                id:'search',
+                                enableKeyEvents:true,
+                                width:140,
+                                listeners:{
+                                    'keyup' : function (txttext,event)
+                                    {
+                                        var txttext = txttext.getValue();
+                                        if (txttext != "" && txttext.toString().length >= 3)
+                                        {
+                                            var option = Ext.getCmp('option').getValue();
+                                            var search = Ext.getCmp('search').getValue();
+
+                                            fixedassetstore.proxy.url= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                                            fixedassetstore.proxy.setUrl('/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option);
+                                            fixedassetstore.proxy.api.read['url']= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                                            fixedassetstore.load();
+                                            fixedassetgrid.getView().refresh();
+                                        }
+                                    }
+                                }
+                            },'-',{
+                                xtype: 'button',
+                                text : 'Refresh',
+                                id: 'refresh_button',
+                                iconCls:"silk-table-refresh" ,
+                                handler:function(btn,ev)
+                                {
+                                    Ext.getCmp('search').setValue('');
+                                    Ext.getCmp('option').setValue('Code');
+                                    fixedassetstore.proxy.url= '/logistic/fixedasset/getfixedasset';
+                                    fixedassetstore.proxy.setUrl('/logistic/fixedasset/getfixedasset');
+                                    fixedassetstore.proxy.api.read['url']= '/logistic/fixedasset/getfixedasset';
+                                    fixedassetstore.load();
+                                    fixedassetgrid.getView().refresh();
+                                }
+                            }]
+                })
+
+
+    })
+
+
+
+</script>
+
+<div id="fixed_asset_list"></div>

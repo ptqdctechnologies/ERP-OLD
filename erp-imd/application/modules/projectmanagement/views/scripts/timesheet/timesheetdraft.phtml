@@ -1,0 +1,138 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id'},
+        {name: 'date', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'date_update', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'start', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'end', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'prj_kode', type: 'string'},
+        {name: 'sit_kode', type: 'string'},
+        {name: 'notes', type: 'string'},
+        {name: 'behalfof', type: 'string'},
+        {name: 'hour', type: 'integer'}
+
+    ]);
+
+    var store = new Ext.data.Store({
+        id: 'draft_list',
+        url: '/projectmanagement/timesheet/getdrafttimesheet',
+        reader: reader
+    });
+
+    store.load();
+
+    var cekgrid = new Ext.grid.CheckboxSelectionModel()
+
+    var userColumns = [
+        cekgrid,
+        new Ext.grid.RowNumberer(),
+        {header: "Project", width: 70, sortable: true, dataIndex: 'prj_kode'},
+        {header: "Site", width: 50, sortable: true, dataIndex: 'sit_kode'},
+        {header: "Date Created", width: 80, sortable: true, dataIndex: 'date',renderer: Ext.util.Format.dateRenderer('d M Y')},
+        {header: "Start Date", width: 120, sortable: true, dataIndex: 'start',renderer: Ext.util.Format.dateRenderer('d M Y H:i:s')},
+        {header: "End Date", width: 120, sortable: true, dataIndex: 'end',renderer: Ext.util.Format.dateRenderer('d M Y H:i:s')},
+        {header: "Hours", width: 70, sortable: true, dataIndex: 'hour',align: 'right',renderer: function(value, p, row){
+                return value + ' Hours';
+        }},
+        {header: "Notes", width: 190, sortable: true, dataIndex: 'notes',renderer: function(v, p, r){
+            p.attr ='ext:qtip="' + v + '"';
+            return v.toString().substr(0,25) + " ...";
+        }},
+        {header: "On Behalf Of", width: 120, sortable: true, dataIndex: 'behalfof'}
+    ];
+
+    submitSelected = function(){
+        var stores = Ext.getCmp('draft-timesheet').getSelectionModel().getSelections();
+        var json = '';
+        Ext.each(stores,function(store){
+            json += Ext.util.JSON.encode(store.data) + ',';
+        });
+        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+        params = {posts:json};
+        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        myPanel.body.load({
+            url: '/projectmanagement/timesheet/apptimesheet/fromdraft/true', //the url
+            scripts : true,
+            params: params //our params goes here
+        });
+    };
+
+    submitAll = function(){
+        params = {alldraft: true};
+        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        myPanel.body.load({
+            url: '/projectmanagement/timesheet/apptimesheet/fromdraft/true', //the url
+            scripts : true,
+            params: params //our params goes here
+        });
+    }
+
+    new Ext.Panel ({
+        id: 'app-center',
+        renderTo: 'drafts',
+        title: 'My Timesheet Drafts',
+        stateful: false,
+        frame: true,
+        viewConfig: {
+            forceFit: false
+        },
+        fbar: [
+            '->',
+            {
+                text: 'Submit Selected Drafts Into Workflow',
+                iconCls: 'icon-save',
+                disabled: false,
+                handler: submitSelected,
+                scope: this
+            },
+            {
+                text: 'Submit All Draft Into Workflow',
+                iconCls: 'icon-save',
+                disabled: false,
+                handler: submitAll,
+                scope: this
+            }
+        ],
+        items: [
+            new Ext.grid.GridPanel({
+                id: 'draft-timesheet',
+                stateful: false,
+                height: 400,
+                store: store,
+                sm: cekgrid,
+                columns: userColumns,
+                plugins: [
+                    new Ext.ux.grid.Search({
+                        iconCls:'silk-magnifier',
+                        width: 150,
+                        store: store,
+                        minChars:4,
+                        position: 'top',
+                        autoFocus:true,
+                        mode:'remote'
+        //                disableIndexes:['name','status']
+                    })
+                ],
+                tbar: [],
+                bbar: new Ext.PagingToolbar({
+                    id: 'pagingShowDraft',
+                    pageSize: 100,
+                    store: store,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            })
+        ]
+
+         
+    });
+});
+</script>
+        
+        <div id="drafts"></div>

@@ -1,0 +1,168 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+
+    var windowForm = new Ext.Panel({
+
+        title:'General Journal Report',
+        id: 'abs-budget-panel',
+        layout: 'fit',
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        loadMask: true,
+        minWidth: 300,
+        minHeight: 200,
+        tbar: [
+            {
+                xtype:'label',
+                text:'COA Code'
+            },'-',
+            {
+                xtype:'coaselector',
+                fieldLabel:'Chart Of Account',
+                id:'coa_kodes',
+                Selectid:'coa_kode_text',
+                Nameid:'coa_nama_text',
+//                    width:180,
+                ShowName: false
+            },
+            {
+                xtype: 'label',
+                text: 'Project'
+            },'-',
+            {
+                xtype: 'projectselectorreport',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: false,
+                showAll: true
+            },
+            {
+                xtype:'label',
+                text:'Month & Year'
+            },'-',{
+                xtype:'datefield',
+                name: 'month',
+                id: 'month',
+                allowBlank:false,
+                msgTarget:'side',
+                format: 'm-Y', // or other format you'd like
+                plugins: 'monthPickerPlugin'
+            },
+            '-',
+
+            {
+                xtype: 'button',
+                text: 'Reset',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/lov_refresh.gif",
+                handler: function(){
+                    Ext.getCmp('prj_kode_text').setValue('');
+                    Ext.getCmp('coa_kode_text').setValue('');
+                    Ext.getCmp('month').setValue('');
+                }
+            },
+            {
+                xtype: 'button',
+                text: 'Show',
+                width:70,
+                id: 'show_report',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function(btn,ev)
+                {
+                    detail = false;
+                    var month = Ext.getCmp('month').getValue();
+                    var D = Ext.calendar.Date;
+                    month = D.formatDate(month,'yyyy-mm');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/report/viewgeneraljournal',
+                        params: {
+                            prj_kode : Ext.getCmp('prj_kode_text').getValue(),
+                            coa_kode : Ext.getCmp('coa_kode_text').getValue(),
+                            month: month
+                        },
+                        scripts : true
+                    });
+                }
+            },'-',
+            {
+                xtype: 'button',
+                text: 'Show Detail',
+                width:70,
+                id: 'show_report_all',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function(btn,ev)
+                {
+                    detail = true;
+                    var month = Ext.getCmp('month').getValue();
+                    var D = Ext.calendar.Date;
+                    month = D.formatDate(month,'yyyy-mm');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/report/view-general-journal-trans',
+                        params: {
+                            prj_kode : Ext.getCmp('prj_kode_text').getValue(),
+                            coa_kode : Ext.getCmp('coa_kode_text').getValue(),
+                            month: month
+                        },
+                        scripts : true
+                    });
+                }
+            },
+            '-',
+            {
+                xtype: 'button',
+                id: 'export_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/print.png",
+                handler:function()
+                {
+                    if (!detail)
+                    {
+                        var prj_kode = Ext.getCmp('prj_kode_text').getValue(),
+                            coa_kode = Ext.getCmp('coa_kode_text').getValue();
+
+                        var month = Ext.getCmp('month').getValue();
+                        var D = Ext.calendar.Date;
+                        month = D.formatDate(month,'yyyy-mm');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+
+                        location.href = '/finance/report/viewgeneraljournal/export/true/prj_kode/' + prj_kode + '/coa_kode/' + coa_kode + '/month/' + month;
+
+                    }
+                    else
+                    {
+                        var prj_kode = Ext.getCmp('prj_kode_text').getValue(),
+                            coa_kode = Ext.getCmp('coa_kode_text').getValue();
+
+                        var month = Ext.getCmp('month').getValue();
+                        var D = Ext.calendar.Date;
+                        month = D.formatDate(month,'yyyy-mm');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        location.href = '/finance/report/view-general-journal-trans/export/true/prj_kode/' + prj_kode + '/coa_kode/' + coa_kode + '/month/' + month;
+
+                    }
+                }
+            }
+        ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+})
+
+
+</script>

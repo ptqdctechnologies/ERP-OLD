@@ -1,0 +1,405 @@
+
+<script type="text/javascript">
+
+
+
+    Ext.onReady(function(){
+
+      
+
+        var json = '<?=$this->json?>';
+        var trano = '<?=$this->trano?>';
+        var theData = Ext.util.JSON.decode(json);
+
+        var datalist = Ext.data.Record.create(
+            [
+                {name:'budgetid'},
+                {name:'budgetname'},
+                {name:'coa_kode'},
+                {name:'coa_nama'},
+                {name:'total'},
+                {name:'val_kode'},
+                {name:'rateidr'}
+            ]);
+
+        var reader = new Ext.data.JsonReader ({
+                root:'data',
+                fields:datalist
+            })
+
+
+        var store = new Ext.data.Store({
+          
+            id: 'temp-ohbudget-store',
+            reader:reader
+        });
+        store.loadData(theData);
+
+        function hitungTotal ()
+        {
+            totjumIDR = 0;
+            totjumUSD = 0;
+
+            store.each(function(items){
+
+                if (items.data['val_kode'] == 'IDR')
+                    totjumIDR += parseFloat(items.data['total']);
+                else
+                    totjumUSD += parseFloat(items.data['total']);
+
+            });
+
+            Ext.getCmp('textTotalIDR').setText('Grand Total IDR ' + Ext.util.Format.number(totjumIDR, '0,0'));
+            Ext.getCmp('textTotalUSD').setText('Grand Total USD ' + Ext.util.Format.number(totjumUSD, '0,0'));
+
+        }
+
+        var editor = new Ext.ux.grid.RowEditor ({
+            saveText:'Update',
+//            clicksToEdit:1,
+            listeners:{
+                'afteredit':function(ed,obj,rec,index)
+                {
+                    ed.record.commit();
+                    hitungTotal();
+                },
+                'filtercell' : function(rowEditor, fields, record){
+               Ext.each(fields, function (t, index){
+                    if (t.id == 'rate_text')
+                    {
+                        if (record.data['val_kode'] == 'IDR')
+                            t.setVisible(false);
+                        else
+                            t.setVisible(true);
+                    }
+               });
+            }
+            }
+
+        });
+
+        editor.on(
+		'canceledit'
+		,function(roweditor, forced){
+			if(forced){
+				var record = store.getAt(0);
+//				if(record.get('budgetid') === ' '){
+//					store.remove(record);
+//					grid.getView().refresh();
+//				}
+			}
+		}
+		,this
+	    );
+
+        var rowactions = new Ext.ux.grid.RowActions ({
+            actions:[
+                {
+                    iconCls:'icon-edit',
+                    qtip:'Edit',
+                    id:'edit',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        editor.startEditing(row,false);
+                    }
+                },{
+                    iconCls:'icon-delete',
+                    qtip:'Delete',
+                    callback:function(grid,record,action,row,col)
+                    {
+                        Ext.MessageBox.confirm('Confirm','This action will delete this item, Proceed?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    if (record)
+                                    {
+                                        store.remove(record);
+                                        totJum = 0;
+                                        grid.getView().refresh();
+                                        hitungTotal();
+                                    }
+                                }
+                            }
+                                );
+                    }
+                }
+            ],
+            index:'actions',
+            header:''
+        })
+
+        var datas = new Ext.data.SimpleStore({
+        fields:['type','name']
+        ,data:[['USD','USD'],['IDR','IDR']]
+        });
+
+        var grid = new Ext.grid.GridPanel ({
+
+            store: store,
+            id:'ohbudget-grid',
+
+            frame:true,
+//            width: 800,
+            height: 400,
+
+//            view: new Ext.grid.GridView({
+//                forceFit: false
+//            }),
+
+            viewConfig:{
+                forceFit:true  
+            },
+
+            listeners: {
+            'afterrender': function(t){
+                hitungTotal();
+                }
+            },
+
+            plugins:[editor,rowactions],
+
+            columns:[
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header:'BUDGET ID',
+                    dataIndex:'budgetid',
+                    align:'center',
+                    sortable:true,
+                    editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+                            }
+                },{
+                    header:'BUDGET NAME',
+                    dataIndex:'budgetname',
+                    align:'center',
+                    sortable:true,
+                    editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+                            }
+                },{
+                    header:'COA KODE',
+                    dataIndex:'coa_kode',
+                    align:'center',
+                    sortable:true,
+                    editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+                            }
+                },{
+                    header:'COA NAME',
+                    dataIndex:'coa_nama',
+                    align:'center',
+                    sortable:true,
+                    editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+                            }
+                },{
+                      xtype: 'numbercolumn',
+                      header: 'Exchange Rate',
+                      dataIndex: 'rateidr',
+                      align: 'right',
+                      width: 80,
+                      renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                        },
+                      sortable: true,
+                      editor: {
+                          xtype: 'numberfield',
+                          id: 'rate_text',
+                          allowBlank: false,
+                          minValue: 0
+                      }
+                  },{
+                      header: 'VALUTA',
+                      dataIndex: 'val_kode',
+                      sortable: true,
+                      align:'center',
+                      editor:
+                        {
+                          xtype: 'combo'
+                          ,store: datas
+                          ,valueField:'type'
+                          ,displayField:'name'
+                          ,typeAhead: true
+                          ,mode: 'local'
+                          ,triggerAction: 'all'
+                          ,selectOnFocus:true
+                          ,hiddenName:'type'
+                          ,editable: false
+                          ,listeners: {
+                            'select': function(t,n,o){
+                                if (t.getValue() == 'IDR')
+                                {
+                                    Ext.getCmp('rate_text').setValue(0);
+                                    Ext.getCmp('rate_text').setDisabled(true);
+                                    Ext.getCmp('rate_text').setVisible(false);
+                                }
+                                else
+                                {
+                                    var valus = parseFloat(Ext.getCmp('rate_text').getValue());
+                                    if (valus == 0)
+                                        getExchangeRate();
+                                    Ext.getCmp('rate_text').setDisabled(false);
+                                    Ext.getCmp('rate_text').setVisible(true);
+                                }
+                            }
+                          }
+                        }
+                },{
+                    xtype:'numbercolumn',
+                    header:'TOTAL',
+                    dataIndex:'total',
+                    align:'right',
+                    sortable:true,
+                    editor: {
+                          xtype: 'numberfield',
+                          allowBlank: false,
+                          minValue: 0
+                      },
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                        }
+                }
+            ],
+            tbar:[
+                {
+                    iconCls: 'icon-add-new',
+                    text: 'Add New Item',
+                    handler:function()
+                    {
+                        var insertdata = new datalist ({
+                            trano:trano,
+                            tgl:new Date().format('Y-m-d H:i:s'),
+                            budgetid:'',
+                            budgetname:'',
+                            coa_kode:'',
+                            coa_name:'',
+                            total:0,
+                            urut:store.getCount()+1
+                        });
+                        editor.stopEditing();
+                        store.insert(0, insertdata);
+                        grid.getView().refresh();
+                        grid.getSelectionModel().selectRow(0);
+                        editor.startEditing(0);
+                    }
+                },'-',{
+                    text: 'Refresh',
+                    iconCls: 'silk-table-refresh',
+                    handler: function(){
+                        Ext.MessageBox.confirm('Confirm', 'This action will remove all changes on grid, Refresh data now?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    grid.getStore().removeAll();
+                                    grid.getStore().loadData(theData);
+                                    hitungTotal();
+//                                    grid.getView().refresh();
+//                                    grid.getStore().doRefresh();
+//                                    Ext.getCmp('ohbudget-grid').doRefresh();
+                                }
+                            }
+                        );
+
+                    },
+                    scope: this
+                }
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'gtotal-bbar',
+                style:"text-align:right",
+                items: [
+                        {
+                         style:'margin-right:14',
+                         xtype: 'label',
+                         id: 'textTotalIDR'
+                        },'-',{
+                            style:'margin-right:14',
+                             xtype: 'label',
+                             id: 'textTotalUSD'
+                        }
+                    ],
+                layout: 'fit'
+            })
+
+        })
+
+        var panel = new Ext.Panel ({
+
+            title:'Edit Existing Temporary Overhead Budget',
+            renderTo:'edit-temp-oh-budget',
+            frame:true,
+            items:[
+                grid
+            ],
+            buttons:[
+                {
+                    text:'Save',
+                    iconCls:'icon-save',
+                    handler:function()
+                    {
+                        var json = '';
+                        grid.getStore().each(function(store){
+                            var encode = Ext.util.JSON.encode(store.data);
+                            if (encode != undefined)
+                                json += encode + ',';
+                        });
+                        json = '[' + json.substring(0, json.length - 1)+ ']';
+                        var header = '[{"trano":"<?=$this->trano?>","prj_kode":"<?=$this->prjKode?>","prj_nama":"<?=$this->prjNama?>", "sit_kode":"<?=$this->sitKode?>", "sit_nama":"<?=$this->sitNama?>"}]';
+                        params = {posts:json,trano:trano,etc:header};
+                        mypanel = Ext.getCmp('abs-budget-panel');
+                        mypanel.body.load ({
+                            url:'/projectmanagement/budget/apptemporaryohbudget/from/edit',
+                            scripts: true,
+                            params:params
+                        });
+
+                    }
+                },{
+                    text:'Cancel',
+                    iconCls:'icon-cancel',
+                    handler:function()
+                    {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url:'/default/home/showprocessdocument/',
+                            scripts:true
+                        })
+                    }
+                }
+            ]
+
+        })
+
+
+    })
+
+    function getExchangeRate()
+{
+	Ext.Ajax.request({
+	    url: '/default/valuta/getexchangerate',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if(returnData.success) {
+					Ext.getCmp('rate_text').setValue(returnData.rate);
+				}
+			}
+			,failure:function( action){
+		if(action.failureType == 'server'){
+	    obj = Ext.util.JSON.decode(action.response.responseText);
+	    Ext.Msg.alert('Error!', obj.errors.reason);
+		}
+		}
+	});
+}
+
+</script>
+
+    <div id="edit-temp-oh-budget"></div>

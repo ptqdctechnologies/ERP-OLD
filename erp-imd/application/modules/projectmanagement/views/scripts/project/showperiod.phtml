@@ -1,0 +1,458 @@
+<script type="text/javascript">
+
+    var proxy = new Ext.data.HttpProxy({
+        api: {
+            read: '/default/site/list',
+            create: '/projectmanagement/project/createsite'
+        }
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        successProperty: 'success',
+        idProperty: 'id',
+        messageProperty: 'message',
+        root: 'posts'
+    },[
+        {name:'id'},
+        {name:'prj_kode'},
+        {name:'prj_nama'},
+        {name:'sit_kode'},
+        {name:'sit_nama'},
+        {name:'ket'},
+        {name:'stsoverhead'}
+    ]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: true
+});
+
+var store = new Ext.data.Store({
+    id: 'user-store',
+    proxy: proxy,
+    reader: reader,
+    writer: writer
+
+});
+
+store.load();
+
+var textField = new Ext.form.TextField();
+
+var userColumns = [
+    new Ext.grid.RowNumberer(),
+    {header: "Site Code", width: 100, sortable: true, dataIndex: 'sit_kode'},
+    {header: "Site Name", width: 200, sortable: true, dataIndex: 'sit_nama'},
+    {header: "Project Code", width: 100, sortable: true, dataIndex: 'prj_kode'},
+    //{header: "Project Name", width: 200, sortable: true, dataIndex: 'prj_nama'},
+    {header: "Description", width: 200, sortable: true, dataIndex: 'ket'},
+     {header: "Status Overhead", width: 200, sortable: true, dataIndex: 'stsoverhead'}
+];
+
+userForm = new Ext.extend(Ext.form.FormPanel, {
+    iconCls: 'silk-user',
+    frame: true,
+    id: 'user-forms',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Add New Site',
+    width: 400,
+    defaults: {
+        anchor: '100%'
+    }
+    ,
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    }
+    ,
+     buildForm : function() {
+        return [
+            {xtype:'trigger',fieldLabel: 'Project Code',id:'prj_kode_text',name: 'prj_kode', triggerClass: 'search-button',
+                onTriggerClick: function( ){
+				projectPopUphandler();
+				},
+                editable: false,
+				allowBlank: true
+			},
+			{fieldLabel: 'Project Name',id:'prj_nama_text', xtype: 'textfield',readOnly: true},
+            {fieldLabel: 'Site Code',id:'sit_kode',name: 'sit_kode', xtype: 'textfield',allowBlank:false},
+			{fieldLabel: 'Site Name',id:'sit_nama',name: 'sit_nama', xtype: 'textfield',allowBlank:false},
+            {fieldLabel: 'Description',id:'ket',name: 'ket', xtype: 'textfield'},
+            {
+            xtype:'checkbox', id:'stsoverhead', name:'stsoverhead',  fieldLabel:'Status Overhead',
+            trueText: '1',
+            falseText: '0'
+            },
+            {
+                 fieldLabel : 'Periode Type',
+                 id:'type_text',
+                 name: 'tujuan',
+                 xtype: 'combo',
+                 width: 150,
+                 allowBlank: false,
+                 store: new Ext.data.SimpleStore({
+                            fields:['type','name'],
+                            data:[['Y','Yearly'],['Q','Quartal'],['M','Monthly']]
+                 }),
+                 valueField:'type',
+                 displayField:'name',
+                 typeAhead: true,
+                 forceSelection: true,
+                 editable: false,
+                 mode: 'local',
+                 triggerAction: 'all',
+                 selectOnFocus: true,
+                 emptyText: 'Select Type',
+                 listeners : {
+                    'select' : function (c,store, index){
+
+                                var data = store.data['type'];
+                                if (data == 'Y')
+                                {
+                                    Ext.getCmp('fieldset-wh').setVisible(true);
+                                    Ext.getCmp('fieldset-wh2').setVisible(false);
+                                    Ext.getCmp('fieldset-site').setVisible(true);
+                                    Ext.getCmp('fieldset-sup').setVisible(false);
+                                    Ext.getCmp('receiver_text').enable();
+                                    Ext.getCmp('receiver_phone_text').enable();
+                                }
+                                else if (data == 'Q')
+                                {
+                                    Ext.getCmp('fieldset-wh').setVisible(true);
+                                    Ext.getCmp('fieldset-wh2').setVisible(true);
+                                    Ext.getCmp('fieldset-site').setVisible(false);
+                                    Ext.getCmp('fieldset-sup').setVisible(false);
+                                    Ext.getCmp('receiver_text').disable();
+                                    Ext.getCmp('receiver_phone_text').disable();
+                                }
+                                else if (data == 'M')
+                                {
+                                    Ext.getCmp('fieldset-sup').setVisible(true);
+                                    Ext.getCmp('fieldset-wh2').setVisible(false);
+                                    Ext.getCmp('fieldset-wh').setVisible(false);
+                                    Ext.getCmp('fieldset-site').setVisible(true);
+                                    Ext.getCmp('receiver_text').enable();
+                                    Ext.getCmp('receiver_phone_text').enable();
+                                }
+
+                    }
+                 }
+            },
+            {
+                layout:'column',
+                items:[
+                       {
+                            columnWidth:.400,
+                            layout: 'form',
+                            items: [
+                                {
+                                        xtype: 'fieldset',
+                                        id: 'fieldset-wh',
+                                        title: 'Warehouse Detail',
+                                        itemId: 'fieldset-item-wh',
+                                        width: 300,
+                                        hidden:true,
+                                        items: [
+                                            {
+                                                 fieldLabel : 'Warehouse',
+                                                 id:'gudang_select_text',
+                                                 name: 'tujuan',
+                                                 xtype: 'combo',
+                                                 width: 130,
+                                                 allowBlank: false,
+                                                 store: new Ext.data.Store({
+                                                            proxy: new Ext.data.HttpProxy({
+                                                                url: '/delivery/list'
+                                                            }),
+                                                            reader: new Ext.data.JsonReader({
+                                                                totalProperty: 'count',
+                                                                root: 'posts'
+                                                            }, [{
+                                                                    name: 'gdg_nama'
+                                                                }, {
+                                                                    name: 'gdg_kode'
+                                                                }, {
+                                                                    name: 'alamat1'
+                                                            }])
+                                                    }),
+                                                 valueField:'gdg_kode',
+                                                 displayField:'gdg_nama',
+                                                 typeAhead: true,
+                                                 forceSelection: true,
+                                                 editable: false,
+                                                 mode: 'remote',
+                                                 triggerAction: 'all',
+                                                 selectOnFocus: true,
+                                                 emptyText: 'Select Warehouse',
+                                                 listeners : {
+                                                    'select' : function (c,store, index){
+
+                                                                var data = store.data['alamat1'];
+                                                                Ext.getCmp('gudang_text').setValue(data);
+
+                                                    }
+                                                 }
+                                            },
+                                            {
+                                                fieldLabel: 'Address',
+                                                id: 'gudang_text',
+                                                xtype:'textarea',
+                                                disabled: true,
+                                                width: 150,
+                                                height: 80
+                                            }
+                                        ]
+                                },
+                                {
+                                        xtype: 'fieldset',
+                                        id: 'fieldset-sup',
+                                        title: 'Supplier Detail',
+                                        itemId: 'fieldset-item-sup',
+                                        hidden:true,
+                                        width: 300,
+                                        items: [
+                                            {
+                                                 fieldLabel : 'Suppiler',
+                                                 id:'supplier_select_text',
+                                                 xtype: 'combo',
+                                                 width: 170,
+                                                 allowBlank: false,
+                                                 store: new Ext.data.Store({
+                                                            proxy: new Ext.data.HttpProxy({
+                                                                url: '/suplier/listall'
+                                                            }),
+                                                            reader: new Ext.data.JsonReader({
+                                                                totalProperty: 'count',
+                                                                root: 'posts'
+                                                            }, [{
+                                                                    name: 'sup_nama'
+                                                                }, {
+                                                                    name: 'sup_kode'
+                                                                }, {
+                                                                    name: 'alamat'
+                                                            }])
+                                                    }),
+                                                 valueField:'sup_kode',
+                                                 displayField:'sup_nama',
+                                                 typeAhead: true,
+                                                 forceSelection: true,
+                                                 editable: false,
+                                                 mode: 'remote',
+                                                 triggerAction: 'all',
+                                                 selectOnFocus: true,
+                                                 emptyText: 'Select Supplier',
+                                                 listeners : {
+                                                    'select' : function (c,store, index){
+
+                                                                var data = store.data['alamat'];
+                                                                Ext.getCmp('supplier_text').setValue(data);
+
+                                                    }
+                                                 }
+                                            },
+                                            {
+                                                fieldLabel: 'Address',
+                                                id: 'supplier_text',
+                                                xtype:'textarea',
+                                                disabled: true,
+                                                width: 170,
+                                                height: 80
+                                            }
+                                        ]
+                                }
+                            ]
+                       },
+                       {
+                            columnWidth:.100,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'image_field',
+                                    hideLabel: true,
+                                    id: 'tanda-panah',
+                                    hidden:true,
+                                    value: 'arrow-right.png'
+                                }
+                            ]
+                       },
+                       {
+                            columnWidth:.400,
+                            layout: 'form',
+                            items: [
+                                {
+                                        xtype: 'fieldset',
+                                        id: 'fieldset-wh2',
+                                        title: 'Warehouse Detail',
+                                        itemId: 'fieldset-item-wh2',
+                                        hidden:true,
+                                        width: 300,
+                                        items: [
+                                            {
+                                                 fieldLabel : 'Warehouse',
+                                                 id:'gudang_select_text2',
+                                                 name: 'tujuan',
+                                                 xtype: 'combo',
+                                                 width: 130,
+                                                 allowBlank: false,
+                                                 store: new Ext.data.Store({
+                                                            proxy: new Ext.data.HttpProxy({
+                                                                url: '/delivery/list'
+                                                            }),
+                                                            reader: new Ext.data.JsonReader({
+                                                                totalProperty: 'count',
+                                                                root: 'posts'
+                                                            }, [{
+                                                                    name: 'gdg_nama'
+                                                                }, {
+                                                                    name: 'gdg_kode'
+                                                                }, {
+                                                                    name: 'alamat1'
+                                                            }])
+                                                    }),
+                                                 valueField:'gdg_kode',
+                                                 displayField:'gdg_nama',
+                                                 typeAhead: true,
+                                                 forceSelection: true,
+                                                 editable: false,
+                                                 mode: 'remote',
+                                                 triggerAction: 'all',
+                                                 selectOnFocus: true,
+                                                 emptyText: 'Select Warehouse',
+                                                 listeners : {
+                                                    'select' : function (c,store, index){
+
+                                                                var data = store.data['alamat1'];
+                                                                Ext.getCmp('gudang_text2').setValue(data);
+
+                                                    }
+                                                 }
+                                            },
+                                            {
+                                                fieldLabel: 'Address',
+                                                id: 'gudang_text2',
+                                                xtype:'textarea',
+                                                disabled: true,
+                                                width: 150,
+                                                height: 80
+                                            }
+                                        ]
+                                },
+                                {
+                                        xtype: 'fieldset',
+                                        id: 'fieldset-site',
+                                        title: 'Site Detail',
+                                        itemId: 'fieldset-item-site',
+                                        hidden:true,
+                                        width: 300,
+                                        items: [
+                                                               {
+                                                                     id:'sit_nama_text',
+                                                                     fieldLabel: 'Site Name',
+                                                                     xtype: 'textfield',
+                                                                     width: 130
+                                                                },
+                                                                {
+                                                                    fieldLabel: 'Address',
+                                                                    id: 'site_alamat_text',
+                                                                    xtype:'textarea',
+                                                                    width: 130,
+                                                                    height: 80
+                                                                }
+                                        ]
+                                }
+                            ]
+                       }
+                    ]
+            }
+
+        ];
+
+    },
+
+     buildUI: function(){
+        return [
+//        {
+//            text: 'Save',
+//            iconCls: 'icon-save',
+//            handler: this.onUpdate,
+//            scope: this
+//        },
+        {
+            text: 'Create',
+            iconCls: 'silk-user-add',
+            handler: this.onCreate,
+            scope: this
+        }, {
+            text: 'Reset',
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            scope: this
+        }, {
+            text: 'Cancel',
+            handler: function(btn, ev){
+	        	myPanel = Ext.getCmp('abs-budget-panel');
+	    	    myPanel.body.load({
+	    	        url: '/projectmanagement/budget/showcreateboq3',
+	    	        scripts : true
+	            });
+            },
+            scope: this
+        }];
+    }
+    ,
+     loadRecord : function(rec) {
+        this.record = rec;
+        this.getForm().loadRecord(rec);
+    }
+    ,
+    onUpdate : function(btn, ev) {
+        if (this.record == null) {
+            return;
+        }
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid.");
+            return false;
+        }
+        this.getForm().updateRecord(this.record);
+    }
+    ,
+    onCreate : function(btn, ev) {
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid");
+            return false;
+        }
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+        var sitKode = Ext.getCmp('sit_kode').getValue();
+
+        var cekUrl = '/default/project/cekprojectexist/prj_kode/' + prjKode +'/sit_kode/'+ sitKode;
+        Ext.Ajax.request({
+            url: cekUrl,
+            method: 'POST',
+            success: function(result, request){
+            	   var returnData = Ext.util.JSON.decode(result.responseText);
+
+    				if( returnData.success) {
+    					Ext.Msg.alert('Error!', 'Site Code Exists!');
+    				} else {
+        				var myForm = Ext.getCmp('user-forms');
+        				myForm.fireEvent('create', this, myForm.getForm().getValues());
+        				myForm.getForm().reset();
+    				}
+    			},
+             failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}
+          	}
+        });
+    },
+        onReset : function(btn, ev) {
+        this.fireE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       

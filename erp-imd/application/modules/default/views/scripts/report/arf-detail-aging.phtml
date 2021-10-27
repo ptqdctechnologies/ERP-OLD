@@ -1,0 +1,279 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var store = new Ext.data.Store({
+            url: '/default/report/get-data-arf-detail-aging',
+            baseParams: {
+                trano: '<?=$this->trano?>',
+                prj_kode: '<?=$this->prj_kode?>',
+                sit_kode: '<?=$this->sit_kode?>',
+                type: '<?=$this->type?>'
+            },
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'trano',type:'String'
+                },{
+                    name:'prj_kode',type:'String'
+                },{
+                    name:'sit_kode',type:'String'
+                },{
+                    name:'tgl',type:'date',dateFormat : 'Y-m-d'
+                },{
+                    name:'tgl_settle',type:'date',dateFormat : 'Y-m-d'
+                },{
+                    name:'aging'
+                },{
+                    name:'agingARF'
+                },{
+                    name:'description'
+                },{
+                    name:'uid'
+                },{
+                    name:'username'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'rateidr'
+                },{
+                    name:'total_bayar'
+                },{
+                    name:'total_settle'
+                },{
+                    name:'total_settle_cancel'
+                },{
+                    name:'balance'
+                },{
+                    name:'bt'
+                }]
+            })
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'icon-go',
+                    qtip:'View Detail',
+                    id: 'view',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        var rec = record,
+                            trano = rec.get("trano");
+
+                        popup('/report/arfdetail/trano/' + trano + '/popup/true');
+                    }
+                }
+            ],
+            header: '',
+            width: 20
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            stateful: false,
+            store: store,
+            frame: false,
+            bbar: [],
+            plugins: rowactions,
+            view: new Ext.grid.GridView({
+                enableRowBody:true,
+                getRowClass:function(record, rowIndex, p, store) {
+                    var tgl = record.get('tgl_settle');
+                    if (tgl == null || tgl == undefined)
+                        return 'x-grid3-row-with-body3';
+                }
+            }),
+            columns: [
+                new Ext.grid.RowNumberer({
+                    width: 30
+                }),
+                rowactions,
+                {
+                    header: 'ARF No',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'trano'
+                },{
+                    header:'Issued Date',
+                    sortable:true,
+                    dataIndex: 'tgl',
+                    width: 80,
+                    renderer: Ext.util.Format.dateRenderer('d M Y')
+                },{
+                    header:'Settled Date',
+                    sortable:true,
+                    dataIndex: 'tgl_settle',
+                    width: 80,
+                    renderer: Ext.util.Format.dateRenderer('d M Y')
+                },{
+                    header: 'Aging From Issued',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'agingARF'
+                },{
+                    header: 'Aging Until Settled',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'aging'
+                },{
+                    header: 'Description',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'description'
+                },{
+                    header: 'Person',
+                    width: 150,
+                    sortable: true,
+                    dataIndex: 'username'
+                },{
+                    header:'Project Code',
+                    width: 80,
+                    sortable: true,
+                    dataIndex:'prj_kode',
+                    align:'center'
+                },{
+                    header:'Site Code',
+                    width: 80,
+                    sortable: true,
+                    dataIndex:'sit_kode',
+                    align:'center'
+                },{
+                    header:'Valuta',
+                    sortable: true,
+                    align: 'right',
+                    dataIndex:'val_kode',
+                    width: 50
+                },{
+                    header:'Total ARF',
+                    sortable:true,
+                    dataIndex:'total_bayar',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                },{
+                    header:'Total Settle',
+                    sortable:true,
+                    dataIndex:'total_settle',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                },{
+                    header:'Total Return (Setllement Cancelled)',
+                    sortable:true,
+                    dataIndex:'total_settle_cancel',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                },{
+                    header:'Balance',
+                    sortable:true,
+                    dataIndex:'balance',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                }
+            ],
+            loadMask: true,
+            height: 450
+        });
+
+
+        store.load();
+        var panel = new Ext.Panel({
+            renderTo: 'grid-jurnal',
+            items: [
+                grid
+            ],
+            tbar: [
+//                {
+//                    xtype: 'button',
+//                    iconCls: 'silk-plugin',
+//                    text: 'Print this report'
+//                }
+            ]
+        });
+
+        var tb2 = new Ext.PagingToolbar({
+            renderTo: grid.bbar,
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+
+    <?php
+        if (!$this->trano) {
+    ?>
+        var tb1 = new Ext.Toolbar({
+            id: 'arf',
+            renderTo : grid.bbar,
+            items: [
+                '<b>Total ARF = IDR <?=number_format(floatval($this->totalARFIDR),2)?> , USD <?=number_format(floatval($this->totalARFUSD),2)?></b>'
+            ]
+
+        });
+        var tb3 = new Ext.Toolbar({
+            id: 'asf',
+            renderTo : grid.bbar,
+            items: [
+                '<b>Total Settlement = IDR <?=number_format(floatval($this->totalASFIDR),2)?> , USD <?=number_format(floatval($this->totalASFUSD),2)?></b>'
+            ]
+
+        });
+        var tb5 = new Ext.Toolbar({
+            id: 'asfcancel',
+            renderTo : grid.bbar,
+            items: [
+                '<b>Total Return to Company = IDR <?=number_format(floatval($this->totalASFCancelIDR),2)?> , USD <?=number_format(floatval($this->totalASFCancelUSD),2)?></b>'
+            ]
+
+        });
+        var tb4 = new Ext.Toolbar({
+            id: 'balance',
+            renderTo : grid.bbar,
+            items: [
+                '<b>Total Balance = IDR <?=number_format(floatval($this->balanceIDR),2)?> , USD <?=number_format(floatval($this->balanceUSD),2)?></b>'
+            ]
+
+        });
+    <?php
+        }
+    ?>
+
+
+    })
+
+</script>
+
+<div id="grid-jurnal"></div>

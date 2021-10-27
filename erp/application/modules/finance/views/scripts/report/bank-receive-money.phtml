@@ -1,0 +1,113 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+
+    var windowForm = new Ext.Panel({
+
+        title:'Bank Receive Money Report',
+        id: 'abs-budget-panel',
+        layout: 'fit',
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        loadMask: true,
+        minWidth: 300,
+        minHeight: 200,
+        tbar: [
+            {
+                xtype:'label',
+                text:'Trano'
+            },'-',
+            {
+                xtype: 'tranoalljurnalselector',
+                width: 120,
+                id: 'trano_jurnal',
+                Selectid: 'trano',
+                jurnalType: ["bank_in"],
+                callbackFunc: function(trano){
+
+                }
+            },'-',
+            {
+                xtype:'label',
+                text:'Periode'
+            },
+            '-',{
+                xtype:'datefield',
+                name: 'month',
+                id: 'month',
+                allowBlank:false,
+                msgTarget:'side',
+                format: 'm-Y', // or other format you'd like
+                plugins: 'monthPickerPlugin'
+            },
+            '-',
+
+            {
+                xtype: 'button',
+                text: 'Reset',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/lov_refresh.gif",
+                handler: function(){
+                    Ext.getCmp('trano').setValue('');
+                    Ext.getCmp('month').setValue('');
+                }
+            },
+            {
+                xtype: 'button',
+                text: 'Show',
+                width:70,
+                id: 'show_report',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function(btn,ev)
+                {
+                    detail = false;
+                    var month = Ext.getCmp('month').getValue();
+                    var D = Ext.calendar.Date;
+                    month = D.formatDate(month,'yyyy-mm');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/report/view-bank-receive-money',
+                        params: {
+                            trano : Ext.getCmp('trano').getValue(),
+                            month: month
+                        },
+                        scripts : true
+                    });
+                }
+            },'-',
+            {
+                xtype: 'button',
+                id: 'export_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/print.png",
+                handler:function()
+                {
+                    var trano = Ext.getCmp('trano').getValue();
+                    trano = trano.replace("/","_");
+                    var month = Ext.getCmp('month').getValue();
+                    var D = Ext.calendar.Date,
+                        myPanel = Ext.getCmp('abs-budget-panel');
+
+                        month = D.formatDate(month,'yyyy-mm');
+                    location.href = '/finance/report/view-bank-receive-money/export/true/trano/' + trano +  '/month/' + month;
+
+                }
+            }
+        ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+})
+
+
+</script>

@@ -1,0 +1,182 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+        Ext.QuickTips.init();
+
+        var recList = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'trano', type: 'string'},
+            {name: 'prj_kode', type: 'string'},
+            {name: 'submit_date', type: 'string'},
+            {name: 'last_date', type: 'string'},
+            {name: 'status', type: 'string'},
+            {name: 'next_person', type: 'string'},
+            {name: 'workflow_trans_id', type: 'string'},
+            {name: 'item_type', type: 'string'}
+        ]);
+
+        var docStore = new Ext.data.Store({
+            url: '/home/get-document-in-my-workflow',
+            reader: new Ext.data.JsonReader({
+                fields: recList,
+                root:'data',
+                totalProperty:'total'
+            })
+        });
+
+        var treePanel = new Ext.tree.TreePanel({
+            id: 'tree-panel',
+            title: 'My Project',
+            height: 300,
+            region: 'west',
+//            autoWidth: true,
+            width: 300,
+            frame: false,
+            autoScroll: true,
+            rootVisible: false,
+            lines: false,
+            singleExpand: true,
+            useArrows: true,
+            bodyStyle: 'background-color: #ffffff',
+            loader: new Ext.tree.TreeLoader({
+                dataUrl:'/default/home/get-my-project'
+            }),
+            load: function() {
+                this.el.mask('loading...', 'loadingMask');
+            },
+            root: new Ext.tree.AsyncTreeNode({
+                expanded: true,
+                id: 'menu'
+            }),
+            listeners: {
+                'click': function(n){
+                    docStore.setBaseParam("prj_kode", n.attributes.prj_kode);
+                    docStore.setBaseParam("workflow_item_type_id", null);
+                    docStore.load();
+                    Ext.getCmp('combo-type').clearValue();
+                }
+            }
+//            renderTo: 'project-tree'
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'silk-magnifier',
+                    qtip:'Show Document',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        goToDocs(record.get("item_type"),record.get("workflow_trans_id"));
+                    }
+                }
+            ]
+        });
+
+        var docs = new Ext.grid.GridPanel({
+            frame: true,
+            title: 'Documents',
+//            renderTo: 'documents',
+            region: 'center',
+            height:300,
+//            autoWidth: true,
+            viewConfig: {
+                forceFit: true
+            },
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header: 'Trano',
+                    dataIndex: 'trano',
+                    width: 100
+                },
+                {
+                    header: 'Submit Date',
+                    dataIndex: 'submit_date',
+                    width: 100
+                },
+                {
+                    header: 'Last Approval Date',
+                    dataIndex: 'last_date',
+                    width: 120
+                },
+                {
+                    header: 'Status',
+                    dataIndex: 'status',
+                    width: 120
+                },
+                {
+                    header: 'Next Person',
+                    dataIndex: 'next_person'
+                }
+            ],
+            store: docStore,
+            tbar: [
+
+                {
+                    xtype: 'tbtext',
+                    text: 'Filter By : '
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Document Type'
+                },
+                {
+                    id: 'combo-type',
+                    name: 'workflow_item_type_id',
+                    width: 100,
+                    editable:false,
+                    xtype: 'combo',
+                    triggerAction: 'all',
+                    mode: 'remote',
+                    displayField: 'name',
+                    valueField: 'workflow_item_type_id',
+                    store: new Ext.data.JsonStore({
+//		                 autoLoad: true,
+                        url: '/admin/workflow/listworkflowitemtype/from/showprocessdocument',
+                        root: 'posts',
+                        fields:[
+                            { name: "name"},{ name: "workflow_item_type_id"}
+                        ]
+                    }),
+                    listeners:{
+                        select:function (c, rec)
+                        {
+                            docStore.setBaseParam("workflow_item_type_id", rec.data['workflow_item_type_id']);
+                            docStore.load();
+                        }
+                    }
+                }
+            ],
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: docStore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            plugins: [rowactions]
+        });
+
+        var container = new Ext.Container({
+            items: [
+                {
+                    title: 'Show Documents in My Workflow',
+                    layout: 'border',
+                    items: [
+                        treePanel,
+                        docs
+                    ],
+                    split:true,
+                    height: 400,
+                }
+            ],
+            autoWidth: true,
+            height: 400,
+            renderTo: 'container'
+        })
+    });
+</script>
+<div id="container"></div>

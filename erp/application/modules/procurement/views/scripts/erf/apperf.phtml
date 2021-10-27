@@ -1,0 +1,794 @@
+<style>
+
+
+    .last-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#EFEFEF;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .all-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#F6CBCA;
+        color:#222222;
+        padding:4px;
+        text-align:left;
+    }
+    .all-approve{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        /*background:#CEE6C3;*/
+        color:#222222;
+        padding:4px;
+        text-align:left;
+        height: 200px;
+        overflow: auto;
+    }    
+
+    .body {
+        /*width: 720px;*/
+        overflow: auto;
+    }
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .etc {
+        width: 100%;
+        height: 50px;
+    }
+    .kanan-etc {
+        float: right;
+        width: 48%;
+    }
+    .kiri-etc {
+        float: left;
+        width: 48%;
+    }
+    .blok {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .budgetTable {
+        width: 100%;
+        font-size: 12px;
+        font-weight: normal;
+    }
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+        font-family:tahoma, verdana;
+        display:block;
+        color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+    .ketin {
+        width: 100%;
+        font-size: 12px;
+        font-weight: bold;
+        background-color:#FBF0A5;
+    }
+    .ketin fieldset p {
+        padding: 5px 5px 5px 5px;
+    }
+</style>
+
+<script type="text/javascript">
+
+    function submitData(params, dataArray)
+    {
+        var addurl = '';
+
+        if (params == "" || params == '')
+            return false;
+        if (dataArray != undefined)
+            addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+        Ext.Ajax.request({
+            url: '/procurement/erf/inserterf' + addurl,
+            method: 'POST',
+            success: function(resp) {
+                var returnData = Ext.util.JSON.decode(resp.responseText);
+                if (returnData.success)
+                {
+                    if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        showNextPerson(returnData.user, params);
+                        return false;
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Success', 'ERF has been saved and submitted to current Workflow!' + '<br><br>Your ERF number is <b><font color="#ff0000">' + returnData.number + '</font></b>');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/procurement/erf/adderf',
+                            scripts: true
+                        });
+                    }
+                }
+                else
+                {
+                    Ext.Msg.alert('Error', returnData.msg);
+                }
+            },
+            failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                } else {
+                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                }
+            },
+            params: params
+        });
+
+    }
+
+    function submitData2(params, dataArray)
+    {
+        var addurl = '';
+
+        if (params == "" || params == '')
+            return false;
+        if (dataArray != undefined)
+            addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+        Ext.Ajax.request({
+            url: '/procurement/erf/updateerf' + addurl,
+            method: 'POST',
+            success: function(resp) {
+                var returnData = Ext.util.JSON.decode(resp.responseText);
+                if (returnData.success)
+                {
+                    if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        showNextPerson(returnData.user, params, true);
+                        return false;
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Success', 'ERF has been saved and submitted to current Workflow!');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/procurement/erf/erf',
+                            scripts: true
+                        });
+                    }
+                }
+                else
+                {
+                    Ext.Msg.alert('Error', returnData.msg);
+                }
+            },
+            failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                } else {
+                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+            },
+            params: params
+        });
+    }
+
+    function showNextPerson(userArray, params, isEdit)
+    {
+
+        var addlist = Ext.data.Record.create([
+            {name: 'id', type: 'string'},
+            {name: 'workflow_id', type: 'string'},
+            {name: 'workflow_item_id', type: 'string'},
+            {name: 'workflow_item_name', type: 'string'},
+            {name: 'workflow_structure_id', type: 'string'},
+            {name: 'next', type: 'string'},
+            {name: 'uid_next', type: 'string'},
+            {name: 'name', type: 'string'},
+            {name: 'role_name', type: 'string'},
+            {name: 'prj_kode', type: 'string'}
+        ]);
+
+        var storeUser = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: addlist})
+        });
+
+        Ext.each(userArray, function(t, index) {
+            var d = new addlist({
+                id: t.id,
+                workflow_id: t.workflow_id,
+                workflow_item_id: t.workflow_item_id,
+                workflow_item_name: t.workflow_item_name,
+                workflow_structure_id: t.workflow_structure_id,
+                uid_next: t.uid_next,
+                next: t.next,
+                name: t.name,
+                role_name: t.role_name,
+                prj_kode: t.prj_kode
+            });
+            storeUser.add(d);
+            d = undefined;
+        });
+
+        var userColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "Receiver", dataIndex: 'name', width: 220, renderer: function(v, p, r) {
+                    return '<div class="personicon"><b>' + r.data.name + '</b>&nbsp;<span class="rolename">' + r.data.role_name + '<br>Transaction Type: ' + r.data.workflow_item_name + '<br>Project : ' + r.data.prj_kode + '</span></div>';
+                }}
+        ];
+
+        var bForm = new Ext.Window({
+            id: 'choose-next',
+            layout: 'border',
+            width: 300,
+            height: 350,
+            modal: true,
+            resizable: false,
+            title: 'Choose Document Receiver',
+            style: 'margin-top: 10px',
+            labelAlign: 'right',
+            stateful: false,
+            items: [
+                new Ext.grid.GridPanel({
+                    width: 288,
+                    height: 330,
+                    id: 'site-grids',
+                    region: 'center',
+                    loadMask: true,
+                    columns: userColumns,
+                    store: storeUser,
+                    sm: new Ext.grid.RowSelectionModel({
+                        singleSelect: true
+                    }),
+                    viewConfig: {
+                        forceFit: true,
+                        enableRowBody: true,
+                        showPreview: true,
+                        getRowClass: function(record, rowIndex, p, ds) {
+                            return 'x-grid3-row-collapsed';
+                        }
+                    },
+                    listeners: {
+                        'rowdblclick': function(g, rowIndex, e) {
+                            var record = g.getStore().getAt(rowIndex);
+                            if (isEdit)
+                                submitData2(params, record);
+                            else
+                                submitData(params, record);
+                            bForm.close();
+                        }
+                    }
+                })
+            ],
+            buttons: [
+                {
+                    text: 'OK',
+                    id: 'ok-next',
+                    iconCls: 'silk-upd',
+                    handler: function(btn, ev) {
+                        var row = Ext.getCmp('site-grids').getSelectionModel().getSelections();
+                        var record = row[0];
+                        if (isEdit)
+                            submitData2(params, record);
+                        else
+                            submitData(params, record);
+                        bForm.close();
+                    }
+
+                },
+                {
+                    text: 'Cancel',
+                    id: 'cancel',
+                    handler: function(btn, ev) {
+                        bForm.close();
+                        bForm = '';
+                    }
+
+                }
+
+
+            ]
+        });
+        bForm.show();
+    }
+    ;
+
+<?php
+if (!$this->preview && !$this->show) {
+    if ($this->approve) {
+        ?>
+
+            var trano = '<?= $this->docsID ?>';
+            var uid = '<?= $this->uid ?>';
+            var user_id = '<?= $this->userID ?>';
+
+        <?php if ($this->reject) { ?>
+
+                var cancelButton = new Ext.Button({
+                    text: 'Goto Edit ERF',
+                    iconCls: 'icon-go',
+                    scale: 'large',
+                    handler: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/procurement/erf/editerf/trano/<?php echo $this->trano; ?>',
+                            scripts: true
+                        });
+                    },
+                    renderTo: 'cancel-button'
+                });
+
+        <?php } else { ?>
+
+
+                var questionButton = new Ext.Button({
+                    text: 'Ask Question',
+                    iconCls: 'icon-ask',
+                    scale: 'large',
+                    handler: function() {
+                        askQuestion('<?php echo $this->trano; ?>');
+                    },
+                    renderTo: 'ask-button'
+                });
+
+                var okButton = new Ext.Button({
+                    text: 'Approve',
+                    iconCls: 'icon-add',
+                    scale: 'large',
+                    handler: function() {
+                        Ext.MessageBox.show({
+                            title: 'Comment',
+                            msg: 'Please enter comment:',
+                            width: 300,
+                            buttons: Ext.MessageBox.OKCANCEL,
+                            multiline: true,
+                            fn: showResultText2
+                        });
+
+                        function showResultText2(btn, text) {
+                            var comment = '';
+                            if (btn == 'ok')
+                            {
+                                comment = text;
+                            }
+                            else if (btn == 'cancel')
+                                return false;
+                            params = {trans: trano, user: uid, comment: comment, user_id: user_id};
+                            Ext.Ajax.request({
+                                url: '/admin/workflow/approve',
+                                method: 'POST',
+                                success: function(resp) {
+                                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                                    if (returnData.success)
+                                    {
+                                        //					Ext.Msg.alert('Success', 'Document has been approved!');
+                                        getDocs();
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/default/home/showprocessdocument',
+                                            scripts: true
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', returnData.msg);
+                                    }
+                                },
+                                failure: function(action) {
+                                    if (action.failureType == 'server') {
+                                        obj = Ext.util.JSON.decode(action.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    } else {
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                },
+                                params: params
+                            });
+                        }
+                    },
+                    renderTo: 'ok-button'
+                });
+
+                var cancelButton = new Ext.Button({
+                    text: 'Reject',
+                    iconCls: 'icon-cancel',
+                    scale: 'large',
+                    handler: function() {
+                        Ext.MessageBox.show({
+                            title: 'Comment',
+                            msg: 'Please enter comment:',
+                            width: 300,
+                            buttons: Ext.MessageBox.OKCANCEL,
+                            multiline: true,
+                            fn: showResultText
+                        });
+
+                        function showResultText(btn, text) {
+                            var comment = '';
+                            if (btn == 'ok')
+                            {
+                                comment = text;
+                            }
+                            else if (btn == 'cancel')
+                                return false;
+                            params = {trans: trano, user: uid, comment: comment, user_id: user_id};
+                            Ext.Ajax.request({
+                                url: '/admin/workflow/reject',
+                                method: 'POST',
+                                success: function(resp) {
+                                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                                    if (returnData.success)
+                                    {
+                                        //    				Ext.Msg.alert('Success', 'Document has been rejected!');
+                                        getDocs();
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/default/home/showprocessdocument',
+                                            scripts: true
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', returnData.msg);
+                                    }
+                                },
+                                failure: function(action) {
+                                    if (action.failureType == 'server') {
+                                        obj = Ext.util.JSON.decode(action.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    } else {
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                    }
+                                },
+                                params: params
+                            });
+                        }
+                        ;
+
+
+                    },
+                    renderTo: 'cancel-button'
+                });
+
+                var backButton = new Ext.Button({
+                    text: 'Cancel',
+                    scale: 'large',
+                    handler: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '<?php echo $this->urlBack; ?>',
+                            scripts: true
+                        });
+                    },
+                    renderTo: 'back-button'
+                });
+
+            <?php
+        }
+    } elseif (!$this->approve) {
+        ?>
+
+
+            var json = '<?php echo $this->jsonResult; ?>';
+            var jsonFile = '<?php echo $this->jsonFile; ?>';
+            var jsonPerson = '<?php echo $this->jsonPerson; ?>';
+
+            var okButton = new Ext.Button({
+                text: 'Submit',
+                iconCls: 'icon-save',
+                scale: 'large',
+                handler: function() {
+                    this.disable();
+        <?php
+        if (!$this->edit) {
+            ?>
+
+                        var parameter = '[{"prj_kode":"<?= $this->etc[0]['prj_kode'] ?>","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>", "requester":"<?= $this->etc[0]['requester'] ?>" ,"requester2":"<?= $this->etc[0]['requester2'] ?>" , "valuta":"<?= $this->etc[0]['valuta'] ?>", "pic_kode":"<?= $this->etc[0]['pic_kode'] ?>", "mgr_kode":"<?= $this->etc[0]['mgr_kode'] ?>", "budgettype":"<?= $this->etc[0]['budgettype'] ?>", "ketin":"<?= $this->etc[0]['ketin'] ?>","cus_kode":"<?= $this->etc[0]['cus_kode'] ?>","cus_nama":"<?= $this->etc[0]['cus_nama'] ?>","tgl_hold":"<?= $this->etc[0]['tgl_hold'] ?>","place_hold":"<?= $this->etc[0]['place_hold'] ?>",\n\
+                                        "penerima":"<?= $this->etc[0]['penerima'] ?>", "bank":"<?= $this->etc[0]['bank'] ?>", "bankaccountname":"<?= $this->etc[0]['bankaccountname'] ?>", "bankaccountno":"<?= $this->etc[0]['bankaccountno'] ?>"}]';
+                        params = {posts: json, etc: parameter, file: jsonFile, person: jsonPerson};
+                        submitData(params);
+                        //		    }
+                        //		});
+
+
+        <?php } else { ?>
+
+                        var parameter = '[{"trano":"<?= $this->etc[0]['trano'] ?>","prj_kode":"<?= $this->etc[0]['prj_kode'] ?>","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>", "requester":"<?= $this->etc[0]['requester'] ?>" ,"requester2":"<?= $this->etc[0]['requester2'] ?>" , "valuta":"<?= $this->etc[0]['valuta'] ?>", "pic_kode":"<?= $this->etc[0]['pic_kode'] ?>", "mgr_kode":"<?= $this->etc[0]['mgr_kode'] ?>", "budgettype":"<?= $this->etc[0]['budgettype'] ?>", "ketin":"<?= $this->etc[0]['ketin'] ?>","cus_kode":"<?= $this->etc[0]['cus_kode'] ?>","cus_nama":"<?= $this->etc[0]['cus_nama'] ?>","tgl_hold":"<?= $this->etc[0]['tgl_hold'] ?>","place_hold":"<?= $this->etc[0]['place_hold'] ?>"\n\
+                                        ,"penerima":"<?= $this->etc[0]['penerima'] ?>", "bank":"<?= $this->etc[0]['bank'] ?>", "bankaccountname":"<?= $this->etc[0]['bankaccountname'] ?>", "bankaccountno":"<?= $this->etc[0]['bankaccountno'] ?>"}]';
+                        params = {posts: json, etc: parameter, file: jsonFile, person: jsonPerson};
+                        submitData2(params);
+                        //		    }
+                        //		});
+        <?php } ?>
+                },
+                renderTo: 'ok-button'
+            });
+
+            var doc_file = '<?php echo $this->doc_file ?>';
+
+
+
+            var cancelButton = new Ext.Button({
+                text: 'Cancel',
+                iconCls: 'icon-cancel',
+                scale: 'large',
+                handler: function() {
+        <?php
+        if (!$this->edit) {
+            ?>
+                        var parameter = '[{"trano":"<?= $this->etc[0]['trano'] ?>","prj_kode":"<?= $this->etc[0]['prj_kode'] ?>","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>", "requester":"<?= $this->etc[0]['requester'] ?>" ,"requester2":"<?= $this->etc[0]['requester2'] ?>" , "valuta":"<?= $this->etc[0]['valuta'] ?>", "pic_kode":"<?= $this->etc[0]['pic_kode'] ?>", "mgr_kode":"<?= $this->etc[0]['mgr_kode'] ?>", "budgettype":"<?= $this->etc[0]['budgettype'] ?>", "ketin":"<?= $this->etc[0]['ketin'] ?>","cus_kode":"<?= $this->etc[0]['cus_kode'] ?>","cus_nama":"<?= $this->etc[0]['cus_nama'] ?>","tgl_hold":"<?= $this->etc[0]['tgl_hold'] ?>","place_hold":"<?= $this->etc[0]['place_hold'] ?>"\n\
+                                        ,"penerima":"<?= $this->etc[0]['penerima'] ?>", "bank":"<?= $this->etc[0]['bank'] ?>", "bankaccountname":"<?= $this->etc[0]['bankaccountname'] ?>", "bankaccountno":"<?= $this->etc[0]['bankaccountno'] ?>"}]';
+
+                        params = {posts: json, etc: parameter, file: jsonFile, person: jsonPerson};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/procurement/erf/adderf/returnback/true', //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+        <?php } else {
+            $erf_no = $this->etc[0]['trano']
+            ?>
+                        var erf_number = '<?= $erf_no ?>';
+                        var parameter = '[{"trano":"<?= $this->etc[0]['trano'] ?>","prj_kode":"<?= $this->etc[0]['prj_kode'] ?>","prj_nama":"<?= $this->etc[0]['prj_nama'] ?>", "sit_kode":"<?= $this->etc[0]['sit_kode'] ?>", "sit_nama":"<?= $this->etc[0]['sit_nama'] ?>", "request":"<?= $this->etc[0]['request'] ?>" ,"requester2":"<?= $this->etc[0]['requester2'] ?>" , "val_kode":"<?= $this->etc[0]['valuta'] ?>", "pic_kode":"<?= $this->etc[0]['pic_kode'] ?>", "mgr_kode":"<?= $this->etc[0]['mgr_kode'] ?>", "budgettype":"<?= $this->etc[0]['budgettype'] ?>", "ketin":"<?= $this->etc[0]['ketin'] ?>","cus_kode":"<?= $this->etc[0]['cus_kode'] ?>","cus_nama":"<?= $this->etc[0]['cus_nama'] ?>","tgl_hold":"<?= $this->etc[0]['tgl_hold'] ?>","place_hold":"<?= $this->etc[0]['place_hold'] ?>"\n\
+                                       ,"penerima":"<?= $this->etc[0]['penerima'] ?>", "bank":"<?= $this->etc[0]['bank'] ?>", "bankaccountname":"<?= $this->etc[0]['bankaccountname'] ?>", "bankaccountno":"<?= $this->etc[0]['bankaccountno'] ?>"}]';
+
+                        params = {posts: json, etc: parameter, person: jsonPerson};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/procurement/erf/editerf/returnback/true/trano/' + erf_number, //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+        <?php } ?>
+                },
+                renderTo: 'cancel-button'
+            });
+
+        <?php
+    }
+}
+?>
+
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+    <div align="right"><img src="/images/qdc.gif" alt= "logo qdc" /></div>
+    <div class="title">Entertainment Request Form</div>
+<?php if ($this->isBT) { ?>
+        <br>
+        <div class="ketin">
+            <!--    <fieldset>
+                    <legend>Information</legend>
+                    <p>
+                        This ERF is linked with Business Trip Form (BRF) trano : <? //=$this->bt_trano  ?>&nbsp;<input type="submit" value="Show Business Trip" onclick="popup('/procurement/bt-request/app/approve/1/trano_show/<?= $this->bt_trano ?>/show/true','win-brf');">
+                    </p>
+            
+                </fieldset>-->
+        </div>
+        <br>
+    <?php } ?>
+<?php if ($this->reject) { ?>
+        <div class="last-reject">
+            This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s', strtotime($this->lastReject['date'])); ?>
+            <br />
+            Comment : <?php echo $this->lastReject['comment']; ?>
+        </div>
+    <?php } ?>
+
+<?php if ($this->file != '') { ?>
+        <div class="files">
+            Attachment Files : <br />
+            <ul>
+                <?php foreach ($this->file as $key => $val) { ?>
+                    <li><a href="#" onclick="window.open('/default/file/download/path/files/filename/<?php echo $val['savename']; ?>', 'mywin', 'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');"><?php echo $val['filename']; ?></a></li>
+    <?php } ?>
+            </ul>
+        </div>
+<?php } ?>
+    <br />
+    <div class="etc">
+        <div class="kiri-etc">
+<?php if ($this->edit || $this->approve) { ?><div class="blok">ERF Number : <?= $this->etc[0]['trano'] ?></div><?php } ?>
+            <div class="blok">ERF Date : <?= date('d-m-Y') ?></div>
+
+            <div class="blok">Currency : <?= $this->etc[0]['valuta'] ?></div>
+            <div class="blok">Origin of Budget : <?= $this->etc[0]['budgettype'] ?></div>        
+            <div class="blok">&nbsp;</div>        
+        </div>
+        <div class="kanan-etc">
+            <div class="blok">Project : <?= $this->etc[0]['prj_kode'] ?> - <?= $this->etc[0]['prj_nama'] ?></div>
+            <div class="blok">Site : <?= $this->etc[0]['sit_kode'] ?> - <?= $this->etc[0]['sit_nama'] ?></div>
+            <div class="blok">Manager : <?= QDC_User_Ldap::factory(array("uid" => $this->etc[0]['mgr_kode']))->getName() ?></div>
+            <div class="blok">PIC : <?= QDC_User_Ldap::factory(array("uid" => $this->etc[0]['pic_kode']))->getName() ?></div>
+             <div class="blok"> <br /> </div>
+            <!--<div class="blok"> <hr /> </div>-->
+            <div class="blok"> Name of Beneficiary : <?= $this->etc[0]['penerima'] ?></div>
+            <div class="blok"> Bank Name : <?= $this->etc[0]['bank'] ?></div>
+            <div class="blok"> Bank Account Name : <?= $this->etc[0]['bankaccountname'] ?></div>   
+            <div class="blok"> Bank Account Number  : <?= $this->etc[0]['bankaccountno'] ?></div>   
+        </div>
+    </div>
+
+    <div class="etc">
+        <div class="kiri-etc">
+            <!--<div class="blok"> <br /> </div>-->
+            <!--<div class="blok"> <hr /> </div>-->
+            <div class="blok"> Date to Hold : <?= $this->etc[0]['tgl_hold'] ?></div>
+            <div class="blok"> Place to Hold : <?= $this->etc[0]['place_hold'] ?></div>
+            <div class="blok"> Customer Name : <?= $this->etc[0]['cus_nama'] ?></div>   
+            <div class="blok"> <br /> </div>            
+            
+            <div class="blok"> <br /> </div>        
+            <div class="blok">Persons Accompanied : </div>
+            <div class="blok"> <br /> </div>
+        </div>
+    </div>
+
+    <table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No.</center></th>
+        <th scope="col"><center>Staff</center></th>
+        <th scope="col"><center>Guest</center></th>            
+        </tr>
+        <?php if ($this->person != '') { ?>
+            <?php
+            foreach ($this->person as $key => $val) {
+                if ($val['staff'] == '')
+                    $val['staff'] = '-';
+                if ($val['guest'] == '')
+                    $val['guest'] = '-';
+                ?>
+                <tr>
+                    <th scope="row" class="spec"><?= ($i + 1) ?></th>                    
+                    <td><?= $val['staff'] ?> </td>    
+                    <td><?= $val['guest'] ?> </td>
+                </tr>
+
+
+                <?php $i++;
+            }
+            ?>
+<?php } ?>
+        <tr>
+            <th scope="row" class="purpose" colspan="1"><strong>Purpose</strong></th>
+            <td align="left" class="spec" colspan="2"><?= $this->etc[0]['ketin'] ?></td>
+        </tr>
+    </table>
+
+    <br />
+    <div class="etc">
+        <div class="kiri-etc">
+            <div class="blok">Detail : </div>
+        </div>
+    </div>
+    <table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No.</center></th>
+        <th scope="col"><center>Requester Name</center></th>
+        <th scope="col"><center>Job Number</center></th>
+        <th scope="col"><center>Description</center></th>
+        <th scope="col"><center>Remark</center></th>
+<!--        <th scope="col"><center>UOM</center></th>-->
+        <th scope="col"><center>CFS Code</center></th>
+<!--        <th scope="col"><center>Qty</center></th>
+        <th scope="col"><center>Unit Price</center></th>-->
+        <th scope="col"><center>Total</center></th>
+        </tr>
+        <?php
+        $totals = 0;
+        $pajak = 0;
+        $grandtotals = 0;
+
+        $tax = $this->result[0]['tax'];
+        for ($i = 0; $i < (count($this->result)); $i++) {
+
+            foreach ($this->result[$i] as $key => $val) {
+                if ($val == '')
+                    $this->result[$i][$key] = "&nbsp;";
+            }
+
+            $harga = $this->result[$i]['priceErf'];
+            $total = $this->result[$i]['totalERF'];
+            ?>
+            <tr>
+                <th scope="row" class="spec"><?= ($i + 1) ?></th>
+                <td><?= $this->result[$i]['requesterName'] ?> </td>
+                <td><?= $this->result[$i]['workid'] ?> </td>
+                <td><?= $this->result[$i]['kode_brg'] ?> - <?= $this->result[$i]['nama_brg'] ?></td>
+                <td ><?= $this->result[$i]['ket'] ?></td>
+    <!--                <td ><? //= $this->result[$i]['uom'] ?></td>-->
+                <td ><?php
+                    if ($this->result[$i]['cfs_kode'] == '') {
+                        echo "&nbsp;";
+                    } else {
+                        echo $this->result[$i]['cfs_kode'];
+                    }
+                    ?></td>
+                <!--<td align="right"><? //= number_format($this->result[$i]['qty'], 4)  ?></td>-->
+                <!--<td align="right"><? //= number_format($this->result[$i]['priceErf'], 2)  ?></td>-->
+
+                <td align="right"><?= number_format($this->result[$i]['totalERF'], 2) ?></td>
+            </tr>
+
+    <?php
+    $totals += $total;
+}
+?>
+        <tr>
+            <th scope="row" class="spec" colspan="6">Grand Total</th>
+            <td align="right"><?= number_format($totals, 2) ?></td>
+        </tr>
+    </table>
+    <br />
+    <!--    <div class="ketin">
+        <fieldset>
+         <legend>Internal Notes</legend>
+            <p>
+    <?php //echo $this->etc[0]['ketin'];  ?>
+            </p>
+        </fieldset>
+        </div>-->
+<?php
+if ($this->etc[0]['user_approval'] != '') {
+    ?>
+        <div class="all-approve">
+            <b>Approval History</b></br>
+            <ul>
+                <?php
+                foreach ($this->etc[0]['user_approval'] as $key => $val) {
+                    ?>
+                    <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+            <?php
+        }
+        ?>
+            </ul>
+        </div>
+        <?php
+    }
+    ?>
+
+<?php if (!$this->show) { ?>
+        <div style="margin-top:15px;">
+            <div id="back-button"  style="margin-left:5px;float: right;"></div>
+            <div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+            <div id="ok-button"  style="margin-left:5px;float: right;"></div>
+            <div id="ask-button"  style="float: right;"></div>	
+        </div>
+<?php } ?>
+</div>

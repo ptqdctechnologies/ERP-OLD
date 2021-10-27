@@ -1,0 +1,1000 @@
+
+
+<script type="text/javascript">
+
+function workPopUp()
+{
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+            {name: 'workid'},
+            {name: 'workname'}
+          ]
+    );
+
+    var proxy = new Ext.data.HttpProxy({
+     url : '/default/work/list'
+    });
+
+    var store = new Ext.data.Store({
+            id: 'store-doc-msg',
+            reader: reader,
+            proxy: proxy
+        });
+
+    store.reload();
+    newGrid = function(viewer, config) {
+        this.viewer = viewer;
+        Ext.apply(this, config);
+
+        this.store = store;
+
+        this.columns = [
+            {
+                id: 'workid',
+                header: "Work ID",
+                dataIndex: 'workid',
+                width: 80
+            },
+            {
+                id: 'workname',
+                header: "Work Name",
+                dataIndex: 'workname',
+                width: 120
+            }
+        ];
+
+        this.bbar = new Ext.PagingToolbar({
+            pageSize: 100,
+            store: this.store,
+            displayInfo: true,
+            displayMsg: 'Displaying work {0} - {1} of {2}',
+            emptyMsg: "No work to display"
+        });
+        newGrid.superclass.constructor.call(this, {
+            id: 'grid-trano',
+            loadMask: {msg:'Loading...'},
+
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true
+            }),
+
+            viewConfig: {
+                forceFit:true
+            }
+        });
+
+        this.on('rowdblclick', this.onTranoClick, this);
+    };
+
+    Ext.extend(newGrid, Ext.grid.GridPanel, {
+
+        onTranoClick : function(grid, index, e){
+            var rec = store.getAt(index);
+            var workid = rec.data['workid'];
+            var row = editor.getCurrentRow();
+            row.data['workname'] = rec.data['workname'];
+            editor.startEditing(row,true);
+            Ext.getCmp('workid_text').setValue(workid);
+            if (!isMscWorkid(workid))
+            {
+                Ext.getCmp('kode_brg_text').setVisible(true);
+                Ext.getCmp('kode_brg_text').setDisabled(false);
+            }
+            else
+            {
+                Ext.getCmp('kode_brg_text').setVisible(false);
+                Ext.getCmp('kode_brg_text').setDisabled(true);
+                Ext.getCmp('kode_brg_text').setValue('');
+                row.data['nama_brg'] = '';
+            }
+            Ext.getCmp('doc-form-panel').close();
+        }
+    });
+
+    var grids = new newGrid({
+            loadMask: true,
+            frame:true,
+            width: 280,
+            id: 'grid-trano'
+        });
+
+    var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+
+        {
+            region: 'center',
+            id: 'detail', // see Ext.getCmp() below
+            title: '',
+            width: 320,
+            layout: 'fit',
+            items: [
+                    grids
+            ]
+
+        },
+        {
+            region: 'north',
+            id: 'south2',
+            height: 68,
+            stateful: false,
+            items: [
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.55,
+                                layout: 'form',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Work ID',
+                                        width: 80,
+                                        id: 'search_trano'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Work Name',
+                                        width: 80,
+                                        id: 'search_name'
+                                    }
+                                ]
+                               },
+                            {columnWidth:.3,
+                                layout: 'form',
+                                style : 'margin-left: 3px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Search',
+                                        id: 'search-button',
+                                        handler: function (){
+
+                                            var kode = Ext.getCmp('search_trano').getValue();
+                                            var nama = Ext.getCmp('search_name').getValue();
+
+                                            if (kode != '')
+                                              var query = 'name/workid/data/' + kode;
+                                            if (nama != '')
+                                              var query = 'name/workname/data/' + nama;
+                                             store.proxy = new Ext.data.HttpProxy({
+                                                url : '/default/work/listbyparams/' + query
+                                            });
+                                            store.reload();
+
+                                        }
+                                    }),
+                                    new Ext.Button({
+                                        text: 'Clear',
+                                        id: 'clear-button',
+                                        handler: function (){
+                                            Ext.getCmp('search_trano').setValue('');
+                                            Ext.getCmp('search_name').setValue('');
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+    ]
+
+});
+
+    var dFormMsg =  new Ext.Window({
+		    id: 'doc-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 400,
+		    title: 'Select Work',
+		    stateful: false,
+	        modal: true,
+            resizable: false,
+		    items: [
+                viewportsMsg
+            ]
+    });
+
+    dFormMsg.show();
+}
+
+function productPopUp()
+{
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+            {name: 'kode_brg'},
+            {name: 'nama_brg'},
+            {name: 'sat_kode'}
+          ]
+    );
+
+    var proxy = new Ext.data.HttpProxy({
+     url : '/default/barang/list'
+    });
+
+    var store = new Ext.data.Store({
+            id: 'store-doc-msg',
+            reader: reader,
+            proxy: proxy
+        });
+
+    store.reload();
+    newGrid = function(viewer, config) {
+        this.viewer = viewer;
+        Ext.apply(this, config);
+
+        this.store = store;
+
+        this.columns = [
+            {
+                id: 'kode_brg',
+                header: "Product ID",
+                dataIndex: 'kode_brg',
+                width: 80
+            },
+            {
+                id: 'nama_brg',
+                header: "Product Name",
+                dataIndex: 'nama_brg',
+                width: 120
+            }
+        ];
+
+        this.bbar = new Ext.PagingToolbar({
+            pageSize: 100,
+            store: this.store,
+            displayInfo: true,
+            displayMsg: 'Displaying product {0} - {1} of {2}',
+            emptyMsg: "No product to display"
+        });
+        newGrid.superclass.constructor.call(this, {
+            id: 'grid-trano',
+            loadMask: {msg:'Loading...'},
+
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true
+            }),
+
+            viewConfig: {
+                forceFit:true
+            }
+        });
+
+        this.on('rowdblclick', this.onTranoClick, this);
+    };
+
+    Ext.extend(newGrid, Ext.grid.GridPanel, {
+
+        onTranoClick : function(grid, index, e){
+            var rec = store.getAt(index);
+            var trano = rec.data['kode_brg'];
+            var row = editor.getCurrentRow();
+            row.data['nama_brg'] = rec.data['nama_brg'];
+            editor.startEditing(row,true);
+            Ext.getCmp('kode_brg_text').setValue(trano);
+            Ext.getCmp('doc-form-panel').close();
+        }
+    });
+
+    var grids = new newGrid({
+            loadMask: true,
+            frame:true,
+            width: 280,
+            id: 'grid-trano'
+        });
+
+    var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+
+        {
+            region: 'center',
+            id: 'detail', // see Ext.getCmp() below
+            title: '',
+            width: 320,
+            layout: 'fit',
+            items: [
+                    grids
+            ]
+
+        },
+        {
+            region: 'north',
+            id: 'south2',
+            height: 68,
+            stateful: false,
+            items: [
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.55,
+                                layout: 'form',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Product ID',
+                                        width: 80,
+                                        id: 'search_trano'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Product Name',
+                                        width: 80,
+                                        id: 'search_name'
+                                    }
+                                ]
+                               },
+                            {columnWidth:.3,
+                                layout: 'form',
+                                style : 'margin-left: 3px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Search',
+                                        id: 'search-button',
+                                        handler: function (){
+
+                                            var kode = Ext.getCmp('search_trano').getValue();
+                                            var nama = Ext.getCmp('search_name').getValue();
+
+                                            if (kode != '')
+                                              var query = 'name/kode_brg/data/' + kode;
+                                            if (nama != '')
+                                              var query = 'name/nama_brg/data/' + nama;
+                                             store.proxy = new Ext.data.HttpProxy({
+                                                url : '/default/barang/listbyparams/' + query
+                                            });
+                                            store.reload();
+
+                                        }
+                                    }),
+                                    new Ext.Button({
+                                        text: 'Clear',
+                                        id: 'clear-button',
+                                        handler: function (){
+                                            Ext.getCmp('search_trano').setValue('');
+                                            Ext.getCmp('search_name').setValue('');
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+    ]
+
+});
+
+    var dFormMsg =  new Ext.Window({
+		    id: 'doc-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 400,
+		    title: 'Select Product',
+		    stateful: false,
+	        modal: true,
+            resizable: false,
+		    items: [
+                viewportsMsg
+            ]
+    });
+
+    dFormMsg.show();
+}
+
+function totals(t, params, data){
+
+     var total = [];
+     Ext.getCmp('boq3-grid').getStore().each(function (stores){
+
+        var val_kode = stores.data['val_kode'];
+        if (total[val_kode] == undefined)
+        {
+            total[val_kode] = Ext.num(parseFloat(stores.data['total'].toString().replace(/\$|\,/g,'')), 0);
+        }
+         else
+        {
+            total[val_kode] = Ext.num(total[val_kode],0) + Ext.num(parseFloat(stores.data['total'].toString().replace(/\$|\,/g,'')), 0);
+        }
+
+     });
+	 return CommaFormatted(total['IDR'].toFixed(2));
+
+}
+
+function hitungTotal()
+{
+    totJum = 0;
+    totJumUSD = 0;
+
+    store.each(function(items){
+        if (items.data['val_kode'] == 'IDR')
+            totJum += (parseFloat(items.data['qty']) * parseFloat(items.data['harga']));
+        else
+            totJumUSD += (parseFloat(items.data['qty']) * parseFloat(items.data['harga']));
+
+    });
+    Ext.getCmp('gtotal-text').setText('Total IDR ' + Ext.util.Format.number(totJum, '0,0'));
+    Ext.getCmp('gtotal-text2').setText('Total USD ' + Ext.util.Format.number(totJumUSD, '0,0'));
+}
+
+    var trano = '<?=$this->trano?>';
+    var json = '<?=$this->json?>';
+
+    var theData = Ext.util.JSON.decode(json);
+
+    var boq3 = Ext.data.Record.create(
+            [
+                {name: 'id'},
+                {name: 'trano'},
+                {name: 'tgl'},
+                {name: 'urut'},
+                {name: 'prj_kode'},
+                {name: 'prj_nama'},
+                {name: 'sit_kode'},
+                {name: 'sit_nama'},
+                {name: 'workid'},
+                {name: 'workname'},
+                {name: 'kode_brg'},
+                {name: 'nama_brg'},
+                {name: 'qty'},
+                {name: 'ket'},
+                {name: 'uid'},
+                {name: 'harga'},
+                {name: 'val_kode'},
+                {name: 'cus_kode'},
+                {name: 'rateidr'},
+                {name: 'total'},
+                {name: 'stspmeal'},
+                {name: 'cfs_kode'},
+                {name: 'cfs_nama'}
+            ]);
+
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        root: 'posts',
+        fields: boq3
+    });
+
+    var store = new Ext.data.Store({
+        id: 'boq3-store',
+        reader: reader
+    });
+    store.loadData(theData);
+
+
+    var editor = new Ext.ux.grid.RowEditor({
+        saveText: 'Update',
+        clicksToEdit: 0,
+        listeners: {
+            'afteredit': function(ed,obj,rec,index){
+                var recs = store.getAt(index);
+                recs.data['total'] = parseFloat(rec.data['qty']) * parseFloat(rec.data['harga']);
+
+                ed.record.commit(); //Commit changes into store
+                hitungTotal();
+            },
+            'filtercell' : function(rowEditor, fields, record){
+               Ext.each(fields, function (t, index){
+                    if (t.id == 'rate_text')
+                    {
+                        if (record.data['val_kode'] == 'IDR')
+                            t.setVisible(false);
+                        else
+                            t.setVisible(true);
+                    }
+                   if (t.id == 'kode_brg_text')
+                   {
+                       if (isMscWorkid(record.data['workid']))
+                            t.setVisible(false);
+                        else
+                            t.setVisible(true);
+                   }
+               });
+            }
+
+        }
+    });
+
+    editor.on(
+		'canceledit'
+		,function(roweditor, forced){
+			if(forced){
+				var record = store.getAt(0);
+				if(record.get('workid') === ' '){
+					store.remove(record);
+					grid.getView().refresh();
+				}
+			}
+		}
+		,this
+	);
+
+    var rowactions = new Ext.ux.grid.RowActions({
+    	actions:[
+            {
+                iconCls:'icon-edit',
+                qtip:'Edit',
+                id: 'edit',
+                callback: function (grid,record,action,row,col)
+                {
+                    editor.startEditing(row,false);
+                }
+            },
+            {
+                iconCls:'icon-delete',
+                qtip:'Delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    Ext.MessageBox.confirm('Confirm', 'This action will delete this item, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                if (record)
+                                {
+                                    store.remove(record);
+                                    totJum = 0;
+                                    totJumUSD = 0;
+                                    grid.getView().refresh();
+                                    hitungTotal();
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+        ]
+    	,index: 'actions'
+    	,header: ''
+//    	,autoWidth: true
+    	});
+//    rowactions.on(
+//        {
+//            action:function(grid, record, action, row, col)
+//            {
+//                console.log(action);
+////                editor.startEditing(row,false);
+//            }
+//        }
+//    );
+	
+    var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+                '<div style="margin-left:35px;">',
+                '<p><b>Workname:</b> {workname}</p>',
+                '<p><b>Nama Barang:</b> {nama_brg}</p></div>'
+               )
+    });
+
+    var datas = new Ext.data.SimpleStore({
+        fields:['type','name']
+        ,data:[['USD','USD'],['IDR','IDR']]
+    });
+
+    var totJum = 0;
+    var totJumUSD = 0;
+
+    var grid = new Ext.grid.GridPanel({
+        id: 'boq3-grid',
+        store: store,
+        autoWidth: true,
+        height: 500,
+        frame: true,
+        title: 'Edit Existing Temporary BOQ3',
+        stateful: false,
+        view : new Ext.grid.GridView({
+        	forceFit: false
+        }),
+        listeners: {
+            'afterrender': function(t){
+                hitungTotal();
+            }
+        },
+        bbar: new Ext.Toolbar({
+                id: 'gtotal-bbar',
+                style:"text-align:right",
+                items: [
+                        {
+                         xtype: 'label',
+                         id: 'gtotal-text'
+                        },'-',
+                        {
+                         xtype: 'label',
+                         id: 'gtotal-text2'
+                        }
+                    ],
+                layout: 'fit'
+            }),
+        renderTo:'fi-grid',
+        tbar: [
+                {
+                    iconCls: 'icon-add-new',
+                    text: 'Add New Item',
+                    handler: function(){
+                        var e = new boq3({
+                            trano: trano,
+                            tgl: new Date().format('Y-m-d H:i:s'),
+                            prj_kode: '<?=$this->prjKode?>',
+                            prj_nama: '<?=$this->prjNama?>',
+                            sit_kode: '<?=$this->sitKode?>',
+                            sit_nama: '<?=$this->sitNama?>',
+                            qty: 0,
+                            harga: 0,
+                            total: 0,
+                            val_kode: 'IDR',
+                            rateidr: 0.00,
+                            workid: ' ',
+                            workname: ' ',
+                            cfs_kode: ' ',
+                            cfs_nama: ' ',
+                            kode_brg: ' ',
+                            nama_brg: ' ',
+                            urut: store.getCount() + 1
+                        });
+                        editor.stopEditing();
+                        store.insert(0, e);
+                        grid.getView().refresh();
+                        grid.getSelectionModel().selectRow(0);
+                        editor.startEditing(0);
+                    }
+                },
+                '-',
+                {
+                    text: 'Refresh',
+                    iconCls: 'silk-table-refresh',
+                    handler: function(){
+                        Ext.MessageBox.confirm('Confirm', 'This action will remove all changes on grid, Refresh data now?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    grid.getStore().removeAll();
+                                    grid.getStore().loadData(theData);
+                                }
+                            }
+                        );
+
+                    },
+                    scope: this
+                }
+           ],
+
+        plugins: [editor,expander, rowactions],
+        columns: [
+                  new Ext.grid.RowNumberer(),
+                  expander,
+                  rowactions,
+                  {
+                      header: 'Work ID',
+                      dataIndex: 'workid',
+                      width: 70,
+                      sortable: true,
+                      editor:
+                      {
+                          id: 'workid_text',
+                          xtype: 'trigger',
+                          triggerClass: 'teropong',
+                          editable: false,
+                          onTriggerClick:
+                          function ()
+                          {
+                            editor.stopEditing(true);
+                            workPopUp();
+                          },scope: this
+                      }
+                  },{
+                      header: 'Kode Barang',
+                      dataIndex: 'kode_brg',
+                      width: 80,
+                      sortable: true,
+                      editor:
+                      {
+                          id: 'kode_brg_text',
+                          xtype: 'trigger',
+                          triggerClass: 'teropong',
+                          editable: false,
+                          allowBlank: false,                          
+                          onTriggerClick:
+                              function ()
+                              {
+                                editor.stopEditing(true);
+                                productPopUp();
+                              },scope: this
+                      }
+                  },{
+                      header: 'Valuta',
+                      dataIndex: 'val_kode',
+                      width: 60,
+                      sortable: true,
+                      editor:
+                        {
+                          xtype: 'combo'
+                          ,store: datas
+                          ,valueField:'type'
+                          ,displayField:'name'
+                          ,typeAhead: true
+                          ,mode: 'local'
+                          ,triggerAction: 'all'
+                          ,selectOnFocus:true
+                          ,hiddenName:'type'
+                          ,editable: false  
+                          ,listeners: {
+                            'select': function(t,n,o){
+                                if (t.getValue() == 'IDR')
+                                {
+                                    Ext.getCmp('rate_text').setValue(0);
+                                    Ext.getCmp('rate_text').setDisabled(true);
+                                    Ext.getCmp('rate_text').setVisible(false);
+                                }
+                                else
+                                {
+                                    var valus = parseFloat(Ext.getCmp('rate_text').getValue());
+                                    if (valus == 0)
+                                        getExchangeRate();
+                                    Ext.getCmp('rate_text').setDisabled(false);
+                                    Ext.getCmp('rate_text').setVisible(true);
+                                }
+                            }
+                          }
+                        }
+                  },{
+                      xtype: 'numbercolumn',
+                      header: 'Exchange Rate',
+                      dataIndex: 'rateidr',
+                      align: 'right',
+                      width: 80,
+                      renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                        },
+                      sortable: true,
+                      editor: {
+                          xtype: 'numberfield',
+                          id: 'rate_text',
+                          allowBlank: false,
+                          minValue: 0
+                      }
+                  },{
+                      xtype: 'numbercolumn',
+                      header: 'Qty',
+                      dataIndex: 'qty',
+                      align: 'right',
+                      width: 70,
+                      renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                        },
+                      sortable: true,
+                      editor: {
+                          xtype: 'numberfield',
+                          allowBlank: false,
+                          minValue: 0
+                      }
+                  },{
+                      xtype: 'numbercolumn',
+                      header: 'Harga',
+                      dataIndex: 'harga',
+                      align: 'right',
+                      width: 100,
+                      renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                        },
+                      sortable: true,
+                      editor: {
+                          xtype: 'numberfield',
+                          allowBlank: false,
+                          minValue: 0
+                      }
+                  },{
+                      header: 'Total',
+                      dataIndex: 'total',
+                      align: 'right',
+                      width: 100,
+                      renderer: function(v,p,r){
+//                        if (r.data['val_kode'] == 'IDR')
+//                            totJum += parseFloat(v);
+//                        else
+//                            totJumUSD += parseFloat(v);
+//
+//                        Ext.getCmp('gtotal-text').setText('Total IDR ' + Ext.util.Format.number(totJum, '0,0'));
+//                        Ext.getCmp('gtotal-text2').setText('Total USD ' + Ext.util.Format.number(totJumUSD, '0,0'));
+
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                      },
+                      sortable: true
+                  },{
+                      header: 'CFS Kode',
+                      dataIndex: 'cfs_kode',
+                      width: 80,
+                      sortable: true,
+                      editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+
+                        }
+                  },{
+                      header: 'CFS Nama',
+                      dataIndex: 'cfs_nama',
+                      width: 80,
+                      sortable: true,
+                      editor: {
+                          xtype: 'textfield',
+                          allowBlank: false
+
+                        }
+                  }
+               ]
+      });
+
+    var MIF = new Ext.ux.ManagedIFramePanel({
+        border: false,
+        bodyBorder: false,
+        defaultSrc: '/extjs4/gantt/editgant/trano/<?=$this->trano?>',
+        disableMessaging: false,
+        autoScroll    : true,
+        listeners: {
+            'message' : function(frame, e){
+                if (e.data == 'dependnotexist')
+                {
+                    Ext.Msg.alert('Error!', 'Please add Dependencies for Available Task on Gantt Chart.');
+                    return false;
+                }
+                if (e.data == 'taskpreviewtrue' || e.data == 'nochangespreview')
+                {
+                     var json='';
+                    grid.getStore().each(function(store){
+                        var encode = Ext.util.JSON.encode(store.data);
+                        if (encode != undefined)
+                            json += encode + ',';
+                    });
+                    json = '[' + json.substring(0, json.length - 1) + ']';
+
+                    Ext.Ajax.request({
+                        url: '/projectmanagement/budget/savegantttotemp/trano/<?=$this->trano?>/prj_kode/<?=$this->prjKode?>/sit_kode/<?=$this->sitKode?>',
+                        method:'POST',
+                        params: {json: json},
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if(returnData.success) {
+                                var left   = (screen.width  - 800)/2;
+                                var top    = (screen.height - 400)/2;
+                                var params = 'width='+800+', height='+400;
+                                params += ', top='+top+', left='+left;
+                                params += ', directories=no';
+                                params += ', location=no';
+                                params += ', menubar=no';
+                                params += ', resizable=no';
+                                params += ', scrollbars=no';
+                                params += ', status=no';
+                                params += ', toolbar=no';
+                                newwin=window.open('/extjs4/gantt/scurvebase/edit/true/trano/<?=$this->trano?>','scurvewin', params);
+                            }
+                        }
+                        ,failure:function( action){
+                            if(action.failureType == 'server'){
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            }
+                        }
+                    });
+                }
+                if (e.data == 'tasktrue' || e.data == 'nochanges')
+                {
+                    var json='';
+                    grid.getStore().each(function(store){
+                        var encode = Ext.util.JSON.encode(store.data);
+                        if (encode != undefined)
+                            json += encode + ',';
+                    });
+                    json = '[' + json.substring(0, json.length - 1) + ']';
+                    var parameter = '[{"trano":"<?=$this->trano?>","prj_kode":"<?=$this->prjKode?>","prj_nama":"<?=$this->prjNama?>", "sit_kode":"<?=$this->sitKode?>", "sit_nama":"<?=$this->sitNama?>"}]';
+                    params = {posts:json, trano: trano, etc: parameter};
+                    myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/apppraboq/from/edit', //the url
+                        scripts : true,
+                        params: params //our params goes here
+                    });
+                }
+            }
+        }
+    });
+
+    ganttpanel = new Ext.Panel({
+        id: 'gantt-panel',
+        title: 'Gantt Chart',
+        layout: 'fit',
+        renderTo: 'gantt',
+        autoWidth: true,
+        height: 400,
+        items: MIF,
+        tbar: [
+            {
+                xtype: 'button',
+                text: 'Preview S Curve',
+                iconCls: 'silk-magnifier',
+                handler: function(){
+                    if (grid.getStore().getCount() == 0)
+                        return false;
+                    MIF.getFrame().execScript('startup3()');
+                }
+            }
+        ],
+        buttons: [
+            {
+                text: 'Submit All',
+                iconCls: 'icon-save',
+                handler: function(){
+                    if (grid.getStore().getCount() == 0)
+                        return false;
+                    Ext.MessageBox.confirm('Confirm', 'This action will submit BOQ3 & Gantt Chart, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                MIF.getFrame().execScript('startup2()');
+                            }
+                        }
+                    );
+                }
+            },
+            {
+                text: 'Cancel',
+                iconCls: 'icon-cancel',
+                handler: function(){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/createboq3',
+                        scripts : true
+                    });
+                }
+            }
+        ]
+    });
+
+function getExchangeRate()
+{
+	Ext.Ajax.request({
+	    url: '/default/valuta/getexchangerate',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if(returnData.success) {
+					Ext.getCmp('rate_text').setValue(returnData.rate);
+				}
+			}
+			,failure:function( action){
+		if(action.failureType == 'server'){
+	    obj = Ext.util.JSON.decode(action.response.responseText);
+	    Ext.Msg.alert('Error!', obj.errors.reason);
+		}
+		}
+	});
+}
+//getExchangeRate();
+</script>
+
+<div id="fi-grid"></div>
+    <br />
+<div id="gantt"></div>
+<div id="windowF"></div>

@@ -1,0 +1,293 @@
+<script type="text/javascript">
+
+    Ext.onReady (function(){
+
+        Ext.QuickTips.init();
+
+        var showEditPPNRem = function()
+        {
+
+            var transWindow = new Ext.ux.form.TransactionSelector({
+                url: '/finance/ppn/get-trano-ppn-rem',
+                storeItemList: [
+                    {name: 'trano'},
+                    {name: 'rpi_no'},
+                    {name: 'prj_kode'},
+                    {name: 'sit_kode'}
+                ],
+                root: 'data',
+                total: 'count',
+                urlKodeSearch: '/finance/ppn/get-trano-ppn-rem/trano/',
+                storePageSize: 100,
+                gridColumns: [
+                    new Ext.grid.RowNumberer({width: 30}),
+                    {
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        width: 120
+                    },
+                    {
+                        header: 'RPI No',
+                        dataIndex: 'rpi_no',
+                        width: 100
+                    },
+                    {
+                        header: 'Project',
+                        dataIndex: 'prj_kode',
+                        width: 80
+                    },
+                    {
+                        header: 'Site',
+                        dataIndex: 'sit_kode',
+                        width: 60
+                    }
+                ],
+                title: 'Search',
+                windowsOnly: true,
+                windowsHeight: 400,
+                gridHeight: 300,
+                callbackGridClick: function(grid, rowIndex){
+                    var store = grid.getStore().getAt(rowIndex),
+                        trano = store.get("trano");
+
+                    Ext.Ajax.request({
+                        url: '/default/home/cek-reject',
+                        params: {
+                            trano: trano
+                        },
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+//                            if (returnData.success)
+//                            {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ppn/edit-ppn-rem/edit',
+                                    scripts : true,
+                                    params: {
+                                        trano: trano
+                                    }
+                                });
+//                            }
+//                            else
+//                            {
+//                                Ext.Msg.alert('Error', returnData.msg,function(){
+//                                    transWindow.showWindow();
+//                                });
+//                            }
+                        },
+                        failure:function( action){
+                            if(action.failureType == 'server'){
+                                obj = Ext.util.JSON.decode(action.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                            }
+                        }
+                    });
+                }
+            });
+
+            transWindow.showWindow();
+
+        };
+
+        var showEditPPNRemSettle = function()
+        {
+
+            var transWindow2 = new Ext.ux.form.TransactionSelector({
+                url: '/finance/ppn/get-trano-ppn-rem-settle',
+                storeItemList: [
+                    {name: 'trano'},
+                    {name: 'trano_ppn'},
+                    {name: 'prj_kode'},
+                    {name: 'sit_kode'}
+                ],
+                root: 'data',
+                total: 'count',
+                urlKodeSearch: '/finance/ppn/get-trano-ppn-rem-settle/trano/',
+                storePageSize: 100,
+                gridColumns: [
+                    new Ext.grid.RowNumberer({width: 30}),
+                    {
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        width: 120
+                    },
+                    {
+                        header: 'PPN Trano',
+                        dataIndex: 'trano_ppn',
+                        width: 100
+                    },
+                    {
+                        header: 'Project',
+                        dataIndex: 'prj_kode',
+                        width: 80
+                    },
+                    {
+                        header: 'Site',
+                        dataIndex: 'sit_kode',
+                        width: 60
+                    }
+                ],
+                title: 'Search',
+                windowsOnly: true,
+                windowsHeight: 400,
+                gridHeight: 300,
+                callbackGridClick: function(grid, rowIndex){
+                    var store = grid.getStore().getAt(rowIndex),
+                        trano = store.get("trano");
+
+                    Ext.Ajax.request({
+                        url: '/default/home/cek-reject',
+                        params: {
+                            trano: trano
+                        },
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                            if (returnData.success)
+                            {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ppn/edit-ppn-rem-settle/edit',
+                                    scripts : true,
+                                    params: {
+                                        trano: trano
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', returnData.msg,function(){
+                                    transWindow2.showWindow();
+                                });
+                            }
+                        },
+                        failure:function( action){
+                            if(action.failureType == 'server'){
+                                obj = Ext.util.JSON.decode(action.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                            }
+                        }
+                    });
+                }
+            });
+
+            transWindow2.showWindow();
+
+        };
+
+        var windowForm = ({
+
+            title:'PPN Reimbursement',
+            id:'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'tbbutton',
+                text:'Select Action',
+                iconCls:'menu-drop',
+                menu:{
+                    items:[
+                        {
+                            text:'Add New PPN Reimbursement (PPN-REM)',
+                            id:'finance-ppn-rem',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:function ()
+                            {
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ppn/ppn-rem',
+                                    scripts : true
+                                });
+                            }
+                        },
+                        {
+                            text:'Edit PPN Reimbursement',
+                            id:'finance-ppn-rem-edit',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/page_edit.gif",
+                            handler:showEditPPNRem
+                        },
+                        {
+                            text:'Add New PPN Reimbursement Settlement',
+                            id:'finance-ppn-rem-settle',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:function ()
+                            {
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ppn/ppn-rem-settle',
+                                    scripts : true
+                                });
+                            }
+                        },
+                        {
+                            text:'Edit PPN Reimbursement Settlement',
+                            id:'finance-ppn-rem-settle-edit',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/page_edit.gif",
+                            handler:showEditPPNRemSettle
+                        }
+                    ]
+                }
+            }]
+
+        })
+        
+//        function getExchangeRate()
+//        {
+//            Ext.Ajax.request({
+//                url: '/default/valuta/getexchangerate/val_kode/USD',
+//                method: 'POST',
+//                success: function(result, request) {
+//                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                    if (returnData.success) {
+//                        if(returnData.rate == 0)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR,
+//                                fn:function(){window.location='';}
+//                            });
+//                        }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//                },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//            });
+//        }
+//        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+
+    })
+
+
+</script>

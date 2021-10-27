@@ -1,0 +1,296 @@
+<style>
+        .x-tip {
+        background-color: #fff;
+        border-radius: 0.5em;
+        -moz-border-radius: 0.5em;
+        -webkit-border-radius: 0.5em;
+        border-radius: 0.5em;
+        border: 1px solid rgba(134, 84, 41, 0.5);
+        opacity: 0.95;
+    }
+    .x-tip-header {
+        margin-bottom: 5px;
+    }
+    .x-tip .x-panel .x-panel-body.x-layout-fit {
+        border: none;
+    }
+    .x-tip .x-panel.x-grid-section.x-panel-noborder.x-fit-item {
+        margin: 0;
+    }
+    .x-tip .x-panel.x-box-item {
+        top: 0 !important;
+    }
+    .x-tip-header-body .x-component.x-box-item {
+        width: 100%;
+        text-align: center;
+    }
+    .x-tip-body {
+        text-shadow: none;
+    }
+    /*.x-panel {*/
+            /*margin: 5px;*/
+        /*}*/
+</style>
+
+<script type="text/javascript">
+Ext.require(['Ext.data.*']);
+Ext.require('Ext.chart.*');
+Ext.require(['Ext.layout.container.Fit']);
+
+Ext.onReady(function() {
+//    console.log('ready');
+    var store1 = Ext.create('Ext.data.JsonStore', {
+        fields: ['BOQ3','MIP', 'PROGRESS', 'ACTUAL','DUE', 'week' <?=$this->fields?>],
+        data: <?=$this->json?>,
+        listeners: {
+            load: function(t,r,o) {
+
+            }
+        },
+        autoLoad: true
+    });
+
+    var gridStore = Ext.create('Ext.data.JsonStore', {
+        id: 'grid-store',
+        fields: ['name', 'data'],
+        listeners: {
+            'load': function(t,r,o) {
+//                console.log(r);
+            }
+        }
+    });
+
+    var grid = Ext.create('Ext.grid.Panel', {
+        id: 'grid-panel',
+        store: gridStore,
+        height: 130,
+        width: 480,
+        viewConfig:{
+            forceFit: true
+        },
+        columns: [
+            new Ext.grid.RowNumberer(),
+            {
+                text   : 'Workid',
+                dataIndex: 'name',
+                width: 150
+            },
+            {
+                text   : 'Total',
+                dataIndex: 'total',
+                width: 200
+            }
+        ]
+    });
+
+    var panel = Ext.create('widget.panel', {
+        width: <?=$this->width?>,
+        height: <?=$this->height?>,
+        <?php if (!$this->notitle) { ?>
+        title: 'S Curve Baseline, Cost & Progress',
+        border: true,
+        <?php } else { ?>
+        border: false,
+        <?php } ?>
+        renderTo: Ext.getBody(),
+//        renderTo: 'scurve',
+        layout: 'fit',
+        items: [{
+            xtype: 'chart',
+            id: 'scurve-chart',
+            animate: true,
+            shadow: true,
+            store: store1,
+            legend: {
+                position: 'top'
+            },
+            listeners: {
+                afterrender: function(t) {
+//                refresh: function(t) {
+//                    var svg = Ext.draw.engine.SvgExporter.generate(t.surface);
+//                    console.log(svg);
+                }
+            },
+            axes: [{
+                type: 'Numeric',
+                minimum: 0,
+                position: 'left',
+                fields: ['BOQ3','MIP', 'ACTUAL','INVOICE','DUE'],
+                title: '%',
+                minorTickSteps: 1,
+                grid: {
+                    odd: {
+                        opacity: 1,
+                        fill: '#ddd',
+                        stroke: '#bbb',
+                        'stroke-width': 0.5
+                    }
+                }
+            }, {
+                type: 'Category',
+                position: 'bottom',
+                fields: ['week'],
+                title: 'Week ( Start: <?=date('d M Y',strtotime($this->startDate))?>, End: <?=date('d M Y',strtotime($this->endDate))?>, Current: <?=date('d M Y',strtotime($this->currentDate))?> )'
+            }],
+            series: [{
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['BOQ3'],
+                title: 'BASELINE',
+                markerConfig: {
+                    type: 'cross',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+//                ,tips: {
+//                    trackMouse: true,
+//                    width: 580,
+//                    height: 170,
+//                    layout: 'fit',
+//                    title: 'Budget Information per Workid',
+//                    items: {
+//                        xtype: 'container',
+//                        layout: 'hbox',
+//                        items: [
+//                            grid
+//                        ]
+//                    },
+//                    renderer: function(klass, item) {
+//                        var storeItem = item.storeItem,
+//                            data = [];
+//                        Ext.each(storeItem.data,function(stores){
+//                            Ext.iterate(stores,function(k,v){
+//                                if (k.search('data') >= 0)
+//                                {
+//                                    if (v != '' || v != "")
+//                                    {
+//                                        var indeks = k.substr(-1,1);
+//
+//                                        data.push({
+//                                           name: storeItem.get(k),
+//                                           total: storeItem.get('acc'+indeks)
+//                                        });
+//                                    }
+//                                }
+//
+//                            });
+//                        });
+//                        gridStore.loadData(data);
+//                        grid.setSize(480, 130);
+//                    }
+//                }
+            },
+                    {
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['INVOICE'],
+                title: 'INVOICE',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0,
+                    fill: '#008000'
+                    
+                }
+            },
+             
+             {
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['DUE'],
+                title: 'OVER DUE',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+            },
+            
+            {
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['ACTUAL'],
+                title: 'RECORDED COST',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+            },
+                    
+            {
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['MIP'],
+                title: 'COMMITTED COST',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+            },{
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['PROGRESS'],
+                title: 'CONSTRUCTION PERCENTAGE',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0,
+                    fill: '#FA6A7D'
+                }
+            }]
+        }]
+    });
+});
+</script>
+
+<div id="scurve"></div>

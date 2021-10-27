@@ -1,0 +1,931 @@
+<script type="text/javascript">
+
+    var prjKode = '', sitKode = '';
+
+    function resetAll()
+    {
+        Ext.getCmp('form-insert-adjustingjournal').setVisible(false);
+        Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+        Ext.getCmp('debit_form').setValue(0);
+        Ext.getCmp('credit_form').setValue(0);
+        Ext.getCmp('prj_kode_text').setValue('');
+        Ext.getCmp('prj_nama_text').setValue('');
+        Ext.getCmp('sit_kode_text').setValue('');
+        Ext.getCmp('sit_nama_text').setValue('');
+        Ext.getCmp('val_rate_text').setValue(0);
+        Ext.getCmp('trano_tgl').setVisible(false);
+        jurnal.removeAll();
+
+        Ext.getCmp('add-to-grid').disable();
+        Ext.getCmp('reset-form').disable();
+    }
+
+    function showgeneraljournallist()
+    {
+        var store = new Ext.data.Store({
+            url: '/finance/adjustingjournal/get-general-jurnal-trano',
+            autoLoad: true,
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'trano'
+                    }, {
+                        name: 'type'
+                    }, {
+                        name: 'name_type'
+                    }, {
+                        name: 'tgl'
+                    }, {
+                        name: 'person'
+                    }]
+            })
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            store: store,
+            height: 300,
+            viewConfig: {
+                forceFit: true
+            },
+            columns: [
+                {
+                    header: 'Trano',
+                    dataIndex: 'trano',
+                    sortable: true
+                }, {
+                    header: 'Date',
+                    dataIndex: 'tgl',
+                    width: 90,
+                    sortable: true
+                }, {
+                    header: 'Type',
+                    dataIndex: 'name_type',
+                    sortable: true
+                }, {
+                    header: 'Person',
+                    dataIndex: 'person',
+                    sortable: true
+                }
+            ], bbar: new Ext.PagingToolbar({
+                id: 'paging',
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }), tbar: [{
+                    text: 'Search By',
+                    xtype: 'label',
+                    style: 'margin-left:5px'
+                }, '-', {
+                    xtype: 'combo',
+                    id: 'option',
+                    width: 100,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['nilai', 'name'],
+                        data: [
+                            ['trano', 'Trano'],
+                            ['ref_number', 'Ref Number']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value: 'trano'
+                }, '-', {
+                    xtype: 'textfield',
+                    id: 'search',
+                    enableKeyEvents: true,
+                    listeners: {
+                        'keyup': function(txttext, event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                store.proxy.setUrl('/finance/adjustingjournal/get-general-jurnal-trano/' + option + '/' + search);
+                                store.reload();
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                }], listeners: {
+                'rowdblclick': function(gridaktif, rowIndex, e)
+                {
+                    var recjurnal = gridaktif.getStore().getAt(rowIndex),
+                            trano = recjurnal.get("trano");
+
+                    Ext.Ajax.request({
+                        url: '/finance/adjustingjournal/get-general-jurnal-data',
+                        method: 'POST',
+                        params: {
+                            trano: trano
+                        },
+                        success: function(result) {
+                            obj = Ext.util.JSON.decode(result.responseText);
+
+                            if (obj.success)
+                            {
+                                Ext.getCmp('trano').setValue(trano);
+                                resetAll();
+                                jurnal.loadData(obj);
+                                jurnal.summaryTotal();
+
+                                Ext.getCmp('type-journal').setValue(obj.type);
+                                Ext.getCmp('add-to-grid').enable();
+                                Ext.getCmp('reset-form').enable();
+
+                                windowJurnal.close();
+
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', obj.msg);
+                            }
+                        },
+                        failure: function(action) {
+                            if (action.failureType == 'server') {
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            } else {
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        }
+
+                    });
+                }
+            }
+
+        });
+
+        var windowJurnal = new Ext.Window({
+            title: 'Choose General Journal Trano',
+            id: 'window-jurnal',
+            layout: 'absolute',
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask: true,
+            items: [
+                grid
+            ]
+        });
+
+        windowJurnal.show();
+    }
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method: 'POST',
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if (returnData.success) {
+                    Ext.getCmp('val_rate_text').setValue(returnData.rate);
+                }
+            }
+            , failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+
+    function showNhideCipGrid(flag) {
+        Ext.each(jurnal.colModel, function(col) {
+            for (i = 0; i < col.config.length; i++) {
+                if (col.config[i].dataIndex == 'status_doc_cip')
+                {
+                    jurnal.colModel.config[i].hidden = flag;
+                }
+            }
+        });
+
+        jurnal.render();
+        jurnal.getView().refresh();
+    }
+
+    var jurnal = new Ext.ux.grid.gridJurnal({
+        height: 300,
+        width: 850,
+        id: 'grid-jurnal',
+//        renderTo:'gridjurnal',
+        hideRefNumber: false,
+        disableNewJournal: true,
+        showJobNumber: true,
+        showStatusDocCip: true
+    });
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        }
+    });
+
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var tranopanel = new Ext.form.FormPanel({
+            title: 'Edit General Journal',
+            renderTo: 'edit_adjustingjournal',
+            frame: true,
+            labelAlign: 'leftLabelField',
+            style: 'margin:10 10 10 10',
+            width: 400,
+//            stat:'new',
+            items: [
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Transaction Number',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+//                        {
+//                            xtype:'trigger',
+//                            fieldLabel:'Transaction Number ',
+//                            width:140,
+//                            triggerClass: 'teropong',
+//                            allowBlank: false,
+//                            editable : false,
+//                            stat: 'enable',
+//                            id:'trano',
+//                            onTriggerClick:function ()
+//                            {
+//                                showgeneraljournallist ();
+//                            }
+//
+//                        },
+                        {
+                            xtype: 'tranojurnalselector',
+                            anchor: '100%',
+                            id: 'trano_jurnal',
+                            Selectid: 'trano',
+                            fieldLabel: 'Transaction',
+                            callbackFunc: function(trano) {
+                                Ext.Ajax.request({
+                                    url: '/finance/adjustingjournal/get-general-jurnal-data',
+                                    method: 'POST',
+                                    params: {
+                                        trano: trano
+                                    },
+                                    success: function(result) {
+                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                        if (obj.success)
+                                        {
+                                            resetAll();
+                                            Ext.getCmp('form-insert-adjustingjournal').setVisible(true);
+                                            Ext.getCmp('trano_tgl').setVisible(true);
+                                            jurnal.loadData(obj);
+                                            jurnal.summaryTotal();
+
+                                            if ((obj.data[0].ref_number2 != '' || obj.data[0].ref_number2 != null) && obj.data[0].type == 'JS')
+                                                ;
+                                            {
+                                                jurnal.additionalHTML = '<h3 style="padding: 10px;float = right;">Transaction Number : <b>' + obj.data[0].trano + '<br />' +
+                                                        '<h3 style="padding: 10px;float = right;">RPC Number : <b>' + obj.data[0].ref_number2;
+                                                +'</b></h3>';
+                                            }
+                                            Ext.getCmp('type-journal').setValue(obj.type);
+                                            Ext.getCmp('tgl').setValue(obj.tgl);
+                                            Ext.getCmp('add-to-grid').enable();
+                                            Ext.getCmp('reset-form').enable();
+
+                                            if (obj.type == "JS") {
+                                                Ext.getCmp('poh-radio').setVisible(true);
+                                                showNhideCipGrid(false);
+                                            }
+                                            else {
+                                                Ext.getCmp('poh-radio').setVisible(false);
+                                                showNhideCipGrid(true);
+                                            }
+
+
+
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', obj.msg);
+                                        }
+                                    },
+                                    failure: function(action) {
+                                        if (action.failureType == 'server') {
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        } else {
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+
+                                });
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            text: 'Cancel Edit',
+                            handler: function() {
+                                resetAll();
+                            }
+                        }
+                    ]
+                },
+                {
+                    xtype: 'tranodatechanger',
+                    anchor: '100%',
+                    id: 'trano_tgl',
+                    Selectid: 'tgl',
+                    fieldLabel: 'Transaction Date',
+                    hidden: true
+                },
+            ]
+        });
+
+        var formpanel = new Ext.form.FormPanel({
+            id: 'form-insert-adjustingjournal',
+            renderTo: 'insert_adjustingjournal',
+            frame: true,
+            hidden: true,
+            labelAlign: 'leftLabelField',
+            style: 'margin:10 10 10 10',
+            width: 400,
+//            stat:'new',
+            items: [
+                {
+                    xtype: 'combo',
+                    fieldLabel: 'Type Journal',
+                    width: 150,
+                    readOnly: true,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['name', 'nilai'],
+                        data: [
+                            ['Adjusting Journal', 'ADJ'],
+                            ['Voucher Journal', 'JV'],
+                            ['Sales Journal', 'SJ'],
+                            ['Settlement Journal', 'JS'],
+                            ['PPN Settlement Journal', 'PJS'],
+                            ['Accrual Journal', 'ACJ']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    allowBlank: false,
+                    id: 'type-journal',
+                    listeners: {
+                        'select': {fn:
+                                    function(c, row, index)
+                                    {
+                                        jurnal.printTitle = row.get("name");
+
+                                        if (row.get("nilai") == "JS")
+                                        {
+                                            Ext.getCmp('acc-numbers').Tranotype = ['ASF', 'ASFO', 'BSF', 'ARF', 'ARFO'];
+                                            Ext.getCmp('poh-radio').setVisible(true);
+                                            jurnal.showStatusDocCip = true;
+                                            showNhideCipGrid(false);
+
+                                        }
+                                        else if (row.get("nilai") == "PJS")
+                                        {
+                                            Ext.getCmp('acc-numbers').Tranotype = ['PPNSET'];
+                                            Ext.getCmp('poh-radio').setVisible(false);
+                                            jurnal.showStatusDocCip = false;
+                                            showNhideCipGrid(true);
+                                        } else if (row.get("nilai") == "ADJ")
+                                        {
+                                            Ext.getCmp('acc-numbers').Tranotype = ['ASF', 'ASFO', 'BSF', 'ARF', 'ARFO'];
+                                            Ext.getCmp('poh-radio').setVisible(false);
+                                            jurnal.showStatusDocCip = true;
+                                            showNhideCipGrid(false);
+                                        }
+                                        else
+                                        {
+                                            Ext.getCmp('acc-numbers').Tranotype = '';
+                                            Ext.getCmp('poh-radio').setVisible(false);
+                                            jurnal.showStatusDocCip = false;
+                                            showNhideCipGrid(true);
+                                        }
+
+                                        jurnal_type = row.get("nilai");
+                                    }
+                        }
+                    }
+                }, {
+                    xtype: 'projectselectorreport',
+                    anchor: '100%',
+                    id: 'project-select',
+                    Selectid: 'prj_kode_text',
+                    Nameid: 'prj_nama_text',
+                    ShowName: true,
+                    fieldLabel: 'Project Code',
+                    allowBlank: false,
+                    showAll: true,
+                    callback: function(prj) {
+                        prjKode = parseProjectCode(prj.prj_kode);
+                        if (prjKode != '')
+                            Ext.getCmp('job_number').setValue(prjKode + ".");
+
+                        Ext.getCmp('site-select').clearAllValue();
+                    }
+                }, {
+                    xtype: 'siteselector',
+                    anchor: '100%',
+                    independent: false,
+                    id: 'site-select',
+                    SiteSelectid: 'sit_kode_text',
+                    SiteNameid: 'sit_nama_text',
+                    ProjectSelectid: 'prj_kode_text',
+                    ShowName: true,
+                    fieldLabel: 'Site Code',
+                    allowBlank: false,
+                    showAll: true,
+                    callback: function(site) {
+                        if (site.sit_kode != '')
+                        {
+                            sitKode = site.sit_kode;
+                            Ext.getCmp('job_number').setValue(prjKode + "." + sitKode + ".");
+                        }
+                    }
+                },
+                {
+                    xtype: 'tranoselector',
+                    fieldLabel: 'Reference Number',
+                    id: 'acc-numbers',
+                    Selectid: 'acc-number',
+//                    Enableeditable: true,
+//                    allowBlank:false,
+                    width: 150
+                },
+                {
+                    xtype: 'textfield',
+                    fieldLabel: '2nd Reference Number',
+                    id: 'acc-number2',
+                    width: 150
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'MYOB Reference Number',
+                    id: 'acc-number3',
+                    width: 150
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Description ',
+                    id: 'desc',
+                    width: 200,
+                    allowBlank: false
+                }
+//                {
+//                    fieldLabel: 'Valuta ',
+//                    xtype: 'combo',
+//                    width: 100,
+//                    allowBlank: false,
+//                    store: new Ext.data.SimpleStore({
+//                        fields: ['name', 'nilai'],
+//                        data: [
+//                            ['IDR', 'IDR'],
+//                            ['USD', 'USD']
+//                        ]
+//                    }),
+//                    valueField: 'nilai',
+//                    displayField: 'name',
+//                    typeAhead: true,
+//                    forceSelection: true,
+//                    editable: false,
+//                    mode: 'local',
+//                    triggerAction: 'all',
+//                    selectOnFocus: true,
+//                    id: 'val_kode_text'
+//                }, new Ext.ux.customRendererField({
+//                    xtype: 'textfield',
+//                    fieldLabel: 'Rateidr ',
+//                    id: 'val_rate_text',
+//                    vtype: 'numeric',
+//                    style: 'text-align:right',
+//                    priceDelemiter: ',',
+//                    value: getExchangeRate()
+//                }), 
+                , {
+                    xtype: 'currencyselector',
+                    anchor: '100%',
+                    id: 'currency-select',
+                    Selectid: 'val_kode_text',
+                    Nameid: 'val_nama_text',
+                    ShowName: true,
+                    fieldLabel: 'Currency Code',
+                    allowBlank: false,
+                    selectValue: 'IDR'
+                },
+                new Ext.ux.customRendererField({
+                    xtype: 'textfield',
+                    fieldLabel: 'IDR Rate',
+                    id: 'val_rate_text',
+                    name: 'val_rate_text',
+                    vtype: 'numeric',
+                    style: 'text-align:right',
+                    priceDelemiter: ','
+                }),
+                {
+                    xtype: 'coaselector',
+                    fieldLabel: 'Chart Of Account',
+                    id: 'coa_kodes',
+                    Selectid: 'coa_kode',
+                    Nameid: 'coa_nama',
+                    width: 180,
+                    ShowName: true,
+                    allowBlank: false
+                },
+                new Ext.ux.customRendererField(
+                        {
+                            xtype: 'textfield',
+                            id: 'debit_form',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            fieldLabel: 'Debit ',
+                            value: '0.00',
+                            listeners: {
+                                'customfocus': function(t) {
+                                    Ext.getCmp('credit_form').setValue('');
+                                }
+                            }
+                        }),
+                new Ext.ux.customRendererField(
+                        {
+                            xtype: 'textfield',
+                            id: 'credit_form',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            fieldLabel: 'Credit ',
+                            value: '0.00',
+                            listeners: {
+                                'customfocus': function(t) {
+                                    Ext.getCmp('debit_form').setValue('');
+                                }
+                            }
+                        }), {
+                    xtype: 'textfield',
+                    id: 'job_number',
+                    fieldLabel: 'Job Number ',
+                    vtype: 'alphanumericonly'
+                },
+                {
+                    xtype: 'radiogroup',
+                    fieldLabel: 'Is CIP ?',
+                    id: 'poh-radio',
+                    allowBlank: false,
+                    hidden: true,
+                    items: [
+                        {
+                            boxLabel: 'No',
+                            name: 'poh',
+                            inputValue: '1',
+                            checked: true
+                        },
+                        {
+                            boxLabel: 'CIP',
+                            name: 'poh',
+                            inputValue: '2'
+                        }
+                    ],
+                    listeners: {
+                        'change': function(t, ch)
+                        {
+                            if (ch.getGroupValue() == 'YES')
+                            {
+//                                hitungtotal();
+                            } else
+                            {
+//                                Ext.getCmp('ppn-value').setValue(0);
+//                                hitungtotal();
+                            }
+                        }
+                    }
+                }
+            ],
+            buttons: [{
+                    text: 'Add to Grid',
+                    id: 'add-to-grid',
+                    disabled: true,
+                    iconCls: 'silk-add',
+                    handler: function(btn, ev)
+                    {
+
+                        if (!Ext.getCmp('form-insert-adjustingjournal').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error', 'Form not valid');
+                            return false;
+                        }
+
+                        if (Ext.getCmp('acc-number').getValue() == '' &&
+                                Ext.getCmp('type-journal').getValue() != 'ADJ' &&
+                                Ext.getCmp('type-journal').getValue() != 'ACJ' &&
+                                Ext.getCmp('type-journal').getValue() != 'SJ' &&
+                                Ext.getCmp('type-journal').getValue() != 'JV')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry , please insert Reference Number',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (Ext.getCmp('coa_kode').getValue() == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry , please insert COA',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (Ext.getCmp('prj_kode_text').getValue() == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry , please insert Project Code',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (Ext.getCmp('sit_kode_text').getValue() == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry , please insert Site Code',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (parseFloat(Ext.getCmp('debit_form').getOriginalValue()) == 0 && parseFloat(Ext.getCmp('credit_form').getOriginalValue()) == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry , please insert field debit or credit',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        //Cek job number sesuai dengan patter Qxxx.yyy (xxx == kode project, yyy == cfs kode)
+                        var testJob = Ext.getCmp('job_number').getValue();
+
+                        if (!regexJobNumber.test(testJob.toString()))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Job Number not valid, please use format ( Qxxxxxx.yyy.zzz ), ex : Q000101.254.123<br>xxxxxx = Project Code, yyy = Site Code, zzz = CFS Code',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (jurnal.getCount() > 0)
+                        {
+                            var row = jurnal.getStore().getAt(jurnal.getStore().findExact('val_kode', Ext.getCmp('val_kode_text').getValue()));
+
+                            if (row == null)
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Sorry this document different valuta',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+
+                        var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+                        var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                        var type = Ext.getCmp('type-journal').getValue();
+                        var ref_number = Ext.getCmp('acc-number').getValue();
+                        var ref_number2 = Ext.getCmp('acc-number2').getValue();
+                        var ref_number3 = Ext.getCmp('acc-number3').getValue();
+                        var coa_kode = Ext.getCmp('coa_kode').getValue();
+                        var coa_nama = Ext.getCmp('coa_nama').getValue();
+                        var val_kode = Ext.getCmp('val_kode_text').getValue();
+                        var ket = Ext.getCmp('desc').getValue();
+                        var debit = parseFloat(Ext.getCmp('debit_form').getOriginalValue());
+                        var credit = parseFloat(Ext.getCmp('credit_form').getOriginalValue());
+                        var rate = parseFloat(Ext.getCmp('val_rate_text').getOriginalValue().toString().replace(/\$|\,/g, ''));
+                        var job_number = Ext.getCmp('job_number').getValue();
+                        var status_doc_cip = Ext.getCmp('poh-radio').getValue().getGroupValue();
+
+                        var coas = '';
+
+                        var addInfo = {
+                            prj_kode: prj_kode,
+                            sit_kode: sit_kode,
+                            job_number: job_number,
+                            val_kode: val_kode,
+                            trano: '',
+                            ket: ket,
+                            ref_number: ref_number,
+                            ref_number2: ref_number2,
+                            ref_number3: ref_number3,
+                            rateidr: rate,
+                            tipe_jurnal: type,
+                            status_doc_cip: status_doc_cip
+                        };
+
+
+                        if (debit == 0)
+                        {
+                            coas = [{
+                                    coa_kode: coa_kode,
+                                    value: parseFloat(Ext.getCmp('credit_form').getOriginalValue()),
+                                    side: 'credit',
+                                    tipe: ''
+                                }]
+                        }
+
+                        if (credit == 0)
+                        {
+                            coas = [{
+                                    coa_kode: coa_kode,
+                                    value: parseFloat(Ext.getCmp('debit_form').getOriginalValue()),
+                                    side: 'debit',
+                                    tipe: ''
+                                }]
+                        }
+
+                        jurnal.getCoa(coas, addInfo);
+
+//                    Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+
+//                    Ext.getCmp('acc-number').setValue(ref_number);
+//                    Ext.getCmp('val_kode_text').setValue(val_kode);
+//                    Ext.getCmp('type-journal').setValue(type);
+//                    Ext.getCmp('desc').setValue(ket);
+//                    Ext.getCmp('val_rate_text').setValue(rate);
+                        Ext.getCmp('coa_kode').setValue('');
+                        Ext.getCmp('coa_nama').setValue('');
+                        Ext.getCmp('debit_form').setValue(0);
+                        Ext.getCmp('credit_form').setValue(0);
+                        Ext.getCmp('coa_nama').setValue('');
+                        Ext.getCmp('type-journal').disable();
+                        Ext.getCmp('poh-radio').setValue(1);
+
+                    }
+                }, {
+                    text: 'Reset',
+                    id: 'reset-form',
+                    disabled: true,
+                    style: 'margin-right:26px;',
+                    handler: function(btn, ev)
+                    {
+                        var type = Ext.getCmp('type-journal').getValue();
+                        Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+                        Ext.getCmp('type-journal').setValue(type);
+                        Ext.getCmp('debit_form').setValue(0);
+                        Ext.getCmp('credit_form').setValue(0);
+                        Ext.getCmp('prj_kode_text').setValue('');
+                        Ext.getCmp('prj_nama_text').setValue('');
+                        Ext.getCmp('sit_kode_text').setValue('');
+                        Ext.getCmp('sit_nama_text').setValue('');
+                        Ext.getCmp('val_rate_text').setValue(0);
+                        Ext.getCmp('poh-radio').setValue(1);
+                    }
+                }]
+
+        });
+
+        var paneljurnal = new Ext.form.FormPanel({
+            renderTo: 'jurnal_panel',
+            frame: true,
+            labelAlign: 'top',
+            style: 'margin:10 10 10 10',
+            width: 850,
+            items: [
+                jurnal
+            ],
+            buttons: [{
+                    text: 'Submit',
+                    iconCls: 'icon-save',
+                    handler: function(btn, ev)
+                    {
+                        if (jurnal.getCount() == 0)
+                        {
+                            return false;
+                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+                            if (btn == 'yes')
+                            {
+                                function callback(jsonJurnal)
+                                {
+
+                                    var trano = Ext.getCmp('trano').getValue();
+                                    var tgl = Ext.util.Format.date(Ext.getCmp('tgl').getValue(), 'Y-m-d');
+                                    var params = {
+                                        jsonJurnal: jsonJurnal,
+                                        trano: trano,
+                                        tgl: tgl
+                                    };
+                                    Ext.getBody().mask('Loading..','x-mask-loading',false);  
+                                    Ext.Ajax.request({
+                                        url: '/finance/adjustingjournal/do-update-general-journal',
+                                        method: 'POST',
+                                        params: params,
+                                        success: function(result) {
+                                            Ext.getBody().unmask();
+                                            obj = Ext.util.JSON.decode(result.responseText);
+
+                                            if (obj.success)
+                                            {
+                                                Ext.MessageBox.confirm(
+                                                        'Success',
+                                                        'Data has been saved' +
+                                                        '<br>Do You want to Print the Journal?',
+                                                        function(btn) {
+                                                            if (btn == 'yes')
+                                                            {
+                                                                jurnal.additionalHTML = '<h3 style="padding: 10px">Transaction Number : <b>' + trano + '</b></h3>'
+                                                                jurnal.printJurnal();
+                                                            }
+
+                                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                                            myPanel.body.load({
+                                                                url: '/finance/adjustingjournal/edit-journal',
+                                                                scripts: true
+                                                            });
+                                                        }
+                                                );
+
+
+
+                                            } else
+                                            {
+                                                Ext.Msg.alert('Error', obj.msg);
+                                            }
+                                        },
+                                        failure: function(action) {
+                                            Ext.getBody().unmask();
+                                            if (action.failureType == 'server') {
+                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                Ext.Msg.alert('Error!', obj.errors.reason);
+                                            } else {
+                                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                            }
+                                        }
+
+                                    });
+                                }
+                                jurnal.getJSONFromStore(callback);
+
+                            }
+
+                        })
+
+                    }
+                }]
+
+        });
+    })
+
+</script>
+
+<div id="edit_adjustingjournal"></div>
+<div id="insert_adjustingjournal"></div>
+<div id="jurnal_panel"></div>

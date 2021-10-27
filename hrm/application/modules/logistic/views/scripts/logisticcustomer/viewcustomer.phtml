@@ -1,0 +1,142 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var customerstore = new Ext.data.Store ({
+
+            url:'/logistic/logisticcustomer/getcustomer',
+            autoLoad:true,
+
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'cus_kode',type:'String'},
+                {name:'cus_nama',type:'String'},
+                {name:'alamat',type:'String'},
+                {name:'kota',type:'String'},
+                {name:'tlp',type:'String'},
+                {name:'fax',type:'String'},
+                {name:'ket',type:'String'},
+                {name:'user',type:'String'},
+                {name:'top',type:'int'},
+                {name:'email',type:'String'},
+                {name:'id',type:'int'}
+            ])
+            
+        })
+
+
+        var grid = new Ext.grid.GridPanel({
+
+            store:customerstore,
+            title:'View Customer',
+            renderTo:'viewcustomer',
+            height: 326,
+            width:800,
+            columns:[
+                {
+                    header:'code',
+                    width:60,
+                    dataIndex:'cus_kode',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'name',
+                    width:140,
+                    dataIndex:'cus_nama',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'address',
+                    width:180,
+                    dataIndex:'alamat',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'phone',
+                    width:100,
+                    dataIndex:'tlp',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'fax',
+                    width:100,
+                    dataIndex:'fax',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'description',
+                    width:100,
+                    dataIndex:'ket',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'email',
+                    width:140,
+                    dataIndex:'email',
+                    align:'center',
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar ({
+                id: 'paging',
+                pageSize: 10,
+                store: customerstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[
+                {
+                    text:'Customer Name',
+                    xtype:'label',
+                    style: 'margin-left: 5px'
+
+                },{
+                    xtype: 'textfield',
+					id: 'search',
+                    style: 'margin-left: 5px'
+
+                },{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchData,
+				    scope: this
+				},
+                '-',
+                {
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+				},'-'
+            ]
+
+        })
+
+        function searchData ()
+        {
+            var search = Ext.getCmp('search').getValue();
+            customerstore.proxy.setUrl('/logistic/logisticcustomer/getcustomer/search/' + search);
+            customerstore.reload();
+            grid.getView().refresh();
+        }
+
+        function refreshData ()
+        {
+            customerstore.clearFilter();
+            Ext.getCmp('search').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+        
+
+    }) /* End OnreadyFunction */
+
+
+</script>
+
+    <div id="viewcustomer"></div>

@@ -1,0 +1,282 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+	function showBarangChoose(num)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 350,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth : 150,
+//                        labelPad : 7,
+						items: [{
+								    fieldLabel : 'Product ID',
+								    id : 'kode_brg_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: num,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showBarangList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var kodeBrg = Ext.getCmp('kode_brg_text').getValue();
+		 			        if (kodeBrg != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/logistic/logistic/editmaterial/kode_brg/' + kodeBrg,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showBarangList()
+    {
+        var columns = [ {header:'Product ID',width:120,sortable:true,dataIndex:'kode_brg'},
+                        {header:'Product Name',width:170,sortable:true,dataIndex:'nama_brg'},
+                        {header:'Uom',width:60,sortable:true,dataIndex:'sat_kode'}
+                        ]
+
+        urlJson = CFG_CLIENT_SERVER_NAME +'/barang/list';
+        data =  [
+                {name: 'kode_brg', mapping: 'kode_brg'},
+                {name: 'nama_brg', mapping: 'nama_brg'},
+                {name: 'sat_kode', mapping: 'sat_kode'}
+                ];
+        primaryKey = 'kode_brg';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'kode_brg';
+                                txtBoxChange = 'kode_brg_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-kode_brg_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showBarangChoose(trano);
+                                Ext.getCmp('kode_brg_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchKodeBrg = function(field,e){
+            newUrl = '/barang/listByParams/name/kode_brg/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchNamaBrg = function(field,e){
+            newUrl = '/barang/listByParams/name/nama_brg/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-kode_brg_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'Product ID'
+            },
+           new txtboks(80,10,80,'kode_brg',searchKodeBrg),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Product Name'
+               },
+              new txtboks(80,50,80,'nama_brg',searchNamaBrg)
+
+            ,new grids('barang_list')
+        ]
+
+      });
+      aForm.title = 'Choose Material';
+      aForm.show();
+
+
+    }
+
+    showAddBarang = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/logistic/logistic/addmaterial',
+	        scripts : true
+        });
+	};
+
+	showEditBarang= function(){
+			showBarangChoose();
+	};
+
+	showAppBarang = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/MATERIAL',
+	        scripts : true
+        });
+	};
+
+
+    var windowForm =  ({
+
+    title: 'Master Material',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+						{
+						    id: 'material_add_button',
+						    text: 'Add Material',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddBarang
+						}
+//						,{
+//						    id: 'material_edit_button',
+//						    text: 'Edit Existing Material',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/page_edit.gif",
+//						    handler:showEditBarang
+//						}
+//                        {
+//						    id: 'app_button',
+//						    text: 'Verify & Approval',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/page_script.gif",
+//						    handler:showAppSupp
+//						}
+						]
+				}
+			}
+         ]
+    });
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+});
+</script>

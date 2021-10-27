@@ -1,0 +1,938 @@
+<style>
+.body {
+	width: 720px;
+    overflow: auto;
+}
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+    margin-bottom: 10px;
+}
+.title2 {
+	width: 100%;
+    float: left;
+	text-align: center;
+	font-size: 14px;
+	font-weight: bold;
+    margin-top: 10px;
+	margin-bottom: 10px;
+}
+.etc {
+	width: 100%;
+	height: 50px;
+}
+.kanan-etc {
+	float: right;
+	width: 48%;
+}
+.kiri-etc {
+	float: left;
+	width: 48%;
+}
+.blok {
+	font-size: 12px;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.budgetTable {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+/*css for afe &boq3 table*/
+table.afe
+{ width: 700px;
+background-color: #fafafa;
+border: 1px #000000 solid;
+border-collapse: collapse;
+border-spacing: 0px; }
+
+
+td.afeheader
+{ background-color: #99CCCC;
+border: 1px #000000 solid;
+font-weight: bold;
+font-size: 14px;
+text-align: center;
+color: #404040; }
+
+
+td.afeisi
+{ border-bottom: 1px #6699CC dotted;
+font-weight: normal;
+font-size: .7em;
+color: #404040;
+background-color: #fafafa;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 8px;
+padding-right: 8px; }
+/*end here*/
+    
+</style>
+
+<style type="text/css">
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+</style>
+
+<script type="text/javascript">
+
+function submitData(params,dataArray)
+{
+    var addurl = '';
+
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+    Ext.Ajax.request({
+            url: '/admin/afe/insertafe' + addurl,
+            method:'POST',
+            success: function(resp){
+                var returnData = Ext.util.JSON.decode(resp.responseText);
+                if (returnData.success)
+                {
+                    if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        showNextPerson(returnData.user,params);
+                        return false;
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Success', 'AFE has been saved and submitted to current Workflow!' + '<br><br>Your AFE number is <b><font color="#ff0000">' + returnData.number + '</font></b>');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/admin/afe/addafe',        
+                            scripts : true
+                        });
+                    }
+                }
+                else
+                {
+                    Ext.Msg.alert('Error', returnData.msg);
+                }
+            },
+            failure:function( action){
+              if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+              }else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+              }
+              },
+            params: params
+        });
+
+}
+
+function submitData2(params,dataArray)
+{
+    var addurl = '';
+
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+    Ext.Ajax.request({
+	        url: '/admin/afe/updateafe' + addurl,
+	        method:'POST',
+	        success: function(resp){
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+                     if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        showNextPerson(returnData.user,params,true);
+                        return false;
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Success', 'AFE has been saved and submitted to current Workflow!');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/admin/afe/afe',
+                            scripts : true
+                        });
+                    }
+				}
+                else
+                {
+                    Ext.Msg.alert('Error', returnData.msg);
+                }
+	        },
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+    
+}
+
+function showNextPerson(userArray,params,isEdit)
+{
+
+    var addlist = Ext.data.Record.create([
+             {name: 'id', type: 'string'},
+             {name: 'workflow_id', type: 'string'},
+             {name: 'workflow_item_id', type: 'string'},
+             {name: 'workflow_structure_id', type: 'string'},
+             {name: 'next', type: 'string'},
+             {name: 'uid_next', type: 'string'},
+             {name: 'name', type: 'string'},
+             {name: 'role_name', type: 'string'},
+             {name: 'prj_kode', type: 'string'}
+        ]);
+
+     var storeUser = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: addlist})
+    });
+
+    Ext.each(userArray, function (t, index){
+        var d = new addlist({
+            id: t.id,
+            workflow_id: t.workflow_id,
+            workflow_item_id: t.workflow_item_id,
+            workflow_structure_id: t.workflow_structure_id,
+            uid_next: t.uid_next,
+            next: t.next,
+            name: t.name,
+            role_name: t.role_name,
+            prj_kode: t.prj_kode
+        });
+        storeUser.add(d);
+        d = undefined;
+    });
+
+    var userColumns =  [
+        new Ext.grid.RowNumberer(),
+        {header: "Receiver", dataIndex: 'name', width: 220, renderer: function (v,p,r) {
+            return '<div class="personicon"><b>' + r.data.name + '</b>&nbsp;<span class="rolename">' + r.data.role_name + '</span></div>';
+        }}
+    ];
+
+    var bForm = new Ext.Window ({
+    id: 'choose-next',
+    layout:'fit',
+    width: 300,
+    height: 250,
+    modal: true,
+    title: 'Choose Document Receiver',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    stateful: false,
+    items : [
+            new Ext.form.FormPanel({
+                frame: true,
+                items: [
+
+
+                    new Ext.grid.GridPanel({
+//                        width: 380,
+                        height: 230,
+                        id: 'site-grids',
+                        loadMask: true,
+                        columns: userColumns,
+                        store: storeUser,
+                        sm: new Ext.grid.RowSelectionModel({
+                            singleSelect:true
+                        }),
+                        viewConfig: {
+                            forceFit: true,
+                            enableRowBody:true,
+                            showPreview:true,
+                            getRowClass : function(record, rowIndex, p, ds) {
+                                            return 'x-grid3-row-expanded';
+//                                            return 'x-grid3-row-collapsed';
+                                          }
+                        },
+                        listeners: {
+                            'rowdblclick': function(g, rowIndex, e){
+                                    var record = g.getStore().getAt(rowIndex);
+                                    if (isEdit)
+                                        submitData2(params,record);
+                                    else
+                                        submitData(params,record);
+                                    bForm.close();
+                            }
+                        }
+                    })
+                ]
+                })
+            ],
+             buttons: [
+                      {
+                         text: 'OK',
+                         id: 'ok-next',
+                         iconCls: 'silk-upd',
+                         handler: function(btn, ev) {
+                            var row = Ext.getCmp('site-grids').getSelectionModel().getSelections();
+                            var record = row[0];
+                            if (isEdit)
+                                submitData2(params,record);
+                            else
+                                submitData(params,record);
+                            bForm.close();
+                          }
+
+                      },
+                      {
+                         text: 'Cancel',
+                         id: 'cancel',
+                         handler: function(btn, ev) {
+                             bForm.close();
+                          }
+
+                      }
+
+
+                        ]
+        });
+        bForm.show();
+};
+
+<?php
+
+if ($this->approve)
+{
+?>
+
+var trano = '<?=$this->docsID?>';
+var uid = '<?=$this->uid?>';
+var user_id = '<?=$this->userID?>';
+
+<?php if ($this->reject) { ?>
+
+var cancelButton = new Ext.Button({
+    text: 'Goto Edit ASF',
+    iconCls: 'icon-go',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/admin/afe/afe',
+	        scripts : true
+	    });
+	},
+	renderTo: 'cancel-button'
+});
+
+<?php } else { ?>
+
+var okButton = new Ext.Button({
+    text: 'Approve',
+    iconCls: 'icon-add',
+    scale: 'large',
+    handler: function (){
+         this.disable();
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText2
+    });
+
+	function showResultText2(btn, text){
+		var comment='';
+		if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+		params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+		Ext.Ajax.request({
+	        url: '/admin/workflow/approve',
+	        method:'POST',
+	        success: function(resp){
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+					Ext.Msg.alert('Success', 'Document has been approved!');
+					getDocs();
+					myPanel = Ext.getCmp('abs-budget-panel');
+				    myPanel.body.load({
+				        url: '/default/home/showprocessdocument',
+				        scripts : true
+			        });
+				}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+	        },
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+	}
+	},
+	renderTo: 'ok-button'
+});
+
+var cancelButton = new Ext.Button({
+    text: 'Reject',
+    iconCls: 'icon-cancel',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText
+    });
+
+	function showResultText(btn, text){
+		var comment='';
+        if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+        params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+    	Ext.Ajax.request({
+            url: '/admin/workflow/reject',
+            method:'POST',
+            success: function(resp){
+    			var returnData = Ext.util.JSON.decode(resp.responseText);
+    			if (returnData.success)
+    			{
+    				Ext.Msg.alert('Success', 'Document has been rejected!');
+    				getDocs();
+    				myPanel = Ext.getCmp('abs-budget-panel');
+    			    myPanel.body.load({
+    			        url: '/default/home/showprocessdocument',
+    			        scripts : true
+    		        });
+    			}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+            },
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+          	}
+          	},
+            params: params
+        });
+    };
+
+
+	},
+	renderTo: 'cancel-button'
+});
+
+var backButton = new Ext.Button({
+    text: 'Cancel',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '<?php echo $this->urlBack; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'back-button'
+});
+
+<?php
+	}
+}
+elseif (!$this->approve)
+{
+?>
+
+
+var json = '<?php echo $this->jsonResult; ?>';
+var json2 = '<?php echo $this->jsonResult2; ?>';
+
+var okButton = new Ext.Button({
+            text: 'Submit',
+            iconCls: 'icon-save',
+            scale: 'large',
+            handler: function (){
+             this.disable();
+
+			<?php
+			if (!$this->edit)
+			{
+			?>
+
+	parameter = '[{"prj_kode":"<?=$this->etc[0]['prj_kode']?> ","prj_nama":"<?=$this->etc[0]['prj_nama']?>", "sit_kode":"<?=$this->etc[0]['sit_kode']?>", "sit_nama":"<?=$this->etc[0]['sit_nama']?>" ,"ket" : "<?=$this->etc[0]['ket']?>","add_rev" : "<?=$this->etc[0]['add_rev']?>","pocustomer" : "<?=$this->etc[0]['pocustomer']?>","totalpocustomer" : "<?=$this->etc[0]['totalpocustomer']?>","val_kode" : "<?=$this->etc[0]['val_kode']?>","margin" : "<?=number_format($mbpohMoved,4)?>"}]';
+
+	params = {posts:json, etc:parameter, posts2:json2};
+	submitData(params);
+	 <?php } else { ?>
+
+
+//	 parameter = '[{"prj_kode":"<?=$this->etc[0]['prj_kode']?> ","prj_nama":"<?=$this->etc[0]['prj_nama']?>", "sit_kode":"<?=$this->etc[0]['sit_kode']?>", "sit_nama":"<?=$this->etc[0]['sit_nama']?>" ,"cus_kode":"<?=$this->etc[0]['cus_kode']?>", "trano":"<?=$this->etc[0]['trano']?>", "assigned": "<?=$this->etc[0]['assigned']?>", "rev": "<?=$this->etc[0]['rev']?>"}]';
+	 parameter = '[{"trano":"<?=$this->etc[0]['trano']?> ","prj_kode":"<?=$this->etc[0]['prj_kode']?> ","prj_nama":"<?=$this->etc[0]['prj_nama']?>", "sit_kode":"<?=$this->etc[0]['sit_kode']?>", "sit_nama":"<?=$this->etc[0]['sit_nama']?>" ,"ket" : "<?=$this->etc[0]['ket']?>","add_rev" : "<?=$this->etc[0]['add_rev']?>","pocustomer" : "<?=$this->etc[0]['pocustomer']?>","totalpocustomer" : "<?=$this->etc[0]['totalpocustomer']?>","val_kode" : "<?=$this->etc[0]['val_kode']?>","margin" : "<?=number_format($mbpohMoved,4)?>"}]';
+		params = {posts:json, etc:parameter, posts2:json2};
+		submitData2(params);
+		 <?php } ?>
+	},
+	renderTo: 'ok-button'
+});
+
+
+var cancelButton = new Ext.Button({
+    text: 'Cancel',
+    iconCls: 'icon-cancel',
+    scale: 'large',
+    handler: function (){
+        <?php
+			if (!$this->edit)
+			{
+			?>
+		parameter = '[{"prj_kode":"<?=$this->etc[0]['prj_kode']?>","prj_nama":"<?=$this->etc[0]['prj_nama']?>", "sit_kode":"<?=$this->etc[0]['sit_kode']?>", "sit_nama":"<?=$this->etc[0]['sit_nama']?>" ,"ket" : "<?=$this->etc[0]['ket']?>","add_rev" : "<?=$this->etc[0]['add_rev']?>","pocustomer" : "<?=$this->etc[0]['pocustomer']?>","totalpocustomer" : "<?=$this->etc[0]['totalpocustomer']?>","val_kode" : "<?=$this->etc[0]['val_kode']?>"}]';
+		params = {posts:json, posts2:json2, etc:parameter};
+		myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+	    myPanel.body.load({
+                url: '/admin/afe/addafe/returnback/true', //the url        
+	        scripts : true,
+	        params: params //our params goes here
+	    });
+        <?php } else {  $afe_no = $this->etc[0]['trano'] ?>
+            var afe_number = '<?=$afe_no?>';
+        params = {posts:json, posts2:json2};
+		myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+	    myPanel.body.load({
+	        url: '/admin/afe/editafe/trano/'+afe_number, //the url
+	        scripts : true,
+	        params: params //our params goes here
+	    });
+           <?php } ?>
+	},
+	renderTo: 'cancel-button'
+});
+
+<?php
+}
+?>
+
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+
+<div class="title">APPROVAL FOR EXPENDITURE</div>
+
+<?php if ($this->reject) { ?>
+<div class="last-reject">
+    This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s',strtotime($this->lastReject['date'])); ?>
+    <br />
+    Comment : <?php echo $this->lastReject['comment']; ?>
+</div>
+<?php } ?>
+
+<div class="etc">
+	<div class="kiri-etc">
+
+		<?php if ($this->edit || $this->approve) {?><div class="blok">AFE Number : <?=$this->etc[0]['trano']?></div><?php } ?>
+        <?php if ($this->edit || $this->approve) {?><div class="blok">PIC : <?=$this->etc[0]['user']?></div><?php } ?>
+        <div class="blok">Exchange Rate : <?=number_format($this->etc[0]['rateidr'],2)?></div>
+
+	</div>
+
+</div>
+
+<?php
+    $boq2_oriInIDR = intval($this->etc[0]['boq2_oriUSD'])*$this->etc[0]['rateidr'];
+    $boq2_currentInIDR = intval($this->etc[0]['boq2_currentUSD'])*$this->etc[0]['rateidr'];
+
+    $boq2_oriTotal = $boq2_oriInIDR + $this->etc[0]['boq2_oriIDR'];
+    $boq2_currentTotal = $boq2_currentInIDR + $this->etc[0]['boq2_currentIDR'];
+
+?>
+
+<table class="afe" cellspacing="0">
+<tr>
+<td class="afeheader">Customer PO Value</td>
+<td class="afeheader">&nbsp;</td>
+<td class="afeheader">Original</td>
+<td class="afeheader">Accum</td>
+</tr>
+<tr>
+<td class="afeisi" width="30%">Customer : <?=$this->etc[0]['cus_kode']?> - <?=$this->etc[0]['cus_nama']?></td>
+<td class="afeisi" width="10%">IDR</td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($this->etc[0]['boq2_oriIDR']),2)?></td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($this->etc[0]['boq2_currentIDR']),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" width="30%">Customer PO No : <?=$this->etc[0]['pocustomer']?></td>
+<td class="afeisi" width="10%">USD</td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($this->etc[0]['boq2_oriUSD']),2)?></td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($this->etc[0]['boq2_currentUSD']),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" width="30%">Project : <?=$this->etc[0]['prj_kode']?> - <?=$this->etc[0]['prj_nama']?></td>
+<td class="afeisi" width="10%">Total</td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($boq2_oriTotal),2)?></td>
+<td class="afeisi" width="15%" align="right"><?=number_format(intval($boq2_currentTotal),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" colspan="2">Site : <?=$this->etc[0]['sit_kode']?> - <?=$this->etc[0]['sit_nama']?></td>
+<td class="afeisi" colspan="2">Add Revenue : <?=number_format($this->etc[0]['add_rev'])?> <?=$this->etc[0]['val_kode']?></td>
+</tr>
+<tr>
+<td class="afeisi" colspan="=4" >Reason For AFE : <?=$this->etc[0]['ket']?></td>
+</tr>
+</table>
+
+<?php   $rateidr = $this->etc[0]['rateidr'];
+        if ($this->result) { ?>
+
+<div class="title2">AFE Additional Table</div>
+
+<table id="mytable" cellspacing="0">
+        <tr>
+        	<th scope="col"><center>No.</center></th>
+
+            <th scope="col"><center>Name Material</center></th>
+             <th scope="col"><center>UoM</center></th>
+             <th scope="col"><center>Qty (BOQ3)</center></th>
+            <th scope="col"><center>Unit Price (BOQ3)</center></th>
+            <th scope="col"><center>Total (BOQ3)</center></th>
+            <th scope="col"><center>Qty (Request)</center></th>
+            <th scope="col"><center>Unit Price (Request)</center></th>
+            <th scope="col"><center>Total (Request)</center></th>
+        </tr>
+    	<?php
+
+    		$totals = 0;
+            $totals2 = 0;
+
+       		for ($i=0;$i<(count($this->result));$i++)
+    		{
+    			$total = intval($this->result[$i]['qty']) * intval($this->result[$i]['price']);
+                $total2 = intval($this->result[$i]['qtyori']) * intval($this->result[$i]['priceori']);
+
+
+   				foreach ($this->result[$i] as $key => $val)
+    			{
+    				if ($val === '')
+    					$this->result[$i][$key] = "&nbsp;";
+    			}
+    	?>
+    		<tr>
+    		<th scope="row" class="spec"><?=($i+1)?></th>
+            <td><?=$this->result[$i]['kode_brg']?> - <?=$this->result[$i]['nama_brg']?></td>
+    		<td ><?=$this->result[$i]['uom']?></td>
+    		<td align="right"><?=number_format(intval($this->result[$i]['qtyori']),4)?></td>
+
+            <td align="right"><?=number_format(intval($this->result[$i]['priceori']),2)?></td>
+
+    		<td align="right"><?=number_format($total2,2)?></td>
+            <td align="right"><?=number_format(intval($this->result[$i]['qty']),2)?></td>
+
+             <td align="right"><?=number_format(intval($this->result[$i]['price']),2)?></td>
+
+    		<td align="right"><?=number_format($total)?></td>
+    		</tr>
+
+    	<?php
+    		$totals += $total;
+            $totals2 += $total2;
+
+    		}
+
+            $totalAdd = $totals - $totals2;
+
+    	?>
+    	<tr>
+    		<th scope="row" class="spec" colspan="5">Total</th>
+    		<td align="right"><?=number_format($totals2,2)?></td>
+            <td colspan="2">&nbsp;</td>
+            <td align="right"><?=number_format($totals,2)?></td>
+    		</tr>
+        <tr>
+    		<th scope="row" class="spec" colspan="8">Total Additional Costs</th>
+    		<td align="right"><?=number_format($totalAdd,2)?></td>
+        </tr>
+
+</table>
+<?php }
+
+        if($this->result2) {?>
+
+<div class="title2">AFE Saving Table</div>
+
+<table id="mytable" cellspacing="0">
+        <tr>
+        	<th scope="col"><center>No.</center></th>
+
+            <th scope="col"><center>Name Material</center></th>
+             <th scope="col"><center>UoM</center></th>
+             <th scope="col"><center>Qty (BOQ3)</center></th>
+            <th scope="col"><center>Unit Price (BOQ3)</center></th>
+            <th scope="col"><center>Total (BOQ3)</center></th>
+            <th scope="col"><center>Qty (Request)</center></th>
+            <th scope="col"><center>Unit Price (Request)</center></th>
+            <th scope="col"><center>Total (Request)</center></th>
+        </tr>
+    	<?php
+
+    		$totals3 = 0;
+            $totals4 = 0;
+
+       		for ($i=0;$i<(count($this->result2));$i++)
+    		{
+                $total3 = intval($this->result2[$i]['qty']) * intval($this->result2[$i]['price']);
+
+                $total4 = intval($this->result2[$i]['qtyori']) * intval($this->result2[$i]['priceori']);
+
+   				foreach ($this->result2[$i] as $key => $val)
+    			{
+    				if ($val == '')
+    					$this->result2[$i][$key] = "&nbsp;";
+    			}
+
+    	?>
+    		<tr>
+    		<th scope="row" class="spec"><?=($i+1)?></th>
+
+    		<td><?=$this->result2[$i]['kode_brg']?> - <?=$this->result2[$i]['nama_brg']?></td>
+    		<td ><?=$this->result2[$i]['uom']?></td>
+            <td align="right"><?=number_format(intval($this->result2[$i]['qtyori']),4)?></td>
+
+                <td align="right"><?=number_format(intval($this->result2[$i]['priceori']),2)?></td>
+
+    		<td align="right"><?=number_format($total4)?></td>
+    		<td align="right"><?=number_format(intval($this->result2[$i]['qty']),4)?></td>
+
+                <td align="right"><?=number_format(intval($this->result2[$i]['price']),2)?></td>
+
+    		<td align="right"><?=number_format($total3,2)?></td>
+    		</tr>
+
+    	<?php
+    		$totals3 += $total3;
+            $totals4 += $total4;
+
+    		}
+            $totalSaving = $totals4 - $totals3;
+
+    	?>
+    	<tr>
+    		<th scope="row" class="spec" colspan="5">Total</th>
+    		<td align="right"><?=number_format($totals4,2)?></td>
+            <td colspan="2">&nbsp;</td>
+            <td align="right"><?=number_format($totals3,2)?></td>
+    		</tr>
+        <tr>
+    		<th scope="row" class="spec" colspan="8">Total Saving to Compensate</th>
+    		<td align="right"><?=number_format($totalSaving,2)?></td>
+
+    		</tr>
+
+</table>
+<?php } ?>
+
+<?php
+
+    if($this->etc[0]['val_kode'] == IDR)
+    {
+      $afeValIDR = intval($totalAdd) - intval($totalSaving);
+      $afeValUSD = 0;
+      $afeValTotal = $afeValIDR;
+
+      $addRevIDR = intval($this->etc[0]['add_rev']);
+      $addRevUSD = 0;
+      $addRevTotal = $addRevIDR;
+
+    }
+    else
+    {
+      $afeValUSD = intval($totalAdd) - intval($totalSaving);
+      $afeValIDR = 0;
+      $afeValTotal = $afeValUSD*$this->etc[0]['rateidr'];
+
+      $addRevUSD = intval($this->etc[0]['add_rev']);
+      $addRevIDR = 0;
+      $addRevTotal = $addRevUSD*$this->etc[0]['rateidr'];
+
+    }
+
+    $boq3_oriInIDR = intval($this->etc[0]['boq3_oriUSD'])*$this->etc[0]['rateidr'];
+    $boq3_currentInIDR = intval($this->etc[0]['boq3_currentUSD'])*$this->etc[0]['rateidr'];
+
+    $boq3_oriTotal = $boq3_oriInIDR + $this->etc[0]['boq3_oriIDR'];
+    $boq3_currentTotal = $boq3_currentInIDR + $this->etc[0]['boq3_currentIDR'];
+
+    $totalCurrentBoq3 = $afeValTotal + $boq3_currentTotal;
+
+    $percentage = $afeValTotal/$totalCurrentBoq3*100;
+    $mip = intval($this->etc[0]['mip']);
+
+    if($this->stsoverhead)
+    {
+        $mbpohOri = 0;
+        $lastMbpoh = 0;
+        $mbpohCurrent = 0;
+        $mbpohMoved = 0;
+    }
+    else
+    {
+
+    if(intval($boq2_oriTotal) == 0)
+    {
+        $mbpohOri = 0;
+    }
+    else
+    {
+        $mbpohOri = (1- intval($boq3_oriTotal)/intval($boq2_oriTotal))*100;
+    }
+
+    if(intval($boq2_currentTotal) == 0)
+    {
+        $lastMbpoh = 0;
+    }
+    else
+    {
+        $lastMbpoh = (1- intval($boq3_currentTotal)/intval($boq2_currentTotal))*100;
+    }
+
+
+    $balanceOfBudget = $totalCurrentBoq3 - $mip;
+    $mbpohCurrent = (1- ($totalCurrentBoq3)/(intval($boq2_currentTotal)+intval($addRevTotal)))*100;
+    $mbpohMoved = $mbpohCurrent- $mbpohOri;
+    }
+?>
+
+<!--AFE value & Boq3 Value Table-->
+<table class="afe" cellspacing="0">
+<tr>
+<td class="afeheader" colspan="2">AFE Value</td>
+<td class="afeheader">BOQ3</td>
+<td class="afeheader">Original</td>
+<td class="afeheader">Accum</td>
+</tr>
+<tr>
+<td class="afeisi" width="10%">IDR</td>
+<td class="afeisi" width="20%" align="right"><?=number_format($afeValIDR,2)?></td>
+<td class="afeisi" width="10%">IDR</td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($this->etc[0]['boq3_oriIDR']),2)?></td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($this->etc[0]['boq3_currentIDR']),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" width="10%">USD</td>
+<td class="afeisi" width="20%" align="right"><?=number_format($afeValUSD,2)?></td>
+<td class="afeisi" width="10%">USD</td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($this->etc[0]['boq3_oriUSD']),2)?></td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($this->etc[0]['boq3_currentUSD']),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" width="10%">Total</td>
+<td class="afeisi" width="20%" align="right"><?=number_format($afeValTotal,2)?></td>
+<td class="afeisi" width="10%">Total</td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($boq3_oriTotal),2)?></td>
+<td class="afeisi" width="25%" align="right"><?=number_format(intval($boq3_currentTotal),2)?></td>
+</tr>
+<tr>
+<td class="afeisi">Percentage of Add Cost</td>
+<td class="afeisi" align="right"><?=number_format($percentage,2)?> %</td>
+<td class="afeisi" colspan="2">Additional Plan Revenue(IDR) :</td>
+<td class="afeisi" align="right"><?=number_format(intval($addRevIDR),2)?></td>
+</tr>
+<tr>
+<td class="afeisi">Total Current BOQ3 :</td>
+<td class="afeisi" align="right"><?=number_format($totalCurrentBoq3,2)?></td>
+<td class="afeisi" colspan="2">Additional Plan Revenue(USD) :</td>
+<td class="afeisi" align="right"><?=number_format(intval($addRevUSD),2)?></td>
+</tr>
+<tr>
+<td class="afeisi" colspan="2">&nbsp;</td>
+<td class="afeisi" colspan="2">Additional Plan Revenue(Total) :</td>
+<td class="afeisi" align="right"><?=number_format(intval($addRevTotal),2)?></td>
+</tr>
+</table>
+
+<!--Comercial Review-->
+<table class="afe" cellspacing="0">
+<tr>
+<td class="afeheader" colspan="5">Commercial Review</td>
+</tr>
+<tr>
+<td class="afeisi">Total Commited Costs (MIP)</td>
+<td class="afeisi" align="right"><?=number_format($mip,2)?></td>
+<td class="afeisi">Original MBPOH (%)</td>
+<td class="afeisi" align="right"><?=number_format($mbpohOri,4)?> %</td>
+</tr>
+<tr>
+<td class="afeisi">Balance of Budget Including This AFE</td>
+<td class="afeisi" align="right"><?=number_format($balanceOfBudget,2)?></td>
+<td class="afeisi">Last MBPOH (%)</td>
+<td class="afeisi" align="right"><?=number_format($lastMbpoh,4)?> %</td>
+</tr>
+<tr>
+<td class="afeisi" colspan="2">&nbsp;</td>
+<td class="afeisi">Current MBPOH (%)</td>
+<td class="afeisi" align="right"><?=number_format($mbpohCurrent,4)?> %</td>
+</tr>
+<tr>
+<td class="afeisi" colspan="2">&nbsp;</td>
+<td class="afeisi">Current MBPOH - Origin MBPOH(%)</td>
+<td class="afeisi" align="right"><?=number_format($mbpohMoved,4)?> %</td>
+</tr>
+</table>
+
+	<div style="margin-top:15px;">
+		<div id="back-button"  style="margin-left:5px;float: right;"></div>
+		<div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+		<div id="ok-button"  style="float: right;"></div>
+	</div>
+
+</div>

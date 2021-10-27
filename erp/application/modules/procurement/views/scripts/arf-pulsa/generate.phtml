@@ -1,0 +1,159 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+        var sm = new Ext.grid.CheckboxSelectionModel();
+        var storePrj =  new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+                url: '/default/project/list'
+            }),
+            reader: new Ext.data.JsonReader({
+                root: 'posts',
+                totalProperty: 'count'
+            },[
+                {name: 'Prj_Kode'},
+                {name: 'Prj_Nama'}
+            ])
+        });
+        storePrj.load();
+        var gridprj = new Ext.grid.GridPanel({
+            id:'prj-grid',
+            store:storePrj,
+            cm: new Ext.grid.ColumnModel([
+                sm,
+                {header: "Project Code",width: 30, sortable: true, dataIndex: 'Prj_Kode'},
+                {header: "Project Name",sortable: true, dataIndex: 'Prj_Nama'}
+            ]),
+            sm: sm,
+
+            viewConfig: {
+                forceFit:true
+            },
+            height: 200,
+            frame:true
+        });
+
+        var sm2 = new Ext.grid.CheckboxSelectionModel();
+        var storeItem =  new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+                url: '/procurement/arf-pulsa/get-item-pulsa'
+            }),
+            reader: new Ext.data.JsonReader({
+                root: 'posts',
+                totalProperty: 'count'
+            },[
+                {name: 'kode'},
+                {name: 'nama_brg'}
+            ])
+        });
+        storeItem.load();
+        var gridItem = new Ext.grid.GridPanel({
+            id:'item-grid',
+            store:storeItem,
+            cm: new Ext.grid.ColumnModel([
+                sm2,
+                {header: "Item ID",width: 30, sortable: true, dataIndex: 'kode'},
+                {header: "Name",sortable: true, dataIndex: 'nama_brg'}
+            ]),
+            sm: sm2,
+
+            viewConfig: {
+                forceFit:true
+            },
+            height: 200,
+            frame:true
+        });
+
+        var panel = new Ext.Panel({
+            title: 'Generate Checklist Item for ARF Pulsa',
+//            layout: 'fit',
+            frame: true,
+            items: [
+                {
+                    xtype: 'fieldset',
+                    title: 'Please Choose Item ID',
+//                    layout: 'fit',
+                    items: [
+                        gridItem
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Please Choose Project Code',
+//                    layout: 'fit',
+                    items: [
+                        gridprj
+                    ]
+                }
+            ],
+            renderTo: 'form',
+            height: 550,
+            width: 600,
+            buttons: [
+                {
+                    text: 'Generate Excel File',
+                    handler: function()
+                    {
+                        var prj = Ext.getCmp('prj-grid').getSelectionModel().getSelections();
+                        var item = Ext.getCmp('item-grid').getSelectionModel().getSelections();
+
+                        if (prj == undefined || prj == '')
+                        {
+                            Ext.Msg.alert("Error","Project is not Selected");
+                            return false;
+                        }
+
+                        if (item == undefined || item == '')
+                        {
+                            Ext.Msg.alert("Error","Item is not Selected");
+                            return false;
+                        }
+
+                        var jsonPrj = '', jsonItem = '';
+                        Ext.each(prj,function(store){
+                            jsonPrj += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        jsonPrj = '[' + jsonPrj.substring(0, jsonPrj.length - 1) + ']'; //JSON format fix
+                        Ext.each(item,function(store){
+                            jsonItem += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        jsonItem = '[' + jsonItem.substring(0, jsonItem.length - 1) + ']'; //JSON format fix
+
+                        var params = {
+                            prj: jsonPrj,
+                            item: jsonItem
+                        };
+                        Ext.getBody().mask('Please wait... Do not REFRESH THIS PAGE!');
+                        Ext.Ajax.request({
+                            url: '/procurement/arf-pulsa/generate-excel-pulsa',
+                            method:'POST',
+                            success: function(result, request){
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if( returnData.success) {
+                                    Ext.getBody().unmask();
+                                    location.href = '/default/file/download/filename/' + returnData.file + '/delete/true';
+//                                    Ext.getCmp('prj-grid').getSelectionModel().clearSelections();
+//                                    Ext.getCmp('item-grid').getSelectionModel().clearSelections();
+                                }
+                                else
+                                {
+                                    Ext.getBody().unmask();
+                                    Ext.Msg.alert("Error", returnData.msg);
+                                }
+
+                            },
+                            params: params
+                        });
+                    }
+                },
+                {
+                    text: 'Reset',
+                    handler: function()
+                    {
+                        Ext.getCmp('prj-grid').getSelectionModel().clearSelections();
+                        Ext.getCmp('item-grid').getSelectionModel().clearSelections();
+                    }
+                }
+            ]
+        })
+    });
+</script>
+    <div id="form"></div>

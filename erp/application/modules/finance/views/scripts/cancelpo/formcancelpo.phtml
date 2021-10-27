@@ -1,0 +1,476 @@
+<style>
+
+
+.files{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#E0ECEE;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.last-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.all-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#F6CBCA;
+    color:#222222;
+    padding:4px;
+    text-align:left;
+}
+.all-approve{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 200px;
+    overflow: auto;
+}
+
+.body {
+	/*width: 800px;*/
+    overflow: auto;
+}
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.etc {
+	width: 100%;
+	height: 50px;
+}
+.kanan-etc {
+	float: right;
+	width: 48%;
+}
+.kiri-etc {
+	float: left;
+	width: 48%;
+}
+.blok {
+	font-size: 12px;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.budgetTable {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+.budgetTable2 {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+.ketin {
+    width: 100%;
+    font-size: 12px;
+	font-weight: bold;
+}
+
+.container{
+margin-top:5px;
+padding: 0px;
+border: none;
+height: 100px;
+overflow: auto;
+font-size: 14px;
+}
+
+.payment_rpi{
+margin-top:5px;
+padding: 0px;
+border: none;
+height: 100px;
+overflow: auto;
+font-size: 14px;
+}
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+</style>
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<script type="text/javascript">
+
+    var potrano = '<?=$this->potrano?>';
+    var idCancel = '<?=$this->id_cancel?>';
+    var rpitrano = '<?=$this->rpidata[0]['trano']?>';
+
+//    console.log(rpitrano);false;
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var okbutton = new Ext.Button ({
+            text:'Approve Request Cancel PO',
+            iconCls: 'icon-add',
+            scale: 'large',
+            renderTo:'ok-button',
+            handler:function (btn,ev)
+            {
+//                if (rpitrano != '')
+//                {
+//                   Ext.MessageBox.show({
+//                   title: 'Error',
+//                   msg: 'Sory this PO has have a RPI can not be canceled ',
+//                   buttons: Ext.MessageBox.OK,
+//                   icon: Ext.MessageBox.ERROR
+//                   });
+//                   return false;
+//                }
+
+
+                Ext.MessageBox.confirm ('Confirm','Are you sure want canceled ' +  '<b><font color="#FF0000">' + potrano + '</font></b>' + ' ?',function (btn){
+
+                    if (btn == 'yes')
+                    {
+                        var isRpi = '';
+                        <?php 
+                            if ($this->rpipaydata != '' || $this->rpidata != '')
+                            {
+                        ?>
+                            isRpi = '/isrpi/true';
+                        <?php
+                            }
+                        ?>
+                        Ext.Ajax.request ({
+                            url:'/finance/cancelpo/docancelpo/potrano/' + potrano + '/id_cancel/' + idCancel + isRpi,
+                            method:'POST',
+                            success:function (result)
+                            {
+                                Ext.Msg.alert('Message','<b><font color="#FF0000">' + potrano + '</font></b>' + ' has been cancel in workflow');
+                                Ext.getCmp('abs-budget-panel').body.load({
+                                    url:'/finance/cancelpo/cancelpomenu/',
+                                    scripts: true
+                                })
+                            },
+                            failure:function( action){
+                                if(action.failureType == 'server'){
+                                  obj = Ext.util.JSON.decode(action.response.responseText);
+                                  Ext.Msg.alert('Error!', obj.errors.reason);
+                                }else{
+                                  Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+                        })
+
+                    }
+
+                })
+            }
+        })
+
+        var cancelbutton = new Ext.Button ({
+            text: 'Exit',
+            iconCls: 'icon-cancel',
+            scale: 'large',
+            renderTo:'cancel-button',
+            handler:function (btn,ev)
+            {
+                var cPanel = Ext.getCmp('content-panel');
+                cPanel.load({
+                    url: '/default/home/homepage',
+                    scripts: true
+                });
+            }
+        })
+
+    })
+
+</script>
+
+<div class="body">
+
+    <div class="title" style="margin-bottom:20px">REQUEST FOR CANCEL PURCHASE ORDER</div>
+
+<!--    <div class="files">-->
+<!--        Attachment Files :<br />-->
+<!--        <ul>-->
+<!--            <li><a href="#">NAMA FILES</a></li>-->
+<!--        </ul>-->
+<!--    </div>-->
+
+    <div class="ketin">
+    <fieldset>
+        <p>
+        Requester : <?=$this->requesterName?><br>
+        Reason : <?=$this->reason?>
+        </p>
+    </fieldset>
+    </div>
+
+    <div class="etc">
+        <div class="kiri-etc">
+            <div class="blok">PO Number : <?=$this->podata[0]['trano']?></div>
+            <div class="blok">Revision : <?=$this->podata[0]['revisi']?></div>
+            <div class="blok">Project : <?=$this->podata[0]['prj_kode']?> / <?=$this->podata[0]['prj_nama']?></div>
+            <div class="blok">Origin Of Budget : <?=$this->podata[0]['budgettype']?></div>
+        </div>
+        <div class="kanan-etc">
+            <div class="blok">Input Date : <?=$this->podata[0]['tgl']?></div>
+            <div class="blok">Supplier : <?=$this->podata[0]['sup_nama']?></div>
+            <div class="blok">PIC Sourcing : <?=$this->podata[0]['user']?></div>
+        </div>
+    </div>
+
+
+    <table id="mytable" cellspacing="0" style="margin-top:10px;">
+        <tr>
+            <th scope="col" colspan="5"><center>Transaction</center></th>
+        </tr>
+        <tr>
+            <th scope="row" class="spec" colspan="4">Puchase Order Value</th><td align="right"><?=number_format($this->podata[0]['jumlah'])?></td>
+        </tr>
+
+        <tr>
+            <th scope="row" class="spec" colspan="4">VAT 10%</th><td align="right"><?=number_format($this->podata[0]['ppn'])?></td>
+        </tr>
+
+        <tr>
+            <th scope="row" class="spec" colspan="4">Grand Total</th><td align="right"><?=number_format($this->podata[0]['total'])?></td>
+        </tr>
+
+        <tr>
+            <th scope="row" class="spec" width="200">Term Of Payment</th>
+            <td colspan="4">
+            <?
+                if ($this->podata[0]['paymentterm'] == '')
+                    echo "&nbsp;";
+                else
+                echo $this->podata[0]['paymentterm'];
+            ?>
+            </td>
+        </tr>
+
+        <tr>
+            <th scope="row" class="spec">Remark</th>
+            <td colspan="4">
+            <?
+                if ($this->podata[0]['ket'] == '')
+                    echo "&nbsp;";
+                else
+                echo $this->podata[0]['ket'];
+            ?>
+            </td>
+        </tr>
+
+    </table>
+
+    <div class="ketin">
+    <fieldset>
+     <legend>Internal Notes</legend>
+        <p>
+        <?=$this->podata[0]['ketin']?>
+        </p>
+    </fieldset>
+    </div>
+
+        <br />
+    <h1><center>RPI REPORT</center></h1>
+    <div class="container">
+
+    <?php
+        if ($this->rpidata != '') {
+    ?>
+
+    <table id="budgetTable" class="budgetTable">
+
+        <thead>
+            <tr>
+                <th><center><b>No</b></center></th>
+                <th><center><b>RPI Number</b></center></th>
+                <th><center><b>Date</b></center></th>
+                <th><center><b>Valuta</b></center></th>
+                <th><center><b>Value</b></center></th>
+                <th><center><b>Vat 10%</b></center></th>
+                <th><center><b>Total</b></center></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <?php
+                $num = 0;
+                foreach ($this->rpidata as $key => $val)
+                {
+                    $total = $val['total'] + $val['ppn'];
+            ?>
+
+            <tr>
+                <td><?=$num + 1?></td>
+                <td><?=$val['trano']?></td>
+                <td><?=date("d - M - Y",strtotime($val['tgl']))?></td>
+                <td><?=$val['val_kode']?></td>
+                <td align="right"><?=number_format($val['total'])?></td>
+                <td align="right"><?=number_format($val['ppn'])?></td>
+                <td align="right"><?=number_format($total)?></td>
+            </tr>
+
+            <?
+                $gtotal += $total;
+               $num ++; }
+            ?>
+
+            <tr>
+                <td colspan="6" align="right">RPI Total</td>
+                <td align="right"><?=number_format($gtotal)?></td>
+            </tr>
+
+        </tbody>
+
+    </table>
+    <?php } else { ?>
+        <h2 style="color:red;"><center>This PO doesn't have any RPI.</center></h2>
+    <?php } ?>
+    </div>
+<?php
+        if ($this->rpidata != '') {
+    ?>
+    <script type="text/javascript">
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin : "sSky"
+//            fixedCols : 2,
+//            headerRows : 1
+        });
+    })();
+
+    </script>
+    <?php } ?>
+        <br />
+        <h1><center>RPI PAYMENT REPORT</center></h1>
+    <div class="container">
+
+        <?php
+        if ($this->rpipaydata != '') {
+        ?>
+
+        <table id="budgetTable2" class="budgetTable2">
+            <thead>
+                <tr>
+                    <th><center><b>No</b></center></th>
+                    <th><center><b>Payment Number</b></center></th>
+                    <th><center><b>RPI Number</b></center></th>
+                    <th><center><b>Payment Date</b></center></th>
+                    <th><center><b>Payment Type</b></center></th>
+                    <th><center><b>Payment Value</b></center></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                    $num = 0;
+                    foreach ($this->rpipaydata as $key => $val)
+                    {
+                ?>
+
+                <tr>
+                    <td><?=$num + 1?></td>
+                    <td><?=$val['trano']?></td>
+                    <td><?=$val['doc_trano']?></td>
+                    <td><?=date("d - M - Y",strtotime($val['tgl']))?></td>
+                    <td><?=$val['pola_bayar']?></td>
+                    <td align="right"><?=number_format($val['total'])?></td>
+                </tr>
+
+                <?
+                    $paytotal += $val['total'];
+                    $num++;}
+                ?>
+
+                <tr>
+                    <td colspan="5" align="right">Payment RPI Total</td>
+                    <td align="right"><?=number_format($paytotal)?></td>
+                </tr>
+
+            </tbody>
+        </table>
+        <?php } else { ?>
+        <h2 style="color:red;"><center>This PO doesn't have any Payment RPI.</center></h2>
+    <?php } ?>
+
+    </div>
+    <?php
+        if ($this->rpipaydata != '') {
+        ?>
+    <script type="text/javascript">
+
+    (function() {
+        var mySt = new superTable("budgetTable2", {
+            cssSkin : "sSky"
+//            fixedCols : 2,
+//            headerRows : 1
+        });
+    })();
+
+    </script>
+    <?php } ?>
+
+
+    <div class="all-approve">
+        <b>Approval History</b>
+        <ul>
+            <?php
+                foreach ($this->approval as $key => $val)
+                {
+            ?>
+                <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+            <?
+                }
+            ?>
+        </ul>
+    </div>
+
+    <div style="margin-top:10px;">
+        <div id="ok-button" style="margin-left:5px;float: right;"></div>
+        <div id="cancel-button" style="margin-left:5px;float: right;"></div>
+    </div>
+</div>

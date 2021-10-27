@@ -1,0 +1,244 @@
+<script type="text/javascript">
+
+    var workstore = new Ext.data.Store ({
+
+        url:'/logistic/logisticbarang/getwork',
+        autoLoad:true,
+        id:'workstore',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'kode_pekerjaan'
+            },{
+                name:'nama_pekerjaan'
+            }]
+
+        })
+
+    })
+
+    function editwork (id)
+    {
+        var work = workstore.getAt(workstore.findExact('id',id));
+        var code_work = work.get('kode_pekerjaan');
+        var name_work = work.get('nama_pekerjaan');
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Edit Work',
+            id:'edit-work',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Work Code ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'work-code',
+                maxLength:2,
+                value:code_work
+            },{
+                xtype:'textfield',
+                fieldLabel:'Work Name ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'work-name',
+                value:name_work
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('edit-work').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doupdatework/id/' + id,
+                        success:function(thisForm,response){
+                            windowinsert.close();
+
+                            workstore.reload();
+                            Ext.getCmp('work-list').getView().refresh();
+
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function insertwork ()
+        {
+            var formpanelwork = new Ext.form.FormPanel ({
+
+                    title:'Insert Work',
+                    id:'insert-work',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Work Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'work_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Work Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'work_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-work').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertwork',
+                                success:function(thisForm,response){
+                                    windowinsertwork.close();
+
+                                    workstore.reload();
+                                    Ext.getCmp('work-list').getView().refresh();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsertwork.close();
+                        }
+                    }]
+
+                })
+
+
+            var windowinsertwork = new Ext.Window ({
+
+                id:'window-insert-work',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanelwork]
+
+            })
+
+            windowinsertwork.show();
+        }
+
+        var workgrid = new Ext.grid.GridPanel ({
+
+            store:workstore,
+            title:'Work List',
+            id:'work-list',
+            renderTo:'work_list',
+            viewConfig:{
+                forceFit:true
+            },
+            width:340,
+            height:260,
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),
+            {
+                id:'edit',
+                header:'Edit',
+                width:40,
+                sortable:true,
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="editwork(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                }
+            },{
+                header:'Work Code',
+                dataIndex:'kode_pekerjaan',
+                align:'center',
+                sortable:true
+            },{
+                header:'Work Name',
+                dataIndex:'nama_pekerjaan',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-work',
+                pageSize: 20,
+                store: workstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                xtype:'button',
+                text:'Create New',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    insertwork();
+                }
+            }]
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="work_list"></div>

@@ -1,0 +1,862 @@
+<style>
+
+.last-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.all-approve{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 200px;
+    overflow: auto;
+}
+.body {
+	width: 100%;
+    overflow: auto;
+}
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.etc {
+	width: 100%;
+	height: 50px;
+}
+.kanan-etc {
+	float: right;
+	width: 48%;
+}
+.kiri-etc {
+	float: left;
+	width: 48%;
+}
+.blok {
+	font-size: 12px;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.budgetTable {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+#approval {
+    width: 100%;
+    font-size: 12px;
+	font-weight: bold;
+    margin-top: 10px;
+}
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+</style>
+
+<style type="text/css">
+/*css for afe &boq3 table*/
+table.boq
+{
+    width: 100%;
+background-color: #fafafa;
+border: 1px #000000 solid;
+border-collapse: collapse;
+border-spacing: 0px; }
+
+
+td.boqheader
+{ background-color: #99CCCC;
+border: 1px #000000 solid;
+font-weight: bold;
+font-size: 14px;
+text-align: center;
+color: #404040; }
+
+
+td.boqisi
+{ border-bottom: 1px #6699CC dotted;
+font-weight: normal;
+font-size: .7em;
+color: #404040;
+background-color: #fafafa;
+padding-top: 4px;
+padding-bottom: 4px;
+padding-left: 8px;
+padding-right: 8px; }
+/*end here*/
+
+</style>        
+
+
+<script type="text/javascript">
+<!---->
+//Ext.override(Ext.Element, {
+//    alignMiddle: function(parent) {
+//        if (Ext.isString(parent)) {
+//            parent = Ext.get(parent) || this.up(parent);
+//        }
+//        this.setStyle({
+//            'margin-top': (parent.getHeight() / 2 - this.getHeight() / 2) + 'px'
+//        });
+//    }
+//});
+//
+//Ext.override(Ext.ProgressBar, {
+//    setSize: Ext.ProgressBar.superclass.setSize,
+//    onResize: function(w, h) {
+//        var inner = Ext.get(this.el.child('.x-progress-inner')),
+//            bar = inner.child('.x-progress-bar'),
+//            pt = inner.child('.x-progress-text');
+//            ptInner = pt.child('*');
+//            ptb = inner.child('.x-progress-text-back'),
+//            ptbInner = ptb.child('*');
+//        Ext.ProgressBar.superclass.onResize.apply(this, arguments);
+//        inner.setHeight(h);
+//        bar.setHeight(h);
+//        this.textEl.setHeight('auto');
+//        pt.setHeight('auto');
+//        ptb.setHeight('auto');
+//        ptInner.alignMiddle(bar);
+//        ptbInner.alignMiddle(bar);
+//        this.syncProgressBar();
+//    }
+//});
+
+<?php if ($this->isCurve) { ?>
+var MIF = new Ext.ux.ManagedIFramePanel({
+    border: false,
+    bodyBorder: false,
+    <?php if ($this->edit) { ?>
+    defaultSrc: '/extjs4/gantt/scurvebase/edit/true/trano/<?=$this->trano?>',
+    <?php } else { ?>
+    defaultSrc: '/extjs4/gantt/scurvebase/trano/<?=$this->trano?>',
+    <?php } ?>
+    autoScroll    : true,
+    renderTo: 'scurve',
+    height: 401
+});
+<?php } ?>
+function submitData(params,dataArray)
+{
+    var addurl = '';
+
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+    Ext.Ajax.request({
+        url: '/projectmanagement/budget/inserttempboq' + addurl,
+        method:'POST',
+        success: function(resp){
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                if (returnData.user != undefined && returnData.number == undefined)
+                {
+                    showNextPerson(returnData.user,params);
+                    return false;
+                }
+                else
+                {
+                    Ext.Msg.alert('Success', 'Temporary BOQ3 has been saved and submitted to current Workflow!' + '<br><br>Your Temporary BOQ3 number is <b><font color="#ff0000">' + returnData.number + '</font></b>');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/createboq3',
+                        scripts : true
+                    });
+                }
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+
+}
+
+function submitData2(params,dataArray)
+{
+    var addurl = '';
+
+    if (params == "" || params == '')
+        return false;
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['next'] + '/uid_next/' + dataArray.data['uid_next'] + '/workflow_structure_id/' + dataArray.data['workflow_structure_id'] + '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'];
+
+    Ext.Ajax.request({
+        url: '/projectmanagement/budget/updatetempboq'  + addurl,
+        method:'POST',
+        success: function(resp){
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                if (returnData.user != undefined && returnData.number == undefined)
+                {
+                    showNextPerson(returnData.user,params,true);
+                    return false;
+                }
+                else
+                {
+                    Ext.Msg.alert('Success', 'Temporary BOQ3 has been saved and submitted to current Workflow!');
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/showcreateboq3',
+                        scripts : true
+                    });
+                }
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+
+}
+
+function showNextPerson(userArray,params,isEdit)
+{
+
+    var addlist = Ext.data.Record.create([
+             {name: 'id', type: 'string'},
+             {name: 'workflow_id', type: 'string'},
+             {name: 'workflow_item_id', type: 'string'},
+             {name: 'workflow_item_name', type: 'string'},
+             {name: 'workflow_structure_id', type: 'string'},
+             {name: 'next', type: 'string'},
+             {name: 'uid_next', type: 'string'},
+             {name: 'name', type: 'string'},
+             {name: 'role_name', type: 'string'},
+             {name: 'prj_kode', type: 'string'}
+        ]);
+
+     var storeUser = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: addlist})
+    });
+
+    Ext.each(userArray, function (t, index){
+        var d = new addlist({
+            id: t.id,
+            workflow_id: t.workflow_id,
+            workflow_item_id: t.workflow_item_id,
+            workflow_item_name: t.workflow_item_name,
+            workflow_structure_id: t.workflow_structure_id,
+            uid_next: t.uid_next,
+            next: t.next,
+            name: t.name,
+            role_name: t.role_name,
+            prj_kode: t.prj_kode
+        });
+        storeUser.add(d);
+        d = undefined;
+    });
+
+    var userColumns =  [
+        new Ext.grid.RowNumberer(),
+        {header: "Receiver", dataIndex: 'name', width: 220, renderer: function (v,p,r) {
+            return '<div class="personicon"><b>' + r.data.name + '</b>&nbsp;<span class="rolename">' + r.data.role_name + '<br>Transaction Type: ' + r.data.workflow_item_name + '<br>Project : ' + r.data.prj_kode + '</span></div>';
+        }}
+    ];
+
+    var bForm = new Ext.Window ({
+    id: 'choose-next',
+    layout:'fit',
+    width: 300,
+    height: 250,
+    modal: true,
+    title: 'Choose Document Receiver',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    stateful: false,
+    items : [
+            new Ext.form.FormPanel({
+                frame: true,
+                items: [
+
+
+                    new Ext.grid.GridPanel({
+//                        width: 380,
+                        height: 230,
+                        id: 'site-grids',
+                        loadMask: true,
+                        columns: userColumns,
+                        store: storeUser,
+                        sm: new Ext.grid.RowSelectionModel({
+                            singleSelect:true
+                        }),
+                        viewConfig: {
+                            forceFit: true,
+                            enableRowBody:true,
+                            showPreview:true,
+                            getRowClass : function(record, rowIndex, p, ds) {
+                                            return 'x-grid3-row-collapsed';
+                                          }
+                        },
+                        listeners: {
+                            'rowdblclick': function(g, rowIndex, e){
+                                    var record = g.getStore().getAt(rowIndex);
+                                    if (isEdit)
+                                        submitData2(params,record);
+                                    else
+                                        submitData(params,record);
+                                    bForm.close();
+                            }
+                        }
+                    })
+                ]
+                })
+            ],
+             buttons: [
+                      {
+                         text: 'OK',
+                         id: 'ok-next',
+                         iconCls: 'silk-upd',
+                         handler: function(btn, ev) {
+                            var row = Ext.getCmp('site-grids').getSelectionModel().getSelections();
+                            var record = row[0];
+                            if (isEdit)
+                                submitData2(params,record);
+                            else
+                                submitData(params,record);
+                            bForm.close();
+                          }
+
+                      },
+                      {
+                         text: 'Cancel',
+                         id: 'cancel',
+                         handler: function(btn, ev) {
+                             bForm.close();
+                             bForm = '';
+                          }
+
+                      }
+
+
+                        ]
+        });
+        bForm.show();
+};
+
+<?php
+if (!$this->show) {
+if ($this->approve)
+{
+?>
+
+var trano = '<?=$this->docsID?>';
+var uid = '<?=$this->uid?>';
+var user_id = '<?=$this->userID?>';
+
+
+
+<?php if ($this->reject) { ?>
+
+var cancelButton = new Ext.Button({
+    text: 'Goto Edit Temporary BOQ3',
+    iconCls: 'icon-go',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/projectmanagement/budget/edittempboq3/trano/<?php echo $this->trano; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'cancel-button'
+});
+
+<?php } else { ?>
+
+var okButton = new Ext.Button({
+    text: 'Approve',
+    iconCls: 'icon-add',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText2
+    });
+
+	function showResultText2(btn, text){
+		var comment='';
+		if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+		params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+//
+//        var bForm =  new Ext.Window({
+//            id: 'waiting-form',
+//            layout:'fit',
+//            width: 350,
+//            height: 70,
+//            stateful: false,
+//            modal: true,
+//            resizable: false,
+//            closeAction: 'close',
+//            closable: false,
+////            style: 'margin-top:10px;',
+//            items: [
+//                new Ext.ProgressBar({
+//                   id:'pbar',
+//                   height: 70
+//               })
+//            ],
+//            listeners: {
+//                'show': function(t){
+//                     Ext.getCmp('pbar').on('update', function(val){
+//                            //You can handle this event at each progress interval if
+//                            //needed to perform some other action
+//                            Ext.getCmp('pbar').updateText('Please wait until finish Transfering PRABOQ3 to BOQ3.<br>Do not REFRESH PAGE!');
+//                        });
+//
+//                    Ext.getCmp('pbar').wait({
+//                            interval:200,
+//                            increment:15
+//                    });
+//                }
+//
+//            }
+//        });
+////        bForm.show();
+        Ext.getBody().mask('Transfering PRABOQ3 to BOQ3... Do not REFRESH THIS PAGE!');
+
+		Ext.Ajax.request({
+	        url: '/admin/workflow/approve',
+	        method:'POST',
+	        success: function(resp){
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+                    Ext.getBody().unmask()
+					getDocs();
+					myPanel = Ext.getCmp('abs-budget-panel');
+				    myPanel.body.load({
+				        url: '/default/home/showprocessdocument',
+				        scripts : true
+			        });
+				}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+	        },
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+	}
+	},
+	renderTo: 'ok-button'
+});
+
+var cancelButton = new Ext.Button({
+    text: 'Reject',
+    iconCls: 'icon-cancel',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText
+    });
+
+	function showResultText(btn, text){
+		var comment='';
+        if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+        params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+    	Ext.Ajax.request({
+            url: '/admin/workflow/reject',
+            method:'POST',
+            success: function(resp){
+    			var returnData = Ext.util.JSON.decode(resp.responseText);
+    			if (returnData.success)
+    			{
+//    				Ext.Msg.alert('Success', 'Document has been rejected!');
+    				getDocs();
+    				myPanel = Ext.getCmp('abs-budget-panel');
+    			    myPanel.body.load({
+    			        url: '/default/home/showprocessdocument',
+    			        scripts : true
+    		        });
+    			}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+            },
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+          	}
+          	},
+            params: params
+        });
+    };
+
+
+	},
+	renderTo: 'cancel-button'
+});
+
+var backButton = new Ext.Button({
+    text: 'Cancel',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '<?php echo $this->urlBack; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'back-button'
+});
+
+<?php
+	}
+}
+elseif (!$this->approve)
+{
+?>
+var json = '<?php echo $this->jsonResult; ?>';
+var jsonEtc = '<?php echo $this->jsonEtc; ?>';
+
+var okButton = new Ext.Button({
+            text: 'Submit',
+            iconCls: 'icon-save',
+            scale: 'large',
+            handler: function (){
+                this.disable();
+			<?php
+			if (!$this->edit)
+			{
+			?>
+
+			params = {posts:json, etc: jsonEtc};
+			submitData(params);
+                },
+			renderTo: 'ok-button'
+        });
+
+        var cancelButton = new Ext.Button({
+            text: 'Cancel',
+            iconCls: 'icon-cancel',
+            scale: 'large',
+            handler: function (){
+				params = {posts:json, etc: jsonEtc};
+				myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+			    myPanel.body.load({
+			        url: '/projectmanagement/budget/edittempboq3/returnback/true', //the url
+			        scripts : true,
+			        params: params //our params goes here
+			    });
+			},
+			renderTo: 'cancel-button'
+        });
+		    <?php } else { ?>
+            params = {posts:json, etc: jsonEtc};
+			submitData2(params);
+            },
+			renderTo: 'ok-button'
+        });
+        var cancelButton = new Ext.Button({
+            text: 'Cancel',
+            iconCls: 'icon-cancel',
+            scale: 'large',
+            handler: function (){
+				params = {posts:json, etc: jsonEtc, trano: '<?php echo $this->etc[0]['trano']; ?>'};
+				myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+			    myPanel.body.load({
+			        url: '/projectmanagement/budget/edittempboq3/returnback/true', //the url
+			        scripts : true,
+			        params: params //our params goes here
+			    });
+			},
+			renderTo: 'cancel-button'
+        });
+		    <?php } ?>
+
+<?php
+}
+}
+if ($this->edit || $this->approve)
+{
+//	$rev = " (Rev. " . $this->etc[0]['rev'] . ")";
+    $displayNum = '<div class="blok">Pra BOQ3 Number : ' . $this->trano . '</div><br>';
+}
+
+?>
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+<div class="title">PRA BOQ3</div>
+
+<?php if ($this->reject) { ?>
+<div class="last-reject">
+    This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s',strtotime($this->lastReject['date'])); ?>
+    <br />
+    Comment : <?php echo $this->lastReject['comment']; ?>
+</div>
+<?php } ?>
+
+<div class="etc">
+	<div class="kiri-etc">
+        <?=$displayNum?>
+        <div class="blok">Project : <?=$this->etc[0]['prj_kode']?> - <?=$this->etc[0]['prj_nama']?></div>
+        <div class="blok">Site : <?=$this->etc[0]['sit_kode']?> - <?=$this->etc[0]['sit_nama']?></div>
+        <div class="blok">Customer : <?=$this->etc[0]['cus_kode']?> - <?=$this->etc[0]['cus_nama']?></div>
+
+	</div>
+	
+</div>
+
+<br></br>
+<table class="boq" cellspacing="0" style="width: 700px;">
+<tr>
+<td class="boqheader" width="50%">Customer Order (CO)</td>
+<td class="boqheader">Total</td>
+</tr>
+<tr>
+<td class="boqisi" align="right">IDR <?php echo number_format($this->boq2IDR,2); ?></td>
+<td class="boqisi" rowspan="2"  align="right" >IDR <?php echo number_format($this->totJumBOQ2,2); ?></td>
+</tr>
+<tr>
+<td class="boqisi" align="right">USD <?php echo number_format($this->boq2HargaUSD,2); ?></td>
+</tr>
+</table>
+<table class="boq" cellspacing="0" style="width: 700px;">
+<tr>
+<td class="boqheader" width="50%">Pra BOQ3</td>
+<td class="boqheader">Total</td>
+</tr>
+<tr>
+<td class="boqisi" align="right">IDR <?php echo number_format($this->jumIDR,2); ?></td>
+<td class="boqisi" rowspan="2"  align="right" >IDR <?php echo number_format($this->totJum,2); ?></td>
+</tr>
+<tr>
+<td class="boqisi" align="right">USD <?php echo number_format($this->jumUSD,2); ?></td>
+</tr>
+<tr>
+<td class="boqisi" align="right">&nbsp;</td>
+</tr>
+<tr>
+    <td class="boqisi"  align="center" style="background-color: #FFE800"><b>Gross Margin</b></td>
+    <td class="boqisi" align="right" style="background-color: #FFE800"><b><?php echo number_format($this->GM,2); ?>%</b></td>
+</tr>
+<?php
+        if ($this->reason != '') {
+?>
+    <tr>
+        <td class="boqisi"  align="center" style="background-color: #FF0000;color: #ffffff" colspan="2"><b><?php echo $this->reason; ?></b></td>
+    </tr>
+<?php
+        }
+?>
+</table>
+<?php if ($this->isCurve) { ?>
+<br />
+<div id="scurve"></div>
+<?php } ?>
+<div style="text-align: center; width: 300px;border:solid 1px #DEDEDE;margin-top:20px;">
+
+    View Pra BOQ3 Detail <input type="submit" value="View" onclick="window.open('/projectmanagement/budget/detailpraboq3/trano/<?=$this->transID ?>','mywin','toolbar=0');"></input>
+
+</div>
+
+<!--
+<table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Work</center></th>
+            <th scope="col"><center>Product</center></th>
+            <th scope="col"><center>UOM</center></th>
+            <th scope="col"><center>Qty</center></th>
+            <th scope="col"><center>Valuta</center></th>
+            <th scope="col"><center>Price</center></th>
+            <th scope="col"><center>Exchange Rate</center></th>
+            <th scope="col"><center>Total</center></th>
+        </tr>
+    	<?php
+    		$totals = 0;
+    		for ($i=0;$i<(count($this->result));$i++)
+    		{
+    			foreach ($this->result[$i] as $key => $val)
+    			{
+    				if ($val == '')
+    					$this->result[$i][$key] = "&nbsp;";
+    			}
+
+                if ($this->result[$i]['val_kode'] == 'IDR')
+                {
+                    $total = floatval($this->result[$i]['qty']) * floatval($this->result[$i]['harga']);
+                    $totalIDR += $total;
+                    $rate = '&nbsp;';
+                }
+                else
+                {
+                    $total = $this->result[$i]['qty'] * $this->result[$i]['harga'];
+                    $totalUSD += $total;
+                    $rate = number_format($this->result[$i]['rateidr'],2);
+                }
+    	?>
+    		<tr>
+    		<th scope="row" class="spec"><?=($i+1)?></th>
+    		<td><?=$this->result[$i]['workid'] . "-" . $this->result[$i]['workname']?></td>
+    		<td><?=$this->result[$i]['kode_brg']?> - <?=$this->result[$i]['nama_brg']?></td>
+    		<td><?=$this->result[$i]['uom']?></td>
+    		<td align="right"><?=number_format(floatval($this->result[$i]['qty']),2)?></td>
+            <td><?=$this->result[$i]['val_kode']?></td>
+    		<td align="right"><?=number_format(floatval($this->result[$i]['harga']),2)?></td>
+    		<td align="right"><?=$rate?></td>
+    		<td align="right"><?=number_format($total,2)?></td>
+    		</tr>
+    	<?php
+
+    		}
+
+    	?>
+    	<tr>
+    		<th scope="row" class="spec" colspan="8" rowspan="2">Grand Total</th>
+    		<td align="right">IDR <?=number_format($totalIDR)?></td>
+    	</tr>
+        <tr>
+    		<td align="right">USD <?=number_format($totalUSD)?></td>
+    	</tr>
+</table>
+-->
+     <?php
+    if ( $this->etc[0]['user_approval'] != '')
+    {
+    ?>
+    <div class="all-approve">
+    <b>Approval History</b></br>
+    <ul>
+    <?php
+        foreach ($this->etc[0]['user_approval'] as $key => $val)
+        {
+    ?>
+            <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+    <?
+        }
+    ?>
+    </ul>
+    </div>
+    <?php
+    }
+    ?>
+<!--
+    <?php
+    if ($this->allReject != '')
+    {
+    ?>
+    <div class="all-reject">
+    <b>Rejection History</b></br>
+    <ul>
+    <?php
+        foreach ($this->allReject as $key => $val)
+        {
+    ?>
+            <li><?php echo date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")"; ?><br />Comment : <?php echo $val['comment']; ?></li>
+    <?
+        }
+    ?>
+    </ul>
+    </div>
+    <?php
+    }
+    ?>
+-->
+
+	<div style="margin-top:15px;">
+		<div id="back-button"  style="margin-left:5px;float: right;"></div>
+		<div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+		<div id="ok-button"  style="float: right;"></div>
+	</div>
+</div>

@@ -1,0 +1,476 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        var showPayment = function(rec){
+            if (window)
+                window.close();
+
+            var p = new Ext.form.FormPanel({
+                frame: true,
+                border: true,
+                items: [
+                    {
+                        xtype: 'textfield',
+                        fieldLabel: 'Date of Fund',
+                        readOnly: true,
+                        width: 100,
+                        name: 'tgl_fund'
+                    },
+                    {
+                        xtype: 'textfield',
+                        fieldLabel: 'PIC',
+                        readOnly: true,
+                        width: 150,
+                        name: 'uid'
+                    },
+                    {
+
+                        xtype: 'compositefield',
+                        fieldLabel: 'ARF No.',
+                        msgTarget : 'under',
+                        defaults: {
+                            flex: 1
+                        },
+                        items: [
+                            {
+                                xtype: 'textfield',
+                                readOnly: true,
+                                width: 120,
+                                name: 'arf_no',
+                                id: 'arf_no',
+                            },
+                            {
+                                xtype: 'button',
+                                text: 'View ARF',
+                                cls:"x-btn-text-icon" ,
+                                icon:"/images/application_go.png",
+                                width: 100,
+                                handler: function () {
+                                    var trano = Ext.getCmp('arf_no').getValue();
+                                    popup('/procurement/procurement/apparf/approve/1/trano_show/' + trano + '/show/true');
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'textfield',
+                        fieldLabel: 'ARF Status',
+                        readOnly: true,
+                        width: 200,
+                        name: 'approval'
+                    }
+                ]
+            });
+
+            p.getForm().setValues(rec);
+
+            var window = new Ext.Window ({
+                title:'BRF Payment Detail',
+                id:'brf-window',
+                layout:'fit',
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 400,
+                height: 200,
+                loadMask:true,
+                items:[
+                    p
+                ],
+                buttons: [
+                    {
+                        text: 'Close',
+                        handler: function()
+                        {
+                            window.close();
+                        }
+                    }
+                ]
+            });
+
+            window.show();
+        };
+
+        var brfList = Ext.data.Record.create ([
+            {name: 'id', type: 'integer'},
+            {name: 'trano', type: 'string'},
+            {name: 'sequence', type: 'float'},
+            {name: 'allowance', type: 'float'},
+            {name: 'transport', type: 'float'},
+            {name: 'airport_tax', type: 'float'},
+            {name: 'accomodation', type: 'float'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'qty', type: 'float'},
+            {name: 'harga', type: 'float'},
+            {name: 'prj_kode', type: 'string'},
+            {name: 'sit_kode', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'total', type: 'float'},
+            {name: 'balance', type: 'float'},
+            {name: 'fund'}
+        ]);
+
+        var storeBRF = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: brfList})
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'silk-add',
+                    qtip:'Fund this Payment',
+                    id: 'fund',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if(record.get("invalid"))
+                        {
+                            Ext.Msg.alert("Error","Sorry, this Sequence already funded.");
+                            return false;
+                        }
+
+                        var trano = record.get("trano"),
+                            seq = record.get("sequence"),
+                            prj_kode = record.get("prj_kode"),
+                            sit_kode = record.get("sit_kode"),
+                            workid = record.get("workid"),
+                            kode_brg = record.get("kode_brg");
+
+                        Ext.MessageBox.confirm('Confirm', 'Do You want to Fund this Sequence ?<br>Note: This action also submit BRF into workflow.',
+                            function(btn) {
+                                if (btn == 'yes')
+                                {
+                                    Ext.Ajax.request({
+                                        //url: '/procurement/bt-request/cek-bsf',
+                                        url: '/procurement/bt-request/cek-brfp',
+                                        method:'POST',
+                                        params: {
+                                            trano: trano,
+                                            sequence: seq,
+                                            prj_kode: prj_kode,
+                                            sit_kode: sit_kode,
+                                            workid: workid,
+                                            kode_brg: kode_brg
+                                        },
+                                        success: function(result, request){
+                                            Ext.getBody().unmask();
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+                                            if(returnData.success) {
+                                                var params = {
+                                                    brf_trano: trano,
+                                                    sequence: seq,
+                                                    prj_kode: prj_kode,
+                                                    sit_kode: sit_kode,
+                                                    workid: workid,
+                                                    kode_brg: kode_brg
+                                                };
+                                                var callback = function(trano)
+                                                {
+                                                    loadBRF(Ext.getCmp('trano').getValue());
+                                                    Ext.Msg.alert("Success","Payment BRF for Sequence no. " + seq + " is success.<br>Your BRF Trano : <b>" + trano + "</b>");
+                                                };
+                                                workflowSubmitData('/procurement/bt-request/do-fund-payment',callback,params);
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert("Error",returnData.msg);
+                                                return false;
+                                            }
+                                        },
+                                        failure:function( action){
+                                            if(action.failureType == 'server'){
+                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                Ext.Msg.alert('Error!', obj.errors.reason);
+                                            }
+                                        }
+                                    });
+
+                                }
+                            }
+                        );
+                    }
+                },
+                {
+                    iconCls:'silk-magnifier',
+                    qtip:'Show Payment',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if (record.get("invalid") == true )
+                        {
+                            showPayment(record.get("fund"));
+                        }
+                    }
+                }
+            ]
+        });
+
+        var loadBRF = function(trano){
+            Ext.Ajax.request({
+                url: '/procurement/bt-request/get-payment',
+                method:'POST',
+                params: {
+                    trano: trano
+                },
+                success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if(returnData.success) {
+                        storeBRF.removeAll();
+                        Ext.each(returnData.payment,function(i){
+                            var d = new brfList(i);
+                            storeBRF.add(d);
+                        });
+                        panel.getForm().setValues(returnData.data);
+                    }
+                    else
+                    {
+                        Ext.Msg.alert("Error",returnData.msg);
+                        return false;
+                    }
+                },
+                failure:function( action){
+                    if(action.failureType == 'server'){
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        };
+
+        var fundGrid = new Ext.grid.GridPanel({
+            stateful: false,
+            frame: false,
+            border: false,
+            plugins: [rowactions],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header:'Sequence',
+                    dataIndex:'sequence',
+                    sortable:true,
+                    width: 60
+                },
+                {
+                    header: 'Allowance',
+                    dataIndex: 'allowance',
+                    summaryType: 'sum',
+                    renderer: function(v,p,r){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                },
+                {
+                    header: 'Transport',
+                    dataIndex: 'transport',
+                    summaryType: 'sum',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                },
+                {
+                    header: 'Airport Tax',
+                    dataIndex: 'airport_tax',
+                    summaryType: 'sum',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                },
+                {
+                    header: 'Accomodation',
+                    dataIndex: 'accomodation',
+                    summaryType: 'sum',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                },
+                {
+                    header: 'Total Payment',
+                    dataIndex: 'total',
+                    summaryType: 'sum',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                },
+                {
+                    header: 'Available Fund',
+                    dataIndex: 'balance',
+                    summaryType: 'sum',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align:'right'
+                }
+            ],
+            autoWidth: true,
+            height: 240,
+            store: storeBRF,
+            viewConfig: {
+                forceFit: true,
+                enableRowBody:true,
+                getRowClass:function(record, rowIndex, p, store) {
+                    if(record.get("invalid") == true)
+                        return 'x-grid3-row-with-body3';
+                }
+            }
+        });
+
+        var panel = new Ext.form.FormPanel({
+            height: 500,
+            autoWidth: true,
+            frame: true,
+            border: true,
+            renderTo: 'panel',
+            title: 'Fund Business Trip Payment',
+            items: [
+                {
+
+                    xtype: 'compositefield',
+                    fieldLabel: 'BRF Number',
+                    msgTarget : 'under',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype:'tranoselector',
+                            Tranotype: ['BRF'],
+                            id:'trano_select',
+                            Selectid: 'trano',
+                            allowBlank:false,
+                            width: 150,
+                            callbackFunc: function(trano)
+                            {
+                                Ext.Ajax.request({
+                                    url: '/procurement/bt-request/cek-fund-workflow',
+                                    method:'POST',
+                                    params: {
+                                        trano: trano,
+                                        final: true
+                                    },
+                                    success: function(result, request){
+                                        var returnData = Ext.util.JSON.decode(result.responseText);
+                                        if(returnData.success) {
+                                            loadBRF(trano);
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert("Error",returnData.msg);
+                                            return false;
+                                        }
+                                    },
+                                    failure:function( action){
+                                        if(action.failureType == 'server'){
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }
+                                    }
+                                });
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            text: 'View BRF',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/application_go.png",
+                            width: 100,
+                            handler: function () {
+                                var trano = Ext.getCmp('trano').getValue();
+                                if (trano)
+                                    popup('/procurement/bt-request/app/approve/1/trano_show/' + trano + '/show/true');
+                            }
+                        }
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Business Trip Information',
+                    defaults: {
+                        labelWidth: 150
+                    },
+                    layout: 'form',
+                    items: [
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Project',
+                            msgTarget : 'under',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    width: 80,
+                                    readOnly: true,
+                                    name: 'prj_kode'
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    readOnly: true,
+                                    name: 'prj_nama'
+                                },
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Site',
+                            msgTarget : 'under',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    width: 80,
+                                    readOnly: true,
+                                    name: 'sit_kode'
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    readOnly: true,
+                                    name: 'sit_nama'
+                                },
+                            ]
+                        },
+                        {
+                            xtype: 'textfield',
+                            fieldLabel: 'Requester',
+                            width: 250,
+                            readOnly: true,
+                            name: 'requester'
+                        },
+                        {
+                            xtype: 'textfield',
+                            fieldLabel: 'Business Trip Location',
+                            width: 250,
+                            readOnly: true,
+                            name: 'bt_location'
+                        },
+                        {
+                            xtype: 'textfield',
+                            fieldLabel: 'Travel Date',
+                            width: 250,
+                            readOnly: true,
+                            name: 'date'
+                        },
+                    ]
+                },
+
+                fundGrid
+            ]
+        });
+
+        <?php if($this->trano) { ?>
+            Ext.getCmp('trano').setValue('<?=$this->trano?>');
+            loadBRF('<?=$this->trano?>');
+        <?php } ?>
+    });
+</script>
+<div id='panel'></div>

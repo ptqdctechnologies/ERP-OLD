@@ -1,0 +1,562 @@
+<style type="text/css">
+    .notif {
+        padding: 3px 3px;
+        margin-bottom: 10px;
+        background: #dfe8f6;
+        -moz-border-radius:15px;
+        border-radius: 15px;
+        -webkit-border-radius: 15px;
+    }
+    .notif legend {
+        font-weight: bold;
+    }
+    .notif p {
+        padding: 0 5px 5px;
+    }
+</style>
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+        var idEdit = '';
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        showParentCoaWindow = function(lev) {
+
+            var proxy = new Ext.data.HttpProxy({
+                url: '/finance/balancesheet/getcoa/id_edit/' + idEdit
+            });
+
+            var reader = new Ext.data.JsonReader({
+                totalProperty: 'total',
+                idProperty: 'id',
+                root: 'data'
+            }, [
+                {name: 'coa_kode'},
+                {name: 'coa_nama'},
+                {name: 'hd'},
+                {name: 'level'},
+                {name: 'tipe'}
+            ]);
+
+            var coaStore = new Ext.data.Store({
+                proxy: proxy,
+                reader: reader,
+                id: 'coaselector-store'
+            });
+
+            lev = lev - 1;
+            var params = {query: '[{"hd": "Header"}, {"level":' + lev + '}]'};
+
+            coaStore.load({
+                params: params
+            });
+
+            var coaKodeText = new Ext.form.TextField({
+                fieldLabel: 'COA Code',
+                enableKeyEvents:true
+            });
+
+            coaKodeText.on('keyup',function(field,e){
+                var pname = field.getValue();
+                newUrl = '/finance/balancesheet/getcoa/option/coa_kode/search/' + pname;
+                coaStore.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                coaStore.reload({
+                                params: params
+                            });
+                Ext.getCmp(this.id + '-grid').getView().refresh();
+            },this);
+
+            var coaNamaText = new Ext.form.TextField({
+                fieldLabel: 'COA Name',
+                enableKeyEvents:true
+            });
+
+            coaNamaText.on('keyup',function(field,e){
+                var pname = field.getValue();
+                newUrl = '/finance/balancesheet/getcoa/option/coa_nama/search/' + pname;
+                coaStore.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                coaStore.reload({
+                                params: params
+                            });
+                Ext.getCmp(this.id + '-grid').getView().refresh();
+            },this);
+
+            var gridCoa = new Ext.grid.GridPanel({
+                store: coaStore,
+                loadMask: true,
+                height: 300,
+                id: this.id + '-grid',
+                bbar:[ new Ext.PagingToolbar({
+                    pageSize: 100,
+                    store: coaStore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })],
+                columns: [
+                    new Ext.grid.RowNumberer(),
+                    {header: '', width: 60, dataIndex: 'hd', sortable: true},
+                    {header: 'Level', width: 40, dataIndex: 'level', sortable: true},
+                    {header: 'COA Code', width: 70, dataIndex: 'coa_kode', sortable: true},
+                    {header: 'COA Name', width: 120, dataIndex: 'coa_nama', sortable: true},
+                    {header: 'COA Type', width: 80, dataIndex: 'tipe', sortable: true}
+                ]
+            });
+
+            gridCoa.on('rowdblclick', function (g,rowIndex,e){
+                var code = g.getStore().getAt(rowIndex).get('coa_kode');
+                Ext.getCmp('coa_kode_parent').setValue(code);
+                if (pwindow)
+                    pwindow.close();
+            },this);
+            gridCoa.on('rowclick', function (g,rowIndex,e){
+                var code = g.getStore().getAt(rowIndex).get('coa_kode');
+                Ext.getCmp('coa_kode_parent').setValue(code);
+                if (pwindow)
+                    pwindow.close();
+            },this)
+
+            var forms =
+            {
+                xtype: 'form',
+                labelWidth: 120,
+                frame: true,
+                items: [
+                    coaKodeText,
+                    coaNamaText,
+                    gridCoa
+                ]
+            };
+
+            pwindow = new Ext.Window({
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 400,
+                height: 400,
+                title: 'Select Parent/Header COA',
+                items: forms
+            });
+
+            pwindow.show();
+        }
+
+        showEditForm = function(id){
+            if (id == undefined || id == '')
+                return false;
+            idEdit = id;
+            Ext.Ajax.request({
+                url: '/finance/balancesheet/getlayoutbalancesheet/id/' + id,
+                method:'POST',
+                success: function(result, request){
+                   var returnData = Ext.util.JSON.decode(result.responseText);
+                    if( returnData.success) {
+                        var data = returnData.data;
+                        Ext.getCmp('coa_kode').setValue(data['coa_kode']);
+                        Ext.getCmp('coa_kode_text').setValue(data['coa_nama']);
+                        Ext.getCmp('ap').setValue(data['ap']);
+                        Ext.getCmp('dk').setValue(data['dk']);
+                        Ext.getCmp('hd').setValue(data['hd']);
+                        Ext.getCmp('type').setValue(data['tipe']);
+                        Ext.getCmp('level').setValue(data['level']);
+                        if (data['level'] > 1)
+                        {
+                            Ext.getCmp('coa_kode_parent').setVisible(true);
+                            Ext.getCmp('coa_kode_parent').setValue(data['coa_kode_parent']);
+                        }
+                        else
+                        {
+                            Ext.getCmp('coa_kode_parent').setVisible(false);
+                            Ext.getCmp('coa_kode_parent').setValue('');
+                        }
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Error',returnData.pesan);
+                        return false;
+                    }
+                },
+                failure:function(thisForm,response){
+                    if (response.failureType == 'server')
+                    {
+                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                        Ext.Msg.alert('Error',resp.pesan);
+                    }
+                }
+            });
+        };
+
+        var tree = new Ext.tree.TreePanel({
+            animate:true,
+            autoScroll:true,
+            enableDD:true,
+            containerScroll: true,
+            border: false,
+            width: 350,
+            height: 300
+        });
+
+         var root = new Ext.tree.AsyncTreeNode({
+            text: '...',
+            draggable:false, // disable root node dragging
+            id:'posts'
+         });
+
+        tree.setRootNode(root);
+
+        root.expand(true, /*no anim*/ false);
+
+        var treeForm = new Ext.Panel({
+                renderTo: 'show-tree',
+                layout: 'fit',
+                autoWidth: true,
+                height: 400,
+                title: 'Layout Preview',
+                items : [
+                    tree
+                ]
+        });
+
+        tree.on('click', function(n){
+
+            Ext.getCmp('insert-layout-balancesheet').enable();
+            showEditForm(n.attributes.id_data);
+
+        });
+
+        var addlayoutbalancesheet = new Ext.form.FormPanel({
+
+            title:'Edit Layout Balance Sheet',
+            id:'insert-layout-balancesheet',
+            renderTo:'insert_layout_balancesheet',
+            iconCls: 'silk-user',
+            frame: true,
+            width:400,
+            labelWidth:100,
+//            style: 'margin-left: 20px',
+            items:[
+//            {
+//                xtype:'combo',
+//                width:100,
+//                fieldLabel:'COA Code ',
+//                store: new Ext.data.Store({
+//                    autoLoad: true,
+//                    fields:['name','nilai'],
+//                    proxy: new Ext.data.HttpProxy({
+//                        url: '/finance/paymentreimbursement/getcoalist'
+//                    }),
+//                    reader: new Ext.data.JsonReader({
+//                        totalProperty: 'total',
+//                        root: 'data'
+//                    }, [{
+//                            name: 'coa_kode'
+//                        },{
+//                            name: 'coa_nama'
+//                        }])
+//                }),
+//                valueField:'coa_kode',
+//                displayField:'coa_kode',
+//                typeAhead: true,
+//                forceSelection: true,
+//                editable: true,
+//                mode: 'remote',
+//                triggerAction: 'all',
+//                selectOnFocus: true,
+//                id:'coa_kode',
+//                allowBlank:false,
+//                listeners:{
+//                    'select':function(combo,rec,index)
+//                    {
+//                        var row = rec.data['coa_nama'];
+//                        Ext.getCmp('coa_nama').setValue(row);
+//
+//                    }
+//                }
+//            }
+            {
+                xtype: 'coaselector',
+                Selectid: 'coa_kode',
+                Nameid: 'coa_kode_text',
+                ShowName: true,
+                fieldLabel: 'COA Code'
+            }
+//            ,{
+//                xtype:'textfield',
+//                width:160,
+//                fieldLabel:'COA Name ',
+//                id:'coa_nama',
+//                readOnly:true
+//            }
+            ,{
+                xtype:'combo',
+                width:100,
+                id:'ap',
+                fieldLabel:'Activa/Passiva ',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           ['Activa','Activa'],
+                           ['Passiva','Passiva']
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true
+            },{
+                fieldLabel : 'Type ',
+                id:'type',
+                xtype:'combo',
+                store: new Ext.data.Store({
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/finance/coa/gettypecoa'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'count',
+                        root: 'data'
+                    }, [{
+                            name: 'tipe_nama'
+                        }])
+                }),
+                valueField:'tipe_nama',
+                displayField:'tipe_nama',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'remote',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:100
+            },{
+                fieldLabel : 'Debit/Credit ',
+                id:'dk',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           ['Debit','Debit'],
+                           ['Credit','Credit']
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:100
+            },{
+                fieldLabel : 'Header/Detail ',
+                id:'hd',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           ['Header','Header'],
+                           ['Detail','Detail']
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:100
+            },{
+                fieldLabel : 'Level ',
+                id:'level',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           [1,1],
+                           [2,2],
+                           [3,3],
+                           [4,4],
+                           [5,5]
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:100,
+                listeners: {
+                    'select': function (t,row,index)
+                    {
+                        var level = row.data['nilai'];
+                        var header = Ext.getCmp('hd').getValue();
+                        if ((header == 'Detail' || header == 'Header') && level > 1)
+                        {
+                            showParentCoaWindow(level);
+                            Ext.getCmp('coa_kode_parent').setValue('');
+                            Ext.getCmp('coa_kode_parent').setVisible(true);
+                        }
+                        else
+                        {
+                            Ext.getCmp('coa_kode_parent').setValue('');
+                            Ext.getCmp('coa_kode_parent').setVisible(false);
+                        }
+                    }
+                }
+            },
+            {
+                xtype: 'textfield',
+                hidden: true,
+                id: 'coa_kode_parent',
+                name: 'coa_kode_parent',
+                width: 100,
+                fieldLabel: 'Parent/Header COA',
+                readOnly: true
+            }
+            ],
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    if(!Ext.getCmp('insert-layout-balancesheet').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+                    if (Ext.getCmp('coa_kode_parent').getValue() == '' && Ext.getCmp('level').getValue() > 1)
+                    {
+                        Ext.Msg.alert('Error','Please Choose Parent/Header COA');
+                        return false;
+                    }
+                    Ext.MessageBox.confirm('Confirm', 'Are you sure want to submit this? If this COA have any Details, then they will deleted.', function(btn){
+                    if (btn == 'yes')
+                    {
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.getCmp('insert-layout-balancesheet').getForm().submit({
+
+                            method:'POST',
+                            url:'/finance/balancesheet/doupdatelayoutbalancesheet',
+                            params: {
+                                id_edit: idEdit
+                            },
+                            success:function(thisForm,response)
+                            {
+    //                            myPanel = Ext.getCmp('abs-budget-panel');
+    //                            myPanel.body.load({
+    //                                url: '/finance/balancesheet/menulayout',
+    //                                scripts : true
+    //                            });
+                                Ext.getBody().unmask();
+                                Ext.getCmp('coa_kode_text').setValue('');
+                                Ext.getCmp('coa_kode').setValue('');
+                                Ext.getCmp('insert-layout-balancesheet').getForm().reset();
+                                tree.root.reload();tree.getRootNode().expand(true);
+                            },
+                            failure:function(thisForm,response){
+                                Ext.getBody().unmask();
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.pesan);
+                                }
+                            }
+
+                        });
+                    }
+                    });
+                }
+            },{
+                text:'Delete This COA',
+                handler:function(btn,ev)
+                {
+                    if (idEdit == undefined || idEdit == '')
+                        return false;
+                    Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this? If this COA have any Details, then they will deleted.', function(btn){
+                    if (btn == 'yes')
+                    {
+                        Ext.Ajax.request({
+                            url: '/finance/balancesheet/deletelayoutbalancesheet/id/' + idEdit,
+                            method:'POST',
+                            success: function(result, request){
+                               var returnData = Ext.util.JSON.decode(result.responseText);
+                                if( returnData.success) {
+                                    Ext.Msg.alert('Success', 'COA Has been deleted!');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/balancesheet/menulayout',
+                                        scripts : true
+                                    });
+
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error',returnData.pesan);
+                                    return false;
+                                }
+                            },
+                            failure:function(thisForm,response){
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.pesan);
+                                }
+                            }
+                        });
+                    }
+                });
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('insert-layout-balancesheet').getForm().reset();
+                    Ext.getCmp('insert-layout-balancesheet').disable();
+                    idEdit = '';
+                }
+            }]
+
+        })
+
+
+        Ext.getCmp('insert-layout-balancesheet').disable();
+
+        tree.getLoader().dataUrl = '/finance/balancesheet/getcoatree';
+        root = new Ext.tree.AsyncTreeNode({
+            text: 'Balance Sheet',
+            draggable:false, // disable root node dragging
+            id:'posts'
+        });
+        tree.setRootNode(root);
+//        tree.getLoader().load(tree.getRootNode());
+        tree.getRootNode().expand(true);
+    })
+
+</script>
+    <div style="margin-right: 20px;float: left;">
+    <fieldset class="notif">
+        <legend>Information</legend>
+        <p><img src="/images/icons/detail.png" height="15" width="15"/> = Detail , <img src="/images/icons/header.png" height="15" width="15"/> = Header</p>
+    </fieldset>
+    <div id="show-tree" style="float: left;"></div>
+    </div>
+    <div id="insert_layout_balancesheet" style="float: left;"></div>

@@ -1,0 +1,772 @@
+<script type="text/javascript">
+
+    /* function tranoPopUpHandler()
+    {
+        var reader = new Ext.data.JsonReader({
+            idProperty: 'id',
+            totalProperty: 'count',
+            root : 'posts'},
+             [
+                {name: 'id'},
+                {name: 'trano'},
+                {name: 'prj_kode'},
+                {name: 'sit_kode'}
+              ]
+        );
+
+        var proxy = new Ext.data.HttpProxy({
+         url : '/default/home/getlistdocumentbytype'
+        });
+
+        var store = new Ext.data.Store({
+                id: 'store-doc-msg',
+                reader: reader,
+                proxy: proxy
+            });
+
+        newGrid = function(viewer, config) {
+            this.viewer = viewer;
+            Ext.apply(this, config);
+
+            this.store = store;
+
+            this.columns = [
+                {
+                    id: 'trano',
+                    header: "Trano",
+                    dataIndex: 'trano',
+                    width: 100
+                },
+                {
+                    id: 'prj_kode',
+                    header: "Project Code",
+                    dataIndex: 'prj_kode',
+                    width: 50
+                },
+                {
+                    id: 'sit_kode',
+                    header: "Site Code",
+                    dataIndex: 'sit_kode',
+                    width: 50
+                }
+            ];
+
+            this.bbar = new Ext.PagingToolbar({
+                pageSize: 20,
+                store: this.store,
+                displayInfo: true,
+                displayMsg: 'Displaying document {0} - {1} of {2}',
+                emptyMsg: "No document to display"
+            });
+            newGrid.superclass.constructor.call(this, {
+                id: 'grid-trano',
+                loadMask: {msg:'Loading...'},
+
+                sm: new Ext.grid.RowSelectionModel({
+                    singleSelect:true
+                }),
+
+                viewConfig: {
+                    forceFit:true
+                }
+            });
+
+            this.on('rowclick', this.onTranoClick, this);
+            this.on('rowdblclick', this.onTranoClick, this);
+        };
+
+        Ext.extend(newGrid, Ext.grid.GridPanel, {
+
+            onTranoClick : function(grid, index, e){
+                var rec = store.getAt(index);
+                var trano = rec.data['trano'];
+                Ext.getCmp('trano_text').setValue(trano);
+                Ext.getCmp('doc-form-panel').close();
+            }
+        });
+
+        var grids = new newGrid({
+                loadMask: true,
+                frame:true,
+                width: 280,
+                id: 'grid-trano'
+            });
+
+        var viewportsMsg = ({
+        layout: 'border',
+        stateful: false,
+        loadMask: true,
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        items: [
+
+            {
+                region: 'center',
+                id: 'detail', // see Ext.getCmp() below
+                title: '',
+                width: 320,
+                layout: 'fit',
+                tbar: [{
+                        xtype: 'button',
+                        text: 'Show All Conversation',
+                        width:110,
+                        id: 'show_all',
+                        cls:"x-btn-text-icon" ,
+                        icon:"/images/icons/fam/icon_history.gif",
+                        handler: function () {
+                            storeMsg2.proxy = new Ext.data.HttpProxy({
+                                url : '/default/conversation/getallmyconversation'
+                            });
+                            storeMsg2.reload();
+                        }
+                    }],
+                items: [
+                        grids
+                ]
+
+            },
+            {
+                region: 'north',
+                id: 'south2',
+                height: 125,
+                stateful: false,
+                items: [
+                     {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.9,
+                                layout: 'form',
+                                items: [
+                                    {
+                                         id: 'combo-type',
+                                         fieldLabel: 'Transaction',
+                                         hiddenName : 'workflow_item_type_id',
+                                         width: 100,
+                                         xtype: 'combo',
+                                         triggerAction: 'all',
+                                         mode: 'remote',
+                                         editable: false,
+                                         displayField: 'name',
+                                         valueField: 'workflow_item_type_id',
+                                         store: new Ext.data.JsonStore({
+                                             url: '/admin/workflow/listworkflowitemtype',
+                                             root: 'posts',
+                                              fields:[
+                                                  { name: "name"},{ name: "workflow_item_type_id"}
+                                              ]
+                                         }),
+                                        listeners: {
+                                            'select': function(t,n,o){
+                                                store.proxy = new Ext.data.HttpProxy({
+                                                    url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue()
+                                                });
+                                                store.reload();
+                                            }
+                                        }
+                                     }
+                                ]
+                               }
+                            ]
+                     },
+
+
+                    {
+                            layout:'column',
+                            frame: true,
+                            items:[
+                                   {columnWidth:.55,
+                                    layout: 'form',
+                                    style : 'margin-right: 3px;',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Trano',
+                                            width: 80,
+                                            id: 'search_trano'
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Project Code',
+                                            width: 80,
+                                            id: 'search_prj'
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Site Code',
+                                            width: 80,
+                                            id: 'search_site'
+                                        }
+                                    ]
+                                   },
+                                {columnWidth:.3,
+                                    layout: 'form',
+                                    style : 'margin-left: 3px;',
+                                    items: [
+                                        new Ext.Button({
+                                            text: 'Search',
+                                            id: 'search-button',
+                                            style: 'margin-top: 12px;',
+                                            handler: function (){
+                                                var type = Ext.getCmp('combo-type').getValue();
+                                                if (type == "" || type == null)
+                                                {
+                                                    Ext.Msg.alert('Error!', "Please select Transaction!");
+                                                    return false;
+                                                }
+                                                else
+                                                {
+                                                    var trano = Ext.getCmp('search_trano').getValue();
+                                                    var prj = Ext.getCmp('search_prj').getValue();
+                                                    var site = Ext.getCmp('search_site').getValue();
+                                                     store.proxy = new Ext.data.HttpProxy({
+                                                        url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue() + '/trano/' + trano + '/prj_kode/' + prj + '/sit_kode/' + site
+                                                    });
+                                                    store.reload();
+                                                }
+                                            }
+                                        }),
+                                        new Ext.Button({
+                                            text: 'Clear',
+                                            id: 'clear-button',
+                                            style: 'margin-top: 5px;',
+                                            handler: function (){
+                                                Ext.getCmp('search_trano').setValue('');
+                                                Ext.getCmp('search_prj').setValue('');
+                                                Ext.getCmp('search_site').setValue('');
+                                            }
+                                        })
+                                    ]
+                                }
+                            ]
+                        }
+                ]
+            }
+
+        ]
+
+    });
+
+        var dFormMsg =  new Ext.Window({
+                id: 'doc-form-panel',
+                layout:'fit',
+                width: 400,
+                height: 400,
+                title: 'Select Document',
+                stateful: false,
+                modal: true,
+                resizable: false,
+                items: [
+                    viewportsMsg
+                ]
+        });
+
+        dFormMsg.show();
+
+    } */
+    
+    function tranoPopUpHandler()
+{
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+            {name: 'trano'},
+            {name: 'prj_kode'},
+            {name: 'sit_kode'},
+            {name: 'grouped'},
+          ]
+    );
+
+    var proxy = new Ext.data.HttpProxy({
+     url : '/default/home/getlistdocumentbytype'
+    });
+
+    var store = new Ext.data.Store({
+            id: 'store-doc-msg',
+            reader: reader,
+            proxy: proxy
+        });
+
+    newGrid = function(viewer, config) {
+        this.viewer = viewer;
+        Ext.apply(this, config);
+
+        this.store = store;
+
+        this.columns = [
+            {
+                id: 'trano',
+                header: "Trano",
+                dataIndex: 'trano',
+                width: 100
+            },
+            {
+                id: 'prj_kode',
+                header: "Project Code",
+                dataIndex: 'prj_kode',
+                width: 50
+            },
+            {
+                id: 'sit_kode',
+                header: "Site Code",
+                dataIndex: 'sit_kode',
+                width: 50
+            }
+        ];
+
+        this.bbar = new Ext.PagingToolbar({
+            pageSize: 20,
+            store: this.store,
+            displayInfo: true,
+            displayMsg: 'Displaying document {0} - {1} of {2}',
+            emptyMsg: "No document to display"
+        });
+        newGrid.superclass.constructor.call(this, {
+            id: 'grid-trano',
+            loadMask: {msg:'Loading...'},
+
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true
+            }),
+
+            viewConfig: {
+                forceFit:true
+            }
+        });
+
+        this.on('rowclick', this.onTranoClick, this);
+        this.on('rowdblclick', this.onTranoClick, this);
+    };
+
+    Ext.extend(newGrid, Ext.grid.GridPanel, {
+
+        onTranoClick : function(grid, index, e){
+            var rec = store.getAt(index);
+            var trano = rec.data['trano'];
+            isGrouped = rec.get("grouped");
+
+            Ext.getCmp('trano_text').setValue(trano);
+            Ext.getCmp('doc-form-panel').close();
+        }
+    });
+
+    var grids = new newGrid({
+            loadMask: true,
+            frame:true,
+            width: 280,
+            id: 'grid-trano'
+        });
+    
+    var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+			
+        {
+            region: 'center',
+            id: 'detail', // see Ext.getCmp() below
+            title: '',
+            width: 320,
+            layout: 'fit',
+//            tbar: [{
+//                    xtype: 'button',
+//                    text: 'Show All Conversation',
+//                    width:110,
+//                    id: 'show_all',
+//                    cls:"x-btn-text-icon" ,
+//                    icon:"/images/icons/fam/icon_history.gif",
+//                    handler: function () {
+//                        storeMsg2.proxy = new Ext.data.HttpProxy({
+//                            url : '/default/conversation/getallmyconversation'
+//                        });
+//                        storeMsg2.reload();
+//                    }
+//                }],
+            items: [
+                    grids
+            ]
+
+        },
+        {
+            region: 'north',
+            id: 'south2',
+            height: 125,
+            stateful: false,
+            items: [
+                 {
+                    layout:'column',
+                    frame: true,
+                    items:[
+                           {columnWidth:.9,
+                            layout: 'form',
+                            items: [
+                                {
+                                     id: 'combo-type',
+                                     fieldLabel: 'Transaction',
+                                     hiddenName : 'workflow_item_type_id',
+                                     width: 100,
+                                     xtype: 'combo',
+                                     triggerAction: 'all',
+                                     mode: 'remote',
+                                     editable: false,
+                                     displayField: 'name',
+                                     valueField: 'workflow_item_type_id',
+                                     store: new Ext.data.JsonStore({
+                                         url: '/admin/workflow/listworkflowitemtype/all/true',
+                                         root: 'posts',
+                                          fields:[
+                                              { name: "name"},{ name: "workflow_item_type_id"}, { name: 'generic' }
+                                          ]
+                                     }),
+                                    listeners: {
+                                        'select': function(t,n,o){
+                                            store.proxy = new Ext.data.HttpProxy({
+                                                url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue()
+                                            });
+                                            store.reload();
+
+                                            var rec = n;
+                                            isGeneric = rec.get("generic");
+                                        }
+                                    }
+                                 }
+                            ]
+                           }
+                        ]
+                 },
+
+
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.55,
+                                layout: 'form',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Trano',
+                                        width: 80,
+                                        id: 'search_trano'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Project Code',
+                                        width: 80,
+                                        id: 'search_prj'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Site Code',
+                                        width: 80,
+                                        id: 'search_site'
+                                    }
+                                ]
+                               },
+                            {columnWidth:.3,
+                                layout: 'form',
+                                style : 'margin-left: 3px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Search',
+                                        id: 'search-button',
+                                        style: 'margin-top: 12px;',
+                                        handler: function (){
+                                            var type = Ext.getCmp('combo-type').getValue();
+                                            if (type == "" || type == null)
+                                            {
+                                                Ext.Msg.alert('Error!', "Please select Transaction!");
+                                                return false;
+                                            }
+                                            else
+                                            {
+                                                var trano = Ext.getCmp('search_trano').getValue();
+                                                var prj = Ext.getCmp('search_prj').getValue();
+                                                var site = Ext.getCmp('search_site').getValue();
+                                                 store.proxy = new Ext.data.HttpProxy({
+                                                    url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue() + '/trano/' + trano + '/prj_kode/' + prj + '/sit_kode/' + site
+                                                });
+                                                store.reload();
+                                            }
+                                        }
+                                    }),
+                                    new Ext.Button({
+                                        text: 'Clear',
+                                        id: 'clear-button',
+                                        style: 'margin-top: 5px;',
+                                        handler: function (){
+                                            Ext.getCmp('search_trano').setValue('');
+                                            Ext.getCmp('search_prj').setValue('');
+                                            Ext.getCmp('search_site').setValue('');
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+    ]
+
+});
+
+    var dFormMsg =  new Ext.Window({
+		    id: 'doc-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 400,
+		    title: 'Select Document',
+		    stateful: false,
+	        modal: true,
+            resizable: false,
+		    items: [
+                viewportsMsg
+            ]
+    });
+
+    dFormMsg.show();
+
+}
+
+    var proxy = new Ext.data.HttpProxy({
+           url : 'what ever'
+        });
+
+    var filelist = Ext.data.Record.create([ {
+            name: 'id',
+            type: 'integer'
+        },{
+            name: 'filename',
+            type: 'string'
+        },{
+            name: 'savename',
+            type: 'string'
+        },{
+            name: 'status',
+            type: 'string'
+        },{
+            name: 'path',
+            type: 'string'
+    }]);
+
+    var storeFile = new Ext.data.Store({
+        proxy:proxy,
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn){
+                if (btn== 'yes')
+                {
+                    if (theFile.data['status'] == 'new')
+                        var params = {filename:theFile.data['savename']};
+                        Ext.Ajax.request({
+                            url: '/procurement/procurement/deletefile',
+                            method:'POST',
+                            success: function(result, request){
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if (returnData.success)
+                                {
+                                    storeFile.remove(theFile);
+                                    Ext.getCmp('files-grid').getView().refresh();
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error!', returnData.msg);
+                                    return false;
+                                }
+                            },
+                            failure:function( action){
+                            if(action.failureType == 'server'){
+                              obj = Ext.util.JSON.decode(action.response.responseText);
+                              Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                            },
+                            params: params
+                        });
+                }
+            });
+        }
+    };
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+            }}
+        ];
+
+        var gridattach = new Ext.grid.GridPanel ({
+            id:'files-grid',
+            iconCls: 'silk-grid',
+            height: 100,
+            store: storeFile,
+            trackMouseOver: true,
+            width:490,
+            view : new Ext.grid.GridView({
+                forceFit: true
+            }),
+            style:{
+                marginBottom:'10px'
+            },
+            columns: fileColumns
+        })
+
+        var fileUploads = new Ext.FormPanel({
+
+            title:'File Attachment',
+            renderTo:'panel_attachment',
+            fileUpload: true,
+            width:500,
+            frame:true,
+            id:'file_form',
+            allowBlank: false,
+            msgTarget: 'side',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.7,
+                    layout:'form',
+                    items:[{
+                        xtype: 'fileuploadfield',
+                        id: 'regis-file',
+                        emptyText: 'Select a File',
+                        fieldLabel: 'Attach File',
+                        allowBlank: false,
+                        name: 'file-path',
+                        buttonText: '',
+                        buttonCfg: {
+                            iconCls: 'upload-icon'
+                        },
+                        width:200,
+                        anchor:'98%'
+                    }]
+                },{
+                    columnWidth:0.2,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Upload',
+                        handler:function()
+                        {
+                            if(fileUploads.getForm().isValid()){
+                                form_action=1;
+                                fileUploads.getForm().submit({
+                                    url: '/procurement/procurement/uploadfile',
+                                    waitMsg: 'Uploading file...',
+                                    success: function(form,action){
+                                        var returnData = action.result;
+                                        if( returnData.success) {
+                                            var c = new filelist({
+                                                id:parseFloat(storeFile.getCount() + 1),
+                                                filename: returnData.filename,
+                                                savename: returnData.savename,
+                                                path: returnData.path,
+                                                status: 'new'
+                                          });
+                                          storeFile.add(c);
+                                          Ext.getCmp('files-grid').getView().refresh();
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', returnData.msg);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }]
+                }]
+            },gridattach,{
+                xtype:'trigger',
+                fieldLabel:'Trano ',
+                triggerClass:'teropong',
+                id:'trano_text',
+                editable:false,
+                onTriggerClick:function()
+                {
+                    tranoPopUpHandler();
+                }
+            },{
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: false,
+                fieldLabel:'Project Code '
+            }],buttons:[{
+                text:'Submit',
+                iconCls:'icon-save',
+                handler:function(btn,ev)
+                {
+                    var fileJson = '';
+                    storeFile.each(function(store){
+                        fileJson += Ext.util.JSON.encode(store.data) + ',';
+                    });
+                    fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']';
+
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('file_form').getForm().submit({
+
+                        method:'POST',
+                        params: {
+                            prj_kode:Ext.getCmp('prj_kode_text').getValue(),
+                            trano:Ext.getCmp('trano_text').getValue(),
+                            file:fileJson
+
+                        },
+                        url:'/admin/document/doinsertfile',
+                        success:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            Ext.Msg.alert('Success','File Has ben Save');
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                            url: '/admin/document/fileupload',
+                            scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+                }
+            }]
+
+        })
+
+
+    })
+
+
+
+</script>
+
+    <div id="panel_attachment"></div>

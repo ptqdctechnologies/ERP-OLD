@@ -1,0 +1,157 @@
+<script type="text/javascript">
+
+
+    Ext.apply(Ext.form.VTypes,{
+
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+	    },
+
+        emailText: "Not a valid email address. Must be in the following format: yourname@company.domain",
+	    emailRe: /^(\s*[a-zA-Z0-9\._%-]+@[a-zA-Z0-9\.-]+\.[a-zA-Z]{2,4})\s*$/,
+	    email: function(v) {
+	        return this.emailRe.test(v);
+	    }
+
+    });
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var editcustomer = new Ext.FormPanel ({
+
+            title:'Edit Customer',
+            id:'edit-customer',
+            iconCls: 'silk-user',
+            frame: true,
+            renderTo:'editcustomer',
+            width:360,
+            labelWidth:140,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'Customer Code',
+                    name:'cus_kode',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['cus_kode']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer Name',
+                    name:'cus_name',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['cus_nama']?>'
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'Customer Address',
+                    name:'cus_add',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['alamat']?>'
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'Customer Tax Address',
+                    name:'cus_tax_add',
+                    msgTarget:'side',
+                    width:180,
+                    value:'<?php echo $this->tampil['alamatpajak']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer Phone',
+                    name:'cus_phone',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    vtype:'numeric',
+                    value:'<?php echo $this->tampil['tlp']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer Fax',
+                    name:'cus_fax',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    vtype:'numeric',
+                    value:'<?php echo $this->tampil['fax']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer Email',
+                    name:'cus_email',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    vtype:'email',
+                    value:'<?php echo $this->tampil['email']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Customer NPWP',
+                    name:'cus_npwp',
+                    msgTarget:'side',
+                    width:180,
+                    value:'<?php echo $this->tampil['npwp']?>'
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'Description',
+                    name:'cus_desc',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['ket']?>'
+                }
+            ],
+            buttons:[
+                {
+                    text:'Edit',
+                    handler:function(btn,ev)
+                    {
+                        if(!Ext.getCmp('edit-customer').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }
+
+                        Ext.getCmp('edit-customer').getForm().submit({
+
+                            method:'POST',
+                            url:'/logistic/logisticcustomer/geteditcustomer/id/<?=$this->tampil['id']?>',
+                            success:function(thisForm,response)
+                            {
+                                Ext.Msg.alert('Success','Customer has ben Update');
+                                myPanel = Ext.getCmp('master_customer');
+                                myPanel.body.load({
+                                url: '/logistic/logisticcustomer/customer',
+                                scripts : true
+                                });
+                            }
+                        })
+                    }
+                },{
+                    text:'Cancel',
+                    handler: function(btn, ev){
+                    myPanel = Ext.getCmp('master_customer');
+                    myPanel.body.load({
+                        url: '/logistic/logisticcustomer/customer',
+                        scripts : true
+                    });
+                    }
+                }
+            ]
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="editcustomer"></div>
+

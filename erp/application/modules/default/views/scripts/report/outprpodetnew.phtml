@@ -1,0 +1,179 @@
+<?php if ($this->popup) { ?>
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<?php } ?>
+
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<style type="text/css">
+
+    .title {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+    .parentContainer{ 
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 900px; 
+        height: 700px; 
+        overflow: auto; 
+        font-size: 14px;
+    }
+
+</style>
+    <div class="title">PR to PO </div>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+        <tr>
+        <th scope="col"><center><b>No</b></center></th>
+        <th scope="col"><center><b>PR Number</b></center></th>
+        <th scope="col"><center><b>PR Date</b></center></th>
+        <th scope="col"><center><b>Product ID</b></center></th>
+        <th scope="col"><center><b>Description</b></center></th>
+        <th scope="col"><center><b>PR Total</b></center></th>
+        <th scope="col"><center><b>Valuta</b></center></th>
+        <th scope="col"><center><b>PO Number</b></center></th>
+        <th scope="col"><center><b>PO Date</b></center></th>
+        <th scope="col"><center><b>PO Qty</b></center></th>
+        <th scope="col"><center><b>PO Total</b></center></th>
+        <th scope="col"><center><b>Balance</b></center></th>
+        </tr>
+        <tr>
+        </tr>
+        </thead>
+        <tbody>
+            <?php
+            $i = 0;
+            $totalPRIDR = 0;
+            $totalPRUSD = 0;
+            $totalPOIDR = 0;
+            $totalPOUSD = 0;
+            $totalBalIDR = 0;
+            $totalBalUSD = 0;
+            $colorbalidr = '';
+            $colorbalusd = '';
+            foreach ($this->result as $k => $v) 
+            {
+                $row = 1;
+                $totalRow = 0;
+                
+                foreach($v as $k0 => $v0){
+                    $totalRow += count($v0);
+                }
+                
+                foreach($v as $k1 => $v1)
+                {
+                    $row2 = 1;
+                    $totalPOperPR = 0;
+                    
+                    $totalRow2 = count($v1);
+                    
+                    foreach($v1 as $kpopr => $vpopr){
+                        $totalPOperPR += $vpopr['jumlah_po'];
+                    } 
+                    
+                    foreach($v1 as $k3 => $v3)
+                    {
+                        ?>
+                <tr>
+                    <td><?=$i+1; ?></td>
+                    <?php  if (($row== 1)&&($row2== 1)){
+                        ?>
+                    <td rowspan="<?=$totalRow?>" align="left"><?= $v3['no_pr']; ?></td>
+                    <td rowspan="<?=$totalRow?>" align="left"><?= ($v3['tgl_pr'] != '-') ? date('d-m-Y', strtotime($v3['tgl_pr'])) : '-'; ?></td>
+                    <?php } if ($row2== 1) {
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalPRIDR += $v3['jumlah_pr'];
+                        } else {
+                            $totalPRUSD += $v3['jumlah_pr'];
+                        }
+                        ?>
+                    <td rowspan="<?=$totalRow2?>" align="left"><?= $v3['kode_brg']; ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="left"><?= $v3['nama_brg']; ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['jumlah_pr']) : number_format($v3['jumlah_pr'], 2)); ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="left"><?= $v3['val_kode']; ?></td>
+                    <?php } 
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalPOIDR += $v3['jumlah_po'];
+                        } else {
+                            $totalPOUSD += $v3['jumlah_po'];
+                        }
+                    ?>
+                    <td align="left"><?= $v3['no_po']; ?></td>
+                    <td align="left"><?= ($v3['tgl_po'] != '-') ? date('d-m-Y', strtotime($v3['tgl_po'])) : '-'; ?></td>
+                    <td align="right"><?= number_format($v3['qty_po'],2); ?></td>
+                    <td align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['jumlah_po']) : number_format($v3['jumlah_po'], 2)); ?></td>
+                    <?php if ($row2== 1) { 
+                        $balance = $v3['jumlah_pr'] - $totalPOperPR;
+
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalBalIDR += $balance;
+                        } else {
+                            $totalBalUSD += $balance;
+                        }
+                        
+                        $color = '';
+                        
+                        if($balance < 0) {
+                            $color = "red"; 
+                        } else {
+                            $color = "black";
+                        }
+                    ?>
+                    <td rowspan="<?=$totalRow2?>" align="right"><p style="color:<?=$color?>;"><?= (($v3['val_kode'] != 'USD') ? number_format($balance) : number_format($balance, 2)); ?></p></td>
+                    <?php } ?>
+                </tr>
+
+                <?php
+                        $i++;
+                        $row2++;
+                    }
+                    $row++;
+                }
+            }
+            
+            if($totalBalIDR < 0) {
+                $colorbalidr = "red";
+            } else {
+                $colorbalidr = "black";
+            }
+            
+            if($totalBalUSD < 0) {
+                $colorbalusd = "red";
+            } else {
+                $colorbalidr = "black";
+            }
+            ?>
+            <tr>
+                <td colspan="5" align="center"><b>Total IDR</b></td><td align="right"><b><?=number_format($totalPRIDR);?></b></td><td colspan="4"></td><td align="right"><b><?=number_format($totalPOIDR);?></b></td><td align="right"><b><p style="color:<?=$colorbalidr?>;"><?=number_format($totalBalIDR);?></p></b></td>
+            </tr>
+            <tr>
+                <td colspan="5" align="center"><b>Total USD</b></td><td align="right"><b><?=number_format($totalPRUSD, 2);?></b></td><td colspan="4"></td><td align="right"><b><?=number_format($totalPOUSD, 2);?></b></td><td align="right"><b><p style="color:<?=$colorbalusd?>;"><?=number_format($totalBalUSD, 2);?></p></b></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+    <script type="text/javascript">
+
+    (function() {
+        resizeTable("parentContainer");
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 2,
+            headerRows: 2
+        });
+    })();
+
+</script>

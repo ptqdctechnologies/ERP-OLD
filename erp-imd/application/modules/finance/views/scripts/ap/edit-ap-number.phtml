@@ -1,0 +1,203 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init ();
+
+        var jurnal = new Ext.ux.grid.gridJurnal({
+            height: 300,
+            width: 750,
+            id: 'grid-jurnal',
+            renderTo:'gridjurnal',
+            hideRefNumber: false,
+            disableNewJournal: true,
+            enableEditJurnal: false,
+            showJobNumber: true
+        });
+
+        var checkApNumber = function()
+        {
+            var value = Ext.getCmp('ap_number').getValue();
+
+            if (regexAPRefNumber.test(value) == true)
+            {
+                Ext.Ajax.request({
+                    url:'/finance/ap/get-ap',
+                    method:'POST',
+                    params:{
+                        ap_number: value
+                    },
+                    success:function(result){
+                        obj = Ext.util.JSON.decode(result.responseText);
+
+                        if (obj.success)
+                        {
+                            jurnal.loadData(obj);
+                            jurnal.summaryTotal();
+                        }
+                        else
+                        {
+                            Ext.Msg.alert('Error', obj.msg);
+                        }
+                    },
+                    failure:function( action){
+                        if(action.failureType == 'server'){
+                            obj = Ext.util.JSON.decode(action.response.responseText);
+                            Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                    }
+
+                });
+            }
+            else
+            {
+                {
+                    Ext.Msg.alert('Error','AP Number Format is not valid. Please use format XX-YYYYYY.');
+                    return false;
+                }
+            }
+        };
+
+        var checkApNumberExist = function()
+        {
+            var value = Ext.getCmp('ap_number_new').getValue(),
+                value_ori = Ext.getCmp('ap_number').getValue();
+
+            if (value == '' || value_ori == '')
+                return false;
+
+            if (regexAPRefNumber.test(value) == true)
+            {
+                Ext.MessageBox.confirm('Confirm', 'Are you sure want to change AP Number ' + value_ori + ' to ' + value + '?', function(btn){
+                    if (btn== 'yes')
+                    {
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.Ajax.request({
+                            url:'/finance/ap/update-ap-number',
+                            method:'POST',
+                            params:{
+                                ap_number_new: value,
+                                ap_number: value_ori
+                            },
+                            success:function(result){
+                                Ext.getBody().unmask();
+                                obj = Ext.util.JSON.decode(result.responseText);
+
+                                if (obj.success)
+                                {
+                                    jurnal.removeAll();
+                                    Ext.getCmp('ap_number_new').setValue('');
+                                    Ext.getCmp('ap_number').setValue('');
+                                    Ext.MessageBox.confirm('Success', 'AP Number has been updated, Do you want to print the Journal?', function(btn){
+                                        if (btn== 'yes')
+                                        {
+                                            location.href='/finance/report/view-ap/print/true/ap_number/' + value;
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error', obj.msg);
+                                }
+                            },
+                            failure:function( action){
+                                Ext.getBody().unmask();
+                                if(action.failureType == 'server'){
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }else{
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+
+                        });
+                    }
+                });
+
+            }
+            else
+            {
+                {
+                    Ext.Msg.alert('Error','AP Number Format is not valid. Please use format XX-YYYYYY.');
+                    return false;
+                }
+            }
+        }
+
+        var form = new Ext.form.FormPanel({
+//            autoWidth: true,
+            height: 100,
+            width: 250,
+            title: 'Edit AP Number',
+            renderTo: 'form',
+            frame: true,
+            items: [
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'AP Number',
+                    id: 'ap_number',
+                    width: 100,
+                    enableKeyEvents: true,
+                    listeners: {
+                        keypress: function(field, e) {
+                            if(e.button==12){
+                                checkApNumber();
+                            }
+                        }
+                    }
+                }
+            ],
+            buttons: [
+                {
+                    xtype: 'button',
+                    text: 'Submit',
+                    handler: function()
+                    {
+                        checkApNumber();
+                    }
+                }
+            ]
+        });
+
+        var formEdit = new Ext.form.FormPanel({
+//            autoWidth: true,
+            height: 100,
+            width: 250,
+            renderTo: 'form-edit',
+            frame: true,
+            items: [
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'New AP Number',
+                    id: 'ap_number_new',
+                    width: 100,
+                    enableKeyEvents: true,
+                    listeners: {
+                        keypress: function(field, e) {
+                            if(e.button==12){
+                                checkApNumberExist();
+                            }
+                        }
+                    }
+                }
+            ],
+            buttons: [
+                {
+                    xtype: 'button',
+                    text: 'Update',
+                    handler: function()
+                    {
+                        checkApNumberExist();
+                    }
+                }
+            ]
+        });
+    });
+
+</script>
+
+<div id="form"></div><br />
+<div id="gridjurnal"></div><br />
+<div id="form-edit"></div>

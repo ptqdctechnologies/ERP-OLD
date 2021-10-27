@@ -1,0 +1,832 @@
+<?php
+/*
+Created @ May 11, 2010 by Haryadi
+ */
+?>
+
+<script type="text/javascript">
+
+var App = new Ext.App({});
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/procurement/procurement/list/type/poh',
+        create : '/procurement/procurement/list/type/poh',
+        update: '/procurement/procurement/list/type/poh',
+        destroy: '/procurement/procurement/list/type/poh'
+          }
+});
+
+// Typical JsonReader.  Notice additional meta-data params for defining the core attributes of your json-response
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+//  successProperty: 'success',
+    idProperty: 'trano',
+    root: 'posts'
+//  messageProperty: 'message'  // <-- New "messageProperty" meta-data
+
+}, [
+    {name: 'trano'},
+    {name: 'tgl', allowBlank: false, type: 'date', dateFormat: 'Y-m-d'},
+    {name: 'revisi', allowBlank: false},
+    {name: 'val_kode', allowBlank: false},
+    {name: 'sup_kode', allowBlank: false},
+    {name: 'budgettype', allowBlank: false},
+    {name: 'paymentterm', allowBlank: false},
+    {name: 'originofpo', allowBlank: false},
+    {name: 'typepo', allowBlank: false}
+]);
+
+// The new DataWriter component.
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user_list',
+    proxy: proxy,
+    reader: reader,
+    writer: writer, //<-- plug a DataWriter into the store just as you would a Reader
+    autoSave: true //<-- false would delay executing create, update, destroy requests until specifically told to do so with some [save] buton.
+});
+
+store.load();
+
+Ext.data.DataProxy.addListener('beforewrite', function(proxy, action) {
+    App.setAlert(App.STATUS_NOTICE, "Before " + action);
+});
+
+
+Ext.data.DataProxy.addListener('write', function(proxy, action, result, res, rs) {
+    App.setAlert(true, action + ':' + res.message);
+});
+
+
+Ext.data.DataProxy.addListener('exception', function(proxy, type, action, options, res) {
+    if (type === 'remote') {
+        Ext.Msg.show({
+            title: 'REMOTE EXCEPTION',
+            msg: res.message,
+            icon: Ext.MessageBox.ERROR,
+            buttons: Ext.Msg.OK
+        });
+    }
+});
+
+var submitForm = function(){
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+	Ext.getCmp('user-pop-up-panel').getForm().submit({
+		url: '/admin/user/update/id/'+index.id,
+		success: function(form, action){
+    		Ext.MessageBox.show({
+  	           title: 'Info',
+  	           msg: 'User has been updated!',
+  	           buttons: Ext.MessageBox.OK,
+  	           icon: Ext.MessageBox.INFO
+  	       });
+    		thisGrid.getStore().reload();
+    		Ext.getCmp('user-pop-up').close();
+		},
+		failure: function(form, action){
+			Ext.MessageBox.show({
+	  	           title: 'Error',
+	  	           msg: 'Error!',
+	  	           buttons: Ext.MessageBox.OK,
+	  	           icon: Ext.MessageBox.ERROR
+	  	       });
+		}
+
+    	});
+	};
+
+var submitForm2 = function(){
+	var thisGrid = Ext.getCmp('grid_user');
+    	Ext.getCmp('user-pop-up-panel2').getForm().submit({
+			url: '/procurement/procurement/addpo/',
+			success: function(form, action){
+	    		Ext.MessageBox.show({
+	  	           title: 'Info',
+	  	           msg: 'User has been Added!',
+	  	           buttons: Ext.MessageBox.OK,
+	  	           icon: Ext.MessageBox.INFO
+	  	       });
+	    		thisGrid.getStore().reload();
+	    		Ext.getCmp('user-pop-up').close();
+    		},
+    		failure: function(form, action){
+    			if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error', obj.errors.reason);
+                }else{
+                    Ext.Msg.alert('Warning!', 'Authentication server is unreachable : ' + action.response.responseText);
+                }
+    		}
+
+        	});
+		};                
+
+var userPopUpPanel = {
+		id: 'user-pop-up-panel',
+		xtype: 'form',
+		padding: 10,
+		frame:true,
+		items : [
+
+		     new Ext.form.TextField({
+		            id:"master_login_pop",
+		            name:"master_login_pop",
+		            fieldLabel:"PO No",
+		            width:150,
+		            enableKeyEvents:true
+		         }),
+	              new Ext.form.TextField({
+	                 id:"user_name_pop",
+	                 name:"user_name_pop",
+			 fieldLabel:"Date",
+	                 width:150,
+	                 enableKeyEvents:true
+	              }),
+	              new Ext.form.TextField({
+		                 id:"pass_pop",
+		                 fieldLabel:"Project Code",
+		                 inputType:"prjKode",
+		                 width:150,
+		                 enableKeyEvents:true
+		              }),
+	              new Ext.form.TextField({
+	                 id:"pass2_pop",
+	                 fieldLabel:"Project Name",
+	                 inputType:"prjName",
+	                 width:150,
+	                 enableKeyEvents:true
+	              }),
+	                new Ext.form.TextField({
+	                   id:"npk_pop",
+	                   name:"npk_pop",
+			   fieldLabel:"Site Code",
+	                   width:150,
+	                   enableKeyEvents:true
+	                }),
+               
+	                ],
+
+         buttons: [ {
+                id:"save_edit",
+                xtype:"button",
+                text:"Save",
+                handler: submitForm
+   			},
+            {
+                id:"cancel_edit",
+                xtype:"button",
+                text:"Cancel",
+                handler: function() {
+            		Ext.getCmp('user-pop-up').close();
+                }
+            }],
+
+         reader : new Ext.data.JsonReader({
+	             root: 'posts'
+	         },
+	     	[
+	     		{mapping: 'trano', name: 'trano_pop', type: 'string'},
+	     		{mapping: 'tgl', name: 'tgl_pop', type: 'date'},
+	     		{mapping: 'revisi', name: 'revisi_pop', type: 'string'},
+	     		{mapping: 'val_kode', name: 'valkode_pop', type: 'string'},
+                        {mapping: 'sup_kode', name: 'supkode_pop', type: 'string'},
+	     		{mapping: 'budgettype', name: 'budgettype_pop', type: 'string'},
+                        {mapping: 'paymentterm', name: 'paymentterm_pop', type: 'string'},
+	     		{mapping: 'originofpo', name: 'originofpo_pop', type: 'string'},
+                        {mapping: 'typepo', name: 'typepo_pop', type: 'string'},
+                        //{mapping: 'statuswh', name: 'statuswh_pop', type: 'string'},
+                        //{mapping: 'statussite', name: 'statussite_pop', type: 'string'},
+	     		//{mapping: 'statusreceivedsite', name: 'statusreceivedsite_pop', type: 'string'},
+                        //{mapping: 'pomyob', name: 'pomyob_pop', type: 'string'},
+	     		//{mapping: 'statusppn', name: 'statusppn_pop', type: 'string'},
+                        //{mapping: 'jumlah', name: 'jumlah_pop', type: 'string'},
+                        //{mapping: 'ppn', name: 'ppn_pop', type: 'string'},
+                        //{mapping: 'total', name: 'total_pop', type: 'string'},
+	     		//{mapping: 'delivery', name: 'delivery_pop', type: 'string'},
+                        //{mapping: 'ket', name: 'ket_pop', type: 'string'}
+	     	])
+	};
+
+//for add PO
+var userPopUpPanel2 =
+new Ext.FormPanel( {
+        labelAlign: 'top',
+        bodyStyle:'padding:5px',
+        width:600,
+        height:590,
+        stateFul:false,   
+            items: [ {
+                xtype:'tabpanel',
+                activeTab: 0,               
+                defaults:{autoHeight:true, bodyStyle:'padding:10px'},
+                    items:[ {
+                        layout:'column',
+                        border:false,
+                        title:"PO Header",
+                        items:[ {
+                            columnWidth:0.5,
+                            layout: 'form',                         
+                            defaultType: 'textfield',
+                            defaults: {width: 150},
+                            border: false,
+                                items : [
+                                {
+                                id:"trano_pop",
+                                name:"trano_pop",
+                                fieldLabel:"PO Number",
+                                enableKeyEvents:true
+                                 },
+                                {
+                                 id:"tgl_pop",
+                                 name:"tgl_pop",
+                                 fieldLabel:"Date",
+                                 xtype: 'datefield',
+                                 enableKeyEvents:true
+                                },
+                                {
+                                  id:"revisi_pop",
+                                  name:"revisi_pop",
+                                  fieldLabel:"Revision",
+                                  inputType:"revisi",
+                                  enableKeyEvents:true
+                                },
+                                {
+                                 id:"val_kode_text",
+                                 xtype:"trigger",
+                                 name:"valkode_pop",
+                                 fieldLabel:"Currency Code",                            
+                                 onTriggerClick:
+                                        function ()
+                                        {
+                                           valutaPopUphandler();
+                                        }
+                                },
+                                {
+                                id:"val_nama_text",
+                                name:"valnama_pop",
+                                fieldLabel:"Currency",
+                                enableKeyEvents:true
+                                },
+                                {
+                                id:"sup_kode_text",
+                                xtype:"trigger",
+                                name:"supkode_pop",
+                                fieldLabel:"Supplier Code",
+                                onTriggerClick:
+                                    function ()
+                                    {
+                                       suplierPopUphandler();
+                                    }
+                                },
+                               {
+                               id:"sup_nama_text",
+                               name:"supnama_pop",
+                               fieldLabel:"Supplier Name",     
+                               enableKeyEvents:true
+                               },
+                               {
+                               id:"budgettype_pop",
+                               name:"budgettype_pop",
+                               fieldLabel:"Budget Type",
+                               enableKeyEvents:true
+                               },
+                               {
+                               id:"paymentterm_pop",
+                               name:"paymentterm_pop",
+                               fieldLabel:"Payment Term",
+                               enableKeyEvents:true
+                                },
+                               {
+                               id:"originofpo_pop",
+                               name:"originofpo_pop",
+                               fieldLabel:"Origin PO",
+                               enableKeyEvents:true
+                                },
+                                {
+                               id:"typepo_pop",
+                               name:"typepo_pop",
+                               fieldLabel:"PO Type",
+                               enableKeyEvents:true
+                                },                 
+                           ]
+                        },
+                        {
+                            columnWidth:0.5,
+                            layout: 'form',
+                            defaultType: 'textfield',
+                            defaults: {width: 150},
+                            border: false,
+                            items : [
+                                new Ext.form.RadioGroup({
+                                id:"statuswh_pop",
+                                fieldLabel: 'Delivery to WHs',
+                                vertical: false,
+                                items:[
+                                {boxLabel: 'Yes', name: 'statuswh_pop', inputValue: 'Y',checked:false},
+                                {boxLabel: 'No', name: 'statuswh_pop', inputValue: 'N',checked:false}
+                                 ]
+                              }),
+                           new Ext.form.RadioGroup({
+                           id:"statussite_pop",
+                           fieldLabel: 'Delivery to Site',
+                           vertical: false,
+                           items:[
+                           {boxLabel: 'Yes', name: 'statussite_pop', inputValue: 'Y',checked:false},
+                           {boxLabel: 'No', name: 'statussite_pop', inputValue: 'N',checked:false}
+                                 ]
+                            }),
+                           new Ext.FormPanel({
+                           renderTo: Ext.getBody(),
+                           frame: false,                        
+                           items: [
+                            {
+                            xtype: 'checkbox',
+                            id:"statusreceivedsite_pop",                          
+                            name: "statusreceivedsite_pop",
+                            fieldLabel:"Received at Site"                        
+                             }
+                                   ]
+	                   }),
+                           new Ext.form.TextField({
+	                   id:"pomyob_pop",
+	                   name:"pomyob_pop",
+                           fieldLabel:"PO MYOB",	           
+	                   enableKeyEvents: true
+	                   }),                     
+                           new Ext.FormPanel({
+                           renderTo: Ext.getBody(),
+                           frame: false,                
+                           items:[
+                            {
+                            xtype: 'checkbox',
+                            id:"statusppn_pop",
+                            name: "statusppn_pop",                       
+                            fieldLabel: 'Status Tax'                        
+                            }
+                                 ]
+	                   }),
+                           new Ext.form.TextField({
+	                   id:"jumlah_pop",
+	                   name:"jumlah_pop",
+                           fieldLabel:"Total Price",
+                           listeners: {
+                                'keyup': function(field,key) {
+                                  var ppn = Ext.getCmp('ppn_pop').getValue();
+                                  var jum = field.getValue();
+
+                                  if (ppn != '' && jum != '')
+                                      {
+                                          var total  = ppn * jum;
+                                          Ext.getCmp('total_pop').setValue(total);
+                                      }
+                                  else
+                                      {
+                                          Ext.getCmp('total_pop').setValue('0');
+                                      }
+                                }
+                           },	            
+	                enableKeyEvents:true
+	                }),
+                           new Ext.form.TextField({
+	                   id:"ppn_pop",
+	                   name:"ppn_pop",
+                           fieldLabel:"Tax",	             
+                           listeners: {
+                                'keyup': function(field,key) {
+                                  var jum = Ext.getCmp('jumlah_pop').getValue();
+                                  var ppn = field.getValue();
+
+                                  if (ppn != '' && jum != '')
+                                      {
+                                          var total  = ppn * jum;
+                                          Ext.getCmp('total_pop').setValue(total);
+                                      }
+                                  else
+                                      {
+                                          Ext.getCmp('total_pop').setValue('0');
+                                      }
+                                }
+                           },
+	                   enableKeyEvents:true
+	                }),
+                           new Ext.form.TextField({
+	                   id:"total_pop",
+	                   name:"total_pop",
+                           fieldLabel:"Total",	            
+                           readOnly: true,
+	                   enableKeyEvents:true
+	                }),                        
+                           new Ext.form.TextField({
+	                   id:"delivery_pop",
+	                   name:"delivery_pop",
+                           fieldLabel:"Delivery To",
+	                   width:150,
+	                   enableKeyEvents:true
+	                }),                        
+                           new Ext.form.TextField({
+	                   id:"remark_pop",
+	                   name:"remark_pop",
+                           fieldLabel:"Remark",	             
+	                   enableKeyEvents:true
+	                })
+                            ]
+                        }
+
+                ]
+            },
+            
+            {
+                activeTab: 1,
+                title:"PO Detail",
+                defaults:{autoHeight:true, bodyStyle:'padding:10px'},
+                    items:[ {
+                         layout:'column',
+                         border: false,
+
+                                items:[ {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    defaultType: 'textfield',
+                                    defaults: {width: 150},
+                                    border: false,
+                                         items:[
+                                            {
+                                            id:"prno_text",
+                                            xtype:"trigger",
+                                            name:"prno_pop",
+                                            fieldLabel:"PR No",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                   prPopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"cus_kode_text",
+                                            name:"cuskode_pop",
+                                            xtype:"trigger",
+                                            fieldLabel:"Customer Code",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                   customerPopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"cus_nama_text",
+                                            name:"cus_nama_pop",
+                                            fieldLabel:"Customer Name",
+                                            enableKeyEvents:true
+                                            },
+                                            {                                  
+                                            id:"prj_kode_text",
+                                            xtype: "trigger",
+                                            name:"prjkode_pop",
+                                            fieldLabel:"Project Code",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                    projectPopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"prj_nama_text",
+                                            name:"prj_nama_pop",
+                                            fieldLabel:"Project Name",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                            id:"sit_kode_text",
+                                            xtype: "trigger",
+                                            name:"sitkode_pop",
+                                            fieldLabel:"Site Code",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                    sitePopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"sit_nama_text",
+                                            name:"sit_nama_pop",
+                                            fieldLabel:"Site Name",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                            id:"netact_pop",
+                                            name:"netact_pop",
+                                            fieldLabel:"Net Act",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                            id:"workid_text",
+                                            xtype:"trigger",
+                                            name:"workid_pop",
+                                            fieldLabel:"Work Id",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                    workPopUphandler();
+                                                }                                          
+                                            },
+                                            {
+                                            id:"workname_text",
+                                            name:"workname_pop",
+                                            fieldLabel:"Work Name",
+                                            enableKeyEvents:true
+                                            }
+                                         ]
+                                     },
+                                      {
+                                      columnWidth: 0.5,
+                                      layout: 'form',
+                                      defaultType: 'textfield',
+                                      defaults:{width: 150},
+                                      border: false,
+                                          items:[
+                                            {
+                                            id:"kode_brg_text",
+                                            xtype:"trigger",
+                                            name:"productid_pop",
+                                            fieldLabel:"Product Id",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                   productPopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"nama_brg_text",
+                                            name:"productnama_pop",
+                                            fieldLabel:"Product Name",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                            id:"sat_kode_text",
+                                            xtype:"trigger",
+                                            name:"uomkode_pop",
+                                            fieldLabel:"UOM Code",
+                                            onTriggerClick:
+                                                function ()
+                                                {
+                                                   satuanPopUphandler();
+                                                }
+                                            },
+                                            {
+                                            id:"sat_nama_text",
+                                            name:"satnama_pop",
+                                            fieldLabel:"UOM Name",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                            id:"qty_pop",
+                                            name:"qty_pop",
+                                            fieldLabel:"Qty",
+                                            enableKeyEvents:true
+                                            },
+                                            {
+                                             id:"price_pop",
+                                             name:"price_pop",
+                                             fieldLabel:"Price",
+                                             enableKeyEvents:true
+                                            },
+                                           {
+                                           id:"totalprice2_pop",
+                                           name:"totalprice2_pop",
+                                           fieldLabel:"Total Price",
+                                           enableKeyEvents:true                                        
+                                            },
+                                           {
+                                           id:"ppn2_pop",
+                                           name:"ppn2_pop",
+                                           fieldLabel:"Tax",
+                                           enableKeyEvents:true
+                                           },
+                                           {
+                                           id:"total2_pop",
+                                           name:"total2_pop",
+                                           fieldLabel:"Total",
+                                           enableKeyEvents:true
+                                           },
+                                           {
+                                           id:"remark2_pop",
+                                           name:"remark2_pop",
+                                           fieldLabel:"Remark",
+                                           enableKeyEvents:true
+                                           }]
+                    }]
+
+              }]
+
+       }],
+       
+       buttons: [ {
+                id:"save_edit",
+                xtype:"button",
+                text:"Save",
+                handler: submitForm2
+                },
+                {
+                id:"cancel_edit",
+                xtype:"button",
+                text:"Cancel",
+                handler: function()
+                {
+                    Ext.getCmp('user-pop-up').close();
+                }
+           }]
+      }]
+
+   //}]
+
+});
+
+// A new generic text field
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns = [
+    {header: "No Trans", width: 100, sortable: true, dataIndex: 'trano', editor: textField},
+    {header: "Date", width: 100, sortable: true, dataIndex: 'tgl',renderer: Ext.util.Format.dateRenderer('d/m/Y'), editor: textField},
+    {header: "Revision", width: 150, sortable: true, dataIndex: 'revisi', editor: textField},
+    {header: "Curr Code", width: 200, sortable: true, dataIndex: 'val_kode', editor: textField},
+    {header: "Supplier Code", width: 100, sortable: true, dataIndex: 'sup_kode', editor: textField},
+    {header: "Budget Type", width: 150, sortable: true, dataIndex: 'budgettype', editor: textField},
+    {header: "Payment Term", width: 100, sortable: true, dataIndex: 'paymentterm', editor: textField},
+    {header: "Original PO", width: 150, sortable: true, dataIndex: 'originofpo', editor: textField},
+    {header: "PO Type", width: 150, sortable: true, dataIndex: 'typepo', editor: textField}
+    ];
+
+var handlerPopUp = function(type){
+
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+
+	if (!index) {
+	    return false;
+	}
+
+	var userPopUp = new Ext.Window({
+	    id: 'user-pop-up',
+	    layout: 'absolute',
+	    width: 300,
+	    height: 230,
+	    items : userPopUpPanel,
+	    stateful: false
+	});
+
+        userPopUp.title = 'Edit PO';
+        userPopUp.show();
+    
+    var popUpPanel = Ext.getCmp('user-pop-up-panel');
+        popUpPanel.getForm().load({url:'/admin/user/get/id/'+index.id, waitMsg:'Loading...'});
+
+};
+
+//for handler add
+var handlerPopUp2 = function(){
+
+	var thisGrid = Ext.getCmp('grid_user');
+
+	var userPopUp = new Ext.Window({
+	    id: 'user-pop-up',
+	    layout: 'absolute',
+	    width: 600,
+	    height: 620,
+	    items : userPopUpPanel2,
+	    stateful: false
+	});
+	userPopUp.title = 'Create Purchase Order (PO)';
+        userPopUp.show();
+};
+
+//for handler delete
+var handlerPopUp3 = function (){
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+	Ext.Msg.confirm('Confirm', 'Do you want to remove this PO?', function(btn){
+	    if (btn == 'yes'){
+	    	var conn = new Ext.data.Connection();
+	    	conn.request({
+	    	    url: '/procurement/procurement/deletepo/trano/' + index.id,
+	    	    method: 'POST',
+	    	    success: function(responseObject) {
+	    			Ext.Msg.alert('Success','PO has been removed!');
+	    			thisGrid.getStore().reload();
+	    	    },
+	    	    failure: function(responseObject) {
+	    	    	if(action.failureType == 'server'){
+	                    obj = Ext.util.JSON.decode(responseObject.responseText);
+	                    Ext.Msg.alert('Error', obj.errors.reason);
+	                }else{
+	                    Ext.Msg.alert('Warning!', 'Authentication server is unreachable : ' + action.response.responseText);
+	                }
+	    	     }
+	    	});
+	    }
+	});
+
+}
+
+var selModel = new Ext.grid.RowSelectionModel();
+
+var userGrid = new Ext.grid.GridPanel({
+        id: 'grid_user',
+        store: store,
+        columns : userColumns,
+        width: 860,
+        height: 500,
+        loadMask: true,
+        selModel: selModel,
+        x: 0,
+        y: 30,
+        tbar:[{
+            text: 'Add',
+            iconCls: 'silk-add',
+            handler: handlerPopUp2,
+            scope: this
+        }, '-', {
+            text: 'Delete',
+            iconCls: 'silk-del',
+            handler: handlerPopUp3,
+            scope: this
+        }, '-', {
+            text: 'Edit',
+            iconCls: 'silk-upd',
+            handler: handlerPopUp,
+            scope: this
+        }],
+    listeners: {
+
+    }
+
+    });
+    
+    
+var searchUserByName = function(field,e){
+    newUrl = '/procurement/procurement/listbyparams/name/trano/data/' + field.getValue();
+    proxies = Ext.getCmp('grid_user').getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+    url: newUrl
+         });
+    Ext.getCmp('grid_user').getStore().reload();
+}
+
+var userForm = new Ext.form.FormPanel({
+    title: 'Purchase Order Transaction',
+    id:'po-form',
+    defaultType: 'textfield',
+    layout:'absolute',
+    frame: true,
+    items: [
+        {
+        x: 0,
+        y: 0,
+        xtype: 'label',
+        text: 'PO Number:'
+    },
+         new Ext.form.TextField({
+            id:"trano",
+            x:80,
+            y:0,
+            width:150,
+            enableKeyEvents:true,
+            listeners: {
+                keyup: searchUserByName}
+         }),
+         userGrid ]
+    });
+
+var myPanel = ({
+
+    id: 'panel-baru',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    items: userForm
+});
+
+ viewPort = Ext.getCmp('viewport');
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(myPanel);
+ panelBaru = Ext.getCmp('panel-baru');
+ centerRegionTab.layout.setActiveItem('panel-baru');
+ 
+<?php echo $this->action('popupgrid','grid'); ?>
+
+</script>
+
+<div id="user-form"></div>
+
+<div id="user-grid"></div>

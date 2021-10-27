@@ -1,0 +1,210 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+var proxy = new Ext.data.HttpProxy({
+    url : '/default/home/getboq3summary/prj_kode/<?php echo $this->prjKode?>/sit_kode/<?php echo $this->sitKode?>'
+});
+
+var proxy2 = new Ext.data.HttpProxy({
+    url : '/default/home/getbarangdetail/prj_kode/<?php echo $this->prjKode?>/sit_kode/<?php echo $this->sitKode?>'
+});
+
+var qtyBoq3;
+var totalIDRBoq3;
+var totalUSDBoq3;
+
+        var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id', type: 'string'},
+			{name: 'kode_brg', type: 'string'},
+			{name: 'nama_brg', type: 'string'},
+			{name: 'qty', type: 'float'},
+			{name: 'totalIDR', type: 'float'},
+			{name: 'totalUSD', type: 'float'},
+			{name: 'workid', type: 'string'}
+          ]
+		);
+
+        var reader2 = new Ext.data.JsonReader({
+            idProperty: 'id',
+            totalProperty: 'count',
+            root : 'posts'},
+             [
+    			{name: 'id', type: 'string'},
+    			{name: 'type', type: 'string'},
+    			{name: 'qty', type: 'float'},
+    			{name: 'totalIDR', type: 'float'},
+    			{name: 'totalUSD', type: 'float'}
+              ]
+    		);
+
+        var store2 = new Ext.data.Store({
+            id: 'store-detail',
+            reader: reader2,
+            proxy: proxy2
+        });
+        
+        var store = new Ext.data.GroupingStore({
+            reader: reader,
+            proxy: proxy,
+            sortInfo:{field: 'kode_brg', direction: "ASC"},
+            groupField:'workid'
+        });
+
+		store.load();
+        
+        var grid = new Ext.grid.GridPanel({
+            store: store,
+            loadMask: true,
+            columns: [
+                {header: "Workid", width: 60, sortable: true, dataIndex: 'workid', hideable: true},
+                {header: "Kode Barang", width: 80, sortable: true, dataIndex: 'kode_brg', hideable: true},
+                {header: "Nama Barang", width: 200, sortable: true, renderer: function(v,p,r){
+                	var disp= Ext.util.Format.usMoney(r.data['totalIDR']);
+                    disp = disp.replace(/NaN/gi, "0");
+                    disp = disp.replace('\$',"");
+                    idr = disp;
+
+                    disp = Ext.util.Format.usMoney(r.data['totalUSD']);
+                    disp = disp.replace(/NaN/gi, "0");
+                    disp = disp.replace('\$',"");
+                    usd = disp;     
+                    	return '<span><b>' + r.data['nama_brg'] + '</b></span><div class="x-grid3-row-with-body">Total Qty: ' + r.data['qty'] + '</div><div class="x-grid3-row-with-body">Total IDR: ' + idr + '</div><div class="x-grid3-row-with-body">Total USD: ' + usd + '</div>';
+                    }
+                }
+           ],
+
+            view: new Ext.grid.GroupingView({
+//                forceFit:true,
+            	hideGroupedColumn :true,
+            	startCollapsed: true,
+                groupTextTpl: '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "Items" : "Item"]})'
+            }),
+            frame:true,
+            width: 280
+        });
+
+        var griddetail = new Ext.grid.GridPanel({
+            id: 'grid-detail',
+            store: store2,
+            columns: [
+                {header: "Type", width: 150, sortable: true, dataIndex: 'type'},
+                {header: "Total Qty", width: 100, sortable: true, dataIndex: 'qty', hideable: true, align: 'right'},
+                {header: "Total IDR", width: 120, sortable: true, dataIndex: 'totalIDR', align: 'right',renderer: function(v) {
+					if (v != '-')
+					{
+	                	var disp= Ext.util.Format.usMoney(v);
+	                    disp = disp.replace(/NaN/gi, "0");
+	                    disp = disp.replace('\$',"");
+					}
+					else
+						var disp = '-';
+                    return disp;
+                }},
+                {header: "Total USD", width: 120, sortable: true, dataIndex: 'totalUSD', align: 'right',renderer: function(v) {
+                	var disp= Ext.util.Format.usMoney(v);
+                    disp = disp.replace(/NaN/gi, "0");
+                    disp = disp.replace('\$',"");
+                    return disp;
+                }},
+                {header: "Progress", width: 150, renderer: function(v,p,r) {
+                    var percent = 0;
+                    if ((totalIDRBoq3 != undefined && totalIDRBoq3 != 0) || (totalUSDBoq3 != undefined && totalUSDBoq3 != 0))
+                    {
+                    	var totalBoq3 = totalIDRBoq3 + totalUSDBoq3;
+                    	var totalThis = r.data['totalIDR'] + r.data['totalUSD'];
+                    	percent = (totalThis / totalBoq3) * 100; 
+                    	if (percent > 100)
+                        	percent = 100;
+                    	percent = percent.toFixed(2);
+                    	var warna = '#0a0';
+                    	if (percent > 75)
+                        	warna = '#FF3F7D';
+                    	else if (percent > 50)
+                        	warna = '#FFDA2F';
+                    }
+            		return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+                }}
+                
+           ],
+
+            loadMask: true,
+            frame:true
+        });
+        
+        grid.on('rowclick', function(grid, row, e){
+        	var rec = grid.store.getAt(row);
+        	var workid = rec.data['workid'];
+        	var kodeBrg = rec.data['kode_brg'];
+        	qty = rec.data['qty'];
+        	totalIDRBoq3 = rec.data['totalIDR'];
+        	totalUSDBoq3 = rec.data['totalUSD'];
+        	store2.proxy.setUrl('/default/home/getbarangdetail/prj_kode/<?php echo $this->prjKode?>/sit_kode/<?php echo $this->sitKode?>/workid/' + workid + '/kode_brg/' + kodeBrg);
+        	Ext.getCmp('grid-detail').getStore().reload();
+       });
+var viewports = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    title: 'My Project',
+    id: 'abs-budget-panel',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+			{
+			    region: 'west',
+			    id: 'workid', // see Ext.getCmp() below
+			    title: 'BOQ3 Current',
+			    split: true,
+			    stateful: false,
+			    layout: 'fit',
+			    width: 300,
+			    minSize: 175,
+			    maxSize: 400,
+			    items: grid,
+			    listeners: {
+                	   resize: function (p,w,h,rw,rh) {
+							grid.setWidth(w);
+                   		}
+                   }	    
+			},
+			{
+			    region: 'center',
+			    id: 'detail', // see Ext.getCmp() below
+			    title: '',
+			    width: 500,
+			    minSize: 175,
+			    maxSize: 400,
+			    layout: 'fit',
+			    margins: '0 0 0 5',
+			    items: griddetail
+			}
+
+            ]
+
+});
+//var windowForm =  ({
+//
+//    title: 'My Project',
+//    id: 'abs-budget-panel',
+//    layout: 'fit',
+//    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+//    bodyStyle: 'padding:15px;',
+//    loadMask: true,
+//    minWidth: 300,
+//    minHeight: 200,
+//    items : viewports
+//});
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(viewports);
+panelBaru = Ext.getCmp('abs-budget-panel');
+panelBaru.title = 'Project <?php echo $this->prjKode?> - Site <?php echo $this->sitKode?>';
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+});
+</script>

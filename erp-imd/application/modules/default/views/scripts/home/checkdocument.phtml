@@ -1,0 +1,393 @@
+<script type="text/javascript">
+
+var isGeneric = false;
+var isGrouped = false;
+
+function showTrans()
+{
+    var trano = Ext.getCmp('trano_text').getValue();
+    if (trano == "" || trano == null)
+    {
+        Ext.Msg.alert('Error!','Please select/insert document\'s number!');
+        return false;
+    }
+
+    if (isGeneric == true || isGeneric == 1)
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/default/home/show-check-document-generic',
+            scripts: true,
+            params: {
+                trano: trano,
+                grouped: isGrouped
+            }
+
+        });
+    }
+    else
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/default/home/showcheckdocument',
+            scripts: true,
+            params: {
+                trano: trano
+            }
+        });
+    }
+}
+
+function tranoPopUpHandler()
+{
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+            {name: 'trano'},
+            {name: 'prj_kode'},
+            {name: 'sit_kode'},
+            {name: 'grouped'},
+          ]
+    );
+
+    var proxy = new Ext.data.HttpProxy({
+     url : '/default/home/getlistdocumentbytype'
+    });
+
+    var store = new Ext.data.Store({
+            id: 'store-doc-msg',
+            reader: reader,
+            proxy: proxy
+        });
+
+    newGrid = function(viewer, config) {
+        this.viewer = viewer;
+        Ext.apply(this, config);
+
+        this.store = store;
+
+        this.columns = [
+            {
+                id: 'trano',
+                header: "Trano",
+                dataIndex: 'trano',
+                width: 100
+            },
+            {
+                id: 'prj_kode',
+                header: "Project Code",
+                dataIndex: 'prj_kode',
+                width: 50
+            },
+            {
+                id: 'sit_kode',
+                header: "Site Code",
+                dataIndex: 'sit_kode',
+                width: 50
+            }
+        ];
+
+        this.bbar = new Ext.PagingToolbar({
+            pageSize: 20,
+            store: this.store,
+            displayInfo: true,
+            displayMsg: 'Displaying document {0} - {1} of {2}',
+            emptyMsg: "No document to display"
+        });
+        newGrid.superclass.constructor.call(this, {
+            id: 'grid-trano',
+            loadMask: {msg:'Loading...'},
+
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true
+            }),
+
+            viewConfig: {
+                forceFit:true
+            }
+        });
+
+        this.on('rowclick', this.onTranoClick, this);
+        this.on('rowdblclick', this.onTranoClick, this);
+    };
+
+    Ext.extend(newGrid, Ext.grid.GridPanel, {
+
+        onTranoClick : function(grid, index, e){
+            var rec = store.getAt(index);
+            var trano = rec.data['trano'];
+            isGrouped = rec.get("grouped");
+
+            Ext.getCmp('trano_text').setValue(trano);
+            Ext.getCmp('doc-form-panel').close();
+        }
+    });
+
+    var grids = new newGrid({
+            loadMask: true,
+            frame:true,
+            width: 280,
+            id: 'grid-trano'
+        });
+    
+    var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+			
+        {
+            region: 'center',
+            id: 'detail', // see Ext.getCmp() below
+            title: '',
+            width: 320,
+            layout: 'fit',
+//            tbar: [{
+//                    xtype: 'button',
+//                    text: 'Show All Conversation',
+//                    width:110,
+//                    id: 'show_all',
+//                    cls:"x-btn-text-icon" ,
+//                    icon:"/images/icons/fam/icon_history.gif",
+//                    handler: function () {
+//                        storeMsg2.proxy = new Ext.data.HttpProxy({
+//                            url : '/default/conversation/getallmyconversation'
+//                        });
+//                        storeMsg2.reload();
+//                    }
+//                }],
+            items: [
+                    grids
+            ]
+
+        },
+        {
+            region: 'north',
+            id: 'south2',
+            height: 125,
+            stateful: false,
+            items: [
+                 {
+                    layout:'column',
+                    frame: true,
+                    items:[
+                           {columnWidth:.9,
+                            layout: 'form',
+                            items: [
+                                {
+                                     id: 'combo-type',
+                                     fieldLabel: 'Transaction',
+                                     hiddenName : 'workflow_item_type_id',
+                                     width: 100,
+                                     xtype: 'combo',
+                                     triggerAction: 'all',
+                                     mode: 'remote',
+                                     editable: false,
+                                     displayField: 'name',
+                                     valueField: 'workflow_item_type_id',
+                                     store: new Ext.data.JsonStore({
+                                         url: '/admin/workflow/listworkflowitemtype/all/true',
+                                         root: 'posts',
+                                          fields:[
+                                              { name: "name"},{ name: "workflow_item_type_id"}, { name: 'generic' }
+                                          ]
+                                     }),
+                                    listeners: {
+                                        'select': function(t,n,o){
+                                            store.proxy = new Ext.data.HttpProxy({
+                                                url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue()
+                                            });
+                                            store.reload();
+
+                                            var rec = n;
+                                            isGeneric = rec.get("generic");
+                                        }
+                                    }
+                                 }
+                            ]
+                           }
+                        ]
+                 },
+
+
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.55,
+                                layout: 'form',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Trano',
+                                        width: 80,
+                                        id: 'search_trano'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Project Code',
+                                        width: 80,
+                                        id: 'search_prj'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Site Code',
+                                        width: 80,
+                                        id: 'search_site'
+                                    }
+                                ]
+                               },
+                            {columnWidth:.3,
+                                layout: 'form',
+                                style : 'margin-left: 3px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Search',
+                                        id: 'search-button',
+                                        style: 'margin-top: 12px;',
+                                        handler: function (){
+                                            var type = Ext.getCmp('combo-type').getValue();
+                                            if (type == "" || type == null)
+                                            {
+                                                Ext.Msg.alert('Error!', "Please select Transaction!");
+                                                return false;
+                                            }
+                                            else
+                                            {
+                                                var trano = Ext.getCmp('search_trano').getValue();
+                                                var prj = Ext.getCmp('search_prj').getValue();
+                                                var site = Ext.getCmp('search_site').getValue();
+                                                 store.proxy = new Ext.data.HttpProxy({
+                                                    url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue() + '/trano/' + trano + '/prj_kode/' + prj + '/sit_kode/' + site
+                                                });
+                                                store.reload();
+                                            }
+                                        }
+                                    }),
+                                    new Ext.Button({
+                                        text: 'Clear',
+                                        id: 'clear-button',
+                                        style: 'margin-top: 5px;',
+                                        handler: function (){
+                                            Ext.getCmp('search_trano').setValue('');
+                                            Ext.getCmp('search_prj').setValue('');
+                                            Ext.getCmp('search_site').setValue('');
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+    ]
+
+});
+
+    var dFormMsg =  new Ext.Window({
+		    id: 'doc-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 400,
+		    title: 'Select Document',
+		    stateful: false,
+	        modal: true,
+            resizable: false,
+		    items: [
+                viewportsMsg
+            ]
+    });
+
+    dFormMsg.show();
+
+}
+
+var windowForm =  ({
+
+    title: 'Check Document on Process',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Document Number'
+        },
+        {
+            xtype:'textfield',
+            id:'trano_text',
+            width:100
+        },
+        {
+           xtype: 'button',
+            id: 'trano_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/g_rec_src.png",
+            handler:tranoPopUpHandler
+        },
+        '-',
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_trans',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showTrans
+        }
+    ]
+});
+
+//    function getExchangeRate()
+//    {
+//        Ext.Ajax.request({
+//            url: '/default/valuta/getexchangerate/val_kode/USD',
+//            method: 'POST',
+//            success: function(result, request) {
+//                var returnData = Ext.util.JSON.decode(result.responseText);
+//                if (returnData.success) {
+//                    if(returnData.rate == 0)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR,
+//                            fn:function(){window.location='';}
+//                        });
+//                    }
+//                    
+//                    Ext.getCmp('rateidr').setValue(returnData.rate);
+//                }
+//            }
+//            , failure: function(action) {
+//                if (action.failureType == 'server') {
+//                    obj = Ext.util.JSON.decode(action.response.responseText);
+//                    Ext.Msg.alert('Error!', obj.errors.reason);
+//                }
+//            }
+//        });
+//    }
+//    getExchangeRate();
+
+ viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+</script>
+

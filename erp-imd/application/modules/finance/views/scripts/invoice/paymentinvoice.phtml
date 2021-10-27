@@ -1,0 +1,2596 @@
+<script type="text/javascript">
+
+    var INVOICE_LIST = null,
+            INVOICE_VALUTA = null,
+            COA_BANK = null,
+            payment_valuta = null,
+            rates_original_inv = 0;
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method: 'POST',
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if (returnData.success) {
+                    Ext.getCmp('val_rate_text').setValue(returnData.rate);
+                }
+            }
+            , failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+
+    var totDebit = 0;
+    var totCredit = 0;
+
+    Ext.onReady(function() {
+
+        var bankData = '';
+        var coas = Ext.util.JSON.decode('<?= $this->coa ?>');
+        Ext.QuickTips.init();
+
+        Ext.apply(Ext.form.VTypes, {
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() {
+                    return this.numericRe.test(v)
+                };
+            }
+
+        });
+
+        var proxy = new Ext.data.HttpProxy({
+            url: 'asdf'
+        });
+
+        var paidliststore = new Ext.data.Store({
+            id: 'store-paidlist',
+            proxy: proxy,
+            reader: new Ext.data.JsonReader({
+                root: 'data'
+            }, [
+                {name: 'trano', type: 'String'},
+                {name: 'tgl', type: 'String'},
+                {name: 'username', type: 'String'},
+                {name: 'statusppn', type: 'String'},
+                {name: 'val_kode', type: 'String'},
+                {name: 'total', type: 'int'},
+                {name: 'tipe', type: 'String'}
+            ])
+
+        })
+
+        var itemlist = Ext.data.Record.create([
+            {
+                name: 'trano',
+                type: 'String'
+            }, {
+                name: 'val_kode',
+                type: 'String'
+            }, {
+                name: 'total',
+                type: 'float'
+            }, {
+                name: 'rec'
+            }
+        ]);
+
+        var itemstore = new Ext.data.Store({
+            id: 'store-item',
+            proxy: proxy,
+            reader: new Ext.data.JsonReader({
+//                root:'data',
+//                totalProperty:'total',
+                fields: itemlist
+            })
+        });
+
+
+        var paidlistgrid = new Ext.grid.GridPanel({
+            store: paidliststore,
+            id: 'paidlist-grid',
+            height: 124,
+            columns: [
+                new Ext.grid.RowNumberer(),
+                {
+                    header: 'Trano',
+                    dataIndex: 'trano',
+                    align: 'center',
+                    width: 120
+                }, {
+                    header: 'Date',
+                    dataIndex: 'tgl',
+                    align: 'center',
+                    width: 100
+                }, {
+                    header: 'User',
+                    dataIndex: 'username',
+                    align: 'center',
+                    width: 60
+                }, {
+                    header: 'PPN',
+                    dataIndex: 'statusppn',
+                    align: 'center',
+                    width: 40
+                }, {
+                    header: 'Valuta',
+                    dataIndex: 'val_kode',
+                    align: 'center',
+                    width: 80
+                }, {
+                    header: 'Total',
+                    dataIndex: 'total',
+                    align: 'center',
+                    width: 100,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0') : '';
+                    }
+                }]
+
+        });
+
+
+        var invoicelistpaid = Ext.data.Record.create([
+            {
+                name: 'trano'
+            },
+            {
+                name: 'tgl'
+            },
+            {
+                name: 'total'
+            },
+            {
+                name: 'totalIDR'
+            },
+            {
+                name: 'totalUSD'
+            },
+            {
+                name: 'uid'
+            }
+
+        ]);
+
+        var storeInvoicePaid = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({
+                fields: invoicelistpaid})
+        });
+
+        var editor = new Ext.ux.grid.RowEditor({
+            saveText: 'Update',
+            clicksToEdit: 1,
+            listeners: {
+                'canceledit': function(ed, close) {
+                    ed.record.cancelEdit();
+                },
+                'stopedit': function(ed, fields, rec) {
+                    if (rec.data['debit'] == 0 && rec.data['credit'] == 0)
+                    {
+                        Ext.each(fields, function(t, index) {
+                            if (t.id == 'credit' || t.id == 'debit')
+                            {
+                                t.markInvalid('Debit or Credit field must be greater than 0!');
+                            }
+                        });
+
+                        return false;
+                    }
+
+                },
+                'afteredit': function(ed, obj, rec, index) {
+                    var recs = store_jurnal.getAt(index);
+                    var coaKode = Ext.getCmp('coa-select').getValue();
+                    if (coaKode != '') {
+                        recs.data['coa_kode'] = coaKode;
+                        var coaNama = Ext.getCmp('coa-select').getNameValue();
+                        if (coaNama != '')
+                            recs.data['coa_nama'] = coaNama;
+                    }
+                    ed.record.commit();
+                    hitungTotal();
+//                    var total = parseFloat(recs.data['total']);
+//                    var totalPayment = parseFloat(recs.data['total_payment']);
+//
+//                    if (totalPayment > total)
+//                    {
+//                        Ext.Msg.alert('Error','Total Payment is greater than Total Voucher');
+//                        return false;
+//                    }
+//                    ed.record.commit(); //Commit changes into store
+//
+//                    var tot = 0;
+//                    store_payment.each(function(stores){
+//                        tot += parseFloat(stores.data['total_payment']);
+//                    });
+//
+//                    Ext.getCmp('pay-value').setValue(tot);
+
+                },
+                'filtercell': function(rowEditor, fields, record) {
+                    if (record.get('tipe') == 'AR')
+                    {
+                        Ext.each(fields, function(t, index) {
+                            if (t.id != 'debit' && t.id != 'credit')
+                            {
+                                t.disable();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        Ext.each(fields, function(t, index) {
+                            t.enable();
+                        });
+                    }
+                },
+                'canceledit' : function(roweditor, forced) {
+                    if (forced) {
+                        var record = store_jurnal.getAt(0);
+                        if (record.get('coa_kode') == '' || (record.get('debit') == 0 && record.get('credit') == 0)) {
+                            store_jurnal.remove(record);
+                            grid_jurnal.getView().refresh();
+                        }
+                    }
+                }
+            }
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions: [
+                {
+                    iconCls: 'icon-edit',
+                    qtip: 'Edit',
+                    id: 'edit',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        editor.startEditing(row, false);
+                    }
+                },
+                {
+                    iconCls: 'icon-delete',
+                    qtip: 'Delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        Ext.MessageBox.confirm('Confirm', 'This action will delete this item, Proceed?',
+                                function(btn)
+                                {
+                                    if (btn == 'yes')
+                                    {
+                                        if (record && record.get('tipe') != 'AR')
+                                        {
+                                            store_jurnal.remove(record);
+                                            grid_jurnal.getView().refresh();
+                                            hitungTotal();
+                                        }
+                                    }
+                                }
+                        );
+                    }
+                }
+            ]
+            , index: 'actions'
+            , header: ''
+        });
+
+        var record = new Ext.data.Record.create([
+            {name: 'coa_kode'},
+            {name: 'coa_nama'},
+            {name: 'memo'},
+            {name: 'debit'},
+            {name: 'credit'},
+            {name: 'val_kode'},
+            {name: 'rateidr'}
+        ])
+
+        var store_jurnal = new Ext.data.Store({
+            id: 'store-jurnal',
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: record
+            })
+        })
+
+        var grid_jurnal = new Ext.grid.GridPanel({
+            store: store_jurnal,
+            border: false,
+            frame: false,
+            height: 200,
+            id: 'grid-jurnal',
+            viewConfig: {
+                forceFit: true
+            },
+            plugins: [editor, rowactions],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+//            {
+//                header: '',
+//                renderer: function (v,p,r)
+//                {
+//                    return '<a href="#"><img src="/images/g_rec_upd.png"></a>';
+//                },
+//                width: 30
+//            },
+                {
+                    header: 'COA Code',
+                    dataIndex: 'coa_kode',
+                    sortable: true,
+                    editor: {
+                        xtype: 'coaselector',
+                        id: 'coa-select',
+                        Selectid: 'coa_kode_text',
+                        Nameid: 'coa_nama_text',
+                        showName: false,
+                        editorInstance: editor,
+                        SelectWidth: 100
+                    }
+                }, {
+                    header: 'COA Name',
+                    dataIndex: 'coa_nama',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'coa_nama_text',
+                        readOnly: true
+                    }
+                }
+                , {
+                    header: 'Memo',
+                    dataIndex: 'memo',
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'memo_text'
+                    }
+                }
+                , {
+                    header: 'Debit',
+                    dataIndex: 'debit',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right',
+                    editor: {
+                        xtype: 'numberfield',
+                        allowBlank: false,
+                        id: 'debit',
+                        minValue: 0,
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var debit = parseFloat(txttext.getValue().toString().replace(/\$|\,/g, ''));
+                                if (debit > 0)
+                                {
+                                    Ext.getCmp('credit').setValue(0);
+                                }
+                            }
+                        }
+                    }
+                }, {
+                    header: 'Credit',
+                    dataIndex: 'credit',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right',
+                    editor: {
+                        xtype: 'numberfield',
+                        allowBlank: false,
+                        id: 'credit',
+                        minValue: 0,
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var credit = parseFloat(txttext.getValue().toString().replace(/\$|\,/g, ''));
+                                if (credit > 0)
+                                {
+                                    Ext.getCmp('debit').setValue(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            ],
+            tbar: [
+                {
+                    iconCls: 'icon-add-new',
+                    text: 'Add New Journal',
+                    handler: function() {
+                        var e = new record({
+                            coa_kode: '',
+                            coa_nama: '',
+                            debit: 0,
+                            credit: 0,
+                            val_kode: 'IDR'
+                        });
+                        editor.stopEditing();
+                        store_jurnal.insert(0, e);
+                        grid_jurnal.getView().refresh();
+                        grid_jurnal.getSelectionModel().selectRow(0);
+                        editor.startEditing(0);
+                    }
+                }
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style: "text-align:right",
+                items: [{
+                        xtype: 'label',
+                        id: 'debittotal',
+                        style: 'color:red;font-weight:bold;margin-right:20px;font-size:12'
+                    },
+                    {
+                        xtype: 'label',
+                        id: 'credittotal',
+                        style: 'color:red;font-weight:bold;font-size:12;margin-right:10px'
+                    }],
+                layout: 'fit'
+            })
+        });
+
+        function cekCoaBank()
+        {
+            Ext.Ajax.request({
+                url: '/finance/coa/getcoabanktype',
+                method: 'POST',
+                params: {
+                    type: Ext.getCmp('trano-type').getValue()
+                },
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        COA_BANK = returnData.data.data;
+                        payment_valuta = returnData.data.valuta;
+                        Ext.getCmp('val_kode_text').setValue(payment_valuta);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+
+        function coaAR()
+        {
+            var total = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, ''));
+            var val_kode = Ext.getCmp('val_kode_text').getValue();
+            var rateidr = Ext.getCmp('val_rate_text').getOriginalValue();
+            var totalori = parseFloat(Ext.getCmp('payment-value-ori').getValue().toString().replace(/\$|\,/g, ''));
+//            var wht = Ext.getCmp('wht-value').getValue().toString().replace(/\$|\,/g,'');
+            var wht = 0, total_invoice = 0;
+
+            if (wht == '' || wht == undefined)
+            {
+                wht = 0;
+            }
+            else
+            {
+                wht = parseFloat(wht);
+            }
+
+            store_jurnal.removeAll();
+
+
+            if (total > 0)
+            {
+                if (val_kode == 'IDR')
+                {
+                    if (INVOICE_VALUTA != 'IDR') {
+                        var coa = coas.coaARUSD.coa_kode, coa2 = coas.coaARUSDEx.coa_kode,
+                                coanama = coas.coaARUSD.coa_nama, coa2nama = coas.coaARUSDEx.coa_nama;
+                    } else {
+                        var coa = coas.coaARIDR.coa_kode, coa2 = '',
+                                coanama = coas.coaARIDR.coa_nama, coa2nama = '';
+                    }
+                }
+                else
+                {
+                    var coa = coas.coaARUSD.coa_kode, coa2 = coas.coaARUSDEx.coa_kode,
+                            coanama = coas.coaARUSD.coa_nama, coa2nama = coas.coaARUSDEx.coa_nama;
+                }
+
+                var totalDeduct = 0, totalDeductExchange = 0, totalDeductUSD = 0;
+                if (storeDeduction.getCount() > 0)
+                {
+                    storeDeduction.each(function(item) {
+
+                        if (INVOICE_VALUTA != 'IDR' && INVOICE_VALUTA == val_kode)
+                        {
+                            tempTotal = (rateidr * parseFloat(item.get("total"))) - parseFloat(item.get("total"));
+                            var e = new record({
+                                coa_kode: item.get("coa_kode"),
+                                coa_nama: item.get("coa_nama"),
+                                debit: tempTotal,
+                                credit: 0,
+                                tipe: 'AR',
+                                memo: 'Deduction (Exchange)'
+                            });
+                            store_jurnal.insert(0, e);
+                            totalDeductExchange += tempTotal;
+                            totalDeductUSD += parseFloat(item.get("total"));
+                        }
+
+                        if (INVOICE_VALUTA != 'IDR' && INVOICE_VALUTA != val_kode) {
+                            var e = new record({
+                                coa_kode: item.get("coa_kode"),
+                                coa_nama: item.get("coa_nama"),
+                                debit: item.get("total"),
+                                credit: 0,
+                                tipe: 'AR',
+                                memo: 'Deduction'
+                            });
+                            store_jurnal.insert(0, e);
+                        } else
+                            var e = new record({
+                                coa_kode: item.get("coa_kode"),
+                                coa_nama: item.get("coa_nama"),
+                                debit: item.get("total"),
+                                credit: 0,
+                                tipe: 'AR',
+                                memo: 'Deduction'
+                            });
+                        store_jurnal.insert(0, e);
+
+                        totalDeduct += parseFloat(item.get("total"));
+                    });
+                }
+
+                var totalInvoiceIDR = 0,
+                        invNo = [];
+
+                itemstore.each(function(items) {
+                    var rec = items.get("rec");
+
+                    invNo.push(rec.data.trano);
+
+                });
+
+                if (val_kode == 'IDR')
+
+                {
+                    total_invoice = total;
+                    total_deduct = totalDeduct;
+                    if (INVOICE_VALUTA != 'IDR') {
+                        total_invoice = totalori;
+                    }
+
+
+                    Ext.each(COA_BANK, function(coaList) {
+
+                        var totalEx = total_invoice - total_deduct;
+                        if (coaList.coa_nama.toString().search('Exchange') > 0)
+                        {
+                            totalEx = ((total_invoice - total_deduct) * rateidr) - (total_invoice - total_deduct);//  - totalDeductExchange;
+                        }
+
+                        var e = new record({
+                            coa_kode: coaList.coa_kode,
+                            coa_nama: coaList.coa_nama,
+                            debit: totalEx,
+                            credit: 0,
+                            memo: 'Payment Invoice',
+                            tipe: 'AR'
+                        });
+                        store_jurnal.insert(0, e);
+                    });
+
+                }
+                else
+                {
+                    totalInvoiceIDR += ((total) * rates_original_inv);
+                    Ext.each(COA_BANK, function(coaList) {
+
+                        var totalEx = total - totalDeduct;
+                        if (coaList.coa_nama.toString().search('Exchange') > 0)
+                        {
+                            totalEx = ((total - totalDeduct) * rateidr) - (total - totalDeduct);//  - totalDeductExchange;
+                        }
+
+                        var e = new record({
+                            coa_kode: coaList.coa_kode,
+                            coa_nama: coaList.coa_nama,
+                            debit: totalEx,
+                            credit: 0,
+                            memo: 'Payment Invoice',
+                            tipe: 'AR'
+                        });
+                        store_jurnal.insert(0, e);
+                    });
+                }
+
+
+                if (INVOICE_VALUTA != 'IDR' && val_kode != INVOICE_VALUTA)
+                {
+                    var e = new record({
+                        coa_kode: coa,
+                        coa_nama: coanama,
+                        debit: 0,
+                        credit: total,
+                        memo: 'Payment Invoice for ' + invNo.join(),
+                        tipe: 'AR',
+                        rateidr: rates_original_inv
+                    });
+                    store_jurnal.insert(0, e);
+                }
+                else {
+                    var e = new record({
+                        coa_kode: coa,
+                        coa_nama: coanama,
+                        debit: 0,
+                        credit: total,
+                        memo: 'Payment Invoice for ' + invNo.join(),
+                        tipe: 'AR',
+                        rateidr: (val_kode == 'IDR' ? 0 : rates_original_inv)
+                    });
+                    store_jurnal.insert(0, e);
+                }
+//                }
+
+                if (coa2 != '')
+                {
+                    if (INVOICE_VALUTA != 'IDR' && val_kode != INVOICE_VALUTA)
+                    {
+                        var e = new record({
+                            coa_kode: coa2,
+                            coa_nama: coa2nama,
+                            debit: 0,
+                            credit: (total * rates_original_inv) - total,
+                            memo: 'Payment Invoice for ' + invNo.join(),
+                            tipe: 'AR',
+                            rateidr: rates_original_inv
+
+                        });
+                    } else
+                        var e = new record({
+                            coa_kode: coa2,
+                            coa_nama: coa2nama,
+                            debit: 0,
+                            credit: (total * rates_original_inv) - total,
+                            memo: 'Payment Invoice for ' + invNo.join(),
+                            tipe: 'AR',
+                            rateidr: rates_original_inv
+                        });
+                    store_jurnal.insert(0, e);
+                }
+
+                if (val_kode != 'IDR')
+                {
+
+                    var selisih = (totalInvoiceIDR) - ((total) * rateidr);
+                    if (moneycomp(selisih, "<", 0)) //Gain / Untung dari exchange, posisi coa Gain di kredit
+                    {
+                        selisih = -1 * selisih;
+                        var e = new record({
+                            coa_kode: coas.coaGainLoss.coa_kode,
+                            coa_nama: coas.coaGainLoss.coa_nama,
+                            debit: 0,
+                            credit: selisih,
+                            tipe: 'AR',
+                            memo: 'Gain from Exchange Rate ' + invNo.join()
+                        });
+                        store_jurnal.insert(0, e);
+
+//                        Ext.each(COA_BANK, function(coaList) {
+//                            if (coaList.coa_nama.toString().search('Exchange') > 0)
+//                            {
+//                                var e = new record({
+//                                    coa_kode: coa2,
+//                                    coa_nama: coa2nama,
+//                                    credit: 0,
+//                                    debit: selisih,
+//                                    tipe: 'AR',
+//                                    memo: 'Gain from Exchange Rate ' + invNo.join()
+//                                });
+//                                store_jurnal.insert(0, e);
+//                            }
+//                        });
+                    } else if (moneycomp(selisih, ">", 0)) { //Loss / rugi dari exchange, posisi coa Gain di debit
+                        var e = new record({
+                            coa_kode: coas.coaGainLoss.coa_kode,
+                            coa_nama: coas.coaGainLoss.coa_nama,
+                            credit: 0,
+                            debit: selisih,
+                            tipe: 'AR',
+                            memo: 'Loss from Exchange Rate ' + invNo.join()
+                        });
+                        store_jurnal.insert(0, e);
+
+//                        Ext.each(COA_BANK, function(coaList) {
+//                            if (coaList.coa_nama.toString().search('Exchange') > 0)
+//                            {
+//                                var e = new record({
+//                                    coa_kode: coaList.coa_kode,
+//                                    coa_nama: coaList.coa_nama,
+//                                    debit: 0,
+//                                    credit: selisih,
+//                                    tipe: 'AR',
+//                                    memo: 'Loss from Exchange Rate ' + invNo.join()
+//                                });
+//                                store_jurnal.insert(0, e);
+//                            }
+//                        });
+                    }
+                }
+                if (INVOICE_VALUTA != 'IDR' && val_kode != INVOICE_VALUTA)
+                {
+                    totaloriIDR = 0;
+                    totaloriIDR = totalori;
+                    var selisih = (totaloriIDR) - (total * rates_original_inv);
+                    if (moneycomp(selisih, "<", 0)) //Gain / Untung dari exchange, posisi coa Gain di kredit
+                    {
+                        selisih = -1 * selisih;
+                        var e = new record({
+                            coa_kode: coas.coaGainLoss.coa_kode,
+                            coa_nama: coas.coaGainLoss.coa_nama,
+                            credit: 0,
+                            debit: selisih,
+                            tipe: 'AR',
+                            memo: 'Gain from Exchange Rate ' + invNo.join()
+                        });
+                        store_jurnal.insert(0, e);
+                    } else if (moneycomp(selisih, ">", 0)) { //Loss / rugi dari exchange, posisi coa Gain di debit
+
+                        var e = new record({
+                            coa_kode: coas.coaGainLoss.coa_kode,
+                            coa_nama: coas.coaGainLoss.coa_nama,
+                            debit: 0,
+                            credit: selisih,
+                            tipe: 'AR',
+                            memo: 'Loss from Exchange Rate ' + invNo.join()
+                        });
+                        store_jurnal.insert(0, e);
+
+                    }
+                }
+
+                grid_jurnal.getView().refresh();
+                hitungTotal();
+            }
+            else
+            {
+                store_jurnal.removeAll();
+            }
+        }
+
+        var deductionList = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'total', type: 'float'},
+            {name: 'ket', type: 'string'},
+            {name: 'coa_kode', type: 'string'},
+            {name: 'coa_nama', type: 'string'},
+        ]);
+
+        var storeDeduction = new Ext.data.Store({
+            id: 'store-deduction-before',
+            reader: new Ext.data.JsonReader({fields: deductionList})
+        });
+
+        var summary = new Ext.ux.grid.GridSummary();
+
+        var rowactionsDeduct = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        grid.getStore().remove(rec);
+                                        coaAR();
+                                    }
+                                }
+                        );
+
+                    }
+                }
+            ],
+            header: '',
+            width: 30
+        });
+
+        function addDeduction(val, coas)
+        {
+
+            var total = parseFloat(val);
+
+            if (total <= 0)
+            {
+                return false;
+            }
+
+            var e = new deductionList({
+                id: storeDeduction.getTotalCount() + 1,
+                total: total,
+                coa_kode: coas.coa_kode,
+                coa_nama: coas.coa_nama,
+            });
+
+            storeDeduction.add(e);
+
+//        hitungtotal();
+            coaAR();
+
+            Ext.getCmp('deduction').setValue('');
+            Ext.getCmp('coa_kode_deduct').setValue('');
+            Ext.getCmp('coa_nama_deduct').setValue('');
+
+        }
+
+        var deductionGrid = new Ext.grid.GridPanel({
+            id: 'deduction-before-grid',
+            store: storeDeduction,
+            height: 100,
+            plugins: [summary, rowactionsDeduct],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactionsDeduct,
+                {
+                    header: 'Description',
+                    width: 100,
+                    dataIndex: 'coa_kode',
+                    renderer: function(v, p, r) {
+                        return v + "<br>" + r.get("coa_nama");
+                    },
+                    sortable: true
+                }, {
+                    header: 'Total Deduction',
+                    dataIndex: 'total',
+                    width: 180,
+                    align: 'right',
+                    sortable: true,
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,000.00') : '';
+                    }
+                }
+            ],
+            getSummary: function()
+            {
+                var total = 0;
+                this.getStore().each(function(item) {
+                    total += parseFloat(item.get("total"));
+                });
+
+                return total;
+            },
+            getData: function()
+            {
+                var obj = [];
+                this.getStore().each(function(item) {
+                    obj.push(item.data);
+                });
+
+                return obj;
+            }
+        });
+
+        function cekValuta(val_kode)
+        {
+            var valid = true;
+            itemstore.each(function(i) {
+                if (i.get("val_kode") != val_kode)
+                {
+                    Ext.Msg.alert('Error', 'Currency is different, current Currency : ' + i.get("val_kode"));
+                    valid = false;
+                    return false;
+                }
+            });
+
+            return valid;
+        }
+
+        function hitungGrandTotal()
+        {
+            var total = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, '')),
+//                wht = Ext.getCmp('wht-value').getValue().toString().replace(/\$|\,/g,'');
+                    wht = 0;
+
+            if (wht == '' || wht == undefined)
+                wht = 0;
+            else
+                wht = parseFloat(wht);
+
+            Ext.getCmp('g-total').setValue((total - wht));
+            InvoiceBalance(false);
+            coaAR();
+
+        }
+
+        var setRounded = function(debit, credit)
+        {
+            var totDebit = new BigDecimal(debit.toString()).setScale(2, BigDecimal.prototype.ROUND_DOWN);
+            var totCredit = new BigDecimal(credit.toString()).setScale(2, BigDecimal.prototype.ROUND_DOWN);
+
+            if (moneycomp(totDebit, '==', totCredit, 2) === false)
+            {
+                totDebit = new BigDecimal(debit.toString()).setScale(2, BigDecimal.prototype.ROUND_CEILING);
+                totCredit = new BigDecimal(credit.toString()).setScale(2, BigDecimal.prototype.ROUND_CEILING);
+
+                if (moneycomp(totDebit, '==', totCredit, 2) === false)
+                {
+                    totDebit = new BigDecimal(debit.toString()).setScale(2, BigDecimal.prototype.ROUND_UP);
+                    totCredit = new BigDecimal(credit.toString()).setScale(2, BigDecimal.prototype.ROUND_UP);
+
+                    return {
+                        debit: totDebit,
+                        credit: totCredit
+                    };
+                }
+                else
+                    return {
+                        debit: totDebit,
+                        credit: totCredit
+                    };
+            }
+            else
+                return {
+                    debit: totDebit,
+                    credit: totCredit
+                };
+        };
+
+        function hitungTotal(cekBalance)
+        {
+            totDebit = 0;
+            totCredit = 0;
+
+            store_jurnal.each(function(items) {
+                totDebit += (parseFloat(items.data['debit']));
+                totCredit += (parseFloat(items.data['credit']));
+
+            });
+
+            if (cekBalance != undefined && cekBalance !== false)
+            {
+                var tots = setRounded(totDebit, totCredit);
+                return moneycomp(tots.debit, '==', tots.credit, 2);
+            }
+
+            Ext.getCmp('debittotal').setText('Total Debit : ' + Ext.util.Format.number(totDebit, '0,0.00'));
+            Ext.getCmp('credittotal').setText('Total Credit : ' + Ext.util.Format.number(totCredit, '0,0.00'));
+        }
+
+        function InvoiceBalance(updatePaymentValue)
+        {
+            if (updatePaymentValue == undefined)
+                updatePaymentValue = true;
+
+            var invoiceval = parseFloat(Ext.getCmp('total-value').getValue().toString().replace(/\$|\,/g, ''));
+            var invoicepaid = parseFloat(Ext.getCmp('invoice-paid').getValue().toString().replace(/\$|\,/g, ''));
+            var payment = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, ''));
+//            var balance = invoiceval - invoicepaid - payment;
+
+            var totalDeduct = 0;
+            storeDeduction.each(function(de) {
+                totalDeduct += de.get("total");
+            });
+
+            var balance = invoiceval - invoicepaid;
+            Ext.getCmp('invoice-balance').setValue(balance.toFixed(3));
+            Ext.getCmp('g-total').setValue(balance - totalDeduct);
+
+            if (updatePaymentValue)
+                Ext.getCmp('payment-value').setValue(balance.toFixed(3));
+        }
+
+
+        function clearPaymentForm()
+        {
+            Ext.getCmp('invoice-value').setValue('');
+            Ext.getCmp('deduction-before-value').setValue('');
+            Ext.getCmp('deduction-after-value').setValue('');
+            Ext.getCmp('ppn-value').setValue('');
+            Ext.getCmp('total-value').setValue('');
+            Ext.getCmp('IDR-value').setValue('');
+            Ext.getCmp('payment-value').setValue('');
+            Ext.getCmp('g-total').setValue('');
+            Ext.getCmp('IDR-paid').setValue('');
+            Ext.getCmp('IDR-balance').setValue('');
+            Ext.getCmp('invoice-paid').setValue('');
+        }
+
+        function clearValueForm()
+        {
+            Ext.getCmp('trans-date').setValue('');
+            Ext.getCmp('prj_kode').setValue('');
+            Ext.getCmp('prj_nama').setValue('');
+            Ext.getCmp('sit_kode').setValue('');
+            Ext.getCmp('sit_nama').setValue('');
+            Ext.getCmp('cus_kode').setValue('');
+            Ext.getCmp('cus_nama').setValue('');
+            Ext.getCmp('paymentterm').setValue('');
+            Ext.getCmp('top').setValue('');
+            Ext.getCmp('valuta').setValue('');
+            Ext.getCmp('invoice-number').setValue('');
+        }
+
+        function hitungPaymentInvoice()
+        {
+            var total = total_deduction_after = total_deduction_before = total_invoice = total_ppn = 0,
+                    total_paid = 0;
+            itemstore.each(function(i) {
+                var rec = i.get("rec");
+
+                total += parseFloat(rec.data.total);
+                total_deduction_after += parseFloat(rec.data.total_deduction_after);
+                total_deduction_before += parseFloat(rec.data.total_deduction_before);
+                total_invoice += parseFloat(rec.data.total_invoice);
+                total_ppn += parseFloat(rec.data.total_ppn);
+
+                total_paid += parseFloat(rec.sumpaidlist);
+                if (INVOICE_VALUTA == null)
+                {
+                    Ext.getCmp('IDR-value').setValue(rec.data.val_kode);
+                    Ext.getCmp('IDR-paid').setValue(rec.data.val_kode);
+                    Ext.getCmp('IDR-balance').setValue(rec.data.val_kode);
+
+                    INVOICE_VALUTA = rec.data.val_kode;
+                }
+            });
+
+
+            Ext.getCmp('invoice-value').setValue(Ext.util.Format.round(total, 2));
+            Ext.getCmp('deduction-before-value').setValue(Ext.util.Format.round(total_deduction_before, 2));
+            Ext.getCmp('deduction-after-value').setValue(Ext.util.Format.round(total_deduction_after, 2));
+            Ext.getCmp('ppn-value').setValue(Ext.util.Format.round(total_ppn, 2));
+            Ext.getCmp('total-value').setValue(Ext.util.Format.round(total_invoice, 2));
+            Ext.getCmp('payment-value').setValue(Ext.util.Format.round(total_invoice, 2));
+            Ext.getCmp('g-total').setValue(Ext.util.Format.round(total_invoice, 2));
+//                Ext.getCmp('invoice-tax').setValue('');
+            Ext.getCmp('invoice-paid').setValue(Ext.util.Format.round(total_paid, 2));
+//
+            Ext.getCmp('val_kode_text').setValue(INVOICE_VALUTA);
+            InvoiceBalance();
+            Ext.getCmp('currency-select').setRate(INVOICE_VALUTA, coaAR);
+
+        }
+
+        function SetValueForm(trano)
+        {
+            Ext.Ajax.request({
+                url: '/finance/invoice/getformpayinvoice/trano/' + trano,
+                method: 'POST',
+                success: function(result, request)
+                {
+                    var returndata = Ext.util.JSON.decode(result.responseText);
+                    Ext.getCmp('trans-date').setValue(returndata.data.tgl);
+                    Ext.getCmp('prj_kode').setValue(returndata.data.prj_kode);
+                    Ext.getCmp('prj_nama').setValue(returndata.data.prj_nama);
+                    Ext.getCmp('sit_kode').setValue(returndata.data.sit_kode);
+                    Ext.getCmp('sit_nama').setValue(returndata.data.sit_nama);
+                    Ext.getCmp('cus_kode').setValue(returndata.data.cus_kode);
+                    Ext.getCmp('cus_nama').setValue(returndata.data.cus_nama);
+                    Ext.getCmp('valuta').setValue(returndata.data.val_kode);
+                    Ext.getCmp('paymentterm').setValue(returndata.data.paymentterm);
+                    Ext.getCmp('top').setValue(returndata.data.top);
+                    rates_original_inv = returndata.data.rateidr;
+
+                    INVOICE_LIST = returndata;
+
+//                    Ext.getCmp('invoice-value').setValue(returndata.data.total);
+//                    Ext.getCmp('deduction-before-value').setValue(returndata.data.total_deduction_before);
+//                    Ext.getCmp('deduction-after-value').setValue(returndata.data.total_deduction_after);
+//                    Ext.getCmp('ppn-value').setValue(returndata.data.total_ppn);
+//                    Ext.getCmp('total-value').setValue(returndata.data.total_invoice);
+//                    Ext.getCmp('IDR-value').setValue(returndata.data.val_kode);
+//                    Ext.getCmp('payment-value').setValue(returndata.data.total);
+//                    Ext.getCmp('g-total').setValue(returndata.data.total);
+//    //                Ext.getCmp('invoice-tax').setValue('');
+//                    Ext.getCmp('IDR-paid').setValue(returndata.data.val_kode);
+//                    Ext.getCmp('IDR-balance').setValue(returndata.data.val_kode);
+//                    Ext.getCmp('invoice-paid').setValue(returndata.sumpaidlist);
+//
+//                    Ext.getCmp('option-paymentvaluta').setValue(returndata.data.val_kode);
+//                    Ext.getCmp('option-paymentvaluta').setRawValue(returndata.data.val_kode);
+//
+//                    if (parseFloat(returndata.sumpaidlist) > 0)
+//                    {
+//                        Ext.getCmp('paid-list').expand();
+//                    }
+//                    else
+//                    {
+//                        Ext.getCmp('paid-list').collapse();
+//                    }
+//
+//                    bankData = {
+//                        bnk_kode: returndata.data.bnk_kode,
+//                        bnk_nama: returndata.data.bnk_nama,
+//                        bnk_cabang: returndata.data.bnk_cabang,
+//                        bnk_norek: returndata.data.bnk_norek,
+//                        bnk_noreknama: returndata.data.bnk_noreknama,
+//                        bnk_alamat: returndata.data.bnk_alamat,
+//                        bnk_kota: returndata.data.bnk_kota,
+//                        coa_kode: returndata.data.coa_kode,
+//                        coa_nama: returndata.data.coa_nama,
+//                        paymentterm: returndata.data.paymentterm
+//                    };
+//                    InvoiceBalance();
+//                    coaAR();
+                },
+                failure: function(action)
+                {
+                    if (action.failureType == 'server')
+                    {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert(('Error!'), obj.errors.reason);
+                    }
+                }
+            })
+        }
+
+        function SetPaymentForm()
+        {
+            Ext.Ajax.request({
+                url: '/finance/invoice/getformpayinvoice/trano/' + trano,
+                method: 'POST',
+                success: function(result, request)
+                {
+                    var returndata = Ext.util.JSON.decode(result.responseText);
+                    Ext.getCmp('trans-date').setValue(returndata.data.tgl);
+                    Ext.getCmp('prj_kode').setValue(returndata.data.prj_kode);
+                    Ext.getCmp('prj_nama').setValue(returndata.data.prj_nama);
+                    Ext.getCmp('sit_kode').setValue(returndata.data.sit_kode);
+                    Ext.getCmp('sit_nama').setValue(returndata.data.sit_nama);
+                    Ext.getCmp('cus_kode').setValue(returndata.data.cus_kode);
+                    Ext.getCmp('cus_nama').setValue(returndata.data.cus_nama);
+                    Ext.getCmp('paymentterm').setValue(returndata.data.paymentterm);
+                    Ext.getCmp('top').setValue(returndata.data.top);
+                    Ext.getCmp('invoice-value').setValue(returndata.data.total);
+                    Ext.getCmp('deduction-before-value').setValue(returndata.data.total_deduction_before);
+                    Ext.getCmp('deduction-after-value').setValue(returndata.data.total_deduction_after);
+                    Ext.getCmp('ppn-value').setValue(returndata.data.total_ppn);
+                    Ext.getCmp('total-value').setValue(returndata.data.total_invoice);
+                    Ext.getCmp('IDR-value').setValue(returndata.data.val_kode);
+                    Ext.getCmp('payment-value').setValue(returndata.data.total_invoice);
+                    Ext.getCmp('g-total').setValue(returndata.data.total);
+                    //                Ext.getCmp('invoice-tax').setValue('');
+                    Ext.getCmp('IDR-paid').setValue(returndata.data.val_kode);
+                    Ext.getCmp('IDR-balance').setValue(returndata.data.val_kode);
+                    Ext.getCmp('invoice-paid').setValue(returndata.sumpaidlist);
+
+//                    Ext.getCmp('option-paymentvaluta').setValue(returndata.data.val_kode);
+                    Ext.getCmp('val_kode_text').setValue(INVOICE_VALUTA);
+//                    Ext.getCmp('option-paymentvaluta').setRawValue(returndata.data.val_kode);
+
+                    if (parseFloat(returndata.sumpaidlist) > 0)
+                    {
+                        Ext.getCmp('paid-list').expand();
+                    }
+                    else
+                    {
+                        Ext.getCmp('paid-list').collapse();
+                    }
+
+                    bankData = {
+                        bnk_kode: returndata.data.bnk_kode,
+                        bnk_nama: returndata.data.bnk_nama,
+                        bnk_cabang: returndata.data.bnk_cabang,
+                        bnk_norek: returndata.data.bnk_norek,
+                        bnk_noreknama: returndata.data.bnk_noreknama,
+                        bnk_alamat: returndata.data.bnk_alamat,
+                        bnk_kota: returndata.data.bnk_kota,
+                        coa_kode: returndata.data.coa_kode,
+                        coa_nama: returndata.data.coa_nama,
+                        paymentterm: returndata.data.paymentterm
+                    };
+                    InvoiceBalance();
+                    coaAR();
+                },
+                failure: function(action)
+                {
+                    if (action.failureType == 'server')
+                    {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert(('Error!'), obj.errors.reason);
+                    }
+                }
+            })
+        }
+
+        function showInvoiceList()
+        {
+            var combodata = [
+                ['Trano', 'trano'],
+                ['Project kode', 'prj_kode'],
+                ['Project name', 'prj_nama'],
+                ['Customer kode', 'cus_kode'],
+                ['Site kode', 'sit_kode'],
+                ['Site name', 'sit_nama']
+            ];
+
+            var combostore = new Ext.data.ArrayStore({
+                fields: ['a', 'b'],
+                data: combodata
+            });
+            var combo = new Ext.form.ComboBox({
+                store: combostore,
+                displayField: 'a',
+                valueField: 'b',
+                typeAhead: true,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                name: 'option',
+                width: 100,
+                style: 'margin-left: 5px',
+                value: 'trano',
+                id: 'option',
+                forceSelection: true,
+                editable: false
+
+            });
+
+            var storeinvoiceH = new Ext.data.Store({
+                id: 'storeinvoiceh',
+                url: '/finance/invoice/getinvoice',
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [
+                        {
+                            name: 'trano', type: 'String'
+                        }, {
+                            name: 'val_kode', type: 'String'
+                        }, {
+                            name: 'cus_kode', type: 'String'
+                        }, {
+                            name: 'prj_kode', type: 'String'
+                        }, {
+                            name: 'prj_nama', type: 'String'
+                        }, {
+                            name: 'sit_kode', type: 'String'
+                        }, {
+                            name: 'sit_nama', type: 'String'
+                        }
+                    ]
+                })
+
+
+            })
+
+            var invoiceGrid = new Ext.grid.GridPanel({
+                store: storeinvoiceH,
+                height: 300,
+                listeners: {
+                    'rowdblclick': function(gridaktif, rowIndex, e)
+                    {
+                        isDbClick = true;
+                        var invoice = gridaktif.getStore().getAt(rowIndex);
+                        var trano = invoice.get('trano');
+                        Ext.getCmp('invoice-number').setValue(trano);
+                        SetValueForm(trano);
+
+//                    itemstore.proxy.setUrl('/finance/invoice/getviewinvoiceitemlist/trano/' + trano);
+//                    itemstore.reload();
+//                    Ext.getCmp('grid-item').getView().refresh();
+//
+//                    paidliststore.proxy.setUrl('/finance/invoice/getpaidlist/trano/' + trano);
+//                    paidliststore.reload();
+//                    Ext.getCmp('paidlist-grid').getView().refresh();
+
+                        invoiceshow.close();
+                    }
+                },
+                columns: [
+                    new Ext.grid.RowNumberer(),
+                    {
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Customer Code',
+                        dataIndex: 'cus_kode',
+                        sortable: true,
+                        width: 80,
+                        align: 'center'
+                    }, {
+                        header: 'Valuta',
+                        dataIndex: 'val_kode',
+                        sortable: true,
+                        width: 80,
+                        align: 'center'
+                    }, {
+                        header: 'Project Code',
+                        dataIndex: 'prj_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Project Name',
+                        dataIndex: 'prj_nama',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Site Code',
+                        dataIndex: 'sit_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Site Name',
+                        dataIndex: 'sit_nama',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }
+                ], tbar: [
+                    {
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, combo, {
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left:10px',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option').getValue();
+                                    var search = Ext.getCmp('search').getValue();
+
+                                    storeinvoiceH.proxy.setUrl('/finance/invoice/getinvoice/search/' + search + '/option/' + option);
+                                    storeinvoiceH.reload();
+                                    invoiceGrid.getView().refresh();
+                                }
+                            }
+                        }
+                    }
+                ], bbar: new Ext.PagingToolbar({
+                    id: 'paging',
+                    pageSize: 50,
+                    store: storeinvoiceH,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+
+
+
+            })
+
+            var invoiceshow = new Ext.Window({
+                title: 'Choose Invoice',
+                id: 'choose-invoice',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask: true,
+                items: [
+                    invoiceGrid
+                ]
+            })
+
+            invoiceshow.show();
+        }
+
+        function showInvoicePaid()
+        {
+            var columns = [new Ext.grid.RowNumberer(),
+                {header: 'Invoice No.', width: 120, sortable: true, dataIndex: 'trano'},
+                {header: 'Date', width: 100, sortable: true, dataIndex: 'tgl'},
+                {header: 'Total', width: 100, sortable: true, dataIndex: 'total',
+                    renderer: function(v, p, record) {
+                        return Ext.util.Format.number((parseFloat(v)), '0,0');
+                    }
+                },
+                {header: 'User ID', width: 100, sortable: true, dataIndex: 'uid'}
+            ];
+
+            var bForm = new Ext.Window({
+                id: 'b-form-panel',
+                layout: 'fit',
+                width: 450,
+                height: 300,
+                title: 'Payment Invoice History',
+                stateful: false,
+                modal: true,
+                resizable: false,
+                items: [
+                    new Ext.form.FormPanel({
+                        frame: true,
+                        layout: 'fit',
+                        items: [
+                            new Ext.grid.GridPanel({
+                                store: storeInvoicePaid,
+                                columns: columns,
+                                id: 'inv-history-grid',
+                                loadMask: true,
+                                view: new Ext.grid.GridView({
+                                    forceFit: true
+                                })
+                            })
+                        ]
+                    })
+                ],
+                buttons: [
+                    {
+                        text: 'OK',
+                        id: 'cancel',
+                        handler: function(btn, ev) {
+                            bForm.close();
+                        }
+
+                    }
+
+                ]
+            });
+
+            bForm.show();
+
+        }
+
+        var paymenttypedata = [
+            ['CASH', 'CASH'],
+            ['CHEQUE', 'CHEQUE'],
+            ['GIRO', 'GIRO'],
+            ['TRANSFER', 'TRANSFER']
+        ];
+
+        var paymenttypestore = new Ext.data.ArrayStore({
+            fields: ['a', 'b'],
+            data: paymenttypedata
+        });
+        var paymenttypecombo = new Ext.form.ComboBox({
+            store: paymenttypestore,
+            displayField: 'a',
+            valueField: 'b',
+            typeAhead: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus: true,
+            name: 'option',
+            width: 93,
+//            style: 'margin-left: 5px',
+            id: 'option-paymenttype',
+            fieldLabel: 'Payment Type',
+            emptyText: 'Select a type ...',
+            allowBlank: false,
+            forceSelection: true,
+            editable: false
+        });
+
+        var paymentvalutacombo = new Ext.form.ComboBox({
+            store: new Ext.data.ArrayStore({
+                fields: ['a', 'b'],
+                data: [
+                    ['IDR', 'IDR'],
+                    ['USD', 'USD'],
+                ]
+            }),
+            displayField: 'a',
+            valueField: 'b',
+            typeAhead: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus: true,
+            name: 'option-valuta',
+            width: 65,
+            id: 'option-paymentvaluta',
+            hideLabel: true,
+            emptyText: 'Select a type ...',
+            allowBlank: false,
+            forceSelection: true,
+            editable: false,
+            listeners: {
+                select: {fn:
+                            function(c, row, index)
+                            {
+                                if (row.get("a") != INVOICE_VALUTA) {
+                                    Ext.getCmp('payment_ori').enable();
+                                    coaAR();
+                                } else {
+                                    Ext.getCmp('payment_ori').disable();
+                                    Ext.getCmp('payment-value-ori').setValue(0);
+
+                                }
+                            }
+                }
+            }
+        });
+
+        var itemgrid = new Ext.grid.GridPanel({
+            id: 'grid-item',
+            store: itemstore,
+            height: 220,
+            columns: [
+                new Ext.grid.RowNumberer(),
+                {
+                    header: 'Inovice No',
+                    dataIndex: 'trano',
+                    align: 'center'
+                },
+                {
+                    header: 'Valuta',
+                    dataIndex: 'val_kode',
+                    align: 'center'
+                }, {
+                    header: 'Total',
+                    dataIndex: 'total',
+                    align: 'right',
+                    renderer: function(v, p, record) {
+                        return Ext.util.Format.number((parseFloat(v)), '0,0');
+                    }
+                }
+            ]
+
+        })
+
+        var invoice_payment = new Ext.form.FieldSet({
+            title: 'Payment Invoice',
+            labelWidth: 120,
+            labelAlign: 'left',
+            id: 'fieldset-2',
+            items: [
+//                    new Ext.FormPanel ({
+                {
+                    id: 'invoice-payment',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    style: 'padding: 10px;margin-right: 15px;margin-left:10px,margintop:10px;',
+                                    items: [
+                                        {
+                                            columnWidth: 0.5,
+                                            items: [
+                                                {
+                                                    layout: 'column',
+                                                    items: [
+                                                        {
+                                                            columnWidth: 0.8,
+                                                            layout: 'form',
+                                                            items: [
+                                                                new Ext.ux.customRendererField({
+                                                                    priceDelemiter: ',',
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Invoice Value',
+                                                                    anchor: '98%',
+                                                                    id: 'invoice-value',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }),
+                                                                new Ext.ux.customRendererField({
+                                                                    priceDelemiter: ',',
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Total Deduction Before VAT',
+                                                                    anchor: '98%',
+                                                                    id: 'deduction-before-value',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }),
+                                                                new Ext.ux.customRendererField({
+                                                                    priceDelemiter: ',',
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'VAT 10%',
+                                                                    anchor: '98%',
+                                                                    id: 'ppn-value',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }),
+                                                                new Ext.ux.customRendererField({
+                                                                    priceDelemiter: ',',
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Total Deduction After VAT',
+                                                                    anchor: '98%',
+                                                                    id: 'deduction-after-value',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }),
+                                                                new Ext.ux.customRendererField({
+                                                                    priceDelemiter: ',',
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Total Invoice',
+                                                                    anchor: '98%',
+                                                                    id: 'total-value',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                })
+                                                            ]
+                                                        }, {
+                                                            columnWidth: 0.2,
+                                                            layout: 'form',
+                                                            items: [
+                                                                {
+                                                                    xtype: 'textfield',
+                                                                    anchor: '50%',
+                                                                    id: 'IDR-value',
+                                                                    hideLabel: true,
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }, {
+                                                                    xtype: 'textfield',
+                                                                    anchor: '50%',
+                                                                    id: 'IDR-paid',
+                                                                    hideLabel: true,
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+
+                                                },
+                                                {
+                                                    layout: 'column',
+                                                    items: [{
+                                                            layout: 'form',
+                                                            columnWidth: 0.8,
+                                                            items: [
+                                                                new Ext.ux.customRendererField({
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Invoice Already Paid',
+                                                                    id: 'invoice-paid',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;',
+                                                                    priceDelemiter: ',',
+                                                                    anchor: '98%'
+                                                                })
+                                                            ]},
+                                                        {
+                                                            layout: 'form',
+                                                            columnWidth: 0.2,
+                                                            items: [{
+                                                                    xtype: 'button',
+                                                                    cls: "x-btn-icon",
+                                                                    icon: "/images/icons/fam/information.png",
+                                                                    handler: function()
+                                                                    {
+                                                                        showInvoicePaid();
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+
+                                                    ]},
+//                                                    {
+//                                                        xtype:'fieldset',
+//                                                        title:'Invoice Paid List',
+//                                                        id: 'paid-list',
+//                                                        width:350,
+//                                                        checkboxToggle:true,
+//                                                        collapsed:true,
+//                                                        items:[paidlistgrid]
+//                                                    },
+                                                {
+                                                    layout: 'column',
+                                                    items: [
+                                                        {
+                                                            columnWidth: 0.8,
+                                                            layout: 'form',
+                                                            items: [
+                                                                new Ext.ux.customRendererField({
+                                                                    xtype: 'textfield',
+                                                                    fieldLabel: 'Invoice Balance',
+                                                                    anchor: '98%',
+                                                                    id: 'invoice-balance',
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: red;',
+                                                                    priceDelemiter: ','
+                                                                })
+                                                            ]
+                                                        }, {
+                                                            columnWidth: 0.2,
+                                                            layout: 'form',
+                                                            items: [
+                                                                {
+                                                                    xtype: 'textfield',
+                                                                    anchor: '50%',
+                                                                    id: 'IDR-balance',
+                                                                    hideLabel: true,
+                                                                    disabled: true,
+                                                                    style: 'text-align:right;font-weight: bold;color: black;'
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                                , {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    labelWidth: 120,
+                                    items: [
+//                                        {
+//                                            layout: 'column',
+//                                            items: [
+//                                                {
+//                                                    columnWidth: 0.5,
+//                                                    layout: 'form',
+//                                                    items: [
+//                                                        new Ext.ux.customRendererField({
+//                                                            xtype: 'textfield',
+//                                                            fieldLabel: 'Exchange Rate',
+//                                                            anchor: '98%',
+//                                                            id: 'rate_text',
+//                                                            value: getExchangeRate(),
+//                                                            priceDelemiter: ',',
+//                                                            style: 'text-align:right',
+//                                                            enableKeyEvents: true,
+//                                                            listeners: {
+//                                                                'customblur': function(text, e) {
+//                                                                    hitungGrandTotal();
+//                                                                }
+//                                                            }
+//                                                        })
+//                                                    ]
+//                                                }, {
+//                                                    columnWidth: 0.5,
+//                                                    layout: 'form',
+//                                                    items: [
+//                                                        {
+//                                                            xtype: 'textfield',
+//                                                            hideLabel: true,
+//                                                            anchor: '22%',
+//                                                            value: 'IDR',
+//                                                            disabled: true,
+//                                                            style: 'text-align:right;font-weight: bold;color: black;'
+//                                                        }
+//                                                    ]
+//                                                }
+//                                            ]
+//                                        },
+                                        {
+                                            xtype: 'currencyselector',
+                                            anchor: '100%',
+                                            id: 'currency-select',
+                                            Selectid: 'val_kode_text',
+                                            Nameid: 'val_nama_text',
+                                            ShowName: true,
+                                            fieldLabel: 'Currency Code',
+                                            allowBlank: false,
+                                            selectValue: 'IDR',
+                                            style: 'margin-top: 5px;',
+                                            callback: function(currency) {
+                                                if (currency.val_kode != INVOICE_VALUTA) {
+                                                    Ext.getCmp('payment_ori').enable();
+                                                    coaAR();
+                                                } else {
+                                                    Ext.getCmp('payment_ori').disable();
+                                                    Ext.getCmp('payment-value-ori').setValue(0);
+                                                }
+                                            }
+                                        }, new Ext.ux.customRendererField({
+                                            xtype: 'textfield',
+                                            fieldLabel: 'IDR Rate',
+                                            id: 'val_rate_text',
+                                            name: 'val_rate_text',
+                                            vtype: 'numeric',
+                                            style: 'text-align:right',
+                                            priceDelemiter: ',',
+                                            enableKeyEvents: true,
+                                            width: 95,
+                                            listeners: {
+                                                'customblur': function(text, e) {
+                                                    var val_kode = Ext.getCmp('val_kode_text').getValue();
+
+                                                    if (val_kode != 'IDR')
+                                                        hitungGrandTotal();
+
+                                                    if (INVOICE_VALUTA != val_kode) {
+                                                        var rateidr = parseFloat(Ext.getCmp('val_rate_text').getOriginalValue().toString().replace(/\$|\,/g, ''));
+                                                        var payment = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, ''));
+
+                                                        Ext.getCmp('payment-value-ori').setValue(rateidr * payment);
+                                                        hitungGrandTotal();
+                                                    }
+                                                }
+
+                                            }
+                                        }),
+                                        {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: 0.6,
+                                                    layout: 'form',
+                                                    items: [
+                                                        paymenttypecombo
+                                                    ]
+                                                },
+//                                                {
+//                                                    columnWidth: 0.4,
+//                                                    layout: 'form',
+//                                                    items: [
+//                                                        paymentvalutacombo
+//                                                    ]
+//                                                }
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'textarea',
+                                            fieldLabel: 'Payment Notes',
+                                            id: 'payment-notes',
+                                            anchor: '90%'
+                                        }, {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: 0.7,
+                                                    layout: 'form',
+                                                    items: [
+                                                        new Ext.ux.customRendererField({
+                                                            xtype: 'textfield',
+                                                            fieldLabel: 'Payment Value',
+                                                            anchor: '98%',
+                                                            id: 'payment-value',
+                                                            priceDelemiter: ',',
+                                                            style: 'text-align:right',
+                                                            enableKeyEvents: true,
+                                                            listeners:
+                                                                    {
+                                                                        'customblur': function(t, e)
+                                                                        {
+                                                                            hitungGrandTotal();
+                                                                        },
+                                                                        'keyup': function(t, e) {
+
+                                                                            var val_kode = Ext.getCmp('val_kode_text').getValue();
+                                                                            if (INVOICE_VALUTA != val_kode) {
+                                                                                var rateidr = parseFloat(Ext.getCmp('val_rate_text').getOriginalValue().toString().replace(/\$|\,/g, ''));
+
+                                                                                payment = parseFloat(t.getValue());
+
+                                                                                Ext.getCmp('payment-value-ori').setValue(rateidr * payment);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                        })
+                                                    ]
+                                                }, {
+                                                    columnWidth: 0.3,
+                                                    layout: 'form',
+                                                    items: [
+                                                        {
+                                                            xtype: 'textfield',
+                                                            id: 'val1',
+                                                            hideLabel: true,
+                                                            anchor: '35%',
+                                                            disabled: true,
+                                                            style: 'text-align:right;font-weight: bold;color: black;'
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            layout: 'column',
+                                            id: 'payment_ori',
+                                            disabled: true,
+                                            items: [
+                                                {
+                                                    columnWidth: 0.7,
+                                                    layout: 'form',
+                                                    items: [
+                                                        new Ext.ux.customRendererField({
+                                                            xtype: 'textfield',
+                                                            fieldLabel: 'Payment Value( Original )',
+                                                            anchor: '98%',
+                                                            id: 'payment-value-ori',
+                                                            priceDelemiter: ',',
+                                                            style: 'text-align:right',
+                                                            enableKeyEvents: true,
+                                                            value: 0,
+                                                            listeners:
+                                                                    {
+                                                                        'customblur': function(t, e)
+                                                                        {
+                                                                            coaAR();
+                                                                        }
+                                                                    }
+                                                        })
+                                                    ]
+                                                }, {
+                                                    columnWidth: 0.3,
+                                                    layout: 'form',
+                                                    items: [
+                                                        {
+                                                            xtype: 'textfield',
+                                                            id: 'val1-ori',
+                                                            hideLabel: true,
+                                                            anchor: '35%',
+                                                            disabled: true,
+                                                            style: 'text-align:right;font-weight: bold;color: black;'
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'fieldset',
+                                            title: 'Deductions',
+                                            items: [
+                                                {
+                                                    xtype: 'coaselector',
+                                                    fieldLabel: 'COA',
+                                                    id: 'coa_before',
+                                                    Selectid: 'coa_kode_deduct',
+                                                    Nameid: 'coa_nama_deduct',
+                                                    width: 180,
+                                                    labelWidth: 60,
+                                                    ShowName: true,
+                                                    allowBlank: false
+                                                },
+                                                {
+                                                    xtype: 'compositefield',
+                                                    fieldLabel: 'Deduction ',
+                                                    labelWidth: 60,
+                                                    msgTarget: 'under',
+                                                    anchor: '-20',
+                                                    defaults: {
+                                                    },
+                                                    items: [
+                                                        new Ext.ux.customRendererField({
+                                                            xtype: 'textfield',
+                                                            id: 'deduction',
+                                                            style: 'text-align:right',
+                                                            priceDelemiter: ',',
+                                                            width: 140,
+                                                            fieldLabel: 'Deduction ',
+                                                            enableKeyEvents: true,
+                                                            listeners: {
+                                                                keypress: function(field, e) {
+                                                                    if (e.button == 12) {
+                                                                        addDeduction(field.getValue().toString().replace(/\$|\,/g, ''), {
+                                                                            coa_kode: Ext.getCmp('coa_kode_deduct').getValue(),
+                                                                            coa_nama: Ext.getCmp('coa_nama_deduct').getValue()
+                                                                        });
+                                                                    }
+                                                                }
+                                                            }
+                                                        }),
+                                                        {
+                                                            xtype: 'button',
+                                                            text: 'Add',
+                                                            width: 40,
+                                                            handler: function() {
+                                                                addDeduction(Ext.getCmp('deduction').getValue().toString().replace(/\$|\,/g, ''), {
+                                                                    coa_kode: Ext.getCmp('coa_kode_deduct').getValue(),
+                                                                    coa_nama: Ext.getCmp('coa_nama_deduct').getValue()
+                                                                });
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                                deductionGrid
+                                            ]
+                                        },
+//                                        new Ext.ux.customRendererField ({
+//                                            xtype:'textfield',
+//                                            fieldLabel:'Prepaid Tax',
+//                                            id:'wht-value',
+//                                            priceDelemiter:',',
+//                                            style:'text-align:right',
+//                                            enableKeyEvents:true,
+//                                            listeners: {
+//                                                'customblur': function(t,val){
+//                                                    hitungGrandTotal();
+//                                                }
+//                                            }
+//                                        }),
+
+
+//                                        ,{
+//                                            layout:'column',
+//                                            items:[
+//                                                {
+//                                                    columnWidth:0.7,
+//                                                    layout:'form',
+//                                                    items:[
+//                                                        new Ext.ux.customRendererField ({
+//                                                            xtype:'textfield',
+//                                                            fieldLabel:'Payment Tax',
+//                                                            anchor:'98%',
+//                                                            disabled:true,
+//                                                            priceDelemiter:',',
+//                                                            style:'text-align:right;font-weight: bold;color: black;',
+//                                                            id:'invoice-tax'
+//
+//                                                        })
+//                                                    ]
+//                                                },{
+//                                                    columnWidth:0.3,
+//                                                    layout:'form',
+//                                                    items:[
+//                                                        {
+//                                                            xtype:'textfield',
+//                                                            id: 'val2',
+//                                                            hideLabel:true,
+//                                                            anchor:'35%',
+//                                                            disabled:true,
+//                                                            style:'text-align:right;font-weight: bold;color: black;'
+//                                                        }
+//                                                    ]
+//                                                }
+//                                            ]
+//                                        }
+                                        {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: 0.7,
+                                                    layout: 'form',
+                                                    items: [
+                                                        new Ext.ux.customRendererField({
+                                                            xtype: 'textfield',
+                                                            fieldLabel: 'Grand Total',
+                                                            anchor: '98%',
+                                                            disabled: true,
+                                                            style: 'text-align:right;font-weight: bold;color: black;',
+                                                            id: 'g-total',
+                                                            priceDelemiter: ','
+                                                        })
+                                                    ]
+                                                }, {
+                                                    columnWidth: 0.3,
+                                                    layout: 'form',
+                                                    items: [
+                                                        {
+                                                            xtype: 'textfield',
+                                                            id: 'val3',
+                                                            hideLabel: true,
+                                                            anchor: '35%',
+                                                            disabled: true,
+                                                            style: 'text-align:right;font-weight: bold;color: black;'
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+//                    })
+                }
+            ]
+        })
+
+        var invoice_list = new Ext.form.FieldSet({
+            title: 'Invoice Item List',
+            style: 'marginTop:52px',
+            items: [
+                itemgrid
+            ]
+
+        })
+
+        var invoice_detail = new Ext.form.FieldSet({
+            title: 'Invoice Transaction Detail',
+            labelAlign: 'left',
+            width: 390,
+            labelWidth: 100,
+            layout: 'form',
+            id: 'fieldset-1',
+            items: [
+                {
+                    id: 'invoice-trans-detail',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: 1,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'trigger',
+                                            fieldLabel: 'Invoice Number',
+                                            triggerClass: 'teropong',
+                                            allowBlank: false,
+                                            editable: false,
+                                            id: 'invoice-number',
+                                            onTriggerClick: function()
+                                            {
+                                                showInvoiceList();
+                                            }
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Invoice Date',
+                                            id: 'trans-date',
+                                            readOnly: true
+                                        }
+                                        , {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Valuta',
+                                            id: 'valuta',
+                                            readOnly: true
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: .5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Project Code',
+                                            id: 'prj_kode',
+                                            anchor: '95%',
+                                            readOnly: true,
+                                            name: 'prj_kode'
+                                        }, {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Site Code',
+                                            anchor: '95%',
+                                            id: 'sit_kode',
+                                            readOnly: true
+                                        }, {
+                                            xtype: 'textfield',
+                                            fieldLabel: 'Customer Code',
+                                            id: 'cus_kode',
+                                            anchor: '95%',
+                                            readOnly: true
+                                        }
+                                    ]
+                                }, {
+                                    columnWidth: .5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            hideLabel: true,
+                                            anchor: '95%',
+                                            id: 'prj_nama',
+                                            readOnly: true
+                                        }, {
+                                            xtype: 'textfield',
+                                            hideLabel: true,
+                                            anchor: '95%',
+                                            id: 'sit_nama',
+                                            readOnly: true
+                                        }, {
+                                            xtype: 'textfield',
+                                            hideLabel: true,
+                                            anchor: '95%',
+                                            id: 'cus_nama',
+                                            readOnly: true
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: 1,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textarea',
+                                            fieldLabel: 'Payment Term',
+                                            id: 'paymentterm',
+                                            width: 253,
+                                            height: 60,
+                                            readOnly: true
+                                        }
+                                        , {layout: 'column',
+                                            items: [
+                                                {layout: 'form',
+                                                    items: [
+                                                        {
+                                                            xtype: 'textfield',
+                                                            id: 'top',
+                                                            width: 50,
+//                                            allowNegative: false,
+//                                            allowBlank: false,
+                                                            readOnly: true,
+                                                            name: 'top',
+                                                            fieldLabel: 'TOP',
+                                                            style: 'margin-right:5px',
+                                                            vtype: 'numeric'
+                                                        }]}
+                                                , {layout: 'form',
+                                                    items: [
+                                                        {
+                                                            xtype: 'label',
+                                                            fieldLabel: 'Days',
+                                                            labelSeparator: ""
+                                                        }]}
+                                            ]}
+
+                                    ]
+                                }
+                            ]
+
+                        }
+                    ]
+//                    })
+                },
+                {
+                    xtype: 'container',
+                    layout: 'hbox',
+                    items: [
+                        {
+                            xtype: 'button',
+                            text: 'Add to Invoice Item List',
+                            handler: function()
+                            {
+                                var tt = Ext.getCmp('trano-type').getRawValue(),
+                                        val_kode = Ext.getCmp('valuta').getValue();
+
+                                if (tt == undefined || tt == '')
+                                {
+                                    Ext.Msg.alert('Error', 'Please select transaction type');
+                                    return false;
+                                }
+
+                                if (cekValuta(val_kode) == false)
+                                {
+                                    return false;
+                                }
+
+                                itemstore.add(new itemlist({
+                                    "trano": INVOICE_LIST.data.trano,
+                                    "val_kode": INVOICE_LIST.data.val_kode,
+                                    "total": INVOICE_LIST.data.total_invoice,
+                                    "rec": INVOICE_LIST
+                                }));
+                                if (INVOICE_LIST.sumpaidlist > 0)
+                                    storeInvoicePaid.loadData(INVOICE_LIST.data_paid);
+
+                                INVOICE_LIST = null;
+                                clearValueForm();
+                                hitungPaymentInvoice();
+
+                            }
+                        },
+                        {
+                            xtype: 'button',
+                            text: 'Reset Invoice Item List',
+                            handler: function()
+                            {
+                                Ext.MessageBox.confirm('Confirm', 'This will delete all Invoice Item, Are you sure want this action ?', function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        INVOICE_LIST = null;
+                                        INVOICE_VALUTA = null;
+                                        COA_BANK = null;
+                                        store_jurnal.removeAll();
+                                        itemstore.removeAll();
+
+                                        clearValueForm();
+                                        clearPaymentForm();
+                                        hitungTotal();
+                                    }
+                                });
+                            }
+                        }
+                    ]
+                }
+            ]
+
+        })
+
+
+        var insert_payrem = new Ext.form.FormPanel({
+            title: 'Insert Payment Invoice',
+            renderTo: 'payment_invoice',
+            id: 'payment-invoice',
+            frame: true,
+            width: 800,
+            items: [
+                {
+                    xtype: 'tranodatechanger',
+                    anchor: '100%',
+                    id: 'trano_tgl',
+                    Selectid: 'tgl',
+                    fieldLabel: 'Transaction Date',
+                    selectValue: '<?= date("d M Y") ?>'
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            labelWidth: 140,
+                            items: [
+                                {
+                                    fieldLabel: 'Transaction Type',
+                                    id: 'trano-type',
+                                    name: 'type',
+                                    xtype: 'combo',
+                                    width: 146,
+                                    allowBlank: false,
+                                    store: new Ext.data.Store({
+                                        proxy: new Ext.data.HttpProxy({
+                                            url: '/finance/coa/gettranotype/type/all'
+                                        }),
+                                        reader: new Ext.data.JsonReader({
+                                            totalProperty: 'count',
+                                            root: 'data'
+                                        }, [{
+                                                name: 'trano'
+                                            }])
+                                    }),
+                                    valueField: 'trano',
+                                    displayField: 'trano',
+                                    typeAhead: true,
+                                    forceSelection: true,
+                                    editable: false,
+                                    mode: 'remote',
+                                    triggerAction: 'all',
+                                    selectOnFocus: true,
+                                    emptyText: 'Select a type ...',
+                                    listeners: {
+                                        'select': function(c, row, index)
+                                        {
+                                            cekCoaBank();
+                                        }
+                                    }
+                                },
+                                invoice_detail
+
+                            ]
+                        }, {
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [
+                                invoice_list
+                            ]
+                        }
+                    ]
+                }, invoice_payment
+                        , {
+                            xtype: 'fieldset',
+                            title: 'Journal Preview',
+                            items: [grid_jurnal]
+                        }
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    id: 'invoice-payment-submit',
+                    iconCls: 'silk-add',
+                    handler: function(btn, ev)
+                    {
+
+                        var paymentValue = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, '')),
+                                balanceValue = parseFloat(Ext.getCmp('invoice-balance').getValue().toString().replace(/\$|\,/g, ''));
+
+                        if (Ext.getCmp('option-paymenttype').getValue() == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select your payment type',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        if (moneycomp(paymentValue, '>', balanceValue, 2))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry payment value is greater than invoice balance !',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        if (parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g, '')) <= 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry payment value must be grater than 0',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        if (store_jurnal.getCount() == 0)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            if (hitungTotal(true) === false)
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Debit & Credit is not Balance yet!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+
+//                        var totalPayment = parseFloat(Ext.getCmp('payment-value').getValue().toString().replace(/\$|\,/g,''));
+//                        if (!moneycomp(totalPayment,'==',totDebit))
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Total Payment is different with Journal!',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR
+//                            });
+//                            return false;
+//                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+                            if (btn == 'yes')
+                            {
+                                var teks = Ext.getCmp('invoice-payment').findByType('textfield');
+                                var jsonTransPayment = '',
+                                        jsonJurnal = '',
+                                        jsonInvoice = '',
+                                        jsonDeduction = '';
+                                Ext.each(teks, function(t, index) {
+                                    jsonTransPayment = jsonTransPayment + '"' + t.id + '"' + ":" + '"' + t.getValue().toString().replace(/\"|\'|\n|\t|\r/g, '') + '",';
+                                });
+                                store_jurnal.each(function(store) {
+                                    var encode = Ext.util.JSON.encode(store.data);
+                                    if (encode != undefined)
+                                        jsonJurnal += encode + ',';
+                                });
+                                jsonJurnal = '[' + jsonJurnal.substring(0, jsonJurnal.length - 1) + ']';
+
+                                itemstore.each(function(store) {
+                                    var encode = Ext.util.JSON.encode(store.data);
+                                    if (encode != undefined)
+                                        jsonInvoice += encode + ',';
+                                });
+                                jsonInvoice = '[' + jsonInvoice.substring(0, jsonInvoice.length - 1) + ']';
+
+                                storeDeduction.each(function(store) {
+                                    var encode = Ext.util.JSON.encode(store.data);
+                                    if (encode != undefined)
+                                        jsonDeduction += encode + ',';
+                                });
+                                jsonDeduction = '[' + jsonDeduction.substring(0, jsonDeduction.length - 1) + ']';
+
+
+                                jsonTransPayment = jsonTransPayment + '"prj_kode":' + '"' + Ext.getCmp('prj_kode').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"prj_nama":' + '"' + Ext.getCmp('prj_nama').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"sit_kode":' + '"' + Ext.getCmp('sit_kode').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"sit_nama":' + '"' + Ext.getCmp('sit_nama').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"cus_kode":' + '"' + Ext.getCmp('cus_kode').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"val_kode":' + '"' + Ext.getCmp('IDR-value').getValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"rateidr":' + '"' + Ext.getCmp('val_rate_text').getOriginalValue().toString().replace(/\$|\,/g, '') + '",';
+//                                jsonTransPayment = jsonTransPayment + '"ppn":' + '"' + Ext.getCmp('ppn-radio').getValue().getRawValue() + '",';
+                                jsonTransPayment = jsonTransPayment + '"option":' + '"' + Ext.getCmp('option-paymenttype').getRawValue() + '"';
+
+                                var payment_encode = "{" + jsonTransPayment + "}";
+                                var invoice_trano = Ext.getCmp('invoice-number').getValue();
+                                var trano_type = Ext.getCmp('trano-type').getValue();
+
+                                var tgl = '';
+                                if (Ext.getCmp('tgl').getValue() != '')
+                                    tgl = Ext.util.Format.date(Ext.getCmp('tgl').getValue(), 'Y-m-d');
+
+                                var params = {
+                                    payment: payment_encode,
+                                    bank: Ext.util.JSON.encode(bankData),
+                                    jurnal: jsonJurnal,
+                                    invoice: jsonInvoice,
+                                    type: trano_type,
+                                    deduction: jsonDeduction,
+                                    tgl: tgl
+                                };
+                                Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                Ext.Ajax.request({
+                                    url: '/finance/invoice/insertpaymentinvoice',
+                                    method: 'POST',
+                                    params: params,
+                                    success: function(result) {
+                                        Ext.getBody().unmask();
+                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                        if (obj.success)
+                                        {
+                                            Ext.Msg.alert('Message', 'Success, Data has been saved' + '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>');
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/finance/invoice/invoice',
+                                                scripts: true
+                                            });
+                                        } else
+                                        {
+                                            Ext.Msg.alert('Error', obj.msg);
+                                        }
+                                    },
+                                    failure: function(action) {
+                                        Ext.getBody().unmask();
+                                        if (action.failureType == 'server') {
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        } else {
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+
+                                })
+                            }
+
+                        })
+                    },
+                    scope: this
+                }, {
+                    text: 'Reset',
+                    handler: function(btn, ev)
+                    {
+                        Ext.getCmp('payment-invoice').getForm().reset();
+                        itemstore.removeAll();
+                        store_jurnal.removeAll();
+                        itemstore.removeAll();
+
+                        clearValueForm();
+                        clearPaymentForm();
+                        grid_jurnal.getView().refresh();
+                    },
+                    scope: this
+                }, {
+                    text: 'Cancel',
+                    handler: function(btn, ev) {
+                        mypanel = Ext.getCmp('abs-budget-panel');
+                        mypanel.body.load({
+                            url: '/finance/invoice/invoice',
+                            scripts: true
+                        });
+                    },
+                    scope: this
+                }
+            ]
+
+
+        })
+
+
+    })
+
+
+
+</script>
+
+<div id="payment_invoice"></div>

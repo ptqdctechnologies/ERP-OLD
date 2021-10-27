@@ -1,0 +1,341 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        var windowForm = ({
+            title: 'Journal Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:
+                    {// configured using the anchor layout
+                        xtype: 'container',
+                        layout: 'anchor',
+                        height: 27 * 2,
+                        defaults: {height: 27, anchor: '100%'},
+                        items: [
+                            new Ext.Toolbar({
+                                items: [
+                                    {
+                                        xtype: 'tbtext',
+                                        text: 'Month'
+                                    },
+                                    {
+                                        xtype: 'datefield',
+                                        id: 'month-all',
+                                        msgTarget: 'side',
+                                        format: 'm-Y', // or other format you'd like
+                                        plugins: 'monthPickerPlugin',
+                                        listeners: {
+                                            'select': function(t, newDate) {
+                                            }
+                                        }
+                                    }, '-',
+                                    {
+                                        xtype: 'tbbutton',
+                                        text: 'Export All Journal ERP',
+                                        iconCls: 'menu-drop',
+                                        menu: {
+                                            items: [{
+                                                    text: 'To Excel',
+                                                    cls: "x-btn-text-icon",
+                                                    icon: "/images/print.png",
+                                                    handler: function()
+                                                    {
+                                                        var month = Ext.getCmp('month-all').getValue();
+                                                        if (month == '')
+                                                            return false;
+                                                        month = Ext.util.Format.date(month, 'Y-m-d');
+                                                        location.href = '/finance/report/export-all-jurnal/month/' + month;
+                                                    }
+                                                }]
+                                        }
+                                    }
+                                ]
+                            }),
+                            new Ext.Toolbar({
+                                items: [
+//                                    {
+//                                        xtype: 'label',
+//                                        text: 'Type',
+//                                        style: 'font-weight:bold;margin-left:10px;'
+//                                    }, '-', {
+//                                        xtype: 'combo',
+//                                        width: 120,
+//                                        allowBlank: false,
+//                                        store: new Ext.data.SimpleStore({
+//                                            fields: ['name', 'nilai'],
+//                                            data: [
+//                                                ['All', ''],
+//                                                ['Adjusting Journal', 'ADJ'],
+//                                                ['Voucher Journal', 'JV'],
+//                                                ['Sales Journal', 'SJ'],
+//                                                ['Settlement Journal', 'JS']
+//                                            ]
+//                                        }),
+//                                        valueField: 'nilai',
+//                                        displayField: 'name',
+//                                        typeAhead: true,
+//                                        forceSelection: true,
+//                                        editable: false,
+//                                        mode: 'local',
+//                                        triggerAction: 'all',
+//                                        selectOnFocus: true,
+//                                        value: '',
+//                                        id: 'option-type'
+//                                    }, '-',
+                                    {
+                                        text: 'By Date',
+                                        iconCls: 'icon-calendar',
+                                        style: {
+                                            overflow: 'visible'     // For the Combo popup
+                                        },
+                                        menu: {
+                                            xtype: 'menu',
+                                            plain: true,
+                                            items:
+                                                    [
+                                                        '<b class="menu-title">Start Date</b>',
+                                                        {
+                                                            xtype: 'datefield',
+                                                            name: 'startdate',
+                                                            id: 'startdt',
+                                                            msgTarget: 'side',
+                                                            endDateField: 'enddt', // id of the end date field
+                                                            vtype: 'daterange',
+                                                            format: 'd-m-Y', // or other format you'd like
+                                                            listeners: {
+                                                                'select': function(t, newDate) {
+
+                                                                }
+                                                            }
+                                                        },
+                                                        '<b class="menu-title">End Date</b>',
+                                                        {
+                                                            xtype: 'datefield',
+                                                            name: 'enddate',
+                                                            id: 'enddt',
+                                                            startDateField: 'startdt', // id of the start date field
+                                                            msgTarget: 'side',
+                                                            vtype: 'daterange',
+                                                            format: 'd-m-Y', // or other format you'd like
+                                                            listeners: {
+                                                                'select': function(t, newDate) {
+
+                                                                }
+                                                            }
+                                                        },
+                                                    ]
+                                        }
+                                    },
+                                    {
+                                        text: 'By Month',
+                                        iconCls: 'icon-calendar',
+                                        style: {
+                                            overflow: 'visible'     // For the Combo popup
+                                        },
+                                        menu: {
+                                            xtype: 'menu',
+                                            plain: true,
+                                            items:
+                                                    [
+                                                        '<b class="menu-title">Month & Year</b>',
+                                                        {
+                                                            xtype: 'datefield',
+                                                            name: 'month',
+                                                            id: 'month',
+                                                            msgTarget: 'side',
+                                                            format: 'm-Y', // or other format you'd like
+                                                            plugins: 'monthPickerPlugin',
+                                                            listeners: {
+                                                                'select': function(t, newDate) {
+                                                                    Ext.getCmp('startdt').setValue('');
+                                                                    Ext.getCmp('enddt').setValue('');
+                                                                }
+                                                            }
+                                                        },
+                                                    ]
+                                        }
+                                    },
+                                    '-',
+                                    {
+                                        xtype: 'label',
+                                        text: 'Journal Trano',
+                                        style: 'font-weight:bold;margin-left:10px;'
+                                    }, '-',
+                                    {
+                                        xtype: 'tranoalljurnalselector',
+                                        width: 120,
+                                        id: 'trano_jurnal',
+                                        Selectid: 'trano',
+                                        jurnalType: [],
+                                        addBaseParams: {
+                                            order_by: 'tgl DESC',
+                                            no_uid: true
+                                        },
+//                                        url: '/finance/adjustingjournal/get-general-jurnal-trano',
+                                        url: '/finance/jurnal/get-trano-jurnal',
+                                        callbackFunc: function(trano) {
+
+                                        }
+                                    },
+                                    '-',
+                                    {
+                                        xtype: 'label',
+                                        text: 'Ref Number',
+                                        style: 'font-weight:bold;margin-left:10px;'
+                                    }, '-', {
+                                        xtype: 'tranoselector',
+                                        id: 'ref_numbers',
+                                        Selectid: 'ref_number',
+                                        Enableeditable: true,
+                                        width: 100
+                                    }, {
+                                        xtype: 'button',
+                                        text: 'Search',
+                                        width: 70,
+                                        id: 'show_ap',
+                                        cls: "x-btn-text-icon",
+                                        icon: "/images/icons/fam/control_rewind.png",
+                                        style: 'margin-left:10px;',
+                                        handler: function()
+                                        {
+//                                            var type = Ext.getCmp('option-type').getValue();
+                                            var startdate = Ext.getCmp('startdt').getValue();
+                                            var enddate = Ext.getCmp('enddt').getValue();
+                                            var ref_number = Ext.getCmp('ref_number').getValue();
+                                            var trano = Ext.getCmp('trano').getValue();
+
+                                            var month = Ext.getCmp('month').getValue();
+                                            var D = Ext.calendar.Date;
+                                            if (month != '' || month != undefined)
+                                                month = D.formatDate(month, 'yyyy-mm');
+
+                                            if (startdate != null && startdate != "" && startdate != undefined)
+                                            {
+                                                startdate = startdate.toDateString();
+                                            }
+
+                                            if (enddate != null && enddate != "" && enddate != undefined)
+                                            {
+                                                enddate = enddate.toDateString();
+                                            }
+
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/finance/report/view-journal',
+                                                params: {
+//                                                    type: type,
+                                                    startdate: startdate,
+                                                    enddate: enddate,
+                                                    ref_number: ref_number,
+                                                    trano: trano,
+                                                    month: month
+                                                },
+                                                scripts: true
+                                            });
+                                        }
+                                    }, '-',
+                                    {
+                                        xtype: 'tbbutton',
+                                        text: 'Reset',
+                                        handler: function()
+                                        {
+                                            Ext.getCmp('trano').setValue('');
+                                            Ext.getCmp('ref_number').setValue('');
+                                            Ext.getCmp('startdt').setValue('');
+                                            Ext.getCmp('enddt').setValue('');
+                                            Ext.getCmp('month').setValue('');
+                                        }
+                                    }, '-',
+                                    {
+                                        xtype: 'button',
+                                        id: 'button_print_jurnal',
+                                        cls: "x-btn-text-icon",
+                                        icon: "/images/print.png",
+                                        handler: function() {
+                                            var trano = Ext.getCmp('trano').getValue(),
+                                                    ref = Ext.getCmp('ref_number').getValue(),
+                                                    startd = Ext.getCmp('startdt').getValue(),
+                                                    endd = Ext.getCmp('enddt').getValue(),
+                                                    month = Ext.getCmp('month').getValue();
+//                                                    type = Ext.getCmp('option-type').getValue();
+                                            
+                                            trano = trano.replace("/","_");
+                                            var D = Ext.calendar.Date;
+                                            if (month != '' || month != undefined)
+                                                month = D.formatDate(month, 'yyyy-mm');
+
+                                            var newurl = Ext.util.urlEncodeZend({
+                                                trano: trano,
+                                                ref_number: ref,
+                                                start_date: startd,
+                                                end_date: endd,
+                                                month: month,
+//                                                type: type
+                                            });
+
+                                            location.href = '/finance/report/view-journal/export/true/' + newurl;
+                                        }
+                                    }
+                                ]
+                            })
+                        ]
+                    }
+
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        panelBaru.body.load({
+               url: '/finance/report/view-journal',
+               scripts: true
+           });
+        showSubmenu('abs-budget-panel');
+
+
+
+    })
+
+</script>

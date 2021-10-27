@@ -1,0 +1,184 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var export_flag = false;
+
+        showReport = function() {
+
+            var kodebrg = Ext.getCmp('kode_brg_text').getValue();
+
+            var errorMsg = '';
+
+            if (kodebrg == '')
+                errorMsg += '- Product ID field is required <br />';
+
+            if (errorMsg != '') {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: errorMsg,
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+
+            var myPanel = Ext.getCmp('abs-budget-panel'),
+                    kode_brg = Ext.getCmp('kode_brg_text').getValue();
+
+            if (!export_flag) {
+
+                myPanel.body.load({
+                    url: '/logistic/report/viewpricehistory',
+                    params: {
+                        kode_brg: kode_brg,
+                        export: export_flag
+                    },
+                    scripts: true
+                });
+            }
+            else
+                location.href = '/logistic/report/viewpricehistory' + '/kode_brg/' + kode_brg + '/export/' + export_flag;
+
+                export_flag = false;
+    };
+
+        exportReport = function() {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            var kode_brg = Ext.getCmp('kode_brg_text').getValue();
+
+            if (kode_brg == '')
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please fill all required fields (Product ID)!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+
+        };
+
+
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        var callbackFunc = function()
+        {
+            //Ext.getCmp('periode_txt').setValue('');
+
+        };
+
+        var datas = new Ext.data.SimpleStore({
+            fields: ['type', 'name']
+            , data: [['pdf', 'PDF'], ['xls', 'Excel']]
+        });
+
+        var combo = new Ext.form.ComboBox({
+            fieldLabel: 'Export'
+            , name: 'showReport'
+            , store: datas
+            , valueField: 'type'
+            , displayField: 'name'
+            , typeAhead: true
+            , mode: 'local'
+            , triggerAction: 'all'
+            , value: 'pdf'
+            , selectOnFocus: true
+            , anchor: '95%'
+            , hiddenName: 'type'
+            , width: 70
+            , editable: false
+
+        });
+
+        var windowForm = ({
+            title: 'Price History Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {
+                    xtype: 'tbtext',
+                    text: 'Product ID'
+                },
+                {
+                    xtype: 'itemselector',
+                    id: 'kode_brg',
+                    Selectid: 'kode_brg_text',
+                    width: 100,
+                    callbackFunc: callbackFunc,
+                    showAll: true,
+                    nopmeal: false
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width: 70,
+                    id: 'show_report',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: showReport
+                }, '-',
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls: "x-btn-icon",
+                    icon: "/images/print.png",
+                    handler: function() {
+                        export_flag = true;
+                        showReport();
+                    }
+                }
+            ]
+
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//        showSubmenu('the=window');
+
+
+    })
+</script>

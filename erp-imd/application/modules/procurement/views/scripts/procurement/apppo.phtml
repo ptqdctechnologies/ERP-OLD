@@ -1,0 +1,440 @@
+<style>
+
+
+    .files{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#E0ECEE;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .last-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#EFEFEF;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .all-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#F6CBCA;
+        color:#222222;
+        padding:4px;
+        text-align:left;
+    }
+    .all-approve{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        /*background:#CEE6C3;*/
+        color:#222222;
+        padding:4px;
+        text-align:left;
+        height: 200px;
+        overflow: auto;
+    }
+
+    .body {
+        /*width: 800px;*/
+        overflow: auto;
+    }
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .etc {
+        width: 100%;
+        height: 50px;
+    }
+    .kanan-etc {
+        float: right;
+        width: 48%;
+    }
+    .kiri-etc {
+        float: left;
+        width: 48%;
+    }
+    .blok {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .budgetTable {
+        width: 100%;
+        font-size: 12px;
+        font-weight: normal;
+    }
+
+    .ketin {
+        width: 100%;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+        font-family:tahoma, verdana;
+        display:block;
+        color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+</style>
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+<?php if (!$this->preview && !$this->show) { ?>
+    <?php if ($this->approve) { ?>
+                //Variabel yg dikirim, approve / reject sama variabelna...
+                var trano = '<?= $this->docsID ?>';
+                var uid = '<?= $this->uid ?>';
+                var user_id = '<?= $this->userID ?>';
+
+        <?php if (!$this->reject) { ?>
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showApproveButton: true,
+                        showRejectButton: true,
+                        showAskButton: true,
+                        showCancelButton: true,
+                        trano: '<?= $this->trano ?>',
+                        itemType: 'PO',
+                        approveParams: {trans: trano, user: uid, user_id: user_id},
+                        rejectParams: {trans: trano, user: uid, user_id: user_id},
+                        beforeApproveCallback: function(theWButton) {
+                            var cb = function(bypass) {
+                                if (bypass == undefined)
+                                    bypass = false;
+                                theWButton.approveParams.bypass_next = bypass;
+                                var cbcomment = function(comment) {
+                                    theWButton.approveParams.comment = comment;
+                                    theWButton.doApprove(theWButton.approveParams);
+                                };
+                                theWButton.showComment(cbcomment);
+                            };
+                            checkNominalWorkflow(uid, '<?= $this->docsID ?>', '<?= $this->trano ?>', cb);
+                        },
+                        approveSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        },
+                        rejectSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        },
+                        cancelSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        }
+                    });
+
+                    wButt.on('beforeworkflowapprove', function(t) {
+
+                    });
+        <?php } else { ?>
+
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showEditButton: true,
+                        itemType: 'PO',
+                        editSuccessCallback: function() {
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/procurement/procurement/editpo',
+                                params: {
+                                    trano: '<?php echo $this->trano; ?>'
+                                },
+                                scripts: true
+                            });
+                        }
+                    });
+        <?php } ?>
+    <?php } else { ?>
+                // variabel yg dikirim untuk submit ke workflow
+                var json = '<?php echo $this->jsonResult; ?>';
+                var jsonFile = '<?php echo $this->jsonFile; ?>';
+                var jsonDeletedFile = '<?php echo $this->jsonDeletedFile; ?>';
+                var parameter = '<?= Zend_Json::encode($this->etc) ?>';
+
+                var params = {
+                    posts: json,
+                    etc: parameter,
+                    file: jsonFile,
+                    item_type: 'PO'
+                };
+
+        <?php if (!$this->edit) { ?>
+                    var url = '/procurement/procurement/insertpo',
+                            urlCancel = '/procurement/procurement/addpo/returnback/true',
+                            edit = false;
+        <?php } else { ?>
+                    var url = '/procurement/procurement/updatepo',
+                            edit = true;
+        <?php } ?>
+
+                var wButt = new Ext.ux.workflowButton({
+                    renderTo: 'wButton',
+                    itemType: 'PO',
+                    showSubmitButton: true,
+                    showCancelButton: true,
+                    urlSubmit: url,
+                    isEdit: edit,
+                    submitParams: params,
+                    submitSuccessCallback: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/procurement/procurement/po',
+                            scripts: true
+                        });
+                    },
+                    cancelSuccessCallback: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: urlCancel,
+                            params: params,
+                            scripts: true
+                        });
+                    }
+                });
+    <?php } ?>
+<?php } ?>
+    });
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+    <div align="right"><img src="/images/imd.gif" alt= "logo imd" /></div>
+    <div class="title">PURCHASE ORDER</div>
+
+
+    <?php if ($this->reject) { ?>
+        <div class="last-reject">
+        This Document was Rejected by <?php echo $this->lastReject[0]['name']; ?> at <?php echo date('d-m-Y H:i:s',strtotime($this->lastReject[0]['date'])); ?>
+        <br />
+        Comment : <?php echo $this->lastReject[0]['comment']; ?>
+        </div>
+    <?php } ?>
+
+    <?php if ($this->file != '') { ?>
+        <div class="files">
+            Attachment Files :<br />
+            <ul>
+                <?php foreach ($this->file as $key => $val) { ?>
+                    <li>- <a href="#" onclick="window.open('/default/file/download/path/files/filename/<?php echo $val['savename']; ?>', 'mywin', 'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');"><?php echo $val['filename']; ?></a></li>
+                <?php } ?>
+            </ul>
+        </div>
+    <?php } ?>
+    <div class="etc">
+        <div class="kiri-etc">
+
+            <?php if ($this->edit || $this->approve) { ?><div class="blok">PO Number : <?= $this->etc[0]['trano'] ?></div><?php } ?>
+            <?php if ($this->edit || $this->approve) { ?><div class="blok">Revision : <?= $this->etc[0]['rev'] ?><?php if ($this->isRevisi) { ?>&nbsp;&nbsp;<input type="submit" value="Show Revision History" onclick="popup('/procurement/procurement/history-po-revisi/trano/<?= $this->etc[0]['trano'] ?>', 'win-po-revisi-history');"><?php } ?></div><?php } ?>
+            <div class="blok">Project : <?= $this->etc[0]['prj_kode'] ?> - <?= $this->etc[0]['prj_nama'] ?></div>
+            <div class="blok">Vendor : <?= $this->etc[0]['sup_nama'] ?></div>
+            <div class="blok">Vendor Address : <?= $this->etc[0]['alamat_sup'] ?></div>
+            <div class="blok">telp : <?= $this->etc[0]['tlp_sup'] ?> - fax : <?= $this->etc[0]['fax_sup'] ?></div>
+
+                <!--<div class="blok">Payment Term : <?= $this->etc[0]['payterm'] ?></div>-->
+            <div class="blok">Origin Of Budget : <?= $this->etc[0]['budgettype'] ?></div>
+            <?php if ($this->edit || $this->approve) { ?><div class="blok">PIC Sourcing : <?= $this->etc[0]['petugas'] ?></div><?php } ?>
+
+        </div>
+        <div class="kanan-etc">
+            <?php if ($this->etc[0]['tgldeliesti'] != '') { ?><div class="blok">Delivery Date : <?= date('d-m-Y', strtotime($this->etc[0]['tgldeliesti'])) ?></div><?php } else { ?><div class="blok">Delivery Date : <?= $this->etc[0]['tgldeliesti'] ?></div><?php } ?>
+            <div class="blok">Please Deliver To : <?= $this->etc[0]['tujuan'] ?></div>
+                            <!--<div class="blok">Site : <?= $this->etc[0]['sit_kode'] ?> - <?= $this->etc[0]['sit_nama'] ?></div>-->
+                    <!--<div class="blok">Type Po : <?= $this->etc[0]['typepo'] ?></div>-->
+
+            <?php if ($this->etc[0]['invoiceto'] != '') { ?><div class="blok">Invoice To : <?= $this->etc[0]['invoiceto'] ?></div><?php } else { ?>
+                <div class="blok">Invoice To : PT.QDC Technologies <br />Mega Plaza lt.5 <br />Jl.HR Rasuna Said Kav c-3 <br />Jakarta Selatan 12920 <br />Indonesia <br />Telp: +62 21 5212552 <br />Attn. Finance Dept</div><?php } ?>
+            <?php if ($this->etc[0]['cod'] == 'Y') { ?><div class="blok">COD : Yes</div><?php } else if($this->etc[0]['cod'] == 'N') { ?><div class="blok">COD : No</div><?php } ?>
+        </div>
+    </div>
+
+    <table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No.</center></th>
+        <th scope="col"><center>Site</center></th>
+        <th scope="col"><center>PR Number</center></th>
+        <th scope="col"><center>Work ID</center></th>
+        <th scope="col"><center>Net Act</center></th>
+        <th scope="col"><center>Description</center></th>            
+        <th scope="col"><center>UOM</center></th>
+        <th scope="col"><center>Qty</center></th>
+        <th scope="col"><center>Unit Price</center></th>
+        <th scope="col"><center>Total</center></th>
+        </tr>
+        <?php
+        $totals = 0;
+        $pajak = 0;
+        $grandtotals = 0;
+        $i = 1;
+//        $tax = $this->etc[0]['tax'];
+        foreach ($this->result as $key => $val) {
+            ?>
+            <tr>
+                <th scope="row" class="spec" colspan="10"><?= $key ?> - <?= $val[0]['prj_nama'] ?></th>
+            </tr>
+            <?php
+            foreach ($val as $key2 => $val2) {
+                if ($this->approve) {
+                    $totalspl = $val2['qtyspl'] * $val2['hargaspl'];
+                } else {
+                    $totalspl = $val2['totalPriceSupp'];
+                }
+                
+//                var_dump($val2['totalPriceSupp']);
+                foreach ($val2 as $key3 => $val3) {
+                    if ($val3 == '')
+                        $val2[$key3] = "&nbsp;";
+                }
+                $keterangan = '';
+                if ($val2['ket'] != '' && $val2['ket'] != null && $val2['ket'] != ' ')
+                    $keterangan = "<br/><b>Note : " . $val2['ket'] . "</b>";
+
+                if ($val2['ket_pr'])
+                    $keterangan .= "<br/><b style=\"color: red;\">Note PR: " . $val2['ket_pr'] . "</b>";
+                ?>
+
+                <?php
+                if ($val2['statusppn'] == 'Y') {
+                    $pajak += $val2['valueppnSupp'];
+                }
+                ?>
+                <tr>
+                    <th scope="row" class="spec"><?= $i ?></th>
+                    <td><?= $val2['sit_kode'] ?> - <?= $val2['sit_nama'] ?></td>
+                    <td><a href="#" onclick="window.open('/default/report/prdetail/popup/true/trano/<?= $val2['pr_no'] ?>', 'mywin', 'toolbar=0');"><?= $val2['pr_no'] ?></a></td>
+                    <td><?= $val2['workid'] ?> </td>
+                    <td><?= $val2['net_act'] ?> </td>
+                    <td><a href="#" onclick="window.open('/default/report/historyprice/popup/true/kode_brg/<?= $val2['kode_brg'] ?>', 'mywin', 'toolbar=0');"><?= $val2['kode_brg'] ?> - <?= $val2['nama_brg'] ?></a>&nbsp;<?= $keterangan ?></td>
+                    <td ><?= $val2['uom'] ?></td>
+                    <td align="right"><?= number_format($val2['qtySupp'], 4) ?></td>
+
+                    <td align="right"><?= number_format($val2['priceSupp'], 4) ?></td>
+
+                    <td align="right"><?= number_format($totalspl, 2) ?></td>
+                </tr>
+
+                <?php
+                   $totals += $totalspl; 	
+                   $i++;
+                }
+                }
+          	
+                    			$grandtotals = $totals + $pajak;
+                    		
+                ?>
+                <tr>
+                    <th scope="row" class="spec" colspan="9">SubTotal</th>
+                    <td align="right"><?= number_format($totals, 2) ?></td>
+                </tr>
+                <tr>
+                    <th scope="row" class="spec" colspan="9">VAT</th>
+                    <td align="right"><?= number_format($pajak, 2) ?></td>
+                </tr>
+                <tr>
+                    <th scope="row" class="spec" colspan="9">Grand Total</th>
+                    <td align="right"><?= number_format($grandtotals, 2) ?></td>
+                </tr>
+                <tr>
+                    <th scope="row" class="spec" colspan="2">Term Of Payment :</th>
+                    <td align="left" colspan="9">
+                        <?php
+                        if ($this->etc[0]['payterm'] == '')
+                            echo "&nbsp;";
+                        else
+                            echo $this->etc[0]['payterm'];
+                        ?></td>
+                </tr>
+                <tr>
+                    <th scope="row" class="spec"  colspan="2">Remark :</th>
+                    <td align="left" colspan="9">
+                        <?php
+                        if ($this->etc[0]['ket'] == '')
+                            echo "&nbsp;";
+                        else
+                            echo $this->etc[0]['ket'];
+                        ?></td>
+                </tr>
+            </table>
+
+            <div class="ketin">
+                <fieldset>
+                    <legend>Internal Notes</legend>
+                    <p>
+                        <?php echo $this->etc[0]['ketin']; ?>
+                    </p>
+                </fieldset>
+            </div>
+
+            <?php
+            if ($this->etc[0]['user_approval'] != '') {
+                ?>
+                <div class="all-approve">
+                    <b>Approval History</b></br>
+                    <ul>
+                        <?php
+                        foreach ($this->etc[0]['user_approval'] as $key => $val) {
+                            ?>
+                            <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+                            <?
+                        }
+                        ?>
+                    </ul>
+                </div>
+                <?php
+            }
+            ?>
+
+
+    <div style="margin-top:15px; float:right;" id="wButton">
+
+    </div>

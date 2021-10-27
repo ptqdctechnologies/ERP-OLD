@@ -1,0 +1,270 @@
+<style type="text/css">
+.all-approve{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 100px;
+    overflow: auto;
+}    
+
+.all-docs{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 40px;
+    overflow: auto;
+}
+</style>
+
+<h1>Deletion Workflow Transaction : <?php echo $this->trano; ?></h1></br> 
+
+<b>Approval History</b></br>
+<div class="all-approve">
+    <ul>
+    <?php
+    if(count($this->userApp)>0)
+    {
+        foreach ($this->userApp as $key => $val)
+        {
+    ?>
+    <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+    <?php
+        }
+    }
+    ?>
+    </ul>
+</div>
+
+<?php
+        if ( count($this->result)>0)
+        {
+            foreach ($this->result as $key => $val)
+            {
+?>
+<b><?php echo $key?></b></br>
+<div class="all-docs">
+    <ul>
+<?php
+                $nomor = 1;
+                foreach ($val as $key2 => $val2)
+                {
+?>
+        <li><?php echo $nomor . ". " . $val2?></li>
+<?php
+                    $nomor++;
+                }
+?>
+    </ul>
+</div>
+<?php        
+            }
+        }
+?>
+
+<script type="text/javascript">
+
+var uid = '';
+var trano = '<?php echo $this->trano; ?>';
+
+var okButton = new Ext.Button({
+    text: 'OK',
+    iconCls: 'icon-add',
+    scale: 'large',
+    handler: function (){
+        showUserList();
+
+    function showUserList()
+    {
+    var columns = [
+                    {header:'Id',width:35,sortable:true,dataIndex:'id'},
+                    {header:'User ID',width:65,sortable:true,dataIndex:'uid'},
+                    {header:'User Name',width:150,sortable:true,dataIndex:'Name'},
+                ];
+
+    data =  [
+            {name: 'id', mapping: 'id'},
+            {name: 'uid', mapping: 'uid'},
+            {name: 'Name', mapping: 'Name'},
+            ];
+
+
+    urlJson = '/default/user/list';
+
+    primaryKey = 'id';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'id';
+				            txtBoxChange = 'mgr_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-user_button';
+				            uid = g.getStore().getAt(rowIndex).get('uid');
+
+                            Ext.MessageBox.show({
+                                title: 'Deletion Reason',
+                                msg: 'Please enter reason:',
+                                width:300,
+                                buttons: Ext.MessageBox.OKCANCEL,
+                                multiline: true,
+                                fn: showResultText
+                            });
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchUserLogin = function(field,e){
+        newUrl = '/default/user/listByParams/name/master_login/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchUserName = function(field,e){
+        newUrl = '/default/user/listByParams/name/Name/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-user_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'User Login:'
+            },
+             new txtboks(100,10,80,'master_login',searchUserLogin),
+             {
+            x: 190,
+            y: 12,
+            xtype: 'label',
+            text: 'User Name:'
+            },
+            new txtboks(260,10,80,'Name',searchUserName),
+             new grids('user_list')
+        ]
+
+      });
+      aForm.title = 'Choose User';
+      aForm.show();
+    }
+
+	function showResultText(btn, text){
+		var comment='';
+		if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+
+		params = {trano:trano, uid: uid, comment: comment};
+		Ext.Ajax.request({
+	        url: '/admin/document/commitdelete',
+	        method:'POST',
+	        success: function(resp){
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+					Ext.Msg.alert('Success', 'Document has been deleted from workflow trans!');
+					myPanel = Ext.getCmp('abs-budget-panel');
+				    myPanel.body.load({
+				        url: '/admin/document/document',
+				        scripts : true
+			        });
+				}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+	        },
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+	}
+	},
+	renderTo: 'ok-button'
+});
+
+</script>
+
+<div style="margin-top:15px;">
+    <div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+    <div id="ok-button"  style="float: right;"></div>
+</div>

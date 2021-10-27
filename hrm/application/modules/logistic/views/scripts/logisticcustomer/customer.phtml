@@ -1,0 +1,322 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init ();
+
+        <?php echo $this->action('index','textfield',null);?>
+
+        function showeditcustomer () {
+			showcustomerchoose();
+	    };
+
+        function showaddcustomer ()
+        {
+            Panel = Ext.getCmp('master_customer');
+            Panel.body.load ({
+                url:'/logistic/logisticcustomer/addcustomer',
+                scripts:true
+            })
+        }/* End showaddcustomer */
+
+        var windowForm = ({
+            title:'Master Customer',
+            id:'master_customer',
+            layout:'fit',
+            bodyCfg:{ cls:'x-panel-body-table',style:{'overflow':'auto'}},
+            bodyStyle: 'margin:15px;',
+            loadMask:true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[
+                {
+                    xtype:'tbbutton',
+                    text:'Select Action',
+                    iconCls:'menu-drop',
+                    menu:{
+                        items:[
+                            {
+                                id:'customer_add_button',
+                                text:'Add Customer',
+                                cls:"x-btn-text-icon" ,
+						        icon:"/images/icons/fam/action_paste.gif",
+                                handler:showaddcustomer
+                            },
+                            {
+                                id:'customer_edit_button',
+                                text:'Edit Existing Customer',
+                                cls:"x-btn-text-icon" ,
+						        icon:"/images/icons/fam/action_paste.gif",
+                                handler:showeditcustomer
+                            }
+                        ]
+                    }
+                }
+            ]
+        }); /* End windowForm */
+
+        function showcustomerchoose (num)
+        {
+            var formsearchcustomer = new Ext.form.FormPanel ({
+
+                frame:true,
+                labelWidth:150,
+                items:[
+                    {
+                        fieldLabel:'Customer Code',
+                        id:'cus_kode',
+                        xtype:'trigger',
+                        allowBlank:false,
+                        editable:false,
+                        value:num,
+                        onTriggerClick: function ()
+                        {
+                            searchcustomer.close();
+                            showcustomerlist ();
+                        },
+                        scope: this,
+                        width: 150
+                    }
+                ],
+                buttons:[
+                    {
+                        text:'Edit',
+                        id:'save',
+                        iconCls: 'silk-upd',
+                        handler: function(btn, ev)
+                         {
+                            var cus_kode = Ext.getCmp('cus_kode').getValue();
+                            if (cus_kode == null || cus_kode == "" || cus_kode == undefined)
+                            {
+                                Ext.Msg.alert('Error','Please Choose Customer Code');
+                                return false;
+                            }else
+                            {
+                                myPanel = Ext.getCmp('master_customer');
+				          	    myPanel.body.load({
+				          	        url: '/logistic/logisticcustomer/editcustomer/cus_kode/' + cus_kode,
+				          	        scripts : true
+				                });
+                            }
+
+                             searchcustomer.close();
+                         }
+                    },
+                    {
+                        text:'Cancel',
+                        id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         searchcustomer.close();
+			              }
+                    }
+                ]
+
+            }); /* formsearchcustomer */
+
+
+            var searchcustomer = new Ext.Window ({
+
+                id:'search_customer',
+                layout:'absolute',
+                width: 350,
+                height: 100,
+                style: 'margin-top: 10px',
+                labelAlign: 'right',
+                stateful: false,
+                modal: true,
+                resizable: false,
+                items:[
+                    formsearchcustomer
+                ]
+
+            }); /* searchcustomer */
+
+            searchcustomer.show();
+
+        }/* End showsearchcustomer */
+
+
+        function showcustomerlist ()
+        {
+            var customerstore = new Ext.data.Store ({
+
+                url:'/logistic/logisticcustomer/getcustomer',
+                autoLoad:true,
+
+                reader: new Ext.data.JsonReader({
+                    root:'data',
+                    totalProperty:'total'
+                },[
+                    {name:'cus_kode',type:'String'},
+                    {name:'cus_nama',type:'String'},
+                    {name:'alamat',type:'String'},
+                    {name:'kota',type:'String'},
+                    {name:'tlp',type:'String'},
+                    {name:'fax',type:'String'},
+                    {name:'ket',type:'String'},
+                    {name:'user',type:'String'},
+                    {name:'top',type:'int'},
+                    {name:'email',type:'String'},
+                    {name:'id',type:'int'}
+                ])
+
+            })
+
+
+            var grid = new Ext.grid.GridPanel({
+
+                store:customerstore,
+//                renderTo:'viewcustomer',
+                height: 326,
+                width:420,
+                listeners:{
+                    'rowdblclick':function(gridYangAktif, rowIndex, e){
+                        isDblClick = true;
+                        txtBoxChange = 'customerlist';
+                        var customer = gridYangAktif.getStore().getAt(rowIndex).get('cus_kode');
+                        showcustomerchoose(customer);
+                        Ext.getCmp('customerlist').close();
+                        window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                    }
+                },
+                columns:[
+                    {
+                        header:'code',
+                        width:60,
+                        dataIndex:'cus_kode',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'name',
+                        width:140,
+                        dataIndex:'cus_nama',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'address',
+                        width:180,
+                        dataIndex:'alamat',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'phone',
+                        width:100,
+                        dataIndex:'tlp',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'fax',
+                        width:100,
+                        dataIndex:'fax',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'description',
+                        width:100,
+                        dataIndex:'ket',
+                        align:'center',
+                        sortable:true
+                    },{
+                        header:'email',
+                        width:140,
+                        dataIndex:'email',
+                        align:'center',
+                        sortable:true
+                    }
+                ],
+                bbar: new Ext.PagingToolbar ({
+                    id: 'paging2',
+                    pageSize: 10,
+                    store: customerstore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[
+                    {
+                        text:'Customer Name',
+                        xtype:'label',
+                        style: 'margin-left: 5px'
+
+                    },{
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left: 5px'
+
+                    },{
+                        text: 'Search',
+                        iconCls: 'search-icon',
+                        handler: searchData,
+                        scope: this
+                    },
+                    '-',
+                    {
+                        text: 'refresh',
+                        iconCls: 'icon-refresh',
+                        handler: refreshData,
+                        scope: this
+                    },'-'
+                ]
+
+            })
+
+            function searchData ()
+            {
+                var search = Ext.getCmp('search').getValue();
+                customerstore.proxy.setUrl('/logistic/logisticcustomer/getcustomer/search/' + search);
+                customerstore.reload();
+                grid.getView().refresh();
+            }
+
+            function refreshData ()
+            {
+                customerstore.clearFilter();
+                Ext.getCmp('search').setValue('');
+                Ext.getCmp('paging').doRefresh();
+            }
+
+
+            var customerlist = new Ext.Window ({
+
+                title:'Customer List',
+                id:'customerlist',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    grid
+                ]
+
+            })
+
+            customerlist.show ();
+
+
+        }
+
+
+
+        viewPort = Ext.getCmp('viewport');
+        CenterContent = viewPort.getComponent('content-panel');
+        CenterContent.items.each(function(c){CenterContent.remove(c);});
+        CenterContent.add(windowForm);
+        newPanel = Ext.getCmp('master_customer');
+        CenterContent.layout.setActiveItem('master_customer');
+        newPanel.body.load({
+            url:'/logistic/logisticcustomer/viewcustomer',
+            scripts:true
+        })
+        showSubmenu('master_customer');
+
+    }) /* End OnreadyFunction */
+
+</script>

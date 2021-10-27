@@ -1,0 +1,118 @@
+<script type="text/javascript">
+
+    function deletepulsa (ID)
+    {
+        Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+            if (btn == 'yes')
+            {
+                Ext.Ajax.request({
+                    url:'/admin/document/dodeletepulsa/id/'+ ID,
+                    method:'POST',
+//                    params:params,
+                    success:function(result){
+                        obj = Ext.util.JSON.decode(result.responseText);
+
+                        if (obj.success)
+                        {
+//                            Ext.Msg.alert ('Message','Success, Data has been saved' + '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>' );
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                            url: '/admin/document/viewpulsa',
+                            scripts : true
+                            });
+                        }else
+                        {
+                            Ext.Msg.alert('Error', obj.msg);
+                        }
+                    },
+                    failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.response.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                    }
+
+                })
+            }
+
+        })
+    }
+    
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+
+        var storepulsa = new Ext.data.Store ({
+
+            id:'store-pulsa',
+                url:'/admin/document/getpulsa',
+                autoLoad:true,
+                    reader:new Ext.data.JsonReader ({
+                        root:'data',
+                        totalProperty:'total',
+                        fields:[{
+                            name:'kode'
+                        },{
+                            name:'nama_brg'
+                        },{
+                            name:'id'
+                        }]
+                    })
+
+
+        })
+
+        var gridpulsa = new Ext.grid.GridPanel ({
+
+            store:storepulsa,
+            height:200,
+            width:340,
+            frame:true,
+            renderTo:'view_pulsa',
+            id:'pulsa',
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Material Code',
+                dataIndex:'kode',
+                sortable:true,
+                width:80,
+                align:'center'
+            },{
+                header:'Material Name',
+                dataIndex:'nama_brg',
+                sortable:true,
+                width:180,
+                align:'center'
+            },{
+                header: "Action",
+                width: 60,
+                dataIndex: 'id',
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="deletepulsa(\'' + r.id + '\')"><img src="/images/g_rec_del.png"></a>';
+                }
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-pulsa',
+                pageSize: 10,
+                store: storepulsa,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+
+    })
+
+</script>
+
+    <div id="view_pulsa"></div>

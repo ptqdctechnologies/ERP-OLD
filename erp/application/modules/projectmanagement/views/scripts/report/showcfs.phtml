@@ -1,0 +1,224 @@
+<script type="text/javascript">
+
+Ext.apply(Ext.form.VTypes, {
+    daterange : function(val, field) {
+        var date = field.parseDate(val);
+
+        if(!date){
+            return false;
+        }
+        if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+            var start = Ext.getCmp(field.startDateField);
+            start.setMaxValue(date);
+            start.validate();
+            this.dateRangeMax = date;
+        }
+        else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+            var end = Ext.getCmp(field.endDateField);
+            end.setMinValue(date);
+            end.validate();
+            this.dateRangeMin = date;
+        }
+        /*
+         * Always return true since we're only using this vtype to set the
+         * min/max allowed values (these are tested for after the vtype test)
+         */
+        return true;
+    },
+
+    numericText: "Only numbers are allowed.",
+    numericMask: /[0-9]/,
+    numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+    numeric: function(v) {
+        return function() { return this.numericRe.test(v)} ;
+    }
+
+});
+
+showCFS = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+
+	if (prjKode == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Project Code!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	}
+
+    //month = Ext.getCmp('month').getValue();
+    var D = Ext.calendar.Date;
+    //month = D.formatDate(month,'yyyy-mm');
+    start = Ext.getCmp('startdate').getValue();
+    start = D.formatDate(start,'yyyy-mm-dd');
+    end = Ext.getCmp('enddate').getValue();
+    end = D.formatDate(end,'yyyy-mm-dd');
+    sitkode = Ext.getCmp('sit_kode_text').getValue();
+
+    myPanel.body.load({
+        //url: '/projectmanagement/report/cfs/prj_kode/' + prjKode + '/month/' + month +'/start/' + start + '/end/' + end +'/sit_kode/'+sitkode,
+        url: '/projectmanagement/report/cfs/prj_kode/' + prjKode+'/start/' + start + '/end/' + end +'/sit_kode/'+sitkode,
+        scripts: true
+    });
+}
+
+var i = 1;
+
+var monthArray = Date.monthNames.map(function (e) { return [e,i++]; });
+
+var windowForm =  ({
+
+    title: 'CFS Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselectorreport',
+            fieldLabel: 'Project Code',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text',
+            ShowName: false
+        }
+        ,'-',
+        {
+            xtype:'label',
+            text:'Site Code'
+        }
+        ,'-',
+        {
+            xtype: 'siteselector',
+            fieldLabel: 'Site Code',
+            anchor: '100%',
+            id: 'site-select',
+            SiteSelectid: 'sit_kode_text',
+            SiteNameid: 'sit_nama_text',
+            ProjectSelectid: 'prj_kode_text',
+            ShowName: false
+        }
+        , '-',
+        {
+            xtype:'label',
+            text:'Periode'
+        },
+        '-',
+        /*{
+            text: 'By Month',
+            iconCls: 'icon-calendar',
+            style: {
+                overflow: 'visible'     // For the Combo popup
+            },
+            menu: {
+                xtype: 'menu',
+                plain: true,
+                items:
+                    [
+                        '<b class="menu-title">Month & Year</b>',
+                        {
+                            xtype:'datefield',
+                            name: 'month',
+                            id: 'month',
+                            msgTarget:'side',
+                            format: 'm-Y', // or other format you'd like
+                            plugins: 'monthPickerPlugin',
+                            listeners: {
+                                'select': function(t, newDate) {
+                                    Ext.getCmp('startdate').setValue('');
+                                    Ext.getCmp('enddate').setValue('');
+                                }
+                            }
+                        },
+                    ]
+            }
+        },*/
+        {
+            text: 'By Date',
+            iconCls: 'icon-calendar',
+            style: {
+                overflow: 'visible'     // For the Combo popup
+            },
+            menu: {
+                xtype: 'menu',
+                plain: true,
+                items:
+                    [
+                        '<b class="menu-title">Start Date</b>',
+                        {
+                            xtype:'datefield',
+                            name: 'startdate',
+                            id: 'startdate',
+                            msgTarget:'side',
+                            endDateField: 'enddate', // id of the end date field
+                            vtype: 'daterange',
+                            format: 'd-m-Y', // or other format you'd like
+                            //value:startDateProject,
+                            //listeners: {
+                            //    'select': function(t, newDate) {
+                            //        Ext.getCmp('month').setValue('');
+                            //    }
+                            //}
+                        },
+                        '<b class="menu-title">End Date</b>',
+                        {
+                            xtype:'datefield',
+                            name: 'enddate',
+                            id: 'enddate',
+                            startDateField: 'startdate', // id of the start date field
+                            msgTarget:'side',
+                            vtype: 'daterange',
+                            format: 'd-m-Y', // or other format you'd like
+                            //listeners: {
+                            //    'select': function(t, newDate) {
+                            //        Ext.getCmp('month').setValue('');
+                            //    }
+                            //}
+                        },
+                    ]
+            }
+        },'-','-',
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showCFS
+        },
+        {
+            xtype: 'button',
+            text: 'Reset',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/lov_refresh.gif",
+            handler: function(){
+                //Ext.getCmp('month').setValue('');
+                Ext.getCmp('startdate').setValue('');
+                Ext.getCmp('enddate').setValue('');
+            }
+        },
+    ]
+});
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

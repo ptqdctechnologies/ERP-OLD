@@ -1,0 +1,717 @@
+<script type="text/javascript">
+
+    var tujuanTemp = '';
+    function showcoalist(tipe)
+    {
+        var coastore = new Ext.data.Store({
+            autoLoad: true,
+            url: '/finance/paymentreimbursement/getcoalist',
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'coa_kode'
+                    }, {
+                        name: 'coa_nama'
+                    }, {
+                        name: 'tipe'
+                    }]
+            })
+
+        })
+
+        var coagrid = new Ext.grid.GridPanel({
+            store: coastore,
+            viewConfig: {
+                forceFit: true
+            },
+            height: 300,
+            columns: [{
+                    header: 'COA CODE',
+                    dataIndex: 'coa_kode',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'COA NAME',
+                    dataIndex: 'coa_nama',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Type',
+                    dataIndex: 'tipe',
+                    align: 'center',
+                    sortable: true
+                }],
+            bbar: new Ext.PagingToolbar({
+                id: 'paging-coa',
+                pageSize: 20,
+                store: coastore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }), tbar: [{
+                    text: 'Search By',
+                    xtype: 'label',
+                    style: 'margin-left:5px'
+                }, {
+                    xtype: 'combo',
+                    width: 100,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['name', 'nilai'],
+                        data: [
+                            ['Coa Code', 1],
+                            ['Coa Name', 2],
+                            ['Coa Type', 3]
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value: 1,
+                    id: 'option'
+                }, {
+                    xtype: 'textfield',
+                    id: 'search',
+                    style: 'margin-left:10px',
+                    enableKeyEvents: true,
+                    width: 100,
+                    listeners: {
+                        'keyup': function(txttext, event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+                                coastore.proxy.setUrl('/finance/paymentreimbursement/getcoalist/search/' + search + '/option/' + option);
+                                coastore.reload();
+                                coagrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+            listeners:
+                    {
+                        'rowdblclick': function(gridaktif, rowIndex, e)
+                        {
+                            isDbClick = true;
+                            var coa = gridaktif.getStore().getAt(rowIndex);
+                            var coa_kode = coa.get('coa_kode');
+                            if (tipe == 'debet')
+                            {
+                                Ext.getCmp('coa_debit').setValue(coa_kode);
+                            } else if (tipe == 'credit')
+                            {
+                                Ext.getCmp('coa_credit').setValue(coa_kode);
+                            }
+
+                            coawindow.close();
+                        }
+                    }
+
+
+
+        })
+
+        var coawindow = new Ext.Window({
+            title: 'COA List',
+            id: 'coa-list-window',
+            layout: 'absolute',
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask: true,
+            items: [
+                coagrid
+            ]
+
+        })
+
+        coawindow.show();
+    }
+
+    Ext.form.ImageField = Ext.extend(Ext.form.Field, {
+        autoCreate: {tag: 'img'}
+        , setValue: function(new_value) {
+            if (new_value == undefined || new_value == null) {
+                this.el.dom.src = '/images/no_image.png';
+            } else {
+                this.el.dom.src = '/images/' + new_value;
+            }
+        }
+        , initValue: function() {
+            this.setValue(this.value);
+        }
+
+        , initComponent: function() {
+            Ext.apply(this, {
+            });
+            Ext.form.ImageField.superclass.initComponent.apply(this);
+        }
+    });
+    Ext.reg('image_field', Ext.form.ImageField);
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+        var panel = new Ext.form.FormPanel({
+            title: 'Insert COA for Journal Inventory',
+            id: 'insert-jurnalinventory',
+            renderTo: 'insert_jurnalinventory',
+            frame: true,
+            width: 700,
+            items: [{
+                    xtype: 'textfield',
+                    fieldLabel: 'Code Name',
+                    id: 'code_name',
+                    allowBlank: false,
+                    width: 150
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: '',
+                    id: 'id',
+                    allowBlank: false,
+                    hidden: true
+                }, {
+                    fieldLabel: 'Deliver Type',
+                    id: 'deliver_to_text',
+                    name: 'tujuan',
+                    xtype: 'combo',
+                    width: 150,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['type', 'name'],
+                        data: [
+                            ['wh-site', 'Warehouse to Site'],
+                            ['wh-wh', 'Warehouse to Warehouse'],
+                            ['sup-site', 'Supplier to Site'],
+                            ['sup-wh', 'Supplier to Warehouse'],
+                            ['site-wh', 'Site to Warehouse'],
+                        ]
+                    }),
+                    valueField: 'type',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    emptyText: 'Select Type',
+                    listeners: {
+                        'select': function(c, store, index) {
+                            Ext.getCmp('tanda-panah').setVisible(true);
+                            var data = store.data['type'];
+                            if (data == 'wh-site')
+                            {
+                                Ext.getCmp('fieldset-wh').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(false);
+//                                Ext.getCmp('fieldset-site').setVisible(true);
+                                Ext.getCmp('fieldset-sup').setVisible(false);
+                                Ext.getCmp('tanda-panah').setVisible(false);
+                                Ext.getCmp('gdg_kode_to').setValue("S");
+                                Ext.getCmp('gdg_kode_from').setValue("");
+
+                            }
+                            else if (data == 'wh-wh')
+                            {
+                                Ext.getCmp('fieldset-wh').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(true);
+//                                Ext.getCmp('fieldset-site').setVisible(false);
+                                Ext.getCmp('fieldset-sup').setVisible(false);
+                                Ext.getCmp('gdg_kode_from').setValue("");
+                                Ext.getCmp('gdg_kode_to').setValue("");
+
+                            }
+                            else if (data == 'sup-site')
+                            {
+//                                Ext.getCmp('fieldset-sup').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(false);
+                                Ext.getCmp('fieldset-wh').setVisible(false);
+                                Ext.getCmp('tanda-panah').setVisible(false);
+                                Ext.getCmp('gdg_kode_to').setValue("S");
+                                Ext.getCmp('gdg_kode_from').setValue("Supp");
+                            }
+                            else if (data == 'sup-wh')
+                            {
+//                                Ext.getCmp('fieldset-sup').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(true);
+                                Ext.getCmp('fieldset-wh').setVisible(false);
+                                Ext.getCmp('tanda-panah').setVisible(true);
+                                Ext.getCmp('gdg_kode_from').setValue("Supp");
+                                Ext.getCmp('gdg_kode_to').setValue("");
+                            }
+                            else if (data == 'site-wh')
+                            {
+//                                Ext.getCmp('fieldset-sup').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(true);
+                                Ext.getCmp('fieldset-wh').setVisible(false);
+                                Ext.getCmp('tanda-panah').setVisible(true);
+                                Ext.getCmp('gdg_kode_from').setValue("S");
+                                Ext.getCmp('gdg_kode_to').setValue("");
+                            }
+
+                        }
+                    }
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-wh',
+                                    title: 'Warehouse Detail',
+                                    itemId: 'fieldset-item-wh',
+                                    width: 275,
+                                    hidden: true,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Warehouse',
+                                            id: 'gdg_kode_from',
+                                            name: 'gdg_kode_from',
+                                            xtype: 'combo',
+                                            width: 130,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/delivery/list'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'gdg_nama'
+                                                    }, {
+                                                        name: 'gdg_kode'
+                                                    }, {
+                                                        name: 'alamat1'
+                                                    },
+                                                    {
+                                                        name: 'sts_temporary'
+                                                    }])
+                                            }),
+                                            valueField: 'gdg_kode',
+                                            displayField: 'gdg_nama',
+                                            typeAhead: true,
+                                            forceSelection: true,
+                                            editable: false,
+                                            mode: 'remote',
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            emptyText: 'Select Warehouse',
+                                            listeners: {
+                                                'select': function(c, store, index) {
+
+                                                    var temp = store.data['sts_temporary'];
+                                                    if (temp == '1')
+                                                    {
+                                                        tujuanTemp = 'site-wh';
+                                                    } else
+                                                        tujuanTemp = '';
+
+                                                }
+                                            }
+                                        }
+//                                        ,
+//                                        {
+//                                            fieldLabel: 'Address',
+//                                            id: 'gudang_text',
+//                                            xtype: 'textarea',
+//                                            disabled: true,
+//                                            width: 150,
+//                                            height: 80
+//                                        }
+                                    ]
+                                },
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-sup',
+                                    title: 'Supplier Detail',
+                                    itemId: 'fieldset-item-sup',
+                                    hidden: true,
+                                    width: 300,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Suppiler',
+                                            id: 'supplier_select_text',
+                                            xtype: 'combo',
+                                            width: 170,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/suplier/listall'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'sup_nama'
+                                                    }, {
+                                                        name: 'sup_kode'
+                                                    }, {
+                                                        name: 'alamat'
+                                                    }])
+                                            }),
+                                            valueField: 'sup_kode',
+                                            displayField: 'sup_nama',
+                                            typeAhead: true,
+                                            forceSelection: true,
+                                            editable: false,
+                                            mode: 'remote',
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            emptyText: 'Select Supplier',
+                                            listeners: {
+                                                'select': function(c, store, index) {
+
+                                                    var data = store.data['sup_kode'];
+                                                    Ext.getCmp('gdg_from').setValue(data);
+                                                }
+                                            }
+                                        }
+//                                        ,
+//                                        {
+//                                            fieldLabel: 'Address',
+//                                            id: 'supplier_text',
+//                                            xtype: 'textarea',
+//                                            disabled: true,
+//                                            width: 170,
+//                                            height: 80
+//                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .100,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'image_field',
+                                    hideLabel: true,
+                                    id: 'tanda-panah',
+                                    hidden: true,
+                                    value: 'arrow-right.png'
+                                }
+                            ]
+                        },
+                        {
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-wh2',
+                                    title: 'Warehouse Detail',
+                                    itemId: 'fieldset-item-wh2',
+                                    hidden: true,
+                                    width: 275,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Warehouse',
+                                            id: 'gdg_kode_to',
+                                            name: 'gdg_kode_to',
+                                            xtype: 'combo',
+                                            width: 130,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/delivery/list'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'gdg_nama'
+                                                    }, {
+                                                        name: 'gdg_kode'
+                                                    }, {
+                                                        name: 'alamat1'
+                                                    }, {
+                                                        name: 'sts_temporary'
+                                                    }])
+                                            }),
+                                            valueField: 'gdg_kode',
+                                            displayField: 'gdg_nama',
+                                            typeAhead: true,
+                                            forceSelection: true,
+                                            editable: false,
+                                            mode: 'remote',
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            emptyText: 'Select Warehouse',
+                                            listeners: {
+                                                'select': function(c, store, index) {
+                                                    var temp = store.data['sts_temporary'];
+                                                    if (temp == '1')
+                                                    {
+                                                        tujuanTemp = 'wh-site';
+                                                    } else
+                                                        tujuanTemp = '';
+
+
+                                                }
+                                            }
+                                        }
+//                                        ,
+//                                        {
+//                                            fieldLabel: 'Address',
+//                                            id: 'gudang_text2',
+//                                            xtype: 'textarea',
+//                                            disabled: true,
+//                                            width: 150,
+//                                            height: 80
+//                                        }
+                                    ]
+                                },
+//                                {
+//                                    xtype: 'fieldset',
+//                                    id: 'fieldset-site',
+//                                    title: 'Site Detail',
+//                                    itemId: 'fieldset-item-site',
+//                                    hidden: true,
+//                                    width: 300,
+//                                    items: [
+////                                        {
+////                                            id: 'sit_nama_text',
+////                                            fieldLabel: 'Site Name',
+////                                            xtype: 'textfield',
+////                                            width: 130
+////                                        }
+////                                        ,
+//////                                        {
+//////                                            fieldLabel: 'Address',
+//////                                            id: 'site_alamat_text',
+//////                                            xtype: 'textarea',
+//////                                            width: 130,
+//////                                            height: 80
+//////                                        }
+//                                    ]
+//                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    xtype: 'combo',
+                    fieldLabel: 'COA Debet ',
+                    id: 'coa_debit',
+                    triggerClass: 'teropong',
+                    allowBlank: false,
+                    editable: false,
+                    width: 100,
+                    onTriggerClick: function()
+                    {
+                        showcoalist('debet');
+                    }
+                },
+                {
+                    xtype: 'combo',
+                    fieldLabel: 'COA Credit ',
+                    id: 'coa_credit',
+                    triggerClass: 'teropong',
+                    allowBlank: false,
+                    editable: false,
+                    width: 100,
+                    onTriggerClick: function()
+                    {
+                        showcoalist('credit');
+                    }
+                }],
+            buttons: [{
+                    text: 'Submit',
+                    handler: function(btn, ev)
+                    {
+                        var id = Ext.getCmp('id').getValue();
+                        var tujuan = Ext.getCmp('deliver_to_text').getValue();
+                        if (tujuanTemp != "")
+                            tujuan = tujuanTemp;
+
+                        if (tujuan == "")
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select Deliver Type!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        var from_kode = Ext.getCmp('fieldset-wh').findById('gdg_kode_from').getValue();
+                        var dest_kode = Ext.getCmp('fieldset-wh2').findById('gdg_kode_to').getValue();
+                        if (tujuan == 'wh-wh')
+                        {
+                            if (from_kode == "" || dest_kode == "")
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please select Warehouse!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+                        else if (tujuan == 'sup-wh' || tujuan == 'site-wh') {
+                            if (dest_kode == "")
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please select Warehouse!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+
+                        var coa_debit = Ext.getCmp('coa_debit').getValue();
+                        if (coa_debit == "")
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select COA Debit!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        var coa_credit = Ext.getCmp('coa_credit').getValue();
+                        if (coa_credit == "")
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select COA Credit!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        var name = Ext.getCmp('code_name').getValue();
+                        if (name == "")
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Insert Code Name!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+                            if (btn == 'yes')
+                            {
+                                params = {
+                                    gdg_kode_from: from_kode,
+                                    gdg_kode_to: dest_kode,
+                                    nama: name,
+                                    coa_credit: coa_credit,
+                                    coa_debit: coa_debit,
+                                    type: tujuan,
+                                    id: id
+                                };
+                                Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                Ext.Ajax.request({
+                                    url: '/finance/jurnalinventory/doupdatejurnalinventory', //the url
+                                    scripts: true,
+                                    params: params,
+                                    success: function(result, response) {
+                                        Ext.getBody().unmask();
+                                        if (response.success)
+                                        {
+                                            Ext.Msg.alert('Message', 'Success, Data has been saved');
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/finance/jurnalinventory/menu',
+                                                scripts: true
+
+                                            });
+                                        }
+                                    },
+                                    failure: function(thisForm, response) {
+                                        Ext.getBody().unmask();
+                                        if (response.failureType == 'server')
+                                        {
+                                            var resp = Ext.util.JSON.decode(response.response.responseText);
+                                            Ext.Msg.alert('Error', resp.msg);
+                                        }
+                                    }//our params goes here
+                                });
+
+
+
+                            }
+
+                        })
+                    }
+                }, {
+                    text: 'Reset',
+                    handler: function(btn, ev)
+                    {
+                        Ext.getCmp('insert-jurnalinventory-fixed-asset').getForm().reset();
+                    }
+                }]
+
+
+        });
+
+<?php if ($this->jurnalinventory) { ?>
+    <?php if ($this->jurnalinventory['type'] == 'wh-wh') { ?>
+
+                var record = Ext.getCmp('deliver_to_text').findRecord('type', '<?= $this->jurnalinventory['type'] ?>');
+                var index = Ext.getCmp('deliver_to_text').store.indexOf(record);
+                Ext.getCmp('deliver_to_text').onSelect(record, index);
+                Ext.getCmp('deliver_to_text').setValue('<?= $this->jurnalinventory['type'] ?>');
+
+                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setValue('<?= $this->jurnalinventory['gdg_kode_from'] ?>');
+                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setRawValue('<?= $this->jurnalinventory['gdg_nama_from'] ?>');
+                Ext.getCmp('fieldset-wh2').findById('gdg_kode_to').setValue('<?= $this->jurnalinventory['gdg_kode_to'] ?>');
+                Ext.getCmp('fieldset-wh2').findById('gdg_kode_to').setRawValue('<?= $this->jurnalinventory['gdg_nama_to'] ?>');
+    <?php } else if ($this->jurnalinventory['type'] == 'wh-site') { ?>
+                var record = Ext.getCmp('deliver_to_text').findRecord('type', '<?= $this->jurnalinventory['type'] ?>');
+                var index = Ext.getCmp('deliver_to_text').store.indexOf(record);
+                Ext.getCmp('deliver_to_text').onSelect(record, index);
+                Ext.getCmp('deliver_to_text').setValue('<?= $this->jurnalinventory['type'] ?>');
+                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setValue('<?= $this->jurnalinventory['gdg_kode_from'] ?>');
+                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setRawValue('<?= $this->jurnalinventory['gdg_nama_from'] ?>');
+    <?php } else if ($this->jurnalinventory['type'] == 'sup-site') { ?>
+                var record = Ext.getCmp('deliver_to_text').findRecord('type', '<?= $this->jurnalinventory['type'] ?>');
+                var index = Ext.getCmp('deliver_to_text').store.indexOf(record);
+                Ext.getCmp('deliver_to_text').onSelect(record, index);
+                Ext.getCmp('deliver_to_text').setValue('<?= $this->jurnalinventory['type'] ?>');
+        //                Ext.getCmp('fieldset-sup').findById('gdg_kode_from').setValue('<?= $this->jurnalinventory['gdg_kode_from'] ?>');
+    <?php } else if ($this->jurnalinventory['type'] == 'sup-wh' || $this->jurnalinventory['type'] == 'site-wh') { ?>
+                var record = Ext.getCmp('deliver_to_text').findRecord('type', '<?= $this->jurnalinventory['type'] ?>');
+                var index = Ext.getCmp('deliver_to_text').store.indexOf(record);
+                Ext.getCmp('deliver_to_text').onSelect(record, index);
+                Ext.getCmp('deliver_to_text').setValue('<?= $this->jurnalinventory['type'] ?>');
+                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setValue('<?= $this->jurnalinventory['gdg_kode_from'] ?>');
+        //                Ext.getCmp('fieldset-wh').findById('gdg_kode_from').setRawValue('<?= $this->jurnalinventory['gdg_nama_from'] ?>');
+                Ext.getCmp('fieldset-wh2').findById('gdg_kode_to').setValue('<?= $this->jurnalinventory['gdg_kode_to'] ?>');
+                Ext.getCmp('fieldset-wh2').findById('gdg_kode_to').setRawValue('<?= $this->jurnalinventory['gdg_nama_to'] ?>');
+    <?php } ?>
+            Ext.getCmp('code_name').setValue('<?= $this->jurnalinventory['nama'] ?>');
+            Ext.getCmp('coa_credit').setValue('<?= $this->jurnalinventory['coa_credit'] ?>');
+            Ext.getCmp('coa_debit').setValue('<?= $this->jurnalinventory['coa_debit'] ?>');
+            Ext.getCmp('id').setValue('<?= $this->jurnalinventory['id'] ?>');
+<?php } ?>
+    });
+
+
+</script>
+
+<div id="insert_jurnalinventory"></div>

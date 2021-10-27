@@ -1,0 +1,465 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+        Ext.QuickTips.init();
+
+        <?php echo $this->action('index','textfield',null); ?>
+
+        function showProgress()
+        {
+            var bForm = new Ext.Window ({
+           	 id: 'b-form-panel-trano_button',
+  		    layout:'fit',
+  		    width: 300,
+  		    height: 150,
+            modal: true,
+  		    style: 'margin-top: 10px',
+  		    labelAlign: 'right',
+  		    stateful: false,
+  		    items : [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Project Code',
+								    id : 'prj_kode_text',
+								    xtype: 'trigger',
+					                allowBlank: false,
+					                editable : false,
+								    onTriggerClick:
+					                    function ()
+					                    {
+//					        				bForm.hide();
+											showPrjList();
+					                    },
+					            	scope: this,
+					            	width: 150
+						    	},
+                                {
+								    fieldLabel : 'Site Code',
+								    id : 'sit_kode_text',
+								    xtype: 'trigger',
+					                allowBlank: false,
+					                editable : false,
+								    onTriggerClick:
+					                    function ()
+					                    {
+//					        				bForm.hide();
+											showSitList();
+					                    },
+					            	scope: this,
+					            	width: 150
+						    	}]
+						})
+ 		  		    ],
+ 	 		  		 buttons: [
+ 	 			              {
+ 	 		 			         text: 'Edit',
+ 	 		 			         id: 'save-to-pr',
+ 	 		 			         iconCls: 'silk-upd',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			        var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                                    var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+ 	 			 			        if (prj_kode != undefined)
+ 	 			 			        {
+ 	 					          	    myPanel = Ext.getCmp('abs-budget-panel');
+ 	 					          	    myPanel.body.load({
+ 	 					          	        url: '/projectmanagement/progress/editprogress/prj_kode/' + prj_kode+'/sit_kode/'+sit_kode,
+ 	 					          	        scripts : true
+ 	 					                  });
+ 	 			 			        }
+ 	 			 			        bForm.close();
+ 	 				              }
+
+ 	 			              },
+ 	 			              {
+ 	 		 			         text: 'Cancel',
+ 	 		 			         id: 'cancel',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			         bForm.close();
+ 	 				              }
+
+ 	 			              }
+
+
+ 	 				  		    ]
+ 	 			});
+ 	 			bForm.show();
+ 	 		}
+
+    function showPrjList()
+    {
+    var columns = [
+                    {header:'Project Code',width:100,sortable:true,dataIndex:'prj_kode'},
+                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                ];
+
+    data =  [
+
+            {name: 'prj_kode', mapping: 'Prj_Kode'},
+            {name: 'prj_nama', mapping: 'Prj_Nama'},
+            ];
+
+
+    urlJson = '/project/list';
+
+    primaryKey = 'prj_kode';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				            txtBoxChange = 'prj_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-pjr_kode_button';
+				            var prjKode = g.getStore().getAt(rowIndex).get("prj_kode");
+				           newUrl = '/procurement/procurement/listByParams/name/prj_kode/data/' + prjKode;
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get("prj_kode");
+//				            var record2 = g.getStore().getAt(rowIndex).get("prj_nama");
+                            Ext.getCmp('prj_kode_text').setValue(record);
+
+                            if (Ext.getCmp('sit_kode_text') != undefined)
+                            {
+                            	Ext.getCmp('sit_kode_text').setValue('');
+                            }
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                            }
+                    }
+            });
+            }
+            stores.load();
+
+            Ext.extend(grids, Ext.grid.GridPanel);
+            Ext.extend(txtboks,Ext.form.TextField);//PR
+            searchPrjKode = function(field,e){
+                newUrl = '/default/project/listByParams/name/Prj_Kode/data/' + field.getValue();    prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy({
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+
+            }
+            searchPrjName = function(field,e){
+                newUrl = '/default/project/listByParams/name/Prj_Nama/data/' + field.getValue();    prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy({
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+
+            var aForm =  new Ext.Window({
+                id: 'a-form-panel-pjr_kode_button',
+                layout: 'absolute',
+                minWidth: 300,
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                width: 400,
+                height: 400,
+                items : [
+                    {
+                    x: 10,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'Project Code:'
+                    },
+                     new txtboks(80,10,80,'project_code',searchPrjKode),
+                     {
+                    x: 170,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'Project Name:'
+                    },
+                    new txtboks(240,10,80,'project_name',searchPrjName),
+                     new grids('project_list')
+                ]
+
+              });
+              aForm.title = 'Choose Project';
+              aForm.show();
+        }
+
+        function showSitList()
+        {
+            var columns = [
+                           {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                            {header:'Project Code',width:100,sortable:true,dataIndex:'prj_kode'},
+                            {header:'Site Name',width:150,sortable:true,dataIndex:'sit_nama'},
+                        ];
+
+            data =  [
+                    {name: 'prj_kode', mapping: 'prj_kode'},
+                    {name: 'sit_kode', mapping: 'sit_kode'},
+                    {name: 'sit_nama', mapping: 'sit_nama'},
+                    ];
+
+
+            urlJson = '/site/list/byPrj_Kode/'+Ext.getCmp('prj_kode_text').getValue();
+
+            primaryKey = 'sit_kode';
+            Pk = primaryKey;
+            widthGrid = 380;
+            heightGrid = 250;
+
+            var stores = new Ext.data.Store({
+                proxy:new Ext.data.HttpProxy({
+                url: urlJson
+                 }),
+                    reader: new Ext.data.JsonReader({
+                root: 'posts',
+                totalProperty: 'count'
+            },data)
+                });
+
+            yAxis=100;
+            grids = function()
+            {
+                grids.superclass.constructor.call(this, {
+                store: stores,
+                columns: columns,
+                x:0,
+                y:yAxis,
+                id:primaryKey+'_grid',
+                loadMask: true,
+                bbar:[ new Ext.PagingToolbar({
+                    pageSize: 100,
+                    store: stores,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })],
+                height:heightGrid,
+                width:widthGrid,
+                listeners: {
+                    'rowdblclick': function(g, rowIndex, e){
+                                    objectName = 'sit_kode';
+                                    txtBoxChange = 'sit_kode_text';
+                                    closeForm = true;
+                                    formId = 'a-form-panel-site_kode_button';
+//                                    var prjNama = g.getStore().getAt(rowIndex).get('sit_nama');
+//                                    var prjKode = g.getStore().getAt(rowIndex).get('prj_kode');
+//                                    var sitKode = g.getStore().getAt(rowIndex).get(objectName);
+                                    prox = 'trano_proxy';
+                                    gri = 'trano_grid';
+                                    var record = g.getStore().getAt(rowIndex).get(objectName);
+//                                    var record2 = g.getStore().getAt(rowIndex).get("sit_nama");
+                                    Ext.getCmp('sit_kode_text').setValue(record);                  
+                                    
+                                    if (closeForm)
+                                    {
+                                        Ext.getCmp(formId).close();
+                                    }
+
+                                    window.setTimeout(function(){
+                                            isDblClick = false;
+                                    }, 0);
+                            }
+                    }
+            });
+            }
+            stores.load();
+
+            Ext.extend(grids, Ext.grid.GridPanel);
+            Ext.extend(txtboks,Ext.form.TextField);//PR
+            searchSiteName = function(field,e){
+                newUrl = '/default/site/listbyproject/sit_nama/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy({
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+
+            }
+            searchSiteKode = function(field,e){
+                newUrl = '/default/site/listbyproject/sit_kode/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy({
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+
+            }
+
+            var aForm =  new Ext.Window({
+                id: 'a-form-panel-site_kode_button',
+                layout: 'absolute',
+                minWidth: 300,
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                width: 400,
+                height: 400,
+                items : [
+                    {
+                    x: 10,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'Site Code:'
+                    },
+                     new txtboks(80,10,80,'site_code',searchSiteKode),
+                     {
+                    x: 170,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'Site Name:'
+                    },
+                    new txtboks(240,10,80,'site_name',searchSiteName),
+                     new grids('site_list')
+                ]
+
+              });
+              aForm.title = 'Choose Site';
+              aForm.show();
+        }
+
+        showAddProgress = function (){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/projectmanagement/progress/addprogress',
+                scripts: true
+            });
+        };
+        
+        showEditProgress = function (){
+        	showProgress();
+        };
+
+    	showAppProgress = function(){
+    	    myPanel = Ext.getCmp('abs-budget-panel');
+    	    myPanel.body.load({
+    	        url: '/default/home/showprocessdocument/type/PROGRESS',
+    	        scripts : true
+            });
+    	};
+
+        var windowForm = ({
+            title: 'Project Progress',
+            id:'abs-budget-panel',
+            layout:'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [{
+                    xtype: 'tbbutton',
+                    text: 'Select Action',
+                    iconCls: 'menu-drop',
+                    menu:{
+                        items: [
+                            {
+                                id:'progress_add_button',
+                                text:'Create New Project Progress',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/icons/fam/action_paste.gif",
+				                handler:showAddProgress
+                            },
+//                            {
+//                                id:'progress_edit_button',
+//                                text:'Edit Existing Project Progress',
+//                                cls:'x-btn-text-icon',
+//                                icon:"/images/icons/fam/page_edit.gif",
+//				                handler:showEditProgress
+//                            },
+//                            {
+//    						    id: 'app_button',
+//    						    text: 'Verify & Approval',
+//    						    cls:"x-btn-text-icon" ,
+//    						    icon:"/images/icons/fam/page_script.gif",
+//    						    handler:showAppProgress
+//    						}
+                        ]
+                    }
+            }]
+
+        });
+        
+//        function getExchangeRate()
+//        {
+//            Ext.Ajax.request({
+//                url: '/default/valuta/getexchangerate/val_kode/USD',
+//                method: 'POST',
+//                success: function(result, request) {
+//                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                    if (returnData.success) {
+//                        if(returnData.rate == 0)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR,
+//                                fn:function(){window.location='';}
+//                            });
+//                        }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//                },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//            });
+//        }
+//        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+
+    });
+</script>

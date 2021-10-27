@@ -1,0 +1,347 @@
+<script type="text/javascript">
+
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        showReport = function() {
+//            var optionParam = '';
+
+
+//            if (search !== '')
+//                optionParam = '/' + option + '/' + search;
+
+//            if (periode == '')
+//            {
+//                Ext.MessageBox.show({
+//                    title: 'Error',
+//                    msg: 'Please fill all required fields !',
+//                    buttons: Ext.MessageBox.OK,
+//                    icon: Ext.MessageBox.ERROR
+//                });
+//                return false;
+//            }
+
+            var myPanel = Ext.getCmp('abs-budget-panel'),
+                    periode = Ext.getCmp('periode_txt').getValue(),
+                    warehouse = Ext.getCmp('warehouse_selector_id').getWarehouse(),
+                    product = Ext.getCmp('item_selector_id').getKode();
+
+            if (Ext.getCmp('all-warehouse').getValue())
+                warehouse = '';
+            
+            if (Ext.getCmp('all-product').getValue())
+                product = '';
+            
+            console.log(warehouse);
+            myPanel.body.load({
+                url: '/logistic/report/gen-stock-card',
+                params: {
+                    periode: periode,
+                    gdg_kode: warehouse,
+                    kode_brg: product,
+                    company: true
+                },
+                scripts: true
+            });
+
+
+        };
+
+        exportReport = function() {
+            var myPanel = Ext.getCmp('abs-budget-panel'),
+                    periode = Ext.getCmp('periode_txt').getValue(),
+                    warehouse = Ext.getCmp('warehouse_selector_id').getWarehouse(),
+                    product = Ext.getCmp('item_selector_id').getKode();
+            
+//            var option = Ext.getCmp('option').getValue();
+//            var search = Ext.getCmp('search').getValue();
+//            var optionParam = '';
+//            if (gudang_ == undefined)
+//                gudang_ = '';
+//            if (search !== '')
+//                optionParam = '/' + option + '/' + search;
+//            if (Ext.getCmp('all-warehouse').getValue())
+//                gudang_ = '';
+//            if (Ext.getCmp('all-product').getValue())
+//                all_product = true;
+            if (Ext.getCmp('all-warehouse').getValue() || warehouse == undefined)
+                warehouse = '';
+            
+            if (Ext.getCmp('all-product').getValue())
+                product = '';
+            
+//            if (periode == '')
+//            {
+//                Ext.MessageBox.show({
+//                    title: 'Error',
+//                    msg: 'Please fill all required fields !',
+//                    buttons: Ext.MessageBox.OK,
+//                    icon: Ext.MessageBox.ERROR
+//                });
+//                return false;
+//            }
+            if (combo.getRawValue() == '')
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please Select Format!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+            else
+            {
+                urlLoad = '/jasper/getdatastockcard/periode/' + periode + '/gdg_kode/' + warehouse + '/kode_brg/' + product + '/type/' + combo.getValue();
+//                if (all_product)
+//                    urlLoad += '/all_product/true';
+            }
+            
+            window.open(urlLoad,'mywin',
+            'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+        };
+
+
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        var callbackFunc = function()
+        {
+            //Ext.getCmp('periode_txt').setValue('');
+
+        };
+
+        var datas = new Ext.data.SimpleStore({
+            fields: ['type', 'name']
+            , data: [['pdf', 'PDF'], ['xls', 'Excel']]
+        });
+
+        var combo = new Ext.form.ComboBox({
+            fieldLabel: 'Export'
+            , name: 'showReport'
+            , store: datas
+            , valueField: 'type'
+            , displayField: 'name'
+            , typeAhead: true
+            , mode: 'local'
+            , triggerAction: 'all'
+            , value: 'pdf'
+            , selectOnFocus: true
+            , anchor: '95%'
+            , hiddenName: 'type'
+            , width: 70
+            , editable: false
+
+        });
+
+        var windowForm = ({
+            title: 'General Stock Card Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+//                {
+//                    xtype: 'tbtext',
+//                    text: 'Product Code'
+//                },
+//                {
+//                    xtype: 'itemselector',
+//                    id: 'kode_brg',
+//                    Selectid: 'kode_brg_text',
+//                    width: 100,
+//                    callbackFunc: callbackFunc,
+//                    showAll:true
+//                },
+//                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Periode Year'
+                },
+//                {
+//                    xtype: 'periodefinanceselector',
+//                    id: 'perkode_text',
+//                    Selectid: 'periode_txt',
+//                    inventory: true,
+//                    width: 100
+//                },
+                {
+                    xtype: 'textfield',
+                    id: 'periode_txt',
+                    width: 100
+                },
+                '-','-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Warehouse'
+                },
+                {
+                    xtype: 'warehouseselector',
+                    Selectid: 'warehouse_text',
+                    width: 100,
+                    id: 'warehouse_selector_id'
+                }, '-',
+                {
+                    xtype: 'checkbox',
+                    id: 'all-warehouse',
+                    style: 'margin-top:-2px;margin-left:-3px',
+                    listeners: {
+                        check: function(checkbox, checked) {
+                            if (checked) {
+                                Ext.getCmp('warehouse_selector_id').disable();
+                            } else {
+                                Ext.getCmp('warehouse_selector_id').enable();
+                            }
+                        }
+                    }
+                },
+                {
+                    xtype: 'tbtext',
+                    text: 'All Warehouse',
+                    style: 'margin-top:-2px;margin-left:-3px'
+
+                },
+                '-','-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Product ID'
+                },
+                {
+                    xtype: 'itemselector',
+                    id: 'item_selector_id',
+                    Selectid: 'kode_brg_text',
+                    width: 100
+                },
+                '-',
+                {
+                    xtype: 'checkbox',
+                    id: 'all-product',
+                    style: 'margin-top:-2px;margin-left:-3px',
+                    listeners: {
+                        check: function(checkbox, checked) {
+                            if (checked) {
+                                Ext.getCmp('item_selector_id').disable();
+                            } else {
+                                Ext.getCmp('item_selector_id').enable();
+                            }
+                        }
+                    }
+                },{
+                    xtype: 'tbtext',
+                    text: 'All Product',
+                    style: 'margin-top:-2px;margin-left:-3px'
+
+//                },{
+//                    xtype: 'tbtext',
+//                    text: 'Search By'
+//                },
+//                {
+//                    id: 'option',
+//                    name: 'option',
+//                    xtype: 'combo',
+//                    width: 100,
+//                    store: new Ext.data.SimpleStore({
+//                        fields: ['name', 'nilai'],
+//                        data: [
+//                            ['Product ID', 'kode_brg'],
+//                            ['Product Name', 'nama_brg']
+//                        ]
+//                    }),
+//                    valueField: 'nilai',
+//                    displayField: 'name',
+//                    typeAhead: true,
+//                    forceSelection: true,
+//                    editable: false,
+//                    mode: 'local',
+//                    triggerAction: 'all',
+//                    selectOnFocus: true,
+//                    value: 'kode_brg'
+//                }, {
+//                    xtype: 'textfield',
+//                    name: 'search',
+//                    id: 'search',
+//                    width: 100
+//                }, {
+//                    xtype: 'checkbox',
+//                    id: 'all-product',
+//                    style: 'margin-top:-1px;margin-left:3px',
+//                    listeners: {
+////                        check: function(checkbox, checked) {
+////                            if(checked){
+////                                Ext.getCmp('warehouse_selector_id').disable();
+////                            }else{
+////                                Ext.getCmp('warehouse_selector_id').enable();
+////                            }
+////                        }
+//                    }
+//                },
+//                {
+//                    xtype: 'tbtext',
+//                    text: 'All Product',
+//                    style: 'margin-top:-2px;margin-left:-3px'
+
+                }, '-',
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    //width: 70,
+                    id: 'show_report',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: showReport
+                }, '-', '-', 'Export', 'to', '-', combo,
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls: "x-btn-icon",
+                    icon: "/images/print.png",
+                    handler: exportReport
+                }
+            ]
+
+        });
+
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//        showSubmenu('the=window');
+
+
+    })
+</script>

@@ -1,0 +1,209 @@
+<script type="text/javascript">
+
+    function goToDO (trano){
+    	    myPanel = Ext.getCmp('abs-budget-panel');
+    	    myPanel.body.load({
+    	        url: '/logistic/logistic/adddo/trano/' + trano,
+    	        scripts : true
+            });
+    	};
+Ext.onReady(function(){
+
+    var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Project Name:</b> {prj_nama}</p><br>',
+            '<p><b>Site Name:</b> {sit_nama}</p><br>',
+            '<p><b>Total DOR value:</b> {totalDOR}</p><br>',
+            '<p><b>Total DO value:</b> {totalDO}</p></div>'
+        )
+    });
+
+    var poolList = Ext.data.Record.create ([
+        {name: 'id'},
+        {name: 'trano'},
+        {name: 'prj_kode'},
+        {name: 'sit_kode'},
+        {name: 'prj_nama'},
+        {name: 'sit_nama'},
+        {name: 'balance'},
+        {name: 'tgl_last_do', type: 'date',  dateFormat: 'Y-m-d'},
+        {name: 'balance_total'},
+        {name: 'totalDOR'},
+        {name: 'totalDO'},
+        {name: 'pic'}
+    ]);
+	var store = new Ext.ux.data.PagingJsonStore({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts',
+        fields: poolList,
+        listeners:
+                    {
+                        'load' :function(st,rec,opt) {
+                            if (st.reader.jsonData != undefined)
+                                Ext.getCmp('label-last-upd').setText('Last Updated : <font color="red">' + st.reader.jsonData.time + '</font>',false);
+                        }
+                    },
+        autoLoad: {params: {start: 0, limit: 50}},
+        url: '/pool_do.json'
+    });
+//	store.load();
+    searchDocument = function(){
+        var docs = Ext.getCmp('document-text').getValue();
+        if (docs.length < 3)
+        {
+            return false;
+        }
+        store.removeAll();
+        Ext.Ajax.request({
+            results: 0,
+            url: '/default/home/searchpool/pool/pool_do.json/trano/' + docs,
+            method:'POST',
+            success: function(result, request){
+               var returnData = Ext.util.JSON.decode(result.responseText);
+                Ext.each(returnData.posts, function(op) {
+                var c = new poolList ({
+                    trano : op['trano'],
+                    id: op['id'],
+                    prj_kode: op['prj_kode'],
+                    prj_nama: op['prj_nama'],
+                    sit_kode: op['sit_kode'],
+                    sit_nama: op['sit_nama'],
+                    balance: op['balance'],
+                    tgl_last_do: op['tgl_last_do'],
+                    balance_total: op['balance_total'],
+                    totalDOR: op['totalDOR'],
+                    totalDO: op['totalDO'],
+                    pic: op['pic']
+                });
+                store.add(c);    
+            });
+            }
+        });
+//        store.clearFilter();
+//        store.filterBy(function(record,id)
+//        {
+//            reg = new RegExp(docs, "gi");
+//            if(reg.test(record.data['trano']))
+//            {
+//                return true;
+//            }
+//        });
+    	Ext.getCmp('all-pr-grids').getStore().reload();
+    	Ext.getCmp('all-pr-grids').getView().refresh();
+    };
+
+    refreshGrid = function(){
+        store.clearFilter();
+        Ext.getCmp('document-text').setValue('');
+        Ext.getCmp('paging').doRefresh();
+    }
+
+
+	var grid = new Ext.grid.GridPanel({
+        store: store,
+        id: 'all-pr-grids',
+        stateful: false,
+        loadMask: true,
+        title: 'Pool DO',
+        columns: [
+            new Ext.grid.RowNumberer(),
+            expander,
+            {header: "",width: 30, dataIndex: 'trano',css:'text-align:center;',renderer: function (v,p,r) {
+                    return '<a href="#" onclick="goToDO(\'' + v + '\');"><img src="/images/g_rec_add.png"></a>';
+            }},
+            {header: "Trano", width: 100, sortable: true, dataIndex: 'trano'},
+            {header: "Project Code", width: 80, sortable: true, dataIndex: 'prj_kode'},
+            {header: "Site Code", width: 70, sortable: true, dataIndex: 'sit_kode'},
+//            {header: "Origin Of Budget", width: 90, sortable: true, dataIndex: 'budgettype'},
+            {header: "Date of Last DO", width: 100, sortable: true, dataIndex: 'tgl_last_do',renderer: Ext.util.Format.dateRenderer('d/m/Y')},
+            {header: "Balance Qty", width: 70, sortable: true, dataIndex: 'balance',css:'text-align:right;'},
+//            {header: "Balance Total", width: 100, sortable: true, dataIndex: 'balance_total',css:'text-align:right;', renderer: function (v,p,r) {
+//                return r.data['val_kode'] + ' ' + v;
+//            }
+//            },
+            {header: "Executor", width: 150, sortable: true, dataIndex: 'pic'}
+       ],
+        frame:true,
+        height: 400,
+        width: 650,
+        plugins: expander,
+        layout: 'fit',
+        renderTo: 'grids',
+        loadMask: true,
+        bbar: new Ext.PagingToolbar({
+            id: 'paging',
+            pageSize: 50,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        }),
+        tbar: [
+				{
+					text: 'Trano',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					xtype: 'textfield',
+					id: 'document-text'
+				},
+				{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchDocument,
+				    scope: this
+				},
+                '-',
+                {
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshGrid,
+				    scope: this
+				},
+                '->',
+                {
+					text: '',
+					xtype:'label',
+				    style: 'margin-right: 5px',
+                    id:'label-last-upd'
+				}
+               ]
+    });
+
+    Ext.override(Ext.PagingToolbar, {
+    doRefresh: function(){
+        store.clearFilter();
+        Ext.getCmp('document-text').setValue('');
+        delete this.store.lastParams;
+        this.doLoad(this.cursor);
+    }
+    });
+
+//
+//    Ext.TaskMgr.start({
+//    run: function(){
+//        var menuTree = Ext.getCmp('tree-panel');
+//        if (Ext.getCmp('all-pr-grids') != undefined)
+//        {
+//            store.clearFilter();
+//            Ext.getCmp('document-text').setValue('');
+////            store.removeAll();
+//            store.load();
+//            Ext.getCmp('all-pr-grids').getView().refresh();
+//        }
+//        else
+//        {
+//            console.log('stop');
+//            Ext.TaskMgr.stop(this);
+//        }
+//    },
+//    interval: 35000
+//    });
+
+});
+
+</script>
+
+<div id="grids"></div>

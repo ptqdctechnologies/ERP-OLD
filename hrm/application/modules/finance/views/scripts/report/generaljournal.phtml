@@ -1,0 +1,247 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange : function(val, field) {
+                var date = field.parseDate(val);
+
+                if(!date){
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        function viewtrano ()
+        {
+            var type = Ext.getCmp('option-type').getValue();
+
+//            console.log(type);
+
+            if (type == 'ALL')
+            {
+                Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Sorry, Please select your type transaction',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+            var jurnalstore = new Ext.data.Store ({
+                autoLoad:true,
+                url:'/finance/adjustingjournal/getgeneraljurnal',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id'
+                    },{
+                        name:'trano'
+                    },{
+                        name:'date'
+                    },{
+                        name:'prj_kode'
+                    },{
+                        name:'sit_kode'
+                    }]
+                })
+
+            })
+
+            var jurnalwindow = new Ext.Window ({
+
+            title:'General Journal List',
+            id:'general-jurnal-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[
+//                coagrid
+            ]
+
+        })
+
+            jurnalwindow.show();
+        }
+
+        var windowForm = ({
+
+            title:'General Journal Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'label',
+                text:'Type',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype: 'combo',
+                width: 120,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['All',''],
+                            ['Adjusting Journal','ADJ'],
+                            ['Voucher Journal','JV'],
+                            ['Sales Journal','SJ'],
+                            ['Settlement Journal','JS']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'',
+                id:'option-type'
+            },'-',{
+                xtype:'label',
+                text:'Start Date',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'datefield',
+                fieldLabel: 'Start Date',
+                name: 'startdt',
+                id: 'startdt',
+                vtype: 'daterange',
+                endDateField: 'enddt', // id of the end date field
+                allowBlank:false,
+                msgTarget:'side',
+                format:'d-m-Y'
+            },'-',{
+                xtype:'label',
+                text:'End Date',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'datefield',
+                fieldLabel: 'End Date',
+                name: 'enddt',
+                id: 'enddt',
+                vtype: 'daterange',
+                startDateField: 'startdt',
+                allowBlank:false,
+                msgTarget:'side',
+                format:'d-m-Y'
+            },'-',
+//                {
+//                xtype:'label',
+//                text:'Trano',
+//                style:'font-weight:bold;margin-left:10px;'
+//            },'-',{
+//                xtype:'trigger',
+//                width:140,
+//                triggerClass: 'teropong',
+//                allowBlank: false,
+//                editable : false,
+//                stat: 'enable',
+//                id:'trano',
+//                onTriggerClick:function(){
+//
+//                    viewtrano ();
+////                    if (Ext.getCmp('ref-number').stat == 'disable')
+////                        return false;
+////                    if (Ext.getCmp('type').getValue() == '')
+////                        return false;
+////                    var type = Ext.getCmp('type').getValue();
+//                }
+//            },'-',
+                {
+                xtype:'label',
+                text:'Ref Number',
+                style:'font-weight:bold;margin-left:10px;'
+            },'-',{
+                xtype:'tranoselector',
+                id:'ref_numbers',
+                Selectid: 'ref_number',
+                Enableeditable: true,
+                width:100
+            },{
+                xtype: 'button',
+                text: 'Filter',
+                width:70,
+                id: 'show_ap',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                style:'margin-left:10px;',
+                handler:function()
+                {
+                    var type = Ext.getCmp('option-type').getValue();
+                    var startdate = Ext.getCmp('startdt').getValue();
+                    var enddate = Ext.getCmp('enddt').getValue();
+                    var ref_number = Ext.getCmp('ref_number').getValue();
+
+                    if (startdate != null && startdate != "" && startdate != undefined)
+                    {
+                        startdate = startdate.toDateString();
+                    }
+
+                    if (enddate != null && enddate != "" && enddate != undefined)
+                    {
+                        enddate = enddate.toDateString();
+                    }
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/finance/report/viewgeneraljournal/type/' + type + '/startdate/' + startdate + '/enddate/' + enddate + '/ref_number/' + ref_number ,
+                    scripts : true
+                });
+                }
+            }]
+            
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        panelBaru.body.load({
+               url: '/finance/report/viewgeneraljournal',
+               scripts: true
+           });
+       showSubmenu('abs-budget-panel');
+
+
+
+    })
+
+</script>

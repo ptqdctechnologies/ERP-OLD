@@ -1,0 +1,281 @@
+<style>
+    .body {
+        width: 100%;
+        overflow: auto;
+    }
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .etc {
+        width: 100%;
+        height: 50px;
+    }
+    .kanan-etc {
+        float: right;
+        width: 48%;
+    }
+    .kiri-etc {
+        float: left;
+        width: 48%;
+    }
+    .blok {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .budgetTable {
+        width: 100%;
+        font-size: 12px;
+        font-weight: normal;
+    }
+
+    .last-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#EFEFEF;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .all-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#F6CBCA;
+        color:#222222;
+        padding:4px;
+        text-align:left;
+    }
+    .all-approve{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        /*background:#CEE6C3;*/
+        color:#222222;
+        padding:4px;
+        text-align:left;
+        height: 200px;
+        overflow: auto;
+    }    
+
+</style>
+
+<script type="text/javascript">
+<?php
+if ($this->edit || $this->approve) {
+
+    $displayNum = '<div class="blok">i-Supp Number : ' . $this->etc['trano'] . '</div>';
+}
+?>
+
+    Ext.onReady(function() {
+        Ext.QuickTips.init();
+<?php if (!$this->preview && !$this->show) { ?>
+    <?php if ($this->approve) { ?>
+                //Variabel yg dikirim, approve / reject sama variabelna...
+                var trano = '<?= $this->docsID ?>';
+                var uid = '<?= $this->uid ?>';
+                var user_id = '<?= $this->userID ?>';
+
+        <?php if (!$this->reject) { ?>
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showApproveButton: true,
+                        showRejectButton: true,
+                        showAskButton: true,
+                        showCancelButton: true,
+                        trano: '<?= $this->trano ?>',
+                        itemType: 'iSUP',
+                        approveParams: {trans: trano, user: uid, user_id: user_id},
+                        rejectParams: {trans: trano, user: uid, user_id: user_id},
+                        approveSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        },
+                        rejectSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        },
+                        cancelSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        }
+                    });
+
+                    wButt.on('beforeworkflowapprove', function(t) {
+                    });
+        <?php } else { ?>
+
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showEditButton: true,
+                        itemType: 'iSUP',
+                        editSuccessCallback: function() {
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/logistic/logistic/editisupp',
+                                params: {
+                                    trano: '<?php echo $this->trano; ?>'
+                                },
+                                scripts: true
+                            });
+                        }
+                    });
+        <?php } ?>
+    <?php } else { ?>
+                // variabel yg dikirim untuk submit ke workflow
+                var journal = '<?php echo $this->journal; ?>';
+
+                var params = {
+                    posts: '<?= $this->jsonResult ?>',
+                    etc: '<?= $this->jsonEtc ?>',
+                    journal: journal
+                };
+
+        <?php if (!$this->edit) { ?>
+                    var url = '/logistic/logistic/insertisupp',
+                            urlCancel = '/logistic/logistic/addisupp/returnback/true',
+                            edit = false;
+        <?php } else { ?>
+                    var url = '/logistic/logistic/updateisupp',
+                            urlCancel = '/logistic/logistic/editisupp/returnback/true',
+                            edit = true;
+                    params.trano = '<?= $this->etc['trano'] ?>';
+        <?php } ?>
+
+                var wButt = new Ext.ux.workflowButton({
+                    renderTo: 'wButton',
+                    itemType: 'iSUP',
+                    showSubmitButton: true,
+                    showCancelButton: true,
+                    urlSubmit: url,
+                    isEdit: edit,
+                    submitParams: params,
+                    submitSuccessCallback: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/logistic/isupp',
+                            scripts: true
+                        });
+                    },
+                    cancelSuccessCallback: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: urlCancel,
+                            params: params,
+                            scripts: true
+                        });
+                    }
+                });
+    <?php } ?>
+<?php } ?>
+    });
+
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+    <div class="title">Incoming Material</div>
+
+    <?php if ($this->reject) { ?>
+        <div class="last-reject">
+            This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s', strtotime($this->lastReject['date'])); ?>
+            <br />
+            Comment : <?php echo $this->lastReject['comment']; ?>
+        </div>
+    <?php } ?>
+
+    <div class="etc">
+        <div class="kiri-etc">
+            <?= $displayNum ?>
+            <div class="blok"><?= ($this->isPO) ? 'PO' : 'DO' ?> Number : <?= $this->etc['po_no'] ?></div>
+
+        </div>
+        <div class="kanan-etc">
+            <?php if ($this->isPO) { ?>
+                <div class="blok">Supplier : <?= $this->etc['sup_kode'] ?> - <?= $this->etc['sup_nama'] ?></div>
+                <div class="blok">Warehouse : <?= $this->etc['wh_nama'] ?></div>
+            <?php } else { ?>
+                <div class="blok">Warehouse (From): <?= $this->etc['wh_nama'] ?></div>
+                <div class="blok">Warehouse (Destination): <?= $this->etc['wh_nama_tujuan'] ?></div>
+            <?php } ?>
+        </div>
+    </div>
+
+
+    <table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No</center></th>
+        <th scope="col"><center>Project</center></th>
+        <th scope="col"><center>Site</center></th>
+        <th scope="col"><center>Work ID</center></th>
+        <th scope="col"><center>Work Name</center></th>
+        <th scope="col"><center>Product ID</center></th>
+        <th scope="col"><center>Description</center></th>
+        <th scope="col"><center>Qty</center></th>
+        <th scope="col"><center>UOM</center></th>
+
+        </tr>
+        <?php
+        $totals = 0;
+        for ($i = 0; $i < (count($this->result)); $i++) {
+            foreach ($this->result[$i] as $key => $val) {
+                if ($val == '')
+                    $this->result[$i][$key] = "&nbsp;";
+            }
+            ?>
+            <tr>
+                <th scope="row" class="spec"><?= ($i + 1) ?></th>
+                <td><?= $this->result[$i]['prj_kode'] ?> - <?= $this->result[$i]['prj_nama'] ?></td>
+                <td><?= $this->result[$i]['sit_kode'] ?> - <?= $this->result[$i]['sit_nama'] ?></td>
+                <td><?= $this->result[$i]['workid'] ?></td>
+                <td><?= $this->result[$i]['workname'] ?></td>
+                <td><?= $this->result[$i]['kode_brg'] ?></td>
+                <td><?= $this->result[$i]['nama_brg'] ?></td>
+                <td align="right"><?= number_format($this->result[$i]['qty'], 4) ?></td>
+                <td><?= $this->result[$i]['uom'] ?></td>
+            </tr>
+        <?php } ?>
+
+    </table>
+
+    <?php
+    if ($this->etc[0]['user_approval'] != '') {
+        ?>
+        <div class="all-approve">
+            <b>Approval History</b></br>
+            <ul>
+                <?php
+                foreach ($this->etc[0]['user_approval'] as $key => $val) {
+                    ?>
+                    <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+                    <?php
+                }
+                ?>
+            </ul>
+        </div>
+        <?php
+    }
+    ?>
+    <div style="margin-top:15px; float:right;" id="wButton">
+    </div>

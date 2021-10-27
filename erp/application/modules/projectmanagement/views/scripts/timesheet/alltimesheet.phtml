@@ -1,0 +1,349 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    showPeriode = function(){
+        var url = '/humanresource/timesheet/getviewperiode';
+
+        var proxy = new Ext.data.HttpProxy({
+            url: url
+        });
+
+        var reader = new Ext.data.JsonReader({
+            totalProperty: 'count',
+            idProperty: 'trano',
+            root: 'posts'
+        }, [
+            {
+                  name: 'id'
+            },
+            {
+                name:'tahun',type:'String'
+            },{
+                name:'periode'
+            },{
+                name:'tgl_aw'
+            },{
+                name:'tglak'
+            },{
+                name:'periode_act'
+            },{
+                name:'jumlah_jam_bulan'
+            }
+        ]);
+
+        var periodeStore = new Ext.data.Store({
+            proxy: proxy,
+            reader: reader,
+            id: 'periodeselector-store'
+        });
+        periodeStore.load();
+        var grid = new Ext.grid.GridPanel({
+            store: periodeStore,
+            loadMask: true,
+            height: 300,
+            id: 'periode-user-grid',
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 20,
+                store: periodeStore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                {
+                    header:'Year',
+                    dataIndex:'tahun',
+                    sortable:true
+                },
+                {
+                    header:'Periode',
+                    dataIndex:'periode',
+                    sortable:true
+                },
+                {
+                    header:'Start Date',
+                    dataIndex:'tgl_aw',
+                    sortable:true
+                },
+                {
+                    header:'End Date',
+                    dataIndex:'tglak',
+                    sortable:true
+                },
+                {
+                    header:'Action',
+                    dataIndex:'periode_act',
+                    sortable:true
+                },
+                {
+                    header:'Hour per month',
+                    dataIndex:'jumlah_jam_bulan',
+                    sortable:true
+                }
+            ]
+        })
+        grid.on('rowdblclick', function(g, rowIndex, e){
+            var tahun = g.getStore().getAt(rowIndex).get('tahun');
+            var periode = g.getStore().getAt(rowIndex).get('periode');
+//            Ext.getCmp(this.PeriodeSelectid).setValue(tahun + ' - ' + periode);
+//            this.periodeId = g.getStore().getAt(rowIndex).get('id');
+            if (pwindow)
+            pwindow.close();
+        },this);
+
+        var forms =
+        {
+            xtype: 'form',
+            labelWidth: 100,
+            frame: true,
+            items: [
+//                {
+//                    xtype: 'textfield',
+//                    fieldLabel: 'Name',
+//                    enableKeyEvents:true,
+//                    listeners: {
+//                        keyup: function(field,e){
+//                            if (field.getValue().toString().length >= 3)
+//                            {
+//                                searchUserByName(field.getValue());
+//                            }
+//                        }
+//                    }
+//                },
+                grid
+            ]
+        };
+//        searchUserByName= function(pname) {
+//            newUrl = '/default/user/listByParams/name/name/data/' + pname;
+//
+//            userStore.proxy = new Ext.data.HttpProxy( {
+//                url: newUrl
+//                 });
+//            userStore.reload();
+//            Ext.getCmp(this.id + '-user-grid').getView().refresh();
+//        };
+
+        pwindow = new Ext.Window({
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 300,
+            height: 400,
+            title: 'Select Periode',
+            items: forms
+        });
+
+        pwindow.show();
+    }
+
+    exportReport = function(){
+        if (Ext.getCmp('user_kode_text').getValue() != '')
+            var person = Ext.getCmp('user-select').getUid();
+        else
+            var person = '';
+        var show = Ext.getCmp('type').getValue();
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+
+        var addurl = '';
+        
+        periode = Ext.getCmp('periode-select').getperiodeid();
+        addurl = addurl + '/periode/' + periode;
+
+        if (person != '')
+            addurl = '/uid/' + person;
+        if (prjKode != '')
+            addurl = addurl + '/prj_kode/' + prjKode;
+
+        addurl = encodeURI(addurl + '/type/' + show);
+
+        urlLoad =  '/projectmanagement/timesheet/detailtimesheet3/export/true' +  addurl;
+
+        window.open(urlLoad,'mywin','left=20, top=20, width=100, height=20, toolbar=0, resizable=0');
+
+    };
+
+    refresh = function(){
+        Ext.getCmp('user_kode_text').setValue('');
+        Ext.getCmp('prj_kode_text').setValue('');
+        Ext.getCmp('tgl1_text').setValue('');
+        Ext.getCmp('tgl2_text').setValue('');
+    }
+
+    showTimesheetDetail2 = function(){
+        if (Ext.getCmp('user_kode_text').getValue() != '')
+            var person = Ext.getCmp('user-select').getUid();
+        else
+            var person = '';
+
+        var from = '<?=$this->from?>';
+
+        var show = Ext.getCmp('type').getValue();
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+        var addurl = '';
+
+        periode = Ext.getCmp('periode-select').getperiodeid();
+//        addurl = addurl + '/periode/' + periode;
+        
+//        if (person != '')
+//            addurl = addurl + '/uid/' + person;
+//        if (prjKode != '')
+//            addurl = addurl + '/prj_kode/' + prjKode;
+        if (from != '')
+        {
+//            addurl = addurl + '/from/ ' + from;
+            var url = '/projectmanagement/timesheet/detailtimesheet3';
+        }
+        else
+            var url = '/projectmanagement/timesheet/detailtimesheet2';
+        addurl = encodeURI(addurl + '/type/' + show);
+
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: url,
+            params: {
+                periode: periode,
+                prj_kode: prjKode,
+                uid: person,
+                from: from,
+                type: show
+            },
+            scripts : true
+        });
+    };
+
+    var datas = new Ext.data.SimpleStore({
+	    fields:['type','name']
+	            ,data:[['final','Approved by HR'],['submit','Still on Progress']]
+	        });
+
+	var combo=new Ext.form.ComboBox({
+	    fieldLabel: 'Show'
+        ,id: 'type'
+	    ,name:'showReport'
+	    ,store: datas
+	    ,valueField:'type'
+	    ,displayField:'name'
+	    ,typeAhead: true
+	    ,mode: 'local'
+	    ,triggerAction: 'all'
+        ,value:'final'
+	    ,selectOnFocus:true
+	    ,anchor:'95%'
+	    ,hiddenName:'type'
+	    ,width:110
+        ,editable: false
+	});
+
+    var windowForm =  ({
+
+    title: 'Timesheet Summary',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar: [
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselectorreport',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text'
+        },
+        '-',
+        {
+            xtype: 'tbtext',
+            text: 'Person Name'
+        },
+        {
+            xtype: 'userselector',
+            anchor: '100%',
+            uid: '',
+            id: 'user-select',
+            UserSelectid: 'user_kode_text'
+        },
+        '-',
+        {
+            xtype: 'tbtext',
+            text: 'Periode'
+        },
+        {
+                xtype: 'periodeselector',
+                anchor: '100%',
+                periodeId: '<?=$this->periodeId?>',
+                width: 80,
+                id: 'periode-select',
+                PeriodeSelectid: 'periode_text'
+        },
+        '-',
+        combo,
+        '-',
+        {
+            xtype: 'button',
+            text: 'Reset',
+            width:70,
+            id: 'refresh',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/lov_refresh.gif",
+            handler:refresh
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_timesheet',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showTimesheetDetail2
+        },
+        {
+            xtype: 'button',
+            text: 'Export to Excel',
+            width:70,
+            id: 'export_excel',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/printer.png",
+            handler:exportReport
+        }
+
+    ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+    centerRegionTab.add(windowForm);
+
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    <?php
+        if ($this->periodeAlert != '')
+        {
+    ?>
+        Ext.Msg.alert("Error",'<?=$this->periodeAlert?>');
+        Ext.getCmp('show_timesheet').setDisabled(true);
+        Ext.getCmp('export_excel').setDisabled(true);
+    <?php
+        }
+    ?>
+    <?php
+        if ($this->periodeText != '')
+        {
+    ?>
+        Ext.getCmp('periode_text').setValue('<?=$this->periodeText?>');
+    <?php
+        }
+    ?>
+});
+</script>
+
+        <div id="drafts"></div>

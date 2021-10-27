@@ -1,0 +1,1983 @@
+<script type="text/javascript">
+<?php echo $this->action('index','textfield',null); ?>
+
+showPayRPI = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/finance/payment/paymentrpi',
+	        scripts : true
+        });
+	};
+
+var proxy = new Ext.data.HttpProxy({
+	   url : '/default/home/getposummary'
+	});
+
+var rpilist = Ext.data.Record.create([{
+    name: 'workid',
+    type: 'string'
+}, {
+    name: 'trano',
+    type: 'string'
+},{
+    name: 'workname',
+    type: 'string'
+}, {
+    name: 'prj_kode',
+    type: 'string'
+},{
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'nama_brg',
+    type: 'string'
+},{
+    name: 'kode_brg',
+    type: 'string'
+},{
+    name: 'tgl',
+    type: 'date',
+    dateFormat: 'Y-m-d'
+},{
+    name: 'qty',
+    type: 'float'
+},{
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'harga',
+    type: 'float'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'ppn',
+    type: 'float'
+},{
+    name: 'val_kode',
+    type: 'string'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'po_no',
+    type: 'string'
+},{
+    name: 'pr_no',
+    type: 'string'
+},{
+    name: 'urut',
+    type: 'integer'
+},{
+    name: 'uom',
+    type: 'string'
+},{
+    name: 'coa_kode',
+    type: 'string'
+},{
+    name: 'coa_nama',
+    type: 'string'
+}]);
+
+var polist = Ext.data.Record([
+    {name: 'id'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'},
+    {name: 'prj_nama'},
+    {name: 'sit_nama'},
+    {name: 'pr_no'},
+    {name: 'tglpr'},
+    {name: 'pomyob'},
+    {name: 'workid'},
+    {name: 'workname'},
+    {name: 'kode_brg'},
+    {name: 'nama_brg'},
+    {name: 'qty'},
+    {name: 'price'},
+    {name: 'harga'},
+    {name: 'val_kode'},
+    {name: 'totalRPI'},
+    {name: 'totalPriceRPI'},
+    {name: 'totalPrice'},
+    {name: 'totalIDR'},
+    {name: 'totalUSD'},
+    {name: 'ppn'},
+    {name: 'uom'}
+])
+
+var storeRPI = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: rpilist})
+});
+
+
+var proxy2 = new Ext.data.HttpProxy({
+    api: {
+        create : '/procurement/procurement/insertpr',
+       //update: '/procurement/procurement/list/type/prd',
+        destroy: '/procurement/procurement/list/type/prd'
+         }
+});
+
+var reader2 = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    idProperty: 'trano',
+    root: 'posts'
+}, [
+    {name: 'trano'}
+]);
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    idProperty: 'id',
+    root: 'posts'
+}, [
+    {name: 'id'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'},
+    {name: 'prj_nama'},
+    {name: 'sit_nama'},
+    {name: 'pr_no'},
+    {name: 'tglpr'},
+    {name: 'pomyob'},
+    {name: 'workid'},
+    {name: 'workname'},
+    {name: 'kode_brg'},
+    {name: 'nama_brg'},
+    {name: 'qty'},
+    {name: 'price'},
+    {name: 'harga'},
+    {name: 'val_kode'},
+    {name: 'totalRPI'},
+    {name: 'totalPriceRPI'},
+    {name: 'totalPrice'},
+    {name: 'totalIDR'},
+    {name: 'totalUSD'},
+    {name: 'ppn'},
+    {name: 'uom'}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+var store = new Ext.data.Store({
+    id: 'po',
+    proxy: proxy,
+    reader: reader,
+    listeners: {
+//		'load':function(t,r,o)
+//		{
+//			addEditedPO();
+//		}
+    }
+});
+
+var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Work ID:</b> {workid}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p><br>',
+            '<p><b>PR No:</b> {pr_no}</p><br>',
+            '<p><b>PR Date:</b> {tglpr}</p><br>',
+            '<p><b>MYOB:</b> {pomyob}</p></div>'
+        )
+    });
+
+	var expander2 = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Work ID:</b> {workid}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p></div>'
+        )
+    });
+
+var userColumns =  [
+	                    new Ext.grid.RowNumberer(),
+	                    expander,
+	                    {header: "",width: 30, dataIndex: 'id',renderer: function (v,p,r) {
+//                            var percent = 0;
+//	                        if (!isMscWorkid(r.data['workid']))
+//	                        {
+//	                	    	var qty = r.data['qty'];
+//	                	    	percent = (r.data['totalRPI'] / qty) * 100;
+//	                        }
+//	                        else
+//	                        {
+//	                	    	percent = (parseFloat(r.data['totalPriceRPI']) / parseFloat(r.data['totalPrice'])) * 100;
+//	                        }
+//	                    	if (percent < 100)
+	                			return '<a href="#" onclick="addToRPI(' + v + ');"><img src="/images/g_rec_add.png"></a>';
+//	                    	else
+//	                    	{
+//	                    		p.attr ='ext:qtip="This item (' + r.data['kode_brg'] + ') has been full payed."';
+//	                    		return '<img src="/images/icons/fam/page_tag_red.gif">';
+//	                    		return '<a href="#" onclick="addToAFE(' + v + ');"><img src="/images/icons/fam/page_tag_red.gif"></a>';
+//	                    	}
+	                    }},
+	                    {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                    {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                    {header: "Qty", width: 80, sortable: true, dataIndex: 'qty',css:'text-align:right;'},
+	                    {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                    {header: "Price", width: 90, sortable: true, dataIndex: 'price',css:'text-align:right;'},
+	                    {header: "Total", width: 110, sortable: true, dataIndex: 'price',css:'text-align:right;',
+		                    renderer: function(v,p,r) {
+		                    	var total = r.data['qty'] * r.data['price'];
+								return r.data['val_kode'] + ' ' + CommaFormatted(total);
+	                    	}
+	                    }
+//	                    {header: "Available", width: 100, renderer: function(v,p,r) {
+//	                        var percent = 0;
+//	                	        if (r.data['qty'] != 0 && r.data['totalRPI'] != 0)
+//	                	        {
+//	                	            var qty = r.data['qty'];
+//	                	        	percent = (r.data['totalRPI'] / qty) * 100;
+//	                	        	var total  = parseFloat(r.data['totalPrice']);
+//	                	        	var totalRPI = parseFloat(r.data['totalPriceRPI']);
+//	                	        	if (percent > 100)
+//	                	            	percent = 100;
+//	                	        	percent = percent.toFixed(2);
+//	                				var warna = '#0a0';
+//	                	        	if (percent > 75)
+//	                	            	warna = '#FF3F7D';
+//	                	        	else if (percent > 50)
+//	                	            	warna = '#FFDA2F';
+//	                	        }
+//
+//
+//	                        p.attr ='ext:qtip="Total RPI already Invoiced : ' + r.data['val_kode'] + ' ' + CommaFormatted(totalRPI) + ' from Total PO Price : ' + r.data['val_kode'] + ' ' + CommaFormatted(total) + '"';
+//	                		return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+//	                    }}
+	                ];
+
+	var userColumns2 =  [
+	                     new Ext.grid.RowNumberer(),
+	                     expander2,
+	                     {header: "",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+	                 		return '<a href="#" onclick="editToRPI(' + v + ');"><img src="/images/g_rec_upd.png"></a>&nbsp;<a href="#" onclick="delToRPI();"><img src="/images/g_rec_del.png"></a>';
+	                     }},
+	                     {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                     {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                     {header: "Qty", width: 80, sortable: true, dataIndex: 'qty', renderer:function(v, p, r) {
+                                return CommaFormatted(v)
+                            }},
+	                     {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                     {header: "Price", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'harga',
+			                    renderer: function(v,p,r) {
+								return r.data['val_kode'] + ' ' + CommaFormatted(v);
+	                    	}
+	                     },
+	                     {header: "Total", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'total', renderer: function (v,p,r) {
+	 							return r.data['val_kode'] + ' ' + CommaFormatted((parseFloat(r.data['harga']) * parseFloat(r.data['qty'])).toString());
+	                     }}
+
+	                 ];
+
+function clearRPIForm()
+{
+	var teks = Ext.getCmp('rpi-form').findByType('textfield');
+    Ext.each(teks, function (t, index){
+			t.setValue('');
+        });
+
+	Ext.getCmp('kode_brg_text').disable();
+}
+
+function clearButton()
+{
+	Ext.getCmp('cancel-to-rpi').setText('Cancel Add');
+	Ext.getCmp('cancel-to-rpi').disable();
+	Ext.getCmp('save-to-rpi').setText('Add to Payment List(Cart)');
+ 	Ext.getCmp('save-to-rpi').disable();
+}
+
+function refreshGrid()
+{
+	Ext.getCmp('payment-grid').enable();
+	Ext.getCmp('rpi-grid').enable();
+    Ext.getCmp('rpi-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('payment-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('rpi-grid').getView().refresh();
+    Ext.getCmp('payment-grid').getView().refresh();
+}
+
+function checkList()
+{
+    storeRPI.clearFilter();
+    var gridrpi = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+    if (gridrpi[0] != undefined)
+	    var orirpi = store.getAt(store.findExact('id', gridrpi[0].data['id']));
+    else
+        return false;
+
+        var col = storeRPI.queryBy(function(record,id){
+
+         return record.get('workid') == orirpi.data['workid'] && record.get('kode_brg') == orirpi.data['kode_brg'];
+            });
+
+    if (col.length == 0)
+    {
+        return false;
+    }
+    else
+    {
+            Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Use Edit To Update this Item!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+            });
+            return true;     
+    }
+
+}
+
+function addToRPI(idPo)
+{
+	ori = store.getAt(store.findExact('id', idPo));
+	if (ori != undefined)
+	{
+		Ext.getCmp('save-to-rpi').setText('Add to Payment List(Cart)');
+		Ext.getCmp('rpi-workid').setValue(ori.data['workid']);
+		Ext.getCmp('kode_brg_text').setValue(ori.data['kode_brg']);
+        Ext.getCmp('kode_brg_text').disable();
+		Ext.getCmp('nama_brg_text').setValue(ori.data['nama_brg']);
+//		Ext.getCmp('rpi-val').setValue(ori.data['val_kode']);
+//		Ext.getCmp('uom_text').setValue(ori.data['uom']);
+//		Ext.getCmp('price_text').setValue(CommaFormatted(ori.data['price']));
+//
+//		Ext.getCmp('rpi-qty').setValue(CommaFormatted(ori.data['qty']));
+
+		Ext.getCmp('save-to-rpi').enable();
+		Ext.getCmp('rpi-grid').disable();
+		Ext.getCmp('payment-grid').disable();
+		Ext.getCmp('cancel-to-rpi').setText('Cancel Add');
+		Ext.getCmp('cancel-to-rpi').enable();
+
+	}
+	else
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Error while fetching data...',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+  		return false;
+	}
+}
+
+function insertToRPI()
+{
+            if(checkList())
+            {
+             clearRPIForm();
+             clearButton();
+             refreshGrid();
+            }
+            else
+            {
+             var rpi_no = Ext.getCmp('rpi_no_text').getValue();
+
+            var gridrpi = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+
+            if (gridrpi[0] != undefined)
+            {
+                var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+            }
+
+            if (orirpi != undefined)
+            {
+               
+            if (orirpi.data['status'] == 'edit')
+            {                                       
+                    orirpi.data['status'] = '';
+                    orirpi.data['coa_kode'] = Ext.getCmp('coa_kode_text').getValue();
+                    orirpi.data['coa_nama'] = Ext.getCmp('coa_nama_text').getValue();
+            }
+
+            orirpi = undefined;
+//            ori = undefined;
+             clearRPIForm();
+             clearButton();
+             refreshGrid();
+
+            }
+            else
+            {
+                var qty = ori.data['qty'].toString().replace(/\$|\,/g,'');
+                var harga = ori.data['price'].toString().replace(/\$|\,/g,'');
+                var total = parseFloat(qty*harga);
+              
+                var e = new rpilist({
+                    workid: ori.data['workid'],
+                    workname: ori.data['workname'],
+
+                    prj_kode: ori.data['prj_kode'],
+                    sit_kode: ori.data['sit_kode'],
+                    prj_nama: ori.data['prj_nama'],
+                    sit_nama: ori.data['sit_nama'],
+                    kode_brg: ori.data['kode_brg'],
+                    nama_brg: ori.data['nama_brg'],
+                    harga: harga,
+                    val_kode: ori.data['val_kode'],
+                    uom: ori.data['uom'],
+                    id: ori.data['id'],
+                    qty: qty,
+                    total: total,
+                    coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                    coa_nama: Ext.getCmp('coa_nama_text').getValue()
+
+                    
+                });
+
+                 storeRPI.add(e);
+                 ori = undefined;
+                 e = undefined;
+                 clearRPIForm();
+                 clearButton();
+                 refreshGrid();
+            }
+        }
+        
+}
+
+function delToRPI(idBoq,workid)
+{
+	Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+		if (btn == 'yes')
+		{
+            var gridrpi = Ext.getCmp('rpi-grid').getSelectionModel().getSelections();
+            var b = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+
+				if (b != undefined)
+				{
+					storeRPI.remove(b);
+					Ext.getCmp('rpi-grid').getView().refresh();
+					Ext.getCmp('payment-grid').getView().refresh();
+				}
+			clearRPIForm();
+			clearButton();
+		}
+
+	});
+}
+
+function editToRPI(idPo)
+{
+	Ext.getCmp('save-to-rpi').setText('Update to Payment List(Cart)');
+    var gridrpi = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+	var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+
+//	ori = store.getAt(store.findExact('id', idPo));
+	Ext.getCmp('rpi-grid').disable();
+	Ext.getCmp('payment-grid').disable();
+	Ext.getCmp('cancel-to-rpi').setText('Cancel Edit');
+	Ext.getCmp('cancel-to-rpi').enable();
+	if (orirpi != undefined)
+	{
+		orirpi.data['status'] = 'edit';
+		Ext.getCmp('rpi-workid').setValue(orirpi.data['workid']);
+
+		Ext.getCmp('kode_brg_text').setValue(orirpi.data['kode_brg']);
+		Ext.getCmp('nama_brg_text').setValue(orirpi.data['nama_brg']);
+        Ext.getCmp('coa_kode_text').setValue(orirpi.data['coa_kode']);
+        Ext.getCmp('coa_nama_text').setValue(orirpi.data['coa_nama']);
+
+//        Ext.getCmp('rpi-qty').setValue(orirpi.data['qty']);
+//		Ext.getCmp('price_text').setValue(CommaFormatted(orirpi.data['harga']));
+//		Ext.getCmp('uom_text').setValue(orirpi.data['uom']);
+//		Ext.getCmp('rpi-val').setValue(orirpi.data['val_kode']);
+
+		Ext.getCmp('save-to-rpi').enable();
+
+    }
+}
+
+function getExchangeRate()
+	{
+		Ext.Ajax.request({
+		    url: '/default/valuta/getexchangerate',
+		    method:'POST',
+		    success: function(result, request){
+			   		var returnData = Ext.util.JSON.decode(result.responseText);
+					if(returnData.success) {
+						Ext.getCmp('rateidr').setValue(returnData.rate);
+					}
+				}
+				,failure:function( action){
+			if(action.failureType == 'server'){
+		    obj = Ext.util.JSON.decode(action.response.responseText);
+		    Ext.Msg.alert('Error!', obj.errors.reason);
+			}
+			}
+		});
+	}
+
+function showCoa()
+{
+    var columns = [
+                    {header:'CoA Code',width:100,sortable:true,dataIndex:'coa_kode'},
+                    {header:'CoA Name',width:150,sortable:true,dataIndex:'coa_nama'},
+                ];
+
+    data =  [
+
+            {name: 'coa_kode', mapping: 'coa_kode'},
+            {name: 'coa_nama', mapping: 'coa_nama'},
+            ];
+
+
+    urlJson = '/default/coa/list';
+
+    primaryKey = 'coa_kode';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'coa_kode';
+				            txtBoxChange = 'coa_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-pjr_kode_button';
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("coa_nama");
+                            Ext.getCmp('coa_kode_text').setValue(record);
+
+                            if (Ext.getCmp('coa_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('coa_nama_text').setValue(record2);
+                            }
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchPrjKode = function(field,e){
+        newUrl = '/default/coa/listByParams/name/coa_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchPrjName = function(field,e){
+        newUrl = '/default/project/listByParams/name/coa_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-pjr_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'CoA Code:'
+            },
+             new txtboks(80,10,80,'coa_code',searchPrjKode),
+             {
+            x: 170,
+            y: 12,
+            xtype: 'label',
+            text: 'CoA Name:'
+            },
+            new txtboks(240,10,80,'coa_name',searchPrjName),
+             new grids('project_list')
+        ]
+
+      });
+      aForm.title = 'Choose CoA';
+      aForm.show();
+}
+
+
+function getRPIDetail(trano)
+	{
+		Ext.Ajax.request({
+			scope: this,
+			results: 0,
+	        url: '/default/home/getrpidetail/trano/' + trano,
+	        method:'POST',
+	        success: function(result, request){
+	        	   var returnData = Ext.util.JSON.decode(result.responseText);
+				   Ext.getCmp('rpi_value').setValue(returnData.total);
+				   Ext.getCmp('invoice_no').setValue(returnData.invoice_no);
+				   Ext.getCmp('val_kode').setValue(returnData.val_kode);
+				   Ext.getCmp('sup_kode').setValue(returnData.sup_kode);
+				   Ext.getCmp('sup_nama').setValue(returnData.sup_nama);
+                   Ext.getCmp('payed_value').setValue(returnData.RPIPayment);
+                   Ext.getCmp('payment_balance').setValue(returnData.payment_balance);
+                   Ext.getCmp('payment_value').setValue(returnData.total);
+                   Ext.getCmp('val_kode2').setValue(returnData.val_kode);
+                   Ext.getCmp('val_kode3').setValue(returnData.val_kode);
+                   Ext.getCmp('val_kode4').setValue(returnData.val_kode);
+                   Ext.getCmp('payment-submit').enable();
+                                    
+                   Ext.getCmp('vat-radio').setValue('ppn-2',true);
+                   Ext.getCmp('gtotal_text').setValue(returnData.total);
+                   Ext.getCmp('pajak_text').disable();
+                   Ext.getCmp('pajak_text').setValue(0);
+
+                   if (returnData.val_kode != 'IDR')
+                        Ext.getCmp('rateidr').enable();
+                   else
+                        Ext.getCmp('rateidr').disable();
+
+                var trano = Ext.getCmp('rpi_no_text').getValue();
+                if (trano == undefined || trano == '')
+                    return false;
+                var newUrl = '/default/home/getrpisummary/data/' + trano ;
+                store.proxy.setUrl(newUrl);
+                store.reload();
+//				   totalLimit = undefined;
+//				   if (returnData.val_kode == 'IDR')
+//				   {
+//					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalIDR));
+//					   totalLimit = parseFloat(returnData.jumlah) - parseFloat(returnData.RPIinvoice.totalIDR);
+//				   }
+//				   else
+//				   {
+//					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalUSD));
+//					   totalLimit = parseFloat(returnData.jumlah) - parseFloat(returnData.RPIinvoice.totalUSD);
+//				   }
+//				   Ext.getCmp('balance_value').setValue(CommaFormatted(totalLimit));
+//				   if (returnData.ppn != undefined && returnData.ppn != '' && returnData.ppn > 0)
+//				   {
+//						Ext.getCmp('vat-radio').setDisabled(true);
+//				   }
+
+				}
+			,
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}
+	      	}
+	    });
+
+	};
+
+    function showRPIList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        var store = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'}
+            ,[
+			{name: 'id'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'sit_kode'},
+			{name: 'prj_nama'},
+			{name: 'sit_nama'}
+          ]),
+        proxy: new Ext.data.HttpProxy({
+           url : '/default/rpih/getpaymentlist'
+        })
+        })
+        store.load();
+
+        yAxis=100;
+        var grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: store,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:'po_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 50,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:250,
+            width:380,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('rpi_no_text').setValue(trano);
+                                getRPIDetail(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+
+        Ext.override(Ext.PagingToolbar, {
+            doRefresh: function(){
+                this.clearFilter();
+                delete this.store.lastParams;
+                this.doLoad(this.cursor);
+            }
+            });
+        }
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PO
+        searchTrano = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/rpih/getpaymentlist/trano/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+
+    searchPrj_kode = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/rpih/getpaymentlist/prj_kode/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+    }
+    searchSit_kode = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/rpih/getpaymentlist/sit_kode/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchPrj_name = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/rpih/getpaymentlist/prj_nama/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchSit_name = function(field,e){
+
+        var docs = field.getValue();
+
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/rpih/getpaymentlist/sit_nama/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 37,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,35,80,'prj_kode',searchPrj_kode),
+           {
+               x : 6,
+               y: 62,
+               xtype: 'label',
+               text: 'Project Name'
+           },
+           new txtboks(80,60,80,'prj_nama',searchPrj_name),
+           {
+                 x: 180,
+                 y: 37,
+            	xtype: 'label',
+                text: 'Site Code'
+           },
+           new txtboks(240,35,80,'sit_kode',searchSit_kode),
+           {
+                x: 180,
+                y: 62,
+            	xtype: 'label',
+                text: 'Site Name'
+            },
+            new txtboks(240,60,80,'sit_nama',searchSit_name)
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose RPI';
+      aForm.show();
+    }
+
+    function showPayed(trano)
+	{
+
+		var payedlist = Ext.data.Record.create([
+	        {
+			    name: 'trano'
+			},
+            {
+			    name: 'doc_trano'
+			},
+			{
+			    name: 'tgl',
+			    type: 'date',
+			    format: 'Y-m-d'
+			},
+			{
+			    name: 'total_bayar'
+			},
+			{
+			    name: 'val_kode'
+			}
+
+		]);
+
+		var proxy = new Ext.data.HttpProxy({
+		    url : '/default/home/getrpipayedhistory/doc_trano/' + trano
+		});
+
+		var storeInvoice = new Ext.data.Store({
+		    proxy: proxy,
+		    reader: new Ext.data.JsonReader({
+		    totalProperty: 'count',
+		    idProperty: 'id',
+		    root: 'posts',
+		    fields: payedlist})
+		});
+
+		var columns = [ new Ext.grid.RowNumberer(),
+			       		{header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'RPI No.',width:100,sortable:true,dataIndex:'doc_trano'},
+		                {header:'Date',width:100,sortable:true,dataIndex:'tgl',renderer:Ext.util.Format.dateRenderer('d/m/Y')},
+		                {header:'Total',width:100,sortable:true,dataIndex:'total_bayar',renderer: function(v,p,r) {
+                            return r.data['val_kode'] + ' ' + CommaFormatted(v);
+                        }}
+                    ];
+
+		storeInvoice.load();
+
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel',
+		    layout:'fit',
+		    width: 500,
+		    height: 300,
+		    title: 'RPI Payment History',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						layout: 'fit',
+						items: [
+								new Ext.grid.GridPanel({
+									store: storeInvoice,
+						            columns: columns,
+									id: 'rpi-payment-grid',
+						            loadMask: true,
+						            view: new Ext.grid.GridView({
+							            		forceFit: true
+							            	})
+									})
+								]
+						})
+				    ],
+		    buttons: [
+
+		              {
+	 			         text: 'OK',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+			  		    ]
+		});
+
+		bForm.show();
+
+	}
+
+    function submitRPI()
+	{
+		var trano = Ext.getCmp('rpi_no_text').getValue();
+		if (trano == undefined || trano == '')
+			return false;
+		var newUrl = '/default/home/getrpisummary/data/' + trano ;
+	    store.proxy.setUrl(newUrl);
+	    store.reload();
+
+	    var rpiGrid = Ext.getCmp('rpi-grid');
+	    rpiGrid.getStore().proxy.setUrl(newUrl);
+	    rpiGrid.getBottomToolbar().store.proxy.api.read['url'] = newUrl;
+	    rpiGrid.getBottomToolbar().store.proxy.url = newUrl;
+	    rpiGrid.getBottomToolbar().store.proxy.setUrl(newUrl);
+
+        Ext.getCmp('type_text').disable();
+        Ext.getCmp('rpi_no_text').disable();
+        Ext.getCmp('payment-submit').disable();
+	}
+
+    function submitPayment()
+    {
+//        if (storeRPI.getCount() == 0)
+//        {
+//            return false;
+//        }
+
+        var json = '';
+        var parameter = '';
+
+        store.each(function(store){
+
+            json += Ext.util.JSON.encode(store.data) + ',';
+            });
+        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+        var rpiValue = parseFloat(Ext.getCmp('rpi_value').getValue().toString().replace(/\$|\,/g,''));
+        var paymentValue = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+        var balanceValue = parseFloat(Ext.getCmp('payment_balance').getValue().toString().replace(/\$|\,/g,''));
+        var pajakValue = parseFloat(Ext.getCmp('pajak_text').getValue().toString().replace(/\$|\,/g,''));
+         var gtotalValue = parseFloat(Ext.getCmp('gtotal_text').getValue().toString().replace(/\$|\,/g,''));
+         var payType = Ext.getCmp('payment_type').getValue();
+
+        if (paymentValue == '')
+        {
+            Ext.Msg.alert('Error!', 'Please Input Payment Value!');
+            return false;
+        }
+
+        if (paymentValue > balanceValue)
+        {
+            Ext.Msg.alert('Error!', 'Payment Value is more than Balance allowed!');
+            return false;
+        }
+
+        var type = Ext.getCmp('type_text').getValue();
+        if (type == '')
+        {
+            Ext.Msg.alert('Error!', 'Please Select Transaction Type!');
+            return false;
+        }
+
+        if (payType == '')
+        {
+            Ext.Msg.alert('Error!', 'Please Input Payment Type!');
+            return false;
+        }
+
+         var doc_trano = Ext.getCmp('rpi_no_text').getValue();
+        var invoiceNo = Ext.getCmp('invoice_no').getValue();
+        var ket = Ext.getCmp('payment_ket').getValue();
+        var rate = Ext.getCmp('rateidr').getValue().toString().replace(/\$|\,/g,'');
+        var val_kode = Ext.getCmp('val_kode').getValue();
+       
+        var tgl = new Date(Ext.getCmp('date_text').getValue());
+        var date = tgl.format('Y-m-d');
+
+        var vat_radio= Ext.getCmp('vat-radio').getValue().getGroupValue();
+        parameter = '[{"type":"' + type + '","doc_trano":"' + doc_trano + '", "invoice_no":"' + invoiceNo + '", "ket":"' + ket + '", "total_bayar":"' + paymentValue + '", "rateidr":"' + rate + '", "val_kode":"' + val_kode + '", "vatradio":"' + vat_radio + '", "pajak":"' + pajakValue + '", "gtotal":"' + gtotalValue + '", "date":"' + date + '", "pola":"' + payType + '"}]';
+        var params = {posts: json, etc: parameter};
+
+        Ext.Ajax.request({
+	            url: '/finance/payment/payrpi',
+	            method:'POST',
+	            success: function(result){
+                    obj = Ext.util.JSON.decode(result.responseText);
+                    if (obj.success)
+                    {
+                        Ext.Msg.minWidth = 300;
+	    		        Ext.Msg.alert('Success, Data has been saved'+ '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/finance/payment/paymentrpi',
+                        scripts : true
+                    });
+//                        Ext.getCmp('rpi-form').getForm().reset();
+//                        getExchangeRate();
+//                        Ext.getCmp('payment-submit').disable();
+                    }
+                    else
+                        Ext.Msg.alert('Error', obj.msg);
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+        });
+
+        Ext.getCmp('payment-submit').disable();
+    }
+
+Ext.onReady(function() {
+	Ext.QuickTips.init();
+
+
+    var form = new Ext.FormPanel({
+        id: 'rpi-form',
+        labelAlign: 'right',
+        title: 'RPI Payment',
+        width: 800,
+//        height: 450,
+		frame: true,
+        renderTo: 'user-form',
+        items:
+            [
+            {
+                layout: 'column',
+                items : [
+
+                {
+                    columnWidth:.5,
+                    layout: 'form',
+                    items: [
+
+                {
+                        fieldLabel : 'Transaction',
+                        id : 'type_text',
+                        name: 'type',
+                        xtype: 'combo',
+                         width: 150,
+                         allowBlank: false,
+                         store: new Ext.data.SimpleStore({
+                                    fields:['nilai','name'],
+                                    data:[
+                                            ['BOR','BOR'],
+                                            ['BER','BER'],
+                                            ['SOR','SOR'],
+                                            ['SER','SER'],
+                                            ['SEU','SEU'],
+                                            ['SOU','SOU'],
+                                            ['PC','PC'],
+                                            ['PER','PER'],
+                                            ['PEU','PEU'],
+                                            ['POU','POU'],
+                                            ['POR','POR'],
+                                            ['RPC', 'RPC'],
+                                            ['BCA', 'BCA']
+                                        ]
+                         }),
+                         valueField:'nilai',
+                         displayField:'name',
+                         typeAhead: true,
+                         forceSelection: true,
+                         editable: false,
+                         mode: 'local',
+                         triggerAction: 'all',
+                         selectOnFocus: true,
+                         emptyText: 'Select Type'
+                },
+                {
+                        fieldLabel : 'RPI Number',
+                        id : 'rpi_no_text',
+                        name: 'rpi_no',
+                        xtype: 'trigger',
+                        triggerClass: 'teropong',
+                        allowBlank: false,
+                        editable : false,
+                        onTriggerClick:
+                            function ()
+                            {
+                                    showRPIList();
+                            },
+                        scope: this,
+                        width: 120
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'RPI Detail',
+                    items: [
+                            {
+                                fieldLabel: 'Invoice No',
+                                xtype: 'textfield',
+                                disabled: true,
+                                width: 150,
+                                id: 'invoice_no'
+                            },
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                        columnWidth:.5,
+                                        layout: 'form',
+                                        items: [{
+                                                    fieldLabel : 'Supplier',
+                                                    id : 'sup_kode',
+                                                    xtype: 'textfield',
+                                                    disabled: true,
+                                                    width: 75
+                                                }
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.5,
+                                            layout: 'form',
+                                            items: [{
+                                                        id : 'sup_nama',
+                                                        xtype: 'textfield',
+                                                        hideLabel: true,
+                                                        disabled: true,
+                                                        width: 150
+                                                    }
+                                                    ]
+                                           }
+                                    ]
+                            },
+                            
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                        columnWidth:.57,
+                                        layout: 'form',
+                                        items: [
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel : 'RPI Value',
+                                                    id : 'rpi_value',
+                                                    priceDelemiter:',',
+                                                    style:"text-align:right",
+                                                    width:100,
+                                                    disabled: true
+                                                })
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.12,
+                                            layout: 'form',
+                                            items: [{
+                                                        hideLabel: true,
+                                                        id : 'val_kode',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                    ]
+                                       }
+                                    ]
+                            },
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                        columnWidth:.57,
+                                        layout: 'form',
+                                        items: [
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel : 'RPI Already Paid',
+                                                    id : 'payed_value',
+                                                    priceDelemiter:',',
+                                                    style:"text-align:right",
+                                                    width:100,
+                                                    disabled: true
+                                                })
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.12,
+                                            layout: 'form',
+                                            items: [{
+                                                        hideLabel: true,
+                                                        id : 'val_kode2',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                    ]
+                                       },
+                                       {
+                                            columnWidth:.2,
+                                            layout: 'form',
+                                            items: [{
+                                                        xtype: 'button',
+                                                        cls:"x-btn-icon" ,
+                                                        icon:"/images/icons/fam/information.png",
+                                                        handler: function ()
+                                                        {
+                                                            if (Ext.getCmp('rpi_no_text').getValue() != '')
+                                                                showPayed(Ext.getCmp('rpi_no_text').getValue());
+                                                        }
+                                                    }
+                                                    ]
+                                       }
+                                    ]
+                            }
+                    ]
+                },
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Payment Balance',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 100,
+                                                        id: 'payment_balance'
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode3',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                },
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Payment Value',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        width: 100,
+                                                        id: 'payment_value',
+                                                        enableKeyEvents: true,listeners: {
+
+                                                         'keyup' : function (t,e) {
+                                                             if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 1)
+                                                            {
+                                                                Ext.getCmp('pajak_text').disable();
+                                                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                                                var pajak = 0.1*total;
+                                                                var gtotal = total+pajak;
+                                                                Ext.getCmp('pajak_text').setValue(pajak);
+                                                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                                                            }
+                                                            else if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 3)
+                                                            {
+                                                                Ext.getCmp('pajak_text').enable();
+                                                                Ext.getCmp('pajak_text').setValue('');
+                                                                Ext.getCmp('gtotal_text').setValue('');
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.getCmp('pajak_text').disable();
+                                                                Ext.getCmp('pajak_text').setValue('');
+                                                                var gtotal = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                                                            }
+                                                        }
+                                                    }
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode4',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                }
+                            ]},
+                {
+                    columnWidth:.5,
+                    layout: 'form',
+                    items: [
+
+//                {
+//                     fieldLabel: 'Account No',
+//                     id:'coa_kode_text2',
+//                     name:'coa_kode',
+//                     allowBlank: false,
+//                     xtype:"trigger",
+//                     triggerClass: 'teropong',
+//                     width: 100,
+//                     onTriggerClick:
+//                          function ()
+//                            {
+//                             showCoa();
+//                            }
+//                 },
+                {
+                        fieldLabel : 'Payment Type',
+                        id : 'payment_type',
+                        name: 'type',
+                        xtype: 'combo',
+                         width: 150,
+                         allowBlank: false,
+                         store: new Ext.data.SimpleStore({
+                                    fields:['nilai','name'],
+                                    data:[  ['CASH','CASH'],
+                                            ['CEK','CHEQUE'],
+                                            ['GIRO','GIRO']
+                                        ]
+                         }),
+                         valueField:'nilai',
+                         displayField:'name',
+                         typeAhead: true,
+                         forceSelection: true,
+                         editable: false,
+                         mode: 'local',
+                         triggerAction: 'all',
+                         selectOnFocus: true,
+                         emptyText: 'Select Type',
+                        listeners : {
+                           'select' : function (c,stores, index){
+                               var data = stores.data['nilai'];
+
+                               if(data == 'CASH')
+                               {
+                                   Ext.getCmp('date_text').disable();
+                               }
+                               else
+                               {
+                                   Ext.getCmp('date_text').enable();
+                               }
+                           }
+                        }
+                },
+                {
+                    fieldLabel: 'Due Date',
+                    id : 'date_text',
+                    xtype: 'datefield',
+                    width: 100
+                },
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Exchange Rate',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        width: 100,
+                                                        id: 'rateidr',
+                                                        value: getExchangeRate()
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode5',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        value: 'IDR',
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                },
+                {
+                    fieldLabel: 'Payment Notes',
+                    id : 'payment_ket',
+                    xtype: 'textarea',
+                    width: 200,
+                    height: 70
+                },
+                {
+                    xtype: 'radiogroup',
+                    fieldLabel: 'VAT/PPN',
+                    id: 'vat-radio',
+                    items: [
+                        {boxLabel: 'Yes', name: 'ppn_origin', id: 'ppn-1', inputValue: 1},
+                        {boxLabel: 'No', name: 'ppn_origin', id: 'ppn-2', inputValue: 2,checked: true},
+                        {boxLabel: 'With Holding', name: 'ppn_origin', id: 'ppn-3', inputValue: 3}
+                    ],
+                    listeners:{
+                        'change' : function(t,ch) {
+                            if(Ext.getCmp('rpi_no_text').getValue() == '')
+                            {
+                                    Ext.MessageBox.show({
+                                   title: 'Error',
+                                   msg: 'Please Select RPI Number First!',
+                                   buttons: Ext.MessageBox.OK,
+                                   icon: Ext.MessageBox.ERROR
+                                   });
+                                    return false;
+                            }
+
+                            if(ch.getGroupValue() == 1)
+                            {
+                                Ext.getCmp('pajak_text').disable();
+                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                var pajak = 0.1*total;
+                                var gtotal = total+pajak;
+                                Ext.getCmp('pajak_text').setValue(pajak);
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+                            else if(ch.getGroupValue() == 3)
+                            {
+                                Ext.getCmp('pajak_text').enable();
+                                Ext.getCmp('pajak_text').setValue('');
+                                Ext.getCmp('gtotal_text').setValue('');
+                            }
+                            else
+                            {
+                                Ext.getCmp('pajak_text').disable();
+                                Ext.getCmp('pajak_text').setValue('');
+                                var gtotal = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+
+                        }
+                    }
+                            
+                },
+
+                    new Ext.ux.customRendererField({
+                    priceDelemiter:',',
+                    fieldLabel: 'Tax',
+                    style:"text-align:right",
+                    xtype: 'textfield',
+                    width: 100,
+
+                    id: 'pajak_text',
+                    enableKeyEvents: true,listeners: {
+
+                         'keyup' : function (t,e) {
+                             if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 3)
+                            {
+                                
+                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                var pajak = parseFloat(Ext.getCmp('pajak_text').getValue().toString().replace(/\$|\,/g,''));
+                                var gtotal = total-pajak;
+
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+
+                        }
+                    }
+
+                    }),
+                    new Ext.ux.customRendererField({
+                    priceDelemiter:',',
+                    fieldLabel: 'Grand Total',
+                    style:"text-align:right",
+                    xtype: 'textfield',
+                    width: 100,
+                    id: 'gtotal_text',
+                    disabled : true
+                    })
+                ]}
+        ]}
+            ],
+        buttons: [
+            {
+                text: 'Submit',
+                id: 'payment-submit',
+                iconCls: 'silk-add',
+                disabled: true,
+                handler: function() {
+                    submitPayment();
+                },
+                scope: this
+           },
+           {
+                  text: 'Reset',
+                  handler: function(btn, ev){
+                      Ext.getCmp('rpi-form').getForm().reset();
+                      getExchangeRate();
+                  },
+                  scope: this
+           },
+            {
+                   text: 'Cancel',
+                   handler: function(btn, ev){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/procurement/procurement/rpi',
+                        scripts : true
+                    });
+                   },
+                   scope: this
+            }
+        ]
+    });
+
+//    userForm2 = new Ext.FormPanel({
+//	    renderTo: 'user-form2',
+//	    id: 'rpi-form',
+//	    iconCls: 'silk-user',
+//	    labelAlign: 'right',
+//	    title: 'Detail Request Payment for Invoice (RPI)',
+//	    frame: true,
+//	    width: 500,
+//	    labelAlign: 'left',
+//	    style: 'margin-top: 10px',
+//	    items: [
+//	            {
+//	            layout:'column',
+//	            items:[
+//	                   {columnWidth:.390,
+//	                    layout: 'form',
+//	                	items: [
+//	                	        {
+//	                    	        fieldLabel: 'Work ID',
+//	                    	        id: 'rpi-workid',
+//	                    	        xtype:'textfield',
+//	                        	    disabled: true,
+//	                        	    width: 55
+//	                	        },
+//			        	        {fieldLabel: 'Product ID',
+//						             id:'kode_brg_text',
+//						             name:'kode_brg',
+//						             allowBlank: false,
+//						             xtype:"textfield",
+//						             disabled: true,
+//							         width: 75
+//					             }
+//
+//	                	       ]
+//	                   }
+////	                   {columnWidth:.6,
+////	                       layout: 'form',
+////	                       labelWidth: 80,
+////	                   		items: [
+////								{
+////								    layout:'column',
+////								    items:[
+////								           {columnWidth:.49,
+////								            layout: 'form',
+////								        	items: [
+////						                           	{
+////								            	        fieldLabel: 'Qty Request',
+////								            	        xtype:'textfield',
+////						                    	        id: 'rpi-qty',
+////								            	        allowBlank : false,
+////						                        	    width: 55,
+////						                        	    style:"text-align:right",
+////						                        	    enableKeyEvents: true,
+////						                        	    listeners: {
+////						                           			'blur': function(t) {
+////								                           		if (!isNaN(t.getValue()))
+////																{
+////								                           			t.setValue(CommaFormatted(t.getValue()));
+////																}
+////								        	        		},
+////								        	        		'focus': function(t) {
+////									        	        		if (t.getValue().search(",")>0)
+////																	t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+////								        	        		},
+////															'keyup' : function (t,e) {
+////																cekQty(t.getValue());
+////						                       				}
+////						                           		}
+////								        	        }]
+////								           },
+////								           {columnWidth:.3,
+////									            layout: 'form',
+////									        	items: [
+////												           {
+////															    hideLabel: true,
+////															    id: 'uom_text',
+////															    xtype:'textfield',
+////															    disabled: true,
+////															    width: 30
+////															}
+////														]
+////								           }
+////							           ]
+////								},
+////								{
+////								    layout:'column',
+////								    items:[
+////								           {columnWidth:.65,
+////								            layout: 'form',
+////								        	items: [
+////							                    {
+////							                    	fieldLabel:'Unit Price',
+////							        			    id:'price_text',
+////							        			    name: 'price',
+////							        			    allowBlank: false,
+////							        	            xtype: 'textfield',
+////					                        	    style:"text-align:right",
+////					                        	    width: 100,
+////							        			    disabled:true
+////							        		    }
+////						        		    ]
+////								           },
+////											{columnWidth:.170,
+////									            layout: 'form',
+////									        	items: [
+////												           {
+////															    hideLabel: true,
+////															    id: 'rpi-val',
+////															    xtype:'textfield',
+////															    disabled: true,
+////															    width: 40
+////															}
+////														]
+////								           }
+////										]
+////								}
+////
+////			        	       ]
+////	                   }
+//	                   ]
+//	            },
+//
+//	            {
+//	            	fieldLabel:'Product Name',
+//				    id:'nama_brg_text',
+//				    name: 'nama_brg',
+//				    allowBlank: false,
+//		            xtype: 'textfield',
+//			        width: 315,
+//				    disabled:true
+//			    },
+////                {
+////                     fieldLabel: 'Account No',
+////                     id:'coa_kode_text',
+////                     name:'coa_kode',
+////                     allowBlank: false,
+////                     xtype:"trigger",
+////                     triggerClass: 'teropong',
+////                     width: 100,
+////                     onTriggerClick:
+////                          function ()
+////                            {
+////                             showCoa();
+////                            }
+////                 },
+//                 {
+//                    layout:'column',
+//                    items:[
+//                           {
+//                            columnWidth:.38,
+//                            layout: 'form',
+//                            items: [{
+//                                        fieldLabel: 'Account No',
+//                                         id:'coa_kode_text',
+//                                         name:'coa_kode',
+//                                         allowBlank: false,
+//                                        editable : false,
+//                                         xtype:"trigger",
+//                                         triggerClass: 'teropong',
+//                                         width: 80,
+//                                         onTriggerClick:
+//                                              function ()
+//                                                {
+//                                                 showCoa();
+//                                                }
+//                                    }
+//                                    ]
+//                           },
+//                           {
+//                                columnWidth:.49,
+//                                layout: 'form',
+//                                items: [{
+//                                            id : 'coa_nama_text',
+//                                            xtype: 'textfield',
+//                                            hideLabel: true,
+//                                            disabled: true,
+//                                            width: 150
+//                                        }
+//                                        ]
+//                               }
+//                        ]
+//                    }
+//
+//	            ],
+//	       buttons: [{
+//				         text: 'Add to RPI List(Cart)',
+//				         id: 'save-to-rpi',
+//				         iconCls: 'icon-add',
+//				         handler: function(btn, ev) {
+//                                insertToRPI();
+//
+//					       },
+//				         scope: this
+//				         },
+//				         {
+//					         text: 'Cancel Add',
+//					         id: 'cancel-to-rpi',
+//					         iconCls: 'icon-cancel',
+//					         handler: function(btn, ev) {
+//
+//					         if (btn.text == 'Cancel Edit')
+//					         {
+//
+//					        	 	var gridrpi = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+//                                    var orirpi = storeRPI.getAt(storeRPI.findExact('id', gridrpi[0].data['id']));
+////					        	 	var b = store.getAt(store.findExact('id', ori.data['id']));
+//				         			if (orirpi != undefined)
+//				         			{
+//										orirpi.data['totalRPI'] = parseFloat(orirpi.data['totalRPI'].toString().replace(/\$|\,/g,'')) + parseFloat(orirpi.data['qty'].toString().replace(/\$|\,/g,''));
+//                                        orirpi.data['totalPriceRPI'] = parseFloat(orirpi.data['totalPriceRPI'].toString().replace(/\$|\,/g,'')) + (parseFloat(orirpi.data['qty'].toString().replace(/\$|\,/g,'')*parseFloat(orirpi.data['harga'].toString().replace(/\$|\,/g,''))));
+//										orirpi.data['status'] == '';
+//
+//				         			}
+//
+//					         }
+//								clearRPIForm();
+//								refreshGrid();
+//								clearButton();
+//								orirpi = undefined;
+//						        ori = undefined;
+//				         	},
+//					         scope: this
+//				         }
+//
+//	       			]
+//
+//	});
+
+	userGrid = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'RPI Detail',
+	    height: 200,
+	    width: 800,
+	    stateful: false,
+        plugins: [expander],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	        userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertpr',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+	userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'Payment List(Cart)',
+	    height: 200,
+	    width: 750,
+	    stateful: false,
+        plugins: [expander2],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	    	userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertrpi',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+
+//	var userGrids = new userGrid({
+//        renderTo: 'user-grid',
+//        id: 'rpi-grid',
+//        store: store,
+//        columns : userColumns,
+//        loadMask: true,
+//        bbar: new Ext.PagingToolbar({
+//            id: 'paging',
+//            pageSize: 100,
+//            store: store,
+//            displayInfo: true,
+//            displayMsg: 'Displaying data {0} - {1} of {2}',
+//            emptyMsg: "No data to display"
+//        })
+//    });
+//
+//	var userGrids2 = new userGrid2({
+//        renderTo: 'user-grid2',
+//        id: 'payment-grid',
+//        store: storeRPI,
+//        columns : userColumns2,
+//        loadMask: true,
+//        bbar: ['->',{
+//             xtype: 'button',
+//	         text: 'Save RPI List(Cart)',
+//	         iconCls: 'icon-save',
+//	         handler: function()
+//	         {
+//                 submitPayment();
+//				if (storeRPI.getCount() == 0)
+//				{
+//					return false;
+//				}
+//	         },
+//	         scope: this
+//        	}
+//                ,
+//                {
+//                xtype: 'button',
+//	         text: 'Cancel RPI List(Cart)',
+//	         iconCls: 'icon-cancel',
+//	         handler:showPayRPI,
+//	         scope: this
+//        	}
+//                ]
+//    });
+
+
+});
+</script>
+
+<div id="user-form"></div>
+<!--<div id="user-grid"></div>-->
+<!--<div id="user-form2" style="float:left;"></div>-->
+<!--<div id="user-grid2" style="margin-top:10px;float:left;"></div>-->

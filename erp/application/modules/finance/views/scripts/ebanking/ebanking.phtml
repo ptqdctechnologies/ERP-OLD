@@ -1,0 +1,101 @@
+<script type="text/javascript">
+
+    Ext.onReady (function(){
+
+        Ext.QuickTips.init();
+
+        var windowForm = ({
+
+            title:'EBanking',
+            id:'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'tbbutton',
+                text:'Select Action',
+                iconCls:'menu-drop',
+                menu:{
+                    items:[
+                        {
+                            text:'Payment EBanking',
+                            id:'finance-ebanking-payment',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:function ()
+                            {
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ebanking/payment',
+                                    scripts : true
+                                });
+                            }
+                        },
+                        {
+                            text:'Import Domestic BI Code for PERMATA',
+                            id:'finance-ebanking-import-bi-code',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:function ()
+                            {
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/ebanking/import-bi-code',
+                                    scripts : true
+                                });
+                            }
+                        }
+                    ]
+                }
+            }]
+
+        })
+        
+        function getExchangeRate()
+        {
+            Ext.Ajax.request({
+                url: '/default/valuta/getexchangerate/val_kode/USD',
+                method: 'POST',
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        if(returnData.rate == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Input Current IDR Rate. Thank You.',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR,
+                                fn:function(){window.location='';}
+                            });
+                        }
+                    
+                        Ext.getCmp('rateidr').setValue(returnData.rate);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+
+    })
+
+
+</script>

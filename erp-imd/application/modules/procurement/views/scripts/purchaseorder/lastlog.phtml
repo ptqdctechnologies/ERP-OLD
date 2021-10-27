@@ -1,0 +1,180 @@
+
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<h1>Last Changes From Cancel/Edit PO</h1>
+
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<style type="text/css">
+
+.ketin {
+    width: 100%;
+    font-size: 12px;
+	font-weight: bold;
+    background-color:#FBF0A5;
+}
+.ketin fieldset p {
+    padding: 5px 5px 5px 5px;
+}
+
+.parentContainer{
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 740px;
+    height: 355px;
+    overflow: auto;
+    font-size: 14px;
+}
+
+.parentContainer2{
+    font-size: 12px;
+}
+
+
+</style>
+<div class="ketin">
+<fieldset>
+    <legend>Information</legend>
+    <p>
+    Status: <?php echo $this->ket['action']; ?> by <?php echo $this->ket['name']; ?> @ <?php echo date("d M Y H:i:s",strtotime($this->ket['tgl'])); ?>
+    </p>
+</fieldset>
+</div>
+<table class="parentContainer2">
+        <tr>
+            <td>Project</td><td> :</td>
+            <td><? echo $this->result[0]['prj_kode'];?>-
+            <?=$this->result[0]['prj_nama'];?></td>
+            <td></td>
+            <td>Vendor</td><td> :</td>
+            <td><?=$this->result[0]['sup_kode'];?>-
+            <?=$this->result[0]['sup_nama'];?></td>
+        </tr>
+        <tr>
+            <td>PO No</td><td> :</td>
+            <td><?=$this->result[0]['trano'];?></td>
+            <td></td>
+            <td>Currency</td><td> :</td>
+            <td><?=$this->result[0]['val_kode'];?></td>
+        </tr>
+        <tr>
+            <td>Date</td><td> :</td>
+            <td><?=$this->result[0]['tgl'];?></td>
+            <td></td>
+            <td>PIC Sourching</td><td> :</td>
+            <td><?=$this->result[0]['pic_nama'];?></td>
+
+        </tr>
+        <tr>
+             <td>Payment Term</td><td> :</td>
+            <td><?=$this->etc[0]['paymentterm'];?></td>
+             <td></td>
+             <td>Remark</td><td> :</td>
+            <td><?=$this->etc[0]['ket'];?></td>
+        </tr>
+</table>
+
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead id="fixed">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <!--<th scope="col"><center>Trans No</center></th>
+            <th scope="col"><center>Date</center></th>-->
+            <th scope="col"><center>Site Code</center></th>
+            <th scope="col"><center>Site Name</center></th>
+            <th scope="col"><center>Work Id</center></th>
+            <th scope="col"><center>Work Name</center></th>
+            <th scope="col"><center>Product Id</center></th>
+            <th scope="col"><center>Description</center></th>
+            <th scope="col"><center>Uom</center></th>
+            <th scope="col"><center>Qty</center></th>
+            <th scope="col"><center>Unit Price</center></th>
+            <th scope="col"><center>Total IDR</center></th>
+            <th scope="col"><center>Total USD</center></th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+            for($i=0; $i<count($this->result); $i++)
+            {
+                if ($this->result[$i]['val_kode'] == 'IDR')
+                    $this->result[$i]['total_IDR'] = floatval($this->result[$i]['qty']) * floatval($this->result[$i]['harga']);
+                else
+                    $this->result[$i]['total_USD'] = floatval($this->result[$i]['qty']) * floatval($this->result[$i]['harga']);
+                $ket = '';
+                if($this->result[$i]['ket2'] != '' && $this->result[$i]['ket2'] != ' ')
+                    $ket = " <b>(Note: {$this->result[$i]['ket2']} )</b>";
+    	?>
+    	<tr>
+            <td><?=$i+1;?></td>
+            <!--<td><?//=$this->result[$i]['trano'];?></td>
+            <td><?//=$this->result[$i]['tgl'];?></td>-->
+            <td><?=$this->result[$i]['sit_kode'];?></td>
+            <td><?=$this->result[$i]['sit_nama'];?></td>
+            <td><?=$this->result[$i]['workid'];?></td>
+            <td><?=$this->result[$i]['workname'];?></td>
+            <td><?=$this->result[$i]['kode_brg'];?></td>
+            <td><?=$this->result[$i]['nama_brg'] . $ket;?></td>
+            <td align="right"><?=$this->result[$i]['oum']?></td>
+            <td align="right"><?=number_format($this->result[$i]['qty'],4);?></td>
+            <td align="right"><?=number_format($this->result[$i]['harga'],2);?></td>
+            <td align="right"><?=number_format($this->result[$i]['total_IDR'],2);?></td>
+            <td align="right"><?=number_format($this->result[$i]['total_USD'],2);?></td>
+        </tr>
+
+        <?php
+                $total = $this->result[$i]['total_IDR'];
+                $totalJumlah = $totalJumlah + $total;
+
+                $total2 = $this->result[$i]['total_USD'];
+                $totalJumlah2 = $totalJumlah2 + $total2;
+
+                $ppn = $this->result[0]['ppn'];
+				if ($this->result[$i]['val_kode'] == 'IDR')
+                	$totalJumlah3 = $ppn;
+				else
+					$totalJumlah5 = $ppn;
+
+                $totalJumlah4 = $totalJumlah + $totalJumlah3;
+
+                $totalJumlah6 = $totalJumlah2 + $totalJumlah5;
+            }
+        ?>
+                        <tr style="background: #4C6891;">
+                            <td colspan="9" style="color:#FFFFFF;" align="right">Sub Total : </td>
+                            <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah,2)?></td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah2,2)?></td>
+                        </tr>
+                        <tr style="background: #4C6891;">
+                            <td colspan="9" style="color:#FFFFFF;" align="right">VAT 10% : </td>
+                            <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah3,2)?></td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah5,2)?></td>
+                        </tr>
+                        <tr style="background: #4C6891;">
+                            <td colspan="9" style="color:#FFFFFF;" align="right">Total : </td>
+                            <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah4,2)?></td>
+                            <td style="color:#FFFFFF;" align="right"><?=number_format($totalJumlah6,2)?></td>
+                        </tr>
+</table>
+</div>
+
+<script type="text/javascript">
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 2,
+		headerRows : 1
+	});
+})();
+</script>

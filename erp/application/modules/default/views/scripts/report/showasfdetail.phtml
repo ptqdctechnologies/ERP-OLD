@@ -1,0 +1,259 @@
+<script type="text/javascript" src="/js/layout/base/iconcomboext.js"></script>
+
+<script type="text/javascript">
+
+ showTrans = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    noTrans = Ext.getCmp('trano_text').getValue();
+
+	    if (noTrans == '')
+              {
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Trans No!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	      }
+	    else
+	        urlLoad = '/report/asfdetail/trano/' + noTrans;
+
+	    myPanel.body.load({
+	        url: urlLoad,
+                scripts: true
+
+	});
+	}
+
+var datas = new Ext.data.SimpleStore({
+    fields:['type','name']
+            ,data:[['pdf','PDF'],['xls','Excel']]
+        });
+
+var combo = new Ext.form.ComboBox({
+    fieldLabel: 'Export'
+    ,name:'showReport'
+    ,store: datas
+    ,valueField:'type'
+    ,displayField:'name'
+    ,typeAhead: true
+    ,mode: 'local'
+    ,triggerAction: 'all'
+    ,value: 'pdf'
+    ,emptyText:'Select..'
+    ,selectOnFocus:true
+    ,anchor:'95%'
+    ,hiddenName:'type'
+    ,width:70
+
+});
+
+exportReport = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    noTrans = Ext.getCmp('trano_text').getValue();
+    if (noTrans == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Trans No!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	}
+	if (combo.getRawValue() == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Select Format!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+	}
+	else
+	{
+		urlLoad =  '/jasper/asfdetail/trano/' + noTrans + '/type/' + combo.getValue();
+	}
+
+    params = {trano:noTrans};
+    Ext.Ajax.request({
+        url: '/default/home/cekprint',
+        method:'POST',
+        success: function(resp){
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                window.open(urlLoad,'mywin',
+                'left=20, top=20, width=100, height=20, toolbar=0, resizable=0');
+            }
+            else
+            {
+                Ext.Msg.alert('Error', returnData.msg);
+            }
+        },
+        failure:function( action){
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+        }
+        },
+        params: params
+    });
+
+};
+
+var windowForm =  ({
+
+    title: 'ASF Detail Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'ASF No'
+        },
+        {
+            xtype: 'tranoselector',
+            id: 'tranos',
+            Selectid: 'trano_text',
+            width: 120,
+            Tranotype: ['ASF','ASFO', 'ASFP'],
+            Disabletype: true
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_trans',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showTrans
+        },
+        '-'
+        ,
+        combo,
+        {
+            xtype: 'button',
+            id: 'export_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/print.png",
+            handler:exportReport
+        }
+    ]
+});
+
+
+SampleGrid = function(gridType,yAxis,param) {
+    var yAxis = yAxis;
+    if (gridType == 'trano5_list')
+    {
+        <?php echo $this->action('columnHeader','grid',null,array("type" => "trano5_list")); ?>
+        if ( Ext.getCmp('trano_text').getValue() == '')
+            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "trano5_list")); ?>';}
+        else
+            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "trano5_list_param",'noParam' => '1','columnName'=>'trano')); ?>' + Ext.getCmp('trano_text').getValue();}
+        data =  [<?php echo $this->action('mappingField','grid',null,array("type" => "trano4_list")); ?>];
+        primaryKey = '<?php echo $this->action('getPrimaryKey','grid',null,array("type" => "arfh")); ?>';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+    }
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+if (yAxis == undefined)
+    yAxis=100;
+    SampleGrid.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+                     'rowdblclick': function(g, rowIndex, e){
+                            closeForm = false;
+                            isDblClick = true;
+                            if (gridType == 'trano5_list')
+                              {
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+
+                                var noTrans = g.getStore().getAt(rowIndex).get(objectName);
+                                newUrl = '/procurement/listByParams/name/trano/asfh/true/data/' + noTrans ;
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+
+                                var record = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('trano_text').setValue(record);
+                               }
+                            if (closeForm)
+                               {
+                                    Ext.getCmp(formId).close();
+                               }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+
+    stores.load();
+
+}
+
+Ext.extend(SampleGrid, Ext.grid.GridPanel);
+
+<?php echo $this->action('index','textfield',null); ?>
+searchTrano = function(field,e){
+    newUrl = '/asfh/listByParams/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+    gri = Pk+'_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+
+
+ viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+</script>
+

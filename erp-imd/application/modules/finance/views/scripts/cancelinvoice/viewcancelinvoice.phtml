@@ -1,0 +1,222 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var cancelinvstore = new Ext.data.Store ({
+
+            autoLoad:true,
+            url:'/finance/cancelinvoice/getviewcancelinv',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'trano'
+                },{
+                    name:'invoice_no'
+                },{
+                    name:'cancel_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'riv_no'
+                },{
+                    name:'prj_kode'
+                },{
+                    name:'sit_kode'
+                },{
+                    name:'ket'
+                },{
+                    name:'total_invoice'
+                },{
+                    name:'total_cancel'
+                },{
+                    name:'cus_kode'
+                },{
+                    name:'cus_nama'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'uid'
+                },{
+                    name:'reason'
+                }]
+            })
+
+        })
+
+        var expander = new Ext.ux.grid.RowExpander({
+            tpl : new Ext.Template(
+//                    '<div style="margin-left:30px;"><p><br>',
+                    '<p><b>Invoice Description :</b> {ket}</p>',
+                    '<p><b>Cancel Reason :</b> {reason}</p><br></div>'
+                   )
+        });
+
+        var cancelinvgrid = new Ext.grid.GridPanel ({
+
+            store:cancelinvstore,
+            renderTo:'cancel_invoice_grid',
+            id:'cancel-invoice-grid',
+            frame:true,
+            height:400,
+            viewConfig:{
+                forceFit:true
+            },
+            plugins:[expander],
+            columns:[
+                expander,new Ext.grid.RowNumberer(),
+            {
+                header:'Trano',
+                dataIndex:'trano',
+                align:'center',
+                sortable:true
+            },{
+                header:'Invoice Number',
+                dataIndex:'invoice_no',
+                align:'center',
+                sortable:true
+            },{
+                header:'Request Number',
+                dataIndex:'riv_no',
+                align:'center',
+                sortable:true
+            },{
+                header:'Cancel Date',
+                dataIndex:'cancel_date',
+                align:'center',
+                sortable:true,
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Project Code',
+                dataIndex:'prj_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Site Code',
+                dataIndex:'sit_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Customer',
+                dataIndex:'cus_nama',
+                align:'center',
+                sortable:true
+            },{
+                header:'PIC',
+                dataIndex:'uid',
+                align:'center',
+                sortable:true
+            },{
+                header:'Valuta',
+                dataIndex:'val_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Invoice Value',
+                dataIndex:'total_invoice',
+                align:'right',
+                sortable:true,
+                renderer: function(v,p,r){
+                    if (v < 0)
+                        var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                    else
+                        var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            },{
+                header:'Cancel Value',
+                dataIndex:'total_cancel',
+                align:'right',
+                sortable:true,
+                renderer: function(v,p,r){
+                    if (v < 0)
+                        var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                    else
+                        var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            }],bbar:new Ext.PagingToolbar ({
+                id: 'paging-jurnal',
+                pageSize: 20,
+                store: cancelinvstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype:'combo',
+                id:'option',
+                width:100,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['trano','Trano'],
+                            ['invoice_no','Invoice Number'],
+                            ['riv_no','Request Invoice Number'],
+                            ['prj_kode','Project Code'],
+                            ['sit_kode','Site Code'],
+                            ['cus_nama','Customer']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'trano'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                enableKeyEvents:true,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            cancelinvstore.proxy.url= '/finance/cancelinvoice/getviewcancelinv/search/' + search + '/option/' + option;
+                            cancelinvstore.proxy.setUrl('/finance/cancelinvoice/getviewcancelinv/search/' + search + '/option/' + option);
+                            cancelinvstore.proxy.api.read['url']= '/finance/cancelinvoice/getviewcancelinv/search/' + search + '/option/' + option;
+                            cancelinvstore.load();
+                            cancelinvgrid.getView().refresh();
+                        }
+                    }
+                }
+            },'-',{
+                xtype: 'button',
+                text : 'Refresh',
+                id: 'refresh_button',
+                iconCls:"silk-table-refresh" ,
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('search').setValue('');
+                    Ext.getCmp('option').setValue('trano');
+                    cancelinvstore.proxy.url= '/finance/cancelinvoice/getviewcancelinv';
+                    cancelinvstore.proxy.setUrl('/finance/cancelinvoice/getviewcancelinv');
+                    cancelinvstore.proxy.api.read['url']= '/finance/cancelinvoice/getviewcancelinv';
+                    cancelinvstore.load();
+                    cancelinvgrid.getView().refresh();
+                }
+            }]
+
+        })
+
+    })
+
+
+
+
+</script>
+
+    <div id="cancel_invoice_grid"></div>

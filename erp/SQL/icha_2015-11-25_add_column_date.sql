@@ -1,0 +1,6 @@
+ALTER TABLE `erpdb`.`procurement_pointd` 
+ADD COLUMN `date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `sts_internal`;
+
+ALTER TABLE `erpdb`.`procurement_pointh` 
+ADD COLUMN `date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `approve`;
+

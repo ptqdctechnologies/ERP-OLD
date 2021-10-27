@@ -1,0 +1,217 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    exportReport = function(){
+        if (Ext.getCmp('user_kode_text').getValue() != '')
+            var person = Ext.getCmp('user-select').getUid();
+        else
+            var person = '';
+        var show = Ext.getCmp('type').getValue();
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+        var tgl1 = Ext.util.Format.date(Ext.getCmp('tgl1_text').getValue(),'Y-m-d');
+        var tgl2 = Ext.util.Format.date(Ext.getCmp('tgl2_text').getValue(),'Y-m-d');
+        var addurl = '';
+
+        if (person == '' && prjKode == '' && (tgl1 == '' || tgl2 == ''))
+        {
+            Ext.Msg.alert('Error', "Please select criteria!");
+            return false;
+        }
+
+        if (person != '')
+            addurl = '/uid/' + person;
+        if (prjKode != '')
+            addurl = addurl + '/prj_kode/' + prjKode;
+        if (tgl1 != '')
+            addurl = addurl + '/tgl1/' + tgl1;
+        if (tgl2 != '')
+            addurl = addurl + '/tgl2/' + tgl2;
+
+        addurl = encodeURI(addurl + '/type/' + show);
+
+        urlLoad =  '/jasper/timesheetdetail' +  addurl;
+
+        window.open(urlLoad,'mywin','left=20, top=20, width=100, height=20, toolbar=0, resizable=0');
+
+    };
+
+    refresh = function(){
+        Ext.getCmp('user_kode_text').setValue('');
+        Ext.getCmp('prj_kode_text').setValue('');
+        Ext.getCmp('tgl1_text').setValue('');
+        Ext.getCmp('tgl2_text').setValue('');
+    }
+
+    showTimesheetDetail2 = function(){
+        if (Ext.getCmp('user_kode_text').getValue() != '')
+            var person = Ext.getCmp('user-select').getUid();
+        else
+            var person = '';
+
+        var from = '<?=$this->from?>';
+
+        var show = Ext.getCmp('type').getValue();
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+        var tgl1 = Ext.util.Format.date(Ext.getCmp('tgl1_text').getValue(),'Y-m-d');
+        var tgl2 = Ext.util.Format.date(Ext.getCmp('tgl2_text').getValue(),'Y-m-d');
+        var addurl = '';
+
+        if (person == '' && prjKode == '' && (tgl1 == '' || tgl2 == ''))
+        {
+            Ext.Msg.alert('Error', "Please select criteria!");
+            return false;
+        }
+
+        if (person != '')
+            addurl = '/uid/' + person;
+        if (prjKode != '')
+            addurl = addurl + '/prj_kode/' + prjKode;
+        if (tgl1 != '')
+            addurl = addurl + '/tgl1/' + tgl1;
+        if (tgl2 != '')
+            addurl = addurl + '/tgl2/' + tgl2;
+        if (from != '')
+        {
+            addurl = addurl + '/from/ ' + from;
+            var url = '/projectmanagement/timesheet/detailtimesheet4';
+        }
+        else
+            var url = '/projectmanagement/timesheet/detailtimesheet2';
+        addurl = encodeURI(addurl + '/type/' + show);
+
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url:  url + addurl,
+            scripts : true
+        });
+    };
+
+    var datas = new Ext.data.SimpleStore({
+	    fields:['type','name']
+	            ,data:[['final','Approved by HR'],['submit','Still on Progress']]
+	        });
+
+	var combo=new Ext.form.ComboBox({
+	    fieldLabel: 'Show'
+        ,id: 'type'
+	    ,name:'showReport'
+	    ,store: datas
+	    ,valueField:'type'
+	    ,displayField:'name'
+	    ,typeAhead: true
+	    ,mode: 'local'
+	    ,triggerAction: 'all'
+        ,value:'final'
+	    ,selectOnFocus:true
+	    ,anchor:'95%'
+	    ,hiddenName:'type'
+	    ,width:110
+        ,editable: false
+	});
+
+    var periodMenu = new Ext.menu.Menu({
+        id: 'mainMenu',
+        style: {
+            overflow: 'visible'     // For the Combo popup
+        },
+        items: [
+            {
+                xtype: 'datefield',
+                id: 'tgl1_text',
+                format: 'd/m/y'
+            },'To',
+            {
+                xtype: 'datefield',
+                id: 'tgl2_text',
+                format: 'd/m/y'
+            }
+        ]
+    });
+
+    var windowForm =  ({
+
+    title: 'Timesheet Detail',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar: [
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselectorreport',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text'
+        },
+        '-',
+        {
+            xtype: 'tbtext',
+            text: 'Person Name'
+        },
+        {
+            xtype: 'userselector',
+            anchor: '100%',
+            uid: '',
+            id: 'user-select',
+            UserSelectid: 'user_kode_text'
+        },
+        '-',
+        {
+            text:'Periode',
+            iconCls: 'icon-calendar',  // <-- icon
+            menu: periodMenu
+        },
+        '-',
+        combo,
+        '-',
+        {
+            xtype: 'button',
+            text: 'Reset',
+            width:70,
+            id: 'refresh',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/lov_refresh.gif",
+            handler:refresh
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showTimesheetDetail2
+        },
+        {
+            xtype: 'button',
+            text: 'Export to Excel',
+            width:70,
+            id: 'export_excel',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/printer.png",
+            handler:exportReport
+        }
+
+    ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+    centerRegionTab.add(windowForm);
+
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+});
+</script>
+
+        <div id="drafts"></div>

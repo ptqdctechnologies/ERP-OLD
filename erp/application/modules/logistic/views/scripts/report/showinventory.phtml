@@ -1,0 +1,112 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var perKode = '<?=$this->perkode?>',
+            perTahun = '<?=$this->year?>',
+            perBulan = '<?=$this->month?>';
+
+        var store = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({
+                totalProperty: 'count',
+                root: 'data'
+            },
+                [
+                    {name: 'id'},
+                    {name: 'kode_brg', type: 'string'},
+                    {name: 'nama_brg', type: 'string'},
+                    {name: 'qty', type: 'float'},
+                    {name: 'hargaavg', type: 'float'},
+                    {name: 'val_kode', type: 'string'},
+                    {name: 'stsslowmoving', type: 'integer'}
+                ]
+            )
+        });
+        store.loadData(<?=$this->data?>);
+
+        var grid = new Ext.grid.GridPanel({
+            stateful: false,
+            renderTo: 'grid',
+            id: 'closing-inventory-grid',
+            store: store,
+            frame: true,
+            tbar: [
+                {
+                    xtype: 'button',
+                    iconCls: 'silk-printer',
+                    text: 'Print This Report',
+                    handler: function(){
+                        Ext.ux.Printer.print({
+                            component: grid,
+                            printTitle: 'Closing Inventory Report'
+                        });
+                    }
+                }
+            ],
+            columns: [
+                new Ext.grid.RowNumberer({
+                    width: 30
+                }),
+                {
+                    header: 'Product ID',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'kode_brg'
+                },
+                {
+                    header: 'Name',
+                    width: 200,
+                    sortable: true,
+                    dataIndex: 'nama_brg'
+                },
+                {
+                    header: 'Qty',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qty',
+                    align: 'right'
+                },
+                {
+                    header: 'AVG Price',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'hargaavg',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        return r.data['val_kode'] + ' ' + Ext.util.Format.number(v,'0,0.00');
+                    }
+                },
+                {
+                    header: 'Slow Moving Items',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'stsslowmoving',
+                    renderer: function(v,p,r){
+                        if (v == 1)
+                            return 'Y';
+                        else
+                            return 'N';
+                    }
+                }
+
+            ],
+            viewConfig : {
+                forceFit: true
+            },
+            loadMask: true,
+            height: 450,
+            bbar: [
+//                new Ext.PagingToolbar({
+//                    pageSize: 100,
+//                    store: store,
+//                    displayInfo: true,
+//                    displayMsg: 'Displaying data {0} - {1} of {2}',
+//                    emptyMsg: "No data to display"
+//                })
+            ]
+
+        });
+    });
+</script>
+    <div id="grid"></div>

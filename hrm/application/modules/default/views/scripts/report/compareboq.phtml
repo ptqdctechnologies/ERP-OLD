@@ -1,0 +1,267 @@
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+?>
+<style>
+
+.parentContainer { /* The parent container */
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; /* Required to set */
+    height: 420px; /* Required to set */
+    overflow: auto; /* Required to set */
+	font-size: 14px;
+}
+
+</style>
+<b>USD Exchange Rate : Rp. <?php echo $this->rateidr;?>, Last updated : <?php echo $this->tgl; ?></b><br />
+<b>Project Code : <?php echo $this->result[0]['prj_kode'];?> - <?php echo $this->result[0]['prj_nama'];?></b><br />
+<b>IDR* = Use updated exchange rate</b>
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead id="fixed">
+    	<tr>
+        	<th scope="col" rowspan="2"><div align="center">Site Code</div></th>
+        	<th scope="col" rowspan="2"><div align="center">Site Name</div></th>
+            <th scope="col" colspan="2"><div align="center">Customer Order<br>(BOQ2)</div></th>
+            <th scope="col" colspan="2"><div align="center">Current Budget<br>(BOQ3)</div></th>
+            <th scope="col" colspan="2"><div align="center">MIP/CIP</div></th>
+            <th scope="col" colspan="2"><div align="center">Actual Cost<br>(BOQ4)</div></th>
+            <th scope="col" colspan="2"><div align="center">Return (Left Over & Cancel)</div></th>
+            <th scope="col" colspan="2"><div align="center">Cost To Date</div></th>
+            <th scope="col" colspan="1"><div align="center">Progress<br />Gross Margin</div></th>
+            <th scope="col" colspan="1"><div align="center">Gross Margin</div></th>
+        </tr>
+        <tr>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>IDR</th>
+        	<th>USD</th>
+        	<th>&nbsp;</th>
+        	<th>&nbsp;</th>
+        	<!-- <th>IDR</th> -->
+        	<!-- <th>IDR*</th> -->
+        </tr>
+    </thead>
+    <tbody>
+    <?php 
+    	$grandTotalBoq2 = 0;
+    	$grandTotalBoq3 = 0;
+    	$grandTotalBoq4 = 0;
+    	$grandTotalRet = 0;
+    	$grandTotalMip = 0;
+    	$grandTotalFinal = 0;
+    	$grandTotalBoq2Rate = 0;
+    	$grandTotalBoq3Rate = 0;
+    	$grandTotalBoq4Rate = 0;
+    	$grandTotalRetRate = 0;
+    	$grandTotalMipRate = 0;
+    	$grandTotalFinalRate = 0;
+    	for($i=0;$i<count($this->result);$i++)
+    	{
+    		$final = 0;
+    		$finalIDR = 0;
+    		$finalRate = 0;
+    		$grossIDR = 0;
+    		$grossRate = 0;
+    		
+    		$grandTotalBoq2 += ($this->result[$i]['boq2_current']);
+    		$grandTotalBoq3 += ($this->result[$i]['boq3_current']);
+    		$grandTotalBoq4 += ($this->result[$i]['boq4_current']);
+    		$grandTotalMip += ($this->result[$i]['mip_current']);
+    		$grandTotalRet += ($this->result[$i]['return']);
+    		
+    		$totBoq2 = ($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr));
+    		$totBoq3 = ($this->result[$i]['boq3_currentHargaIDR'] + ($this->result[$i]['boq3_currentHargaUSD'] * $this->rateidr));
+    		$totBoq4 = ($this->result[$i]['boq4_currentHargaIDR'] + ($this->result[$i]['boq4_currentHargaUSD'] * $this->rateidr));
+    		$totRet = ($this->result[$i]['returnHargaIDR'] + ($this->result[$i]['returnHargaUSD'] * $this->rateidr));
+			$totMip = ($this->result[$i]['mip_currentHargaIDR'] + ($this->result[$i]['mip_currentHargaUSD'] * $this->rateidr));
+    		
+			$grandTotalBoq2Rate += $totBoq2;
+			$grandTotalBoq3Rate += $totBoq3;
+			$grandTotalBoq4Rate += $totBoq4;
+			$grandTotalMipRate += $totMip;
+			$grandTotalRetRate += $totRet;
+			
+			if ($this->result[$i]['stsoverhead'] != 'Y' )
+			{
+				$finalIDR = ($this->result[$i]['boq2_currentIDR'] - $this->result[$i]['boq3_currentIDR'] + $this->result[$i]['returnIDR']);
+	    		$finalUSD = ($this->result[$i]['boq2_currentUSD'] - $this->result[$i]['boq3_currentUSD'] +  $this->result[$i]['returnUSD']);
+	    		$finalRate = (($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr)) - ($this->result[$i]['boq3_currentHargaIDR'] + ($this->result[$i]['boq3_currentHargaUSD'] * $this->rateidr)) - ($this->result[$i]['returnHargaIDR'] + ($this->result[$i]['returnHargaUSD'] * $this->rateidr)));
+			}
+//			if ($this->result[$i]['boq2_current'] > 0 && $finalIDR > 0)
+//			{
+//				$grossIDR = number_format(((($this->result[$i]['boq2_current'] - $finalIDR) / ($this->result[$i]['boq2_current']))*100),2);
+//    			$grossRate = number_format((((($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr)) - $finalRate) / (($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr))))*100),2);
+//			}
+//    		else 
+//    		{
+//    			$grossIDR = 0;
+//    			$grossRate = 0;
+//    		}
+    		if (($this->result[$i]['boq2_currentIDR'] > 0 || $this->result[$i]['boq2_currentUSD'] > 0) && $finalIDR > 0)
+			{
+				$progressgross = 100 - number_format(((($this->result[$i]['boq2_current'] - $this->result[$i]['boq3_current'] + $this->result[$i]['return']) / ($this->result[$i]['boq2_current']))*100),2);
+    			$gross = number_format(((($this->result[$i]['boq2_current'] - $this->result[$i]['boq3_current'] + $this->result[$i]['return']) / ($this->result[$i]['boq2_current']))*100),2);
+    			$grossRate = number_format((((($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr)) - $finalRate) / (($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr))))*100),2);
+			}
+    		else 
+    		{
+    			$progressgross = 0;
+    			$gross = 0;
+    			$grossRate = 0;
+    		}
+    		
+    		$grandTotalFinalIDR +=$finalIDR;
+    		$grandTotalFinalUSD +=$finalUSD;
+    		$grandTotalFinalRate +=$finalRate;
+	?>
+    	
+    	<tr>
+	    	<td >
+	    		<b><?php echo $this->result[$i]['sit_kode'];?></b>
+	    	</td>
+	    	<td>
+	    		<b><?php echo $this->result[$i]['sit_nama'];?></b>
+	    	</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq2_currentHargaIDR'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq2_currentHargaUSD'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq3_currentHargaIDR'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq3_currentHargaUSD'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['mip_currentIDR'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['mip_currentHargaUSD'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq4_currentHargaIDR'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['boq4_currentHargaUSD'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format($this->result[$i]['returnHargaIDR'],2);?>
+    		</td>
+    		<td align="right">
+    		<?php echo number_format(($this->result[$i]['returnHargaUSD']),2);?>
+    		</td>
+			<td align="right">
+    		<?php echo number_format(($finalIDR),2);?>
+    		</td>
+			<td align="right">
+    		<?php echo number_format(($finalUSD),2);?>
+    		</td>
+			<td rowspan="2" align="center">
+    		<?php echo number_format(($progressgross),2) . '%';?>
+    		</td>
+			<td rowspan="2" align="center">
+    		<?php echo number_format(($gross),2). '%';?>
+    		</td>
+    	</tr>
+    	<!-- <tr>
+    	<td rowspan="2">Sub total</td>
+	    	<td>IDR</td>
+			<td colspan="2" align="center"><?php echo number_format($this->result[$i]['boq2_current'],2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($this->result[$i]['boq3_current'],2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($this->result[$i]['mip_current'],2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($this->result[$i]['boq4_current'],2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($this->result[$i]['return'],2);?></td>
+			<td colspan="4">&nbsp;</td>
+    	</tr>
+    	<tr>
+    	<td>IDR (Updated Exchange Rate)</td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq2,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq3,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totMip,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq4,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totRet,2);?></td>
+			<td colspan="4">&nbsp;</td>
+    	</tr> -->
+    	<tr>
+    	<td colspan="2" align="right">Sub total IDR*</td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq2,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq3,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totMip,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totBoq4,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($totRet,2);?></td>
+			<td colspan="2" align="center"><?php echo number_format($finalRate,2);?></td>
+			<td colspan="2">&nbsp;</td>
+    	</tr>
+    	<?php } 
+    	
+    		if ($grandTotalBoq2Rate > 0 && $grandTotalFinalRate > 0)
+    		{
+    			$totalprogressGross = 100 - number_format((($grandTotalBoq2Rate - $grandTotalBoq3Rate + $grandTotalRetRate) / ($grandTotalBoq2Rate)*100),2);
+    			$totalGross = number_format((($grandTotalBoq2Rate - $grandTotalBoq3Rate + $grandTotalRetRate) / ($grandTotalBoq2Rate)*100),2);
+    		}
+    	?>
+    	<tr>
+    	<td colspan="16"></td>
+    	</tr>
+    	<!-- <tr bgcolor="#FFE800">
+    	<td rowspan="2"><b>Grand total</b></td>
+    	<td>IDR</td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq2,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq3,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalMip,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq4,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalRet,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalFinal,2);?></b></td>
+			<td colspan="2">&nbsp;</td>
+    	</tr>
+    	<tr bgcolor="#FFE800">
+    	<td>IDR (Updated Exchange Rate)</td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq2Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq3Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalMipRate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq4Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalRetRate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalFinalRate,2);?></b></td>
+			<td colspan="2">&nbsp;</td>
+    	</tr> -->
+    	<tr bgcolor="#FFE800">
+    	<td colspan="2" align="right"><b>Grand total</b> IDR*</td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq2Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq3Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalMipRate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalBoq4Rate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalRetRate,2);?></b></td>
+			<td colspan="2" align="center"><b><?php echo number_format($grandTotalFinalRate,2);?></b></td>
+			<td colspan="1" align="center"><b><?php echo $totalprogressGross . '%';?></b></td>
+			<td colspan="1" align="center"><b><?php echo $totalGross . '%';?></b></td>
+    	</tr>
+    </tbody>
+</table>
+</div>
+<script type="text/javascript">
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 2,
+		headerRows : 2
+	});
+})();
+
+</script>

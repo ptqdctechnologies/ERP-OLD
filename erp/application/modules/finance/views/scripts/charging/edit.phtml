@@ -1,0 +1,1288 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+
+        var totDebit = 0;
+        var totCredit = 0;
+        
+        function loadData(jsonCoa)
+        {
+            if (!jsonCoa)
+                return false;
+
+            gridCost.getStore().removeAll();
+            gridCost.getStore().loadData(jsonCoa.data, true);
+            gridCost.getView().refresh();
+            hitungTotal();
+        } ;
+
+
+        function showSaveWindow(){
+
+        var recordSave = new Ext.data.Record.create([
+            {name: 'id_save'},
+            {name: 'date'},
+            {name: 'json'}
+        ]);
+
+        var saveStore = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                fields: recordSave
+            })
+        });
+
+
+        var func = showSavePreview;
+        var callbackPreview = function(record) {
+            func(record);
+        };
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        var id = rec.get("id_save");
+                                        var indeks = jurnalCollection.findIndexBy(function(items) {
+                                            return (items.id_save == id);
+                                        });
+                                        if (indeks >= 0)
+                                        {
+                                            jurnalCollection.removeAt(indeks);
+                                        }
+                                        saveStore.removeAt(row);
+                                    }
+                                }
+                        );
+
+                    }
+                },
+                {
+                    iconCls: 'silk-magnifier',
+                    qtip: 'Preview',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        callbackPreview(record);
+                    }
+                }
+            ],
+            header: '',
+            width: 20
+        }, this);
+
+        if (jurnalCollection.getCount() > 0)
+        {
+            jurnalCollection.each(function(item) {
+                var a = new recordSave({
+                    id_save: item.id_save,
+                    date: item.date,
+                    json: item.json
+                });
+
+                saveStore.add(a);
+            });
+        }
+
+        var loadButton = new Ext.Button({
+            iconCls: 'icon-go',
+            text: 'Load this Clipboard'
+        });
+
+        loadButton.on('click', function() {
+            var choose = grid.getSelectionModel().getSelections();
+            if (choose.length > 0)
+            {
+                var theData = choose[0];
+                    loadData(Ext.util.JSON.decode(theData.data['json']));
+
+            }
+        }, this);
+
+        var grid = new Ext.grid.GridPanel({
+            id: 'save-grid',
+            store: saveStore,
+            width: 300,
+            height: 200,
+            layout: 'fit',
+            plugins: [rowactions],
+            viewConfig: {
+                singleSelect: true,
+                forceFit: true
+            },
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header: 'Date',
+                    dataIndex: 'date',
+                    width: 150,
+                    sortable: true,
+                    renderer: function(v, p, r) {
+                        return (v) ? Ext.util.Format.date(v, 'd/M/y H:i:s') : '';
+                    }
+                }
+            ]
+        });
+
+        var callbackRead = function(data) {
+            var theData = Ext.util.JSON.decode(data);
+            saveStore.loadData(theData);
+            jurnalCollection.clear();
+
+            Ext.each(theData.data, function(item) {
+                jurnalCollection.add(item);
+            });
+        };
+
+        var uploadButton = new Ext.Button({
+            text: 'Upload',
+            iconCls: 'icon-arrow-up'
+        }, this);
+
+        uploadButton.on('click', function() {
+            if (formUpload.getForm().isValid()) {
+                formUpload.getForm().submit({
+                    url: '/default/file/upload',
+                    params: {
+                        type: 'JURNAL'
+                    },
+                    scope: this,
+                    waitMsg: 'Uploading file...',
+                    success: function(form, action) {
+                        var returnData = action.result;
+                        if (returnData.success) {
+                            var params = {
+                                filename: returnData.savename
+                            };
+                            Ext.Ajax.request({
+                                url: '/finance/jurnal/load-jurnal-from-file',
+                                params: params,
+                                method: 'POST',
+                                scope: this,
+                                success: function(resp) {
+                                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                                    if (returnData.success)
+                                    {
+                                        callbackRead(returnData.data);
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', returnData.msg);
+                                    }
+                                },
+                                failure: function(action) {
+                                    if (action.failureType == 'server') {
+                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    } else {
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+                            });
+                        }
+                        else
+                        {
+                            Ext.Msg.alert('Error', returnData.msg);
+                        }
+                    },
+                    failure: function(form, action) {
+                        if (action.result.msg != undefined)
+                            Ext.Msg.alert('Error', action.result.msg);
+                    }
+                });
+            }
+        });
+        var formUpload = new Ext.form.FormPanel({
+            id: 'upload-form-json',
+            frame: true,
+            height: 60,
+            hidden: true,
+            fileUpload: true,
+            items: [
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Upload File',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'fileuploadfield',
+                            emptyText: 'Select a File',
+                            allowBlank: false,
+                            buttonOnly: true,
+                            name: 'file-path',
+                            width: 25,
+                            buttonCfg: {
+                                iconCls: 'upload-icon'
+                            }
+                        },
+                        uploadButton,
+//                        {
+//                            xtype: 'button',
+//                            text: 'Upload',
+//                            iconCls: 'icon-arrow-up',
+//                            handler: function()
+//                            {
+//
+//                            }
+//                        },
+                        {
+                            xtype: 'button',
+                            text: 'Cancel',
+                            iconCls: 'icon-delete',
+                            handler: function()
+                            {
+                                formUpload.setVisible(false);
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+
+        var windowSave = new Ext.Window({
+            id: 'save-window',
+            modal: true,
+//            height: 260,
+            autoHeight: true,
+            width: 310,
+            title: 'Clipboard',
+            resizable: false,
+            stateful: false,
+            closeAction: 'hide',
+            closeable: false,
+            buttons: [
+                {
+                    text: 'Close',
+                    handler: function()
+                    {
+                        windowSave.close();
+                    }
+                }
+            ],
+            items: [
+                formUpload,
+                grid
+            ],
+            tbar: [
+                loadButton,
+                '-',
+                {
+                    text: 'File',
+                    iconCls: 'menu-drop',
+                    menu: {
+                        xtype: 'menu',
+                        plain: true,
+                        items: [
+                            {
+                                iconCls: 'icon-save',
+                                text: 'Save As File',
+                                scope: this,
+                                handler: function()
+                                {
+                                    var choose = grid.getSelectionModel().getSelections();
+                                    if (choose.length > 0)
+                                    {
+                                        var theData = choose[0];
+                                        var indeks = jurnalCollection.findIndexBy(function(items) {
+                                            return (items.id_save == theData.data['id_save']);
+                                        });
+                                        var json = {};
+                                        if (indeks >= 0)
+                                        {
+                                            var theItem = jurnalCollection.itemAt(indeks);
+                                            json = {
+                                                data: [{
+                                                        id_save: theItem.id_save,
+                                                        date: theItem.date,
+                                                        json: theItem.json
+                                                    }]
+                                            };
+                                        }
+
+                                        var params = {
+                                            json: Ext.util.JSON.encode(json)
+                                        };
+                                        Ext.Ajax.request({
+                                            url: '/finance/jurnal/save-jurnal-as-file',
+                                            params: params,
+                                            method: 'POST',
+                                            success: function(resp) {
+                                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                                if (returnData.success)
+                                                {
+                                                    location.href = '/default/file/download/filename/' + returnData.filename;
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error', returnData.msg);
+                                                }
+                                            },
+                                            failure: function(action) {
+                                                if (action.failureType == 'server') {
+                                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                                } else {
+                                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                }
+                                            }
+                                        }, this);
+                                    }
+                                    else
+                                    {
+                                        Ext.Msg.alert('Error', 'Please choose clipboard from list below.');
+                                    }
+                                }
+                            },
+                            {
+                                iconCls: 'icon-attach',
+                                text: 'Load From File',
+                                scope: this,
+                                handler: function()
+                                {
+                                    Ext.getCmp('upload-form-json').setVisible(true);
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        });
+
+        windowSave.show();
+    };
+        function showSavePreview(data) {
+
+        if (Ext.getCmp('save-preview-window'))
+        {
+            Ext.getCmp('save-preview-window').close();
+        }
+
+        var saved = new Ext.data.Record.create([
+            {name: 'coa_kode'},
+            {name: 'coa_nama'},
+            {name: 'debit'},
+            {name: 'credit'},
+            {name: 'val_kode'},
+            {name: 'tipe'},
+            {name: 'urut'},
+            {name: 'prj_kode'},
+            {name: 'sit_kode'},
+            {name: 'job_number'},
+            {name: 'trano'},
+            {name: 'ref_number'},
+            {name: 'ref_number2'},
+            {name: 'stspost'},
+            {name: 'stsclose'},
+            {name: 'ket'},
+            {name: 'rateidr'},
+            {name: 'tipe_jurnal'},
+            {name: 'status_doc_rpc'},
+            {name: 'status_doc_cip'}
+        ]);
+
+        var store = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                fields: saved
+            })
+        });
+
+        var json = data.data['json'];
+        if (json != '')
+        {
+            var loadData = Ext.util.JSON.decode(json);
+            store.loadData(loadData);
+        }
+        var columns = [
+            new Ext.grid.RowNumberer({
+                width: 30
+            }),
+            {
+                header: 'Project',
+                dataIndex: 'prj_kode',
+                width: 70
+            },
+            {
+                header: 'Site',
+                dataIndex: 'sit_kode',
+                width: 60
+            },
+            {
+                header: 'Ref Number',
+                dataIndex: 'ref_number',
+                width: 100
+            },
+            {
+                header: 'COA Code',
+                dataIndex: 'coa_kode',
+                sortable: true,
+                width: 60
+            }, {
+                header: 'COA Name',
+                dataIndex: 'coa_nama',
+                sortable: true
+            }, {
+                header: 'Debit',
+                dataIndex: 'debit',
+                sortable: true,
+                summaryType: 'sum',
+                renderer: function(v) {
+                    return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                },
+                align: 'right'
+            }, {
+                header: 'Credit',
+                dataIndex: 'credit',
+                sortable: true,
+                summaryType: 'sum',
+                renderer: function(v) {
+                    return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                },
+                align: 'right'
+            }, {
+                header: 'Job Number',
+                dataIndex: 'job_number',
+                sortable: true
+
+            }, {
+                header: 'Is CIP ?',
+                dataIndex: 'status_doc_cip',
+                sortable: true, renderer: function(v) {
+                    return v == '1' ? 'No' : 'CIP';
+                }
+            }, {
+                header: 'Is RPC ?',
+                dataIndex: 'status_doc_rpc',
+                sortable: true, renderer: function(v) {
+                    return v == '1' ? 'No' : 'RPC';
+                }
+            }
+        ];
+
+        var grid = new Ext.grid.GridPanel({
+            id: 'save-preview-grid',
+            store: store,
+            width: 600,
+            height: 300,
+            layout: 'fit',
+            columns: columns,
+            viewConfig: {
+                forceFit: true
+            }
+        });
+
+        var windowSavePreview = new Ext.Window({
+            id: 'save-preview-window',
+            modal: true,
+            height: 340,
+            width: 610,
+            title: 'Clipboard Preview',
+            resizable: false,
+            stateful: false,
+            closeAction: 'hide',
+            closeable: false,
+            buttons: [
+                {
+                    text: 'Close',
+                    handler: function()
+                    {
+                        windowSavePreview.close();
+                    }
+                }
+            ],
+            items: [
+                grid
+            ]
+        });
+
+        windowSavePreview.show();
+    };
+        function hitungTotal()
+        {
+            totDebit = 0;
+            totCredit = 0;
+            store.each(function(items) {
+                totDebit += (parseFloat(items.data['debit']));
+                totCredit += (parseFloat(items.data['credit']));
+            });
+            Ext.getCmp('debittotal').setText('Total Debit : ' + Ext.util.Format.number(totDebit, '0,0.00'));
+            Ext.getCmp('credittotal').setText('Total Credit : ' + Ext.util.Format.number(totCredit, '0,0.00'));
+        }
+
+        var gridBudget = new Ext.ux.grid.BOQ3({
+            autoWidth: true,
+            height: 300,
+            title: 'Budget List',
+            renderTo: 'grid',
+            addCallback: function(record) {
+                gridBudget.disable();
+                form.theRecord = record;
+                form.loadBudget(record);
+            }
+        });
+        var recordCost = new Ext.data.Record.create([
+            {name: 'prj_kode'},
+            {name: 'prj_nama'},
+            {name: 'sit_kode'},
+            {name: 'sit_nama'},
+            {name: 'workid'},
+            {name: 'workname'},
+            {name: 'kode_brg'},
+            {name: 'nama_brg'},
+            {name: 'ket'},
+            {name: 'qty'},
+            {name: 'harga'},
+            {name: 'total'},
+            {name: 'val_kode'},
+            {name: 'bank_type'},
+            {name: 'debit'},
+            {name: 'debit_coa'},
+            {name: 'debit_coa_nama'},
+            {name: 'credit'},
+            {name: 'credit_coa'},
+            {name: 'credit_coa_nama'},
+            {name: 'ref_number'}
+        ]);
+        var store = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({
+                fields: recordCost
+            }),
+            listeners: {
+                'load': function(record) {
+                    hitungTotal();
+                }
+            }
+        });
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions: [
+                {
+                    iconCls: 'icon-edit',
+                    qtip: 'Edit',
+                    id: 'edit',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        form.editCost(rec);
+                        gridCost.disable();
+                        Ext.getCmp('workid').focus();
+                    }
+                },
+                {
+                    iconCls: 'icon-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        grid.getStore().remove(rec);
+                                        hitungTotal();
+                                    }
+                                }
+                        );
+                    }
+                }
+            ]
+            , index: 'actions'
+            , header: ''
+        });
+        rowactions.on('action', function(grid, record, action, row, col) {
+            if (action == 'icon-add-new')
+            {
+                if (this.addCallback != undefined)
+                {
+                    this.addCallback(record);
+                }
+            }
+        }, this);
+        var gridCost = new Ext.grid.GridPanel({
+            autoWidth: true,
+            height: 300,
+            title: 'Cost List',
+            renderTo: 'grid-cost',
+            store: store,
+            plugins: [rowactions],
+            columns: [
+                new Ext.grid.RowNumberer({
+                    width: 30
+                }),
+                rowactions,
+                {
+                    header: 'Workid',
+                    dataIndex: 'workid',
+                    sortable: true,
+                    renderer: function(v, p, r) {
+                        return v + "<br>" + r.data['workname'];
+                    },
+                    width: 150
+
+                }, {
+                    header: 'Product',
+                    dataIndex: 'kode_brg',
+                    sortable: true,
+                    renderer: function(v, p, r) {
+                        return v + "<br>" + r.data['nama_brg'];
+                    },
+                    width: 250
+                }, {
+                    header: 'Bank',
+                    dataIndex: 'bank_type',
+                    sortable: true,
+                    width: 70
+                }, {
+                    header: 'Debit COA',
+                    dataIndex: 'debit_coa',
+                    sortable: true,
+                    renderer: function(v, p, r) {
+                        return v + "<br>" + r.data['debit_coa_nama'];
+                    },
+                    width: 100
+                }, {
+                    header: 'Total Debit',
+                    dataIndex: 'debit',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right',
+                    width: 150
+                }, {
+                    header: 'Credit COA',
+                    dataIndex: 'credit_coa',
+                    sortable: true,
+                    renderer: function(v, p, r) {
+                        return v + "<br>" + r.data['credit_coa_nama'];
+                    },
+                    width: 100
+                }, {
+                    header: 'Total Credit',
+                    dataIndex: 'credit',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right',
+                    width: 150
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Submit Overhead Cost',
+                    handler: function() {
+                        var json = '';
+                        if (gridCost.getStore().getCount() == 0)
+                        {
+                            return false;
+                        }
+
+                        var totdebit = parseFloat(totDebit.toString().replace(/\$|\,/g, ''));
+                        var totcredit = parseFloat(totCredit.toString().replace(/\$|\,/g, ''));
+                        if (!moneycomp(totdebit.toFixed(2), '==', totcredit.toFixed(2)))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry, Debit and Credit Total Must be Balance',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Submit Overhead Cost ?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        gridCost.getStore().each(function(store) {
+                                            var encode = Ext.util.JSON.encode(store.data);
+                                            if (encode != undefined)
+                                                json += encode + ',';
+                                        });
+                                        json = '[' + json.substring(0, json.length - 1) + ']';
+                                        var tgl = '';
+                                        if (Ext.getCmp('tgl').getValue() != '')
+                                            tgl = Ext.util.Format.date(Ext.getCmp('tgl').getValue(), 'Y-m-d');
+                                        Ext.Ajax.request({
+                                            url: '/finance/charging/update-charging',
+                                            method: 'POST',
+                                            params: {
+                                                trano: Ext.getCmp('trano').getValue(),
+                                                data: json,
+                                                tgl: tgl
+                                            },
+                                            success: function(result, request) {
+                                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                                if (returnData.success) {
+                                                    Ext.Msg.alert('Success', "Overhead Cost Charging has been saved!<br>Trano : <b>" + returnData.number + "</b>");
+                                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                                    myPanel.body.load({
+                                                        url: '/finance/charging/menu',
+                                                        scripts: true
+                                                    });
+                                                }
+                                                else
+                                                    Ext.Msg.alert('Error!', returnData.msg);
+                                            },
+                                            failure: function(action) {
+                                                if (action.failureType == 'server') {
+                                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                                }
+                                            },
+                                            scope: this
+                                        });
+                                    }
+                                }
+                        );
+                    }
+                }
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style: "text-align:right",
+                items: [{
+                        xtype: 'label',
+                        id: 'debittotal',
+                        style: 'color:red;font-weight:bold;margin-right:20px;font-size:12'
+                    },
+                    {
+                        xtype: 'label',
+                        id: 'credittotal',
+                        style: 'color:red;font-weight:bold;font-size:12;margin-right:10px'
+                    }],
+                layout: 'fit'
+            }),
+            tbar: [
+            {
+                text: 'Clipboard',
+                iconCls: 'menu-drop',
+                menu: {
+                    xtype: 'menu',
+                    plain: true,
+                    items: [
+                        {
+                            iconCls: 'icon-go',
+                            text: 'Open Clipboard',
+                            scope: this,
+                            handler: function()
+                            {
+                                showSaveWindow();
+                            }
+                        },
+                        {
+                            iconCls: 'icon-save',
+                            text: 'Save Journal To Clipboard',
+                            handler: function(btn, e)
+                            {
+                                var jsonJurnal = '';
+                                if (gridCost.getStore().getCount() == 0)
+                                {
+                                    Ext.Msg.alert('Error', 'Journal still empty');
+                                    return false;
+                                }
+                                gridCost.getStore().each(function(store) {
+                                    if (store.get("coa_kode") == null || store.get("coa_kode") == '')
+                                    {
+//                                        gridCost.getStore().remove(store);
+                                    }
+                                    var encode = Ext.util.JSON.encode(store.data);
+                                    if (encode != undefined)
+                                        jsonJurnal += encode + ',';
+                                }, gridCost);
+                                jsonJurnal = '{data : [' + jsonJurnal.substring(0, jsonJurnal.length - 1) + ']}';
+                                var hash = Ext.util.MD5(jsonJurnal);
+
+                                var uniq = (new Date()).getTime() + Math.floor((Math.random() * 25) + 65);
+                                var col = {
+                                    id_save: uniq,
+                                    date: new Date(),
+                                    json: jsonJurnal
+                                };
+                                if (jurnalCollection.getCount() > 0)
+                                {
+                                    var indeks = jurnalCollection.findIndexBy(function(items) {
+                                        return (Ext.util.MD5(items.json) == hash);
+                                    });
+                                    if (indeks < 0)
+                                    {
+                                        jurnalCollection.add(col);
+                                    }
+                                }
+                                else
+                                    jurnalCollection.add(col);
+
+                                showSaveWindow();
+                            },
+                            scope: this
+                        }
+                    ]
+                }
+            }
+        ],
+            listeners: {
+                'afterrender': function(t)
+                {
+                    hitungTotal();
+                }
+            }
+        });
+        var panel = new Ext.FormPanel({
+            title: 'Add new overhead cost charging',
+            width: 500,
+            autoHeight: true,
+            frame: true,
+            items: [{
+                    xtype: 'textfield',
+                    fieldLabel: 'Trano',
+                    name: 'trano',
+                    id: 'trano',
+                    width: 120,
+                    readOnly: true,
+                    value: '<?= $this->trano; ?>'
+                },
+                {
+                    xtype: 'projectselectorreport',
+                    width: 150,
+                    anchor: '100%',
+                    id: 'project-select',
+                    Selectid: 'prj_kode_text',
+                    Nameid: 'prj_nama_text',
+                    ShowName: true,
+                    fieldLabel: 'Project Code',
+                    allowBlank: false,
+                    showAll: true,
+                    callback: function(prj) {
+                        Ext.getCmp('site-select').clearAllValue();
+                    }
+                },
+                {
+                    xtype: 'siteselector',
+                    anchor: '100%',
+                    independent: false,
+                    id: 'site-select',
+                    SiteSelectid: 'sit_kode_text',
+                    SiteNameid: 'sit_nama_text',
+                    ProjectSelectid: 'prj_kode_text',
+                    ShowName: true,
+                    fieldLabel: 'Site Code',
+                    allowBlank: false,
+                    showAll: true,
+                    callback: function(site) {
+
+                    }
+                },
+                {
+                    xtype: 'tranodatechanger',
+                    anchor: '100%',
+                    id: 'trano_tgl',
+                    Selectid: 'tgl',
+                    fieldLabel: 'Transaction Date'
+                },
+            ],
+            renderTo: 'panel',
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function()
+                    {
+                        gridBudget.getStore().load({
+                            params: {
+                                prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                                sit_kode: Ext.getCmp('sit_kode_text').getValue()
+                            }
+                        })
+                    }
+                }
+            ]
+        });
+        var form = new Ext.FormPanel({
+            theRecord: null,
+            isEdit: false,
+            title: 'Cost Detail',
+            width: 500,
+            frame: true,
+            autoHeight: true,
+            items: [
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Workid',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'textfield',
+                            name: 'workid',
+                            id: 'workid',
+                            width: 120
+                        },
+                        {
+                            xtype: 'textfield',
+                            id: 'workname',
+                            name: 'workname',
+                            width: 200
+                        }
+                    ]
+                }, {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Product',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'textfield',
+                            name: 'kode_brg',
+                            id: 'kode_brg',
+                            width: 120
+                        },
+                        {
+                            xtype: 'textfield',
+                            id: 'nama_brg',
+                            width: 200
+                        }
+                    ]
+                }, {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Total Budget',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        new Ext.ux.customRendererField({
+                            xtype: 'textfield',
+                            id: 'total',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            value: '0.00'
+                        }),
+                        {
+                            xtype: 'textfield',
+                            name: 'val_kode',
+                            id: 'val_kode'
+                        }
+                    ]
+                },
+                {
+                    xtype: 'combo',
+                    fieldLabel: 'Bank Type',
+                    id: 'bank_type',
+                    name: 'bank_type',
+                    allowBlank: false,
+                    width: 100,
+                    store: new Ext.data.Store({
+                        proxy: new Ext.data.HttpProxy({
+                            url: '/finance/coa/gettranotype'
+                        }),
+                        reader: new Ext.data.JsonReader({
+                            totalProperty: 'count',
+                            root: 'data'
+                        }, [{
+                                name: 'trano'
+                            }])
+                    }),
+                    valueField: 'trano',
+                    displayField: 'trano',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'remote',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    emptyText: 'Select a type ...',
+                    listeners: {
+                        'select': function(c, rec, ind) {
+//                            BANK_TYPE = rec.get("trano");
+                        }
+                    }
+                },
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Debit Value',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'coaselector',
+                            id: 'coas_kode_debit',
+                            Selectid: 'coa_kode_debit',
+                            Nameid: 'coa_nama_debit',
+                            width: 180,
+                            ShowName: false,
+                            allowBlank: false
+                        },
+                        new Ext.ux.customRendererField({
+                            xtype: 'textfield',
+                            id: 'debit',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            value: '0.00',
+//                            listeners: {
+//                                'customfocus': function(t) {
+//                                    Ext.getCmp('credit').setValue('');
+//                                    Ext.getCmp('coa_kode_credit').setValue('');
+//                                    Ext.getCmp('coa_nama_credit').setValue('');
+//                                }
+//                            }
+                        })
+                    ]
+                },
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Credit Value',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'coaselector',
+                            id: 'coas_kode_credit',
+                            Selectid: 'coa_kode_credit',
+                            Nameid: 'coa_nama_credit',
+                            width: 180,
+                            ShowName: false,
+                            allowBlank: false
+                        },
+                        new Ext.ux.customRendererField({
+                            xtype: 'textfield',
+                            id: 'credit',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            value: '0.00',
+//                            listeners: {
+//                                'customfocus': function(t) {
+//                                    Ext.getCmp('debit').setValue('');
+//                                    Ext.getCmp('coa_kode_debit').setValue('');
+//                                    Ext.getCmp('coa_nama_debit').setValue('');
+//                                }
+//                            }
+                        })
+                    ]
+                },
+                {
+                    xtype: 'textarea',
+                    name: 'ket',
+                    id: 'ket',
+                    width: 250,
+                    fieldLabel: 'Cost Description'
+                }, {
+                    xtype: 'tbtext',
+                    text: 'Referrence Number:',
+                    style: 'margin-top: 10px;',
+                },
+                {
+                    xtype: 'tranoselector',
+                    id: 'tranos',
+                    Selectid: 'ref_number',
+                    width: 165,
+                    Tranotype: ['ARF', 'ARFO'],
+                    Disabletype: true,
+                    style: 'margin-top: -15px;',
+                    callbackFunc: function(trano, itemType) {
+
+                    }
+                }
+            ],
+            renderTo: 'form',
+            loadBudget: function(record) {
+                form.getForm().loadRecord(record);
+                Ext.getCmp('total').setValue(Ext.util.Format.number(record.get("total"), '0,0.00'));
+            },
+            editCost: function(record) {
+                form.isEdit = true;
+                form.getForm().loadRecord(record);
+                form.theRecord = record;
+                Ext.getCmp('bank_type').setValue(record.get("bank_type"));
+                Ext.getCmp('coa_kode_debit').setValue(record.get("debit_coa"));
+                Ext.getCmp('coa_nama_debit').setValue(record.get("debit_coa_nama"));
+                Ext.getCmp('coa_kode_credit').setValue(record.get("credit_coa"));
+                Ext.getCmp('coa_nama_credit').setValue(record.get("credit_coa_nama"));
+                Ext.getCmp('prj_kode_text').setValue(record.get("prj_kode"));
+                Ext.getCmp('sit_kode_text').setValue(record.get("sit_kode"));
+                Ext.getCmp('ref_number').setValue(record.get("ref_number"));
+//                Ext.getCmp('tgl').setValue(record.get("tgl"));
+            },
+            buttons: [
+                {
+                    text: 'Add Cost',
+                    handler: function()
+                    {
+
+                        var val = form.getForm().getValues();
+                        val.debit = val.debit.toString().replace(/\$|\,/g, '');
+                        val.credit = val.credit.toString().replace(/\$|\,/g, '');
+
+                        if ((val.debit == 0) && (val.credit == 0))
+                        {
+                            Ext.Msg.alert('Warning', 'Debit or Credit still empty!');
+//                            return false;
+                        }
+
+                        var debitCoa = Ext.getCmp('coa_kode_debit').getValue(),
+                                creditCoa = Ext.getCmp('coa_kode_credit').getValue();
+                        if (debitCoa == '' && creditCoa == '')
+                        {
+                            Ext.Msg.alert('Error', 'Debit or Credit COA not selected yet!');
+                            return false;
+                        }
+
+                        if (Ext.getCmp('bank_type').getValue() == '')
+                        {
+                            Ext.Msg.alert('Error', 'Bank Type not selected yet!');
+                            return false;
+                        }
+
+                        var r = form.theRecord;
+                        var coa_nama_debit = Ext.getCmp('coas_kode_debit').getNameValue(),
+                                coa_nama_credit = Ext.getCmp('coas_kode_credit').getNameValue();
+
+
+                        if (Ext.getCmp('workid').getValue() != '')
+                        {
+
+                            r.set("ket", Ext.getCmp('ket').getValue());
+                            r.set("ref_number", Ext.getCmp('ref_number').getValue());
+                            r.set("bank_type", Ext.getCmp('bank_type').getValue());
+                            r.set("debit", val.debit);
+                            r.set("credit", val.credit);
+                            r.set("debit_coa", Ext.getCmp('coa_kode_debit').getValue());
+                            if (coa_nama_debit != undefined && coa_nama_debit != '')
+                                r.set("debit_coa_nama", coa_nama_debit);
+                            else
+                                r.set("debit_coa_nama", "");
+                            r.set("credit_coa", Ext.getCmp('coa_kode_credit').getValue());
+                            if (coa_nama_credit != undefined && coa_nama_credit != '')
+                                r.set("credit_coa_nama", coa_nama_credit);
+                            else
+                                r.set("credit_coa_nama", "");
+
+                            if (!form.isEdit)
+                            {
+                                var c = new recordCost(Ext.util.JSON.decode(Ext.util.JSON.encode(r.data)));
+                                store.add(c);
+
+                            }
+
+                        } else {
+
+                            if (!form.isEdit) {
+
+                                gridCost.getStore().each(function(store) {
+                                    prj_kode = store.data.prj_kode;
+                                    prj_nama = store.data.prj_nama;
+                                    sit_kode = store.data.sit_kode;
+                                    sit_nama = store.data.sit_nama;
+                                    val_kode = store.data.val_kode;
+                                });
+                                var c = new recordCost({
+                                    prj_kode: prj_kode,
+                                    prj_nama: prj_nama,
+                                    sit_kode: sit_kode,
+                                    sit_nama: sit_nama,
+                                    ref_number: Ext.getCmp('ref_number').getValue(),
+                                    workid: "",
+                                    workname: "",
+                                    kode_brg: "",
+                                    nama_brg: "",
+                                    ket: Ext.getCmp('ket').getValue(),
+                                    qty: 0,
+                                    harga: 0,
+                                    total: 0,
+                                    val_kode: val_kode,
+                                    bank_type: Ext.getCmp('bank_type').getValue(),
+                                    debit: val.debit,
+                                    debit_coa: Ext.getCmp('coa_kode_debit').getValue(),
+                                    debit_coa_nama: coa_nama_debit,
+                                    credit: val.credit,
+                                    credit_coa: Ext.getCmp('coa_kode_credit').getValue(),
+                                    credit_coa_nama: coa_nama_credit
+                                });
+                                store.add(c);
+                            } else {
+                                r.set("bank_type", Ext.getCmp('bank_type').getValue());
+                                r.set("debit", val.debit);
+                                r.set("credit", val.credit);
+                                r.set("debit_coa", Ext.getCmp('coa_kode_debit').getValue());
+                                if (coa_nama_debit != undefined && coa_nama_debit != '')
+                                    r.set("debit_coa_nama", coa_nama_debit);
+                                else
+                                    r.set("debit_coa_nama", "");
+                                r.set("credit_coa", Ext.getCmp('coa_kode_credit').getValue());
+                                if (coa_nama_credit != undefined && coa_nama_credit != '')
+                                    r.set("credit_coa_nama", coa_nama_credit);
+                                else
+                                    r.set("credit_coa_nama", "");
+
+                                r.set("ket", Ext.getCmp('ket').getValue());
+                                r.set("ref_number", Ext.getCmp('ref_number').getValue());
+                            }
+
+                        }
+
+                        form.isEdit = false;
+                        form.getForm().reset();
+                        Ext.getCmp('coas_kode_credit').clearValue();
+                        Ext.getCmp('coas_kode_debit').clearValue();
+                        Ext.getCmp('ref_number').setValue('');
+                        gridBudget.enable();
+                        gridCost.enable();
+                        hitungTotal();
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    handler: function()
+                    {
+                        form.isEdit = false;
+                        form.getForm().reset();
+                        gridBudget.enable();
+                        Ext.getCmp('coas_kode_credit').clearValue();
+                        Ext.getCmp('coas_kode_debit').clearValue();
+                        Ext.getCmp('ref_number').setValue('');
+                        gridCost.enable();
+                    }
+                }
+            ]
+        });
+
+
+<?php if ($this->json) { ?>
+            gridBudget.enable();
+            var json = <?php echo $this->json ?>;
+            store.loadData(json);
+            Ext.getCmp('tgl').setValue('<?= $this->tgl; ?>');
+<?php } ?>
+    });
+
+
+</script>
+<div id="panel"></div> <br />
+<div id="grid"></div> <br />
+<div id="form"></div> <br />
+<div id="grid-cost"></div> <br />

@@ -1,0 +1,286 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+        daterange: function(val, field) {
+            var date = field.parseDate(val);
+            if (!date) {
+                return false;
+            }
+            if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                var start = Ext.getCmp(field.startDateField);
+                start.setMaxValue(date);
+                start.validate();
+                this.dateRangeMax = date;
+            }
+            else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                var end = Ext.getCmp(field.endDateField);
+                end.setMinValue(date);
+                end.validate();
+                this.dateRangeMin = date;
+            }
+            /*
+             * Always return true since we're only using this vtype to set the
+             * min/max allowed values (these are tested for after the vtype test)
+             */
+            return true;
+        }
+    });
+
+    showInvoice = function(showAll) {
+
+        myPanel = Ext.getCmp('abs-budget-panel');
+        prjKode = Ext.getCmp('prj_kode_text').getValue();
+        sitKode = Ext.getCmp('sit_kode_text').getValue();
+        type = Ext.getCmp('type').getValue();
+//        var month = Ext.getCmp('month').getValue();
+//        var D = Ext.calendar.Date;
+//        month = D.formatDate(month, 'yyyy-mm');
+
+        var start = Ext.getCmp('startdate').getValue(),
+            end = Ext.getCmp('enddate').getValue(),
+            cus = Ext.getCmp('customer').getValue(); 
+
+        var show = '';
+        if (showAll != undefined)
+            show = true;
+
+        var params = {
+            prj_kode: prjKode,
+            sit_kode: sitKode,
+            all: show,
+            start_date: start,
+            end_date: end,
+            type :type,
+            cus_kode: cus
+        };
+        
+        
+        
+        if (type == 'invoice' ) {
+            url= '/finance/report/invoicesummary/' + Ext.util.urlEncodeZend(params);
+        } else {
+            url= '/finance/report/invoicesummary2/' + Ext.util.urlEncodeZend(params);
+            
+        }
+         myPanel.body.load({
+            url: url,
+            scripts: true
+        });
+    };
+
+    printdocument = function(showAll) {
+
+        prjKode = Ext.getCmp('prj_kode_text').getValue();
+        sitKode = Ext.getCmp('sit_kode_text').getValue();
+//        var month = Ext.getCmp('month').getValue();
+        var D = Ext.calendar.Date;
+//        month = D.formatDate(month, 'yyyy-mm');
+
+        var start = D.formatDate(Ext.getCmp('startdate').getValue(),'yyyy-mm-dd'),
+            end = D.formatDate(Ext.getCmp('enddate').getValue(),'yyyy-mm-dd'),
+            cus = Ext.getCmp('customer').getValue();
+
+        var show = '';
+        if (showAll != undefined)
+            show = true;
+
+        var params = {
+            prj_kode: prjKode,
+            sit_kode: sitKode,
+            start_date: start,
+            all: true,
+            end_date: end,
+            print: true,
+            cus_kode: cus
+        };
+
+        downloadFile('/finance/report/invoicesummary',params);
+
+//        location.href = '/finance/report/invoicesummary/prj_kode/' + prjKode + '/sit_kode/' + sitKode +
+//                '/all/true/print/true'+'/month/'+month;
+
+//        popup(url, 'win-print-invoice-summary');
+    };
+    
+
+var datas2 = new Ext.data.SimpleStore({
+    fields:['type','name']
+            ,data:[['invoice','By Invoice Date'],['paid','By Payment Date']]
+        });
+        
+var combo2=new Ext.form.ComboBox({
+    fieldLabel: 'Type'
+    ,name:'showType'
+    ,store: datas2
+    ,valueField:'type'
+    ,displayField:'name'
+    ,typeAhead: true
+    ,mode: 'local'
+    ,triggerAction: 'all'
+    ,value:'invoice'
+    ,selectOnFocus:true
+    ,anchor:'95%'
+    ,hiddenName:'type'
+    ,width:130
+    ,id: 'type'
+    
+});
+
+    var windowForm = ({
+        title: 'Invoice Report',
+        id: 'abs-budget-panel',
+        layout: 'fit',
+        bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+        bodyStyle: 'padding:15px;',
+        minWidth: 300,
+        minHeight: 200,
+        loadMask: true,
+        tbar: [
+            {
+                xtype: 'tbtext',
+                text: 'Project'
+            },
+            {
+                xtype: 'projectselectorreport',
+                fieldLabel: 'Project Code',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: false,
+                showAll: true
+            }
+            , '-',
+            {
+                xtype: 'tbtext',
+                text: 'Site'
+            },
+            {
+                xtype: 'siteselector',
+                anchor: '100%',
+                independent: false,
+                id: 'site-select',
+                SiteSelectid: 'sit_kode_text',
+                SiteNameid: 'sit_nama_text',
+                ProjectSelectid: 'prj_kode_text',
+                ShowName: false,
+                showAll: true
+            },
+            '-',
+            {
+                xtype: 'tbtext',
+                text: 'Cust.'
+            },
+            {
+                xtype: 'customerselector',
+                id: 'cust',
+                ShowName: false,
+                Selectid: 'customer'
+            },
+            '-',
+//            {
+//                xtype: 'label',
+//                text: 'Month & Year'
+//            },
+//            '-', {
+//                xtype: 'datefield',
+//                name: 'month',
+//                id: 'month',
+//                allowBlank: false,
+//                msgTarget: 'side',
+//                format: 'm-Y', // or other format you'd like
+//                plugins: 'monthPickerPlugin'
+//            },
+
+            {
+                xtype: 'tbtext',
+                text: 'Start Date'
+            },
+            {
+                xtype: 'datefield',
+                name: 'startdate',
+                id: 'startdate',
+                msgTarget: 'side',
+                endDateField: 'enddate', // id of the end date field
+                vtype: 'daterange',
+                format: 'd-m-Y', // or other format you'd like
+                listeners: {
+                    'select': function(t, newDate) {
+                        Ext.getCmp('enddate').setValue('');
+                    }
+                }
+            },
+            {
+                xtype: 'tbtext',
+                text: 'End Date'
+            },
+            {
+                xtype: 'datefield',
+                fieldLabel: 'End Date',
+                name: 'enddate',
+                id: 'enddate',
+                startDateField: 'startdate', // id of the start date field
+                msgTarget: 'side',
+                vtype: 'daterange',
+                format: 'd-m-Y',
+            },
+            '-',
+
+            {
+                xtype: 'button',
+                text: 'Reset',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/lov_refresh.gif",
+                handler: function(){
+                    Ext.getCmp('prj_kode_text').setValue('');
+                    Ext.getCmp('sit_kode_text').setValue('');
+//                    Ext.getCmp('month').setValue('');
+                    Ext.getCmp('startdate').setValue('');
+                    Ext.getCmp('enddate').setValue('');
+                }
+            },'-',
+           combo2
+           ,'-',
+            {
+                xtype: 'button',
+                text: 'Show',
+                width: 70,
+                id: 'show_budget',
+                cls: "x-btn-text-icon",
+                icon: "/images/icons/fam/control_rewind.png",
+                handler: function() {
+                    showInvoice();
+
+                }
+            }, '-',
+            {
+                xtype: 'button',
+                text: 'Show All',
+                width: 70,
+                id: 'show_budget_all',
+                cls: "x-btn-text-icon",
+                icon: "/images/icons/fam/control_rewind.png",
+                handler: function() {
+                    showInvoice(true);
+                }
+            }, '-', {
+                xtype: 'button',
+                id: 'export_button',
+                cls: "x-btn-icon",
+                icon: "/images/print.png",
+                handler: printdocument
+            }
+        ]
+    });
+
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c) {
+        centerRegionTab.remove(c);
+    })
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

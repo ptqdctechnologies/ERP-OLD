@@ -1,0 +1,149 @@
+<script type="text/javascript">
+var prjKode = '<?php echo $this->prjKode; ?>';
+var prjNama = '<?php echo $this->prjNama; ?>';
+
+function numberFormatted(val){
+        return CommaFormatted(val);
+    }
+
+var proxy = new Ext.data.HttpProxy({
+    api: {        
+        read: '/default/boq2/listbyprjkode/param1/' + prjKode
+//        create: '/sales/sales/insertboq2'
+    }
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'
+},[
+    {name:'trano'},
+    {name: 'tgl'},
+    {name:'prj_kode'},
+    {name:'prj_nama'},
+    {name:'sit_kode'},
+    {name:'sit_nama'},
+
+    {name: 'exchange'},
+    {name: 'total'},
+    {name: 'totalusd'},
+    {name: 'pocustomer'},
+    {name: 'ket'}
+
+]);
+
+var writer = new Ext.data.JsonWriter({
+encode: true,
+writeAllFields: true
+});
+
+var store = new Ext.data.Store({
+id: 'user-store',
+proxy: proxy,
+reader: reader,
+writer: writer
+
+});
+
+store.load();
+
+var userColumns = [
+new Ext.grid.RowNumberer(),
+
+//{header: "Date", width: 100, sortable: true, dataIndex: 'tgl', xtype: 'datecolumn', format: 'd/m/Y'},
+//{header: "Project Code", width: 100, sortable: true, dataIndex: 'prj_kode'},
+//{header: "Project Name", width: 200, sortable: true, dataIndex: 'prj_nama'},
+{header: "Site Code", width: 55, sortable: true, dataIndex: 'sit_kode',editor: new Ext.form.TextField({
+                    allowBlank: false
+                })
+},
+{header: "Site Name", width: 220, sortable: true, dataIndex: 'sit_nama'},
+{header: "Contract Value (IDR)", width: 120, sortable: true, renderer: numberFormatted, dataIndex: 'total', align : 'right'},
+{header: "Contract Value (USD)", width: 120, sortable: true, renderer: Ext.util.Format.usMoney, dataIndex: 'totalusd', align: 'right'},
+{header: "Description", width: 250, sortable: true, dataIndex: 'ket'},
+ {header: "PO Customer", width: 200, sortable: true, dataIndex: 'pocustomer'}
+];
+
+
+boq2Grid = Ext.extend(Ext.grid.GridPanel, {
+id:'boq2-detail-grid',
+iconCls: 'silk-grid',
+frame: true,
+height: 450,
+style: 'margin-top: 10px',
+trackMouseOver: true,
+    clicksToEdit: 1,
+
+initComponent : function() {
+	boq2Grid.superclass.initComponent.call(this);
+}
+
+});
+
+var boq2Grids = new boq2Grid({
+    renderTo: 'user-grid',
+    store: store,
+
+    columns : userColumns,
+    width: 700,
+	tbar:  new Ext.Toolbar({
+//	    renderTo: userGrids.tbar,
+	    items: [
+                 {
+	                xtype: 'label',
+
+	                text: 'All CO in '
+	            },
+                '-',
+	            {
+	                xtype: 'label',
+
+	                text: 'Project Code '
+	            },
+
+	            {
+	                xtype: 'textfield',
+	                id: 'field1',
+                    disabled: true,
+	                width: 100,
+                    value: prjKode
+
+	            },
+	            '-',
+	            {
+	                xtype: 'label',
+
+	                text: 'Project Name '
+
+	            },
+	            {
+	                xtype: 'textfield',
+	                id: 'field2',
+                    disabled : true,
+	                width: 120,
+                     value: prjNama
+                }
+                ],
+        loadMask: true,
+        bbar: new Ext.PagingToolbar({
+        id: 'paging',
+        pageSize: 100,
+        store: store,
+        displayInfo: true,
+        displayMsg: 'Displaying data {0} - {1} of {2}',
+        emptyMsg: "No data to display"
+    })
+
+})
+
+});
+
+
+
+</script>
+<div>
+<div id="user-grid" style="margin-left: 10px;float:left"></div>
+</div>

@@ -1,0 +1,1081 @@
+<script type="text/javascript">
+
+function showPrjList()
+{
+    var columns = [ 
+                    {header:'Project Code',width:100,sortable:true,dataIndex:'prj_kode'},
+                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},         
+                ];
+   
+    data =  [
+            
+            {name: 'prj_kode', mapping: 'Prj_Kode'},
+            {name: 'prj_nama', mapping: 'Prj_Nama'},
+            ];
+      
+
+    urlJson = '/project/list';
+    
+    primaryKey = 'prj_kode';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100; 
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'prj_kode';
+				            txtBoxChange = 'prj_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-pjr_kode_button';
+				            var prjKode = g.getStore().getAt(rowIndex).get(objectName);
+				           newUrl = '/procurement/procurement/listByParams/name/prj_kode/data/' + prjKode;
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+				
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("prj_nama");
+                            Ext.getCmp('prj_kode_text').setValue(record);
+
+
+
+                            if (Ext.getCmp('prj_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('prj_nama_text').setValue(record2);
+                            }
+                            if (Ext.getCmp('sit_kode_text') != undefined)
+                            {
+                            	Ext.getCmp('sit_kode_text').setValue('');
+                            }
+                            if (Ext.getCmp('sit_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('sit_nama_text').setValue('');
+                            }
+                            if (Ext.getCmp('field1') != undefined)
+                            {
+                            	Ext.getCmp('field1').setValue(record);
+                            }
+                            if (Ext.getCmp('field2') != undefined)
+                            {
+                            	Ext.getCmp('field2').setValue(record2);
+                            }
+				          
+                            
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchPrjKode = function(field,e){
+        newUrl = '/default/project/listByParams/name/Prj_Kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchPrjName = function(field,e){
+        newUrl = '/default/project/listByParams/name/Prj_Nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-pjr_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Project Code:'
+            },
+             new txtboks(80,10,80,'project_code',searchPrjKode),
+             {
+            x: 170,
+            y: 12,
+            xtype: 'label',
+            text: 'Project Name:'
+            },
+            new txtboks(240,10,80,'project_name',searchPrjName),
+             new grids('project_list')
+        ]
+
+      });
+      aForm.title = 'Choose Project';
+      aForm.show();
+}
+  
+function showSitList()
+{
+    var columns = [ 
+                   {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                    {header:'Project Code',width:100,sortable:true,dataIndex:'prj_kode'},
+                    {header:'Site Name',width:150,sortable:true,dataIndex:'sit_nama'},         
+                ];
+   
+    data =  [
+            {name: 'prj_kode', mapping: 'prj_kode'},  
+            {name: 'sit_kode', mapping: 'sit_kode'},
+            {name: 'sit_nama', mapping: 'sit_nama'},
+            ];
+      
+
+    urlJson = '/site/list/byPrj_Kode/'+Ext.getCmp('prj_kode_text').getValue();
+    
+    primaryKey = 'sit_kode';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100; 
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'sit_kode';
+				            txtBoxChange = 'sit_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-site_kode_button';
+				            var prjNama = g.getStore().getAt(rowIndex).get('sit_nama');
+				            var prjKode = g.getStore().getAt(rowIndex).get('prj_kode');
+				            var sitKode = g.getStore().getAt(rowIndex).get(objectName);
+				            newUrl = '/procurement/listByParams/name/sit_kode/joinToPod/true/data/' + sitKode + '/Prj_Kode/' + prjKode;
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("sit_nama");
+				            Ext.getCmp('sit_kode_text').setValue(record);
+				            if (Ext.getCmp('sit_nama_text') != undefined)
+				            {
+				            	Ext.getCmp('sit_nama_text').setValue(record2);
+				            }
+
+
+
+				            if (Ext.getCmp('prj_kode_text') != undefined && Ext.getCmp('sit_kode_text') != undefined || Ext.getCmp('sit_kode_text') != '' && Ext.getCmp('sit_kode_text') != '')
+				            {
+				            	getFieldValue();
+                                if (Ext.getCmp('addco-detail-grid') != undefined)
+                                {
+                                if (!Ext.getCmp('addco-detail-grid').isVisible())
+                                    {
+                                    Ext.getCmp('addco-detail-grid').visible(true);
+                                    }
+                                Ext.getCmp('addco-detail-grid').getStore().proxy.setApi('read','/default/boq2/listprevaddco/param1/' + prjKode+'/param2/'+sitKode);
+                                Ext.getCmp('addco-detail-grid').getStore().reload();
+                                }
+				            }
+        
+				                            
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchSiteName = function(field,e){
+        newUrl = '/default/site/listbyproject/sit_nama/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchSiteKode = function(field,e){
+        newUrl = '/default/site/listbyproject/sit_kode/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-site_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Site Code:'
+            },
+             new txtboks(80,10,80,'site_code',searchSiteKode),
+             {
+            x: 170,
+            y: 12,
+            xtype: 'label',
+            text: 'Site Name:'
+            },
+            new txtboks(240,10,80,'site_name',searchSiteName),
+             new grids('site_list')
+        ]
+
+      });
+      aForm.title = 'Pop Up Window';
+      aForm.show();
+}
+
+var templist = Ext.data.Record.create([ {
+    name: 'prj_kode',
+    type: 'string'
+}, {
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'cus_kode',
+    type: 'string'
+},{
+    name: 'rateidr',
+    type: 'string'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'totalusd',
+    type: 'float'
+},{
+    name: 'totaltotal',
+    type: 'float'
+},{
+    name: 'adtotal',
+    type: 'float'
+},{
+    name: 'totaltambah',
+    type: 'float'
+},{
+    name: 'totaltotalusd',
+    type: 'float'
+},{
+    name: 'adtotalusd',
+    type: 'float'
+},{
+    name: 'totaltambahusd',
+    type: 'float'
+}]);
+
+var addcolist = Ext.data.Record.create([ {
+    name: 'prj_kode',
+    type: 'string'
+}, {
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'cus_kode',
+    type: 'string'
+},{
+    name: 'rateidr',
+    type: 'string'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'totalusd',
+    type: 'float'
+},{
+    name: 'totaltotal',
+    type: 'float'
+},{
+    name: 'adtotal',
+    type: 'float'
+},{
+    name: 'totaltambah',
+    type: 'float'
+},{
+    name: 'totaltotalusd',
+    type: 'float'
+},{
+    name: 'adtotalusd',
+    type: 'float'
+},{
+    name: 'totaltambahusd',
+    type: 'float'
+}]);
+
+var gridlist = Ext.data.Record.create([ {
+    name: 'prj_kode',
+    type: 'string'
+}, {
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'cus_kode',
+    type: 'string'
+},{
+    name: 'rateidr',
+    type: 'string'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'totalusd',
+    type: 'float'
+},{
+    name: 'totaltotal',
+    type: 'float'
+},{
+    name: 'adtotal',
+    type: 'float'
+},{
+    name: 'totaltambah',
+    type: 'float'
+},{
+    name: 'totaltotalusd',
+    type: 'float'
+},{
+    name: 'adtotalusd',
+    type: 'float'
+},{
+    name: 'totaltambahusd',
+    type: 'float'
+}]);
+
+var storeAddCO = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: addcolist})
+});
+
+var temp = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: templist})
+});
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        
+        create: '/default/boq2/list/'
+//        read: '/default/boq2/list/'
+    }
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'
+},[
+    {name:'trano'},
+    {name: 'tgl', type : 'date', dateFormat: 'Y-m-d'},
+    {name:'prj_kode'},
+    {name:'prj_nama'},
+    {name:'sit_kode'},
+    {name:'sit_nama'},
+    {name:'cus_kode'},
+    {name: 'total'},
+    {name: 'totalusd'},
+    {name: 'totaltotal'},
+    {name: 'adtotal'},
+    {name: 'totaltambahusd'},
+    {name: 'totaltotalusd'},
+    {name: 'adtotalusd'},
+    {name: 'totaltambah'},
+    {name: 'rateidr'},
+    
+
+    {name: 'ket'}
+    
+]);
+
+var writer = new Ext.data.JsonWriter({
+encode: true,
+writeAllFields: true
+});
+
+var store = new Ext.data.Store({
+id: 'user-store',
+proxy: proxy,
+writer: writer,
+reader: new Ext.data.JsonReader({
+totalProperty: 'count',
+idProperty: 'gridlist',
+root: 'posts',
+fields: gridlist})
+
+});
+
+//store.load();
+
+var textField = new Ext.form.TextField();
+
+function getExchangeRate()
+{
+	Ext.Ajax.request({
+	    url: '/default/valuta/getexchangerate',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if(returnData.success) {
+					Ext.getCmp('curr_text').setValue(returnData.rate);
+				}
+			}
+			,failure:function( action){
+		if(action.failureType == 'server'){
+	    obj = Ext.util.JSON.decode(action.response.responseText);
+	    Ext.Msg.alert('Error!', obj.errors.reason);
+		}
+		}
+	}); 
+}
+
+function getFieldValue()
+{
+	if (Ext.getCmp('prj_kode_text').getValue() != '' && Ext.getCmp('sit_kode_text').getValue() != '')
+	{ 
+	var prjKode = Ext.getCmp('prj_kode_text').getValue();
+	var sitKode = Ext.getCmp('sit_kode_text').getValue();
+	Ext.Ajax.request({
+		results: 0,
+        url: '/default/boq2/getcontractvalue/prj_kode/'+prjKode+'/sit_kode/'+sitKode,
+        method:'POST',
+        success: function(result, request){
+           var returnData = Ext.util.JSON.decode(result.responseText);
+//           console.log(returnData[0].total);
+            if (returnData[0] != undefined)
+            {
+            var tempidr = parseFloat(returnData[0].total) + parseFloat(returnData[0].prev_totalidr);
+
+          	var tempusd = parseFloat(returnData[0].totalusd) + parseFloat(returnData[0].prev_totalusd);
+
+            var c = new templist({
+
+                    total: parseFloat(returnData[0].total),
+                    totalusd: parseFloat(returnData[0].totalusd),
+                    totaltotal: tempidr,
+                    adtotal: parseFloat(returnData[0].prev_totalidr),              
+                    totaltotalusd: tempusd,
+                    adtotalusd: parseFloat(returnData[0].prev_totalusd)
+
+              });
+//            console.log(c);
+
+                temp.add(c);     
+            }
+            else
+            {
+                Ext.Msg.alert('Error! Input CO for this site first!');
+                return false;
+            }
+			}
+		});
+	}
+	else
+    {
+		Ext.Msg.alert('please fill project code and site code!');
+        return false;
+    }
+}
+
+function PopUpInfo()
+{
+    var okbutton = new Ext.Button({
+
+		id: 'ok-button-info',
+		text: 'submit',
+		handler: function(btn, ev){
+
+            var json = '';
+            var parameter = '';
+
+             storeAddCO.each(function(store){
+
+                json += Ext.util.JSON.encode(store.data) + ',';
+                });
+
+            	json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+            var p = storeAddCO.getAt(0);
+
+            	//Get add. Data
+            var prjKode = p.data['prj_kode'];
+            var prjNama = p.data['prj_nama'];
+
+            parameter = '[{"prj_kode":"' + prjKode + '","prj_nama":"' + prjNama + '"}]';
+
+            params = {posts:json};
+            Ext.Ajax.request({
+                url: '/sales/sales/insertaddco',
+                method:'POST',
+                success: function(resp){
+                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                    if (returnData.success)
+                    {
+                        Ext.getCmp('a-form-panel-pop-up-info').close();
+                        Ext.Msg.alert('Success', 'Additional CO has been saved');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/sales/sales/addco',
+
+                            scripts : true
+                        });
+                    }
+                },
+                failure:function( action){
+                if(action.failureType == 'server'){
+                  obj = Ext.util.JSON.decode(action.response.responseText);
+                  Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                  Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+                },
+                params: params
+            });
+
+    	}
+        });
+
+    var cancel = new Ext.Button({
+		id: 'cancel-button-info',
+		text: 'cancel',
+		handler : function(btn, ev){
+
+    	Ext.getCmp('a-form-panel-pop-up-info').close();
+    	}
+        });
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-pop-up-info',
+        layout: 'form',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 250,
+        items : [
+            { x: 10,y: 22, xtype: 'label',text: 'Are you sure to create CO ?'},
+            {fieldLabel: 'Project Code', xtype: 'textfield', disabled: true, value: Ext.getCmp('prj_kode_text').getValue()},
+            {fieldLabel: 'Project Name', xtype: 'textfield', disabled: true,value: Ext.getCmp('prj_nama_text').getValue() },
+            {fieldLabel: 'Site Code', xtype: 'textfield', disabled: true,value: Ext.getCmp('sit_kode_text').getValue() },
+            {fieldLabel: 'Site Name', xtype: 'textfield', disabled: true, value: Ext.getCmp('sit_nama_text').getValue() },
+            {fieldLabel: 'Additional CO (IDR)',xtype: 'textfield', disabled: true, value:  Ext.getCmp('cus_con_idr').getValue()},
+            {fieldLabel: 'Additional CO (USD)', xtype: 'textfield', disabled: true, value: Ext.getCmp('cus_con_usd').getValue()},
+            
+            {fieldLabel: 'Remark', xtype: 'textfield', disabled: true, value : Ext.getCmp('ket_text').getValue() }
+
+        ],
+       buttons:
+               [
+                okbutton, cancel
+               ]
+
+      });
+      aForm.title = 'Pop Up Window';
+      aForm.show();
+}
+
+function getLasttrano()
+{
+	Ext.Ajax.request({
+        url: '/sales/sales/getlasttrano',
+        method:'POST',
+        success: function(result, request){
+        	   var returnData = Ext.util.JSON.decode(result.responseText);
+
+				if (returnData.aboq2 != undefined && returnData.aboq2 != '')
+				{
+					Ext.getCmp('trano_text').setValue('ABOQ2-' + returnData.aboq2);
+				}
+			}
+		,
+    	failure:function( action){
+      	if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+      	}
+      	}
+    }); 
+};
+
+
+var userColumns = [
+new Ext.grid.RowNumberer(),
+//{header: "ID", width: 120, sortable: true, dataIndex: 'trano'},
+{header: "Date", width: 75, sortable: true, dataIndex: 'tgl', xtype: 'datecolumn', format: 'd/m/Y'},
+//{header: "Project Code", width: 100, sortable: true, dataIndex: 'prj_kode'},
+//{header: "Project Name", width: 200, sortable: true, dataIndex: 'prj_nama'},
+{header: "Site Code", width: 55, sortable: true, dataIndex: 'sit_kode'},
+{header: "Site Name", width: 220, sortable: true, dataIndex: 'sit_nama'},
+{header: "Original CO (IDR)", width: 120, sortable: true, dataIndex: 'total', align : 'right'},
+{header: "Original CO (USD)", width: 120, sortable: true, dataIndex: 'totalusd', align : 'right'},
+{header: "Prev CO (IDR)", width: 120, sortable: true, dataIndex: 'adtotal', align : 'right'},
+{header: "Prev CO (USD)", width: 120, sortable: true, dataIndex: 'adtotalusd', align : 'right'},
+{header: "Accum CO (IDR)", width: 120, sortable: true, dataIndex: 'totaltambah', align : 'right'},
+{header: "Accum CO (USD)", width: 120, sortable: true, dataIndex: 'totaltambahusd', align : 'right'},
+{header: "Description", width: 250, sortable: true, dataIndex: 'ket'},
+
+];
+
+addcoForm = new Ext.extend(Ext.form.FormPanel,{
+
+    iconCls: 'silk-user',
+    title: 'Create Additional CO',
+    frame: true,
+    width: 700,
+    labelAlign: 'left',
+    initComponent : function() {
+       this.items = this.buildForm();
+      
+       this.buttons = this.buildUI();
+       
+       this.addEvents({
+           create : true
+       });
+       addcoForm.superclass.initComponent.call(this);
+   }
+    ,
+initComponent : function() {
+    this.items = this.buildForm();
+//    getLasttrano();
+    getExchangeRate();
+    this.buttons = this.buildUI();
+    
+    this.addEvents({
+        create : true
+    });
+    addcoForm.superclass.initComponent.call(this);
+}
+,
+ buildForm : function() {
+    return [
+            { layout: 'column',
+                items:[
+//                       { 	columnWidth : .330,
+//                           layout: 'form',
+////                           labelWidth : 170,
+//                           items: [
+//            						{fieldLabel : 'ID', id :'trano_text', name:'trano', xtype : 'textfield',width : 110, readOnly : true},
+//						            {fieldLabel: 'Date', id: 'tgl_text', name: 'tgl', xtype: 'datefield',width : 100},
+//
+//						        	{fieldLabel: 'Exchange Rate',id:'curr_text',name: 'exchange', xtype: 'textfield',width : 100,style:"text-align:right"},
+//						  ]},
+
+						  {
+							  columnWidth : .3,
+							  layout: 'form',
+							  items:[
+						            {xtype:'trigger',fieldLabel: 'Project Code',id:'prj_kode_text',name: 'prj_kode', triggerClass: 'teropong',
+		                            onTriggerClick: function( ){
+						            	showPrjList();
+									},
+		                            editable: false,
+									allowBlank: true,
+									width: 100
+									},
+									{fieldLabel: 'Site Code',id:'sit_kode_text',name: 'sit_kode', xtype: 'trigger',triggerClass: 'teropong',
+									onTriggerClick: function(){
+										showSitList();
+								
+									},
+
+										allowBlank: true,
+										width: 100
+					                }
+//					                {
+//						                xtype : 'button',
+//						                fieldlabel: ' ',
+//						                text : 'Browse Contract Value',
+//						                handler : function(){
+//												getFieldValue();
+//						                }
+//					                }
+					                             
+							]},
+
+							{columnWidth: .3,
+							layout : 'form',		
+							items :[								
+							{id:'prj_nama_text', name: 'prj_nama', xtype: 'textfield', readOnly: true,hideLabel: true },
+							{id:'sit_nama_text',name: 'sit_nama', xtype: 'textfield', readOnly: true,hideLabel: true },
+														
+							]},
+	]},
+	new Ext.ux.customRendererField({
+        fieldLabel: 'Exchange Rate',id:'curr_text',name: 'curr_text',xtype: 'numberfield', width : 100,style:"text-align:right",
+        priceDelemiter:','
+    }),
+	{ layout: 'column',
+        items:[
+               { 	columnWidth : .460,
+                   layout: 'form',
+                   labelWidth : 200,
+                   items: [
+//							{fieldLabel: 'Original CO (IDR)',id:'ori_idr',name: 'total',xtype: 'textfield',width : 100, readOnly : true, hidden : true, style:"text-align:right"},
+//
+//							{fieldLabel: 'Previous CO (IDR)',id:'pre_idr',name: 'adtotal',xtype: 'textfield',width : 100, readOnly : true,style:"text-align:right"},
+							{
+                 	        xtype:'textfield',fieldLabel: 'Contract Value (IDR)',id:'cus_con_idr',name: 'total', width : 110,style:"text-align:right",
+                            listeners: {
+                            'blur': function(t) {
+                                if (!isNaN(t.getValue()))
+                                {
+                                    t.setValue(CommaFormatted(t.getValue()));
+                                }
+                            },
+                            'focus': function(t) {
+                                if (t.getValue().search(",")>0)
+                                   t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+                                }
+                            }
+                            },
+                            {
+                            fieldLabel: 'Contract Value(USD)',id:'cus_con_usd',name: 'totalusd', xtype: 'textfield', width : 110,style:"text-align:right",
+                            listeners: {
+                            'blur': function(t) {
+                                if (!isNaN(t.getValue()))
+                                {
+                                    t.setValue(CommaFormatted(t.getValue()));
+                                }
+                            },
+                            'focus': function(t) {
+                                if (t.getValue().search(",")>0)
+                                   t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+                                }
+                            }
+                            }
+							
+//							{fieldLabel: 'Accum Contract Value (IDR)',id:'accum_idr',name: 'totaltotal',xtype: 'textfield',width : 100, readOnly : true,style:"text-align:right"},
+                           ]
+                           },
+                           
+               { 	columnWidth : .450,
+                   layout: 'form',
+                   labelWidth : 200,
+                   items: [
+//					{fieldLabel: 'Original CO (USD)',id:'ori_usd',name: 'totalusd', xtype: 'textfield',width : 100, readOnly : true,style:"text-align:right"},
+//					{fieldLabel: 'Previous CO (USD)',id:'pre_usd',name: 'adtotalusd', xtype: 'textfield',width : 100, readOnly : true,style:"text-align:right"},
+//					{fieldLabel: 'Input Additional CO (USD)',id:'current_usd',name: 'totaltambahusd', xtype: 'textfield',width : 100,style:"text-align:right",
+//					enableKeyEvents: true,
+//					listeners:{
+//
+//					'keyup' : function (t,e) {
+//						if (!isNaN(t.getValue()))
+//						{
+//							var current = parseFloat(t.getValue());
+//							var ori = parseFloat(Ext.getCmp('ori_usd').getValue());
+//							var prev = parseFloat(Ext.getCmp('pre_usd').getValue());
+//
+//							var  accum = ori+prev+current;
+//							Ext.getCmp('accum_usd').setValue(accum);
+//
+//						}
+//						}
+//
+//						}
+//						},
+//					{fieldLabel: 'Accum Contract Value (USD)',id:'accum_usd',name: 'totaltotalusd', xtype: 'textfield',width : 100,style:"text-align:right"},
+                           ]},
+               ]},
+  					{fieldLabel: 'Remark',id:'ket_text',name: 'ket', xtype: 'textfield',width: 200}
+
+    					];
+},
+
+ buildUI: function(){
+    return [
+//    {
+//        text: 'Save',
+//        iconCls: 'icon-save',
+//        handler: this.onUpdate,
+//        scope: this
+//    },
+    {
+        text: 'Create',
+        iconCls: 'silk-user-add',
+        handler:  function(btn, ev) {
+                if (!this.getForm().isValid()) {
+                    App.setAlert(false, "Form is invalid");
+                    return false;
+                }
+                else
+                {
+                    var co = temp.getAt(0);
+                    if(Ext.getCmp('cus_con_idr').getValue().toString().replace(/\$|\,/g,'') != '')
+                        var currentIdr = parseFloat(Ext.getCmp('cus_con_idr').getValue().toString().replace(/\$|\,/g,''));
+                    else
+                        var currentIdr = 0;
+                    if(Ext.getCmp('cus_con_usd').getValue().toString().replace(/\$|\,/g,'') != '')
+                        var currentUsd = parseFloat(Ext.getCmp('cus_con_usd').getValue().toString().replace(/\$|\,/g,''));
+                    else
+                        var currentUsd = 0;
+
+                    var totalTotal = parseFloat(co.data['totaltotal'])+currentIdr;
+
+                    var totalTotalUSD = parseFloat(co.data['totaltotalusd'])+currentUsd;
+                var c = new addcolist({
+
+                    prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                    prj_nama: Ext.getCmp('prj_nama_text').getValue(),
+                    sit_kode: Ext.getCmp('sit_kode_text').getValue(),
+                    sit_nama: Ext.getCmp('sit_nama_text').getValue(),
+                    total: co.data['total'],
+                    totalusd: co.data['totalusd'],
+                    adtotal: co.data['adtotal'],
+                    totaltambah: Ext.getCmp('cus_con_idr').getValue().toString().replace(/\$|\,/g,''),
+                    rateidr: Ext.getCmp('curr_text').getValue().toString().replace(/\$|\,/g,''),
+                    totaltotal: totalTotal,
+                    adtotalusd: co.data['adtotal'],
+                    totaltambahusd:Ext.getCmp('cus_con_usd').getValue().toString().replace(/\$|\,/g,''),
+                    totaltotalusd: totalTotalUSD,
+                    ket: Ext.getCmp('ket_text').getValue()
+
+                      });
+
+//                console.log(c);
+
+                storeAddCO.add(c);
+//                this.getForm().reset();
+                    PopUpInfo();
+                }
+        },
+        scope: this
+    }, {
+        text: 'Reset',
+        handler: function(btn, ev){
+            this.getForm().reset();
+        },
+        scope: this
+    },
+//        {
+//        text: 'Cancel',
+//        handler: function(btn, ev){
+//        	myPanel = Ext.getCmp('abs-budget-panel');
+//    	    myPanel.body.load({
+//    	        url: '/sales/sales/addco',
+//    	        scripts : true
+//            });
+//        },
+//        scope: this
+//    }
+    ];
+}
+,
+ loadRecord : function(rec) {
+    this.record = rec;
+    this.getForm().loadRecord(rec);
+}
+,
+onUpdate : function(btn, ev) {
+    if (this.record == null) {
+        return;
+    }
+    if (!this.getForm().isValid()) {
+        App.setAlert(false, "Form is invalid.");
+        return false;
+    }
+    this.getForm().updateRecord(this.record);
+}
+});
+
+addcoGrid = Ext.extend(Ext.grid.GridPanel, {
+id:'addco-detail-grid',
+iconCls: 'silk-grid',
+frame: true,
+height: 450,
+style: 'margin-top: 10px',
+trackMouseOver: true,
+
+initComponent : function() {
+    addcoGrid.superclass.initComponent.call(this);
+}
+
+});
+
+<?php echo $this->action('index','textfield',null); ?>
+Ext.onReady(function() {
+Ext.QuickTips.init();
+var addcoForms = new addcoForm({
+    renderTo: 'user-form'
+//    listeners: {
+//        create : function(fpanel, data) {
+//            var rec = new addcoGrids.store.recordType(data);
+//            addcoGrids.store.insert(0, rec);
+//        }
+//    }
+});
+
+var addcoGrids = new addcoGrid({
+    renderTo: 'user-grid',
+    store: store,
+    columns : userColumns,
+    width: 700,
+	tbar:  new Ext.Toolbar({
+//	    renderTo: userGrids.tbar,
+	    items: [
+	            {
+	                xtype: 'label',
+	                
+	                text: 'Project Code'
+	            },
+	            
+	            {
+	                xtype: 'textfield',
+	                id: 'field1',
+                    disabled: true,
+	                width: 100
+	                
+	            },
+	            '-',
+	            {
+	                xtype: 'label',
+	                
+	                text: 'Project Name'
+	            },
+	            {
+	                xtype: 'textfield',
+	                id: 'field2',
+                    disabled: true,
+	                width: 120                
+	            }
+//	            {
+//					xtype : 'button',
+//					text: 'search',
+//					iconCLS :'icon-save',
+//					handler : function (btn, ev){
+//	            	 newUrl = '/boq2/listByParams/param1/'+Ext.getCmp('field1').getValue()+'/param2/' + Ext.getCmp('field2').getValue();
+//	                 
+//	                 store.proxy = new Ext.data.HttpProxy( {
+//	                     url: newUrl
+//	                      });
+//	                 store.reload()
+//	            	}					
+//	            }
+	            
+	]
+	}), 
+    loadMask: true,  
+    bbar: new Ext.PagingToolbar({
+        id: 'paging',
+        pageSize: 100,
+        store: store,
+        displayInfo: true,
+        displayMsg: 'Displaying data {0} - {1} of {2}',
+        emptyMsg: "No data to display"
+    })
+
+});
+
+});
+
+</script>
+<div>
+ <div id="user-form" style="float:left"></div>
+ <div id="user-grid" style="margin-left: 10px;float:left"></div>
+ </div>

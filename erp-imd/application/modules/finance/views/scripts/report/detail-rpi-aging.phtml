@@ -1,0 +1,115 @@
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        /*width: 740px;*/
+        /*height: 460px;*/
+        overflow: auto;
+        font-size: 14px;
+        margin-top: 40px;
+    }
+
+    .headtext{
+        text-align: center;
+        font-weight:bolder;
+
+    }
+
+    #header_content h1{
+        font-size: 18px;
+        margin-top: 20px;
+    }
+
+    .budgetTable {
+        font-family: Verdana, Arial, sans serif;
+        font-size: 0.8em;
+        border-spacing: 0px 0px !important;
+        border-collapse: collapse !important;
+    }
+
+    .budgetTable th {
+        background-color: #CFDCEE;
+    }
+
+    .budgetTable th, .budgetTable td {
+        border: 1px solid #9EB6CE;
+        padding: 3px 6px 3px 4px;
+        white-space: nowrap;
+    }
+
+
+</style>
+
+<div id="header_content">
+    <center><h1>DETAIL AP AGING</h1></center>
+</div>
+<b>Supplier Name : <?= $this->name ?></b>
+<br /><br />
+<a href="#" onclick="printReport('<?= $this->supKode ?>', '<?= $this->start ?>', '<?= $this->tgl ?>')"><img src="/images/print.png"></a>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+            <tr>
+                <th width="40" scope="col" class="headtext"rowspan="2">No</th>
+                <th width="140" scope="col" class="headtext" rowspan="2">Trano</th>
+                <th width="80" scope="col" class="headtext" rowspan="2">Project Code</th>
+                <th width="140" scope="col" class="headtext" rowspan="2">Date</th>
+                <th width="60" scope="col" class="headtext" rowspan="2">Overdue (days)</th>
+                <th width="160" scope="col" class="headtext" colspan="4">Value</th>
+            </tr>
+            <tr>            
+                <th width="140" scope="col" class="headtext">IDR</th>
+                <th width="140" scope="col" class="headtext">Tax (IDR)</th>
+                <th width="140" scope="col" class="headtext">USD</th>
+                <th width="140" scope="col" class="headtext">Tax (USD)</th>
+
+            </tr>
+        </thead>
+
+        <tbody>
+            <?php
+            $num = 1;
+            $blank = '&nbsp;';
+            foreach ($this->data as $key => $val) {
+                $valueIDR = 0;
+                $valueppnIDR = 0;
+                $valueUSD = 0;
+                $valueppnUSD = 0;
+                if ($val['val_kode'] == 'IDR') {
+                    $valueIDR = $val['balance'];
+                    $valueppnIDR = $val['ppn_value'];
+                } else {
+                    $valueUSD = $val['balance'];
+                    $valueppnUSD = $val['ppn_value'];
+                }
+
+                $uid = $key;
+                ?>
+                <tr>
+                    <td align="center"><?php echo $num ?></td>
+                    <td align="center"><?= $val['trano'] ?></td>
+                    <td align="left"><?= $val['prj_kode'] . ' - ' . $val['prj_nama'] ?></td>
+                    <td align="center"><?= date('d - M - Y', strtotime($val['tgl'])) ?></td>
+                    <td align="center"><?= $val['days'] ?></td>
+                    <td align="right"><?= ($valueIDR == '' ? $blank : number_format($valueIDR, 2)) ?></td>
+                    <td align="right"><?= ($valueppnIDR == '' ? $blank : number_format($valueppnIDR, 2)) ?></td>
+                    <td align="right"><?= ($valueUSD == '' ? $blank : number_format($valueUSD, 2)) ?></td>
+                    <td align="right"><?= ($valueppnUSD == '' ? $blank : number_format($valueppnUSD, 2)) ?></td>
+                </tr>
+    <?php
+    $num++;
+}
+?>
+        </tbody>
+    </table>
+</div>
+<script type="text/javascript">
+
+
+    function printReport(cuskode, start, tgl) {
+        location.href = '/finance/report/detail-rpi-aging/export/true/sup_kode/' + cuskode + '/start/' + start + '/tgl/' + tgl;
+    }
+
+</script>

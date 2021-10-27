@@ -1,0 +1,287 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+            }
+    });
+
+    function showboq3 (prj_kode,sit_kode)
+    {
+        boq3store.load({
+            params: {
+                prj_kode: prj_kode,
+                sit_kode: sit_kode
+            }
+        });
+    }
+
+    var proxy = new Ext.data.HttpProxy({
+           url : '/default/home/getboq3summary'
+
+            // /default/home/getboq3summary <param prj_kode,sit_kode>
+    });
+
+    var boq3store = new Ext.data.Store({
+        id:'boq3store',
+        proxy:proxy,
+        reader:new Ext.data.JsonReader ({
+            root:'posts',
+            totalProperty:'count',
+            fields:[{
+                name:'workid'
+            },{
+                name:'workname'
+            },{
+                name:'cfs_kode'
+            },{
+                name:'cfs_nama'
+            },{
+                name:'kode_brg'
+            },{
+                name:'nama_brg'
+            },{
+                name:'qty'
+            },{
+                name:'val_kode'
+            },{
+                name:'tgl'
+            },{
+                name:'hargaIDR'
+            },{
+                name:'hargaUSD'
+            },{
+                name:'totalIDR'
+            },{
+                name:'totalUSD'
+            },{
+                name:'totalHargaIDR'
+            },{
+                name:'totalHargaUSD'
+            },{
+                name:'uom'
+            },{
+                name:'price'
+            },{
+                name:'totalPrice'
+            },{
+                name:'id'
+            }]
+        })
+    })
+
+    var editor = new Ext.ux.grid.RowEditor({
+        saveText: 'Update',
+        clicksToEdit: 2
+    });
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var grid = new Ext.grid.GridPanel ({
+
+            id: 'edit-cfs-grid',
+            renderTo:'edit_cfs_grid',
+            store: boq3store,
+            title:'Edit CFS BOQ3',
+            height: 400,
+            frame: true,
+            plugins: [editor],
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Workid',
+                dataIndex:'workid',
+                align:'center'
+            },{
+                header:'Work Name',
+                dataIndex:'workname',
+                align:'center'
+            },{
+                header:'CFS code',
+                dataIndex:'cfs_kode',
+                align:'center',
+                editor: {
+                    xtype:'textfield',
+                    vtype:'numeric',
+                    allowBlank:false
+                }
+            },{
+                header:'CFS Name',
+                dataIndex:'cfs_nama',
+                align:'center',
+                editor: {
+                    xtype:'textfield',
+                    allowBlank:false
+                }
+            },{
+                header:'Code Barang',
+                dataIndex:'kode_brg',
+                align:'center'
+            },{
+                header:'Nama Barang',
+                dataIndex:'nama_brg',
+                align:'center'
+            },{
+                header:'Qty',
+                dataIndex:'qty',
+                align:'center'
+            },{
+                header:'UOM',
+                dataIndex:'uom',
+                align:'center'
+            },{
+                header:'Valuta',
+                dataIndex:'val_kode',
+                align:'center'
+            },{
+                header:'Price',
+                dataIndex:'price',
+                align:'right',
+                renderer: function(v,p,r){
+                    var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            },{
+                header:'Total Price',
+                dataIndex:'totalPrice',
+                align:'right',
+                renderer: function(v,p,r){
+                    var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            }],
+            tbar:[{
+                xtype:'label',
+                text:'Project Code',
+                style:'margin-left:10px;'
+            },'-',{
+                xtype: 'projectselector',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                allowBlank:false
+            },'-',{
+                xtype:'label',
+                text:'Site Code',
+                style:'margin-left:10px;'
+            },'-',{
+                xtype: 'siteselector',
+                independent: false,
+                id: 'site-select',
+                SiteSelectid: 'sit_kode_text',
+                ProjectSelectid: 'prj_kode_text',
+                allowBlank:false
+            },'-',{
+                xtype: 'button',
+                text: 'Show',
+                width:70,
+                id: 'show_ap',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                style:'margin-left:10px;',
+                handler:function(btn,ev)
+                {
+                    var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                    var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+
+                    if (prj_kode == '')
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry , Please Insert Project Code',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (sit_kode == '')
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry , Please Insert Site Code',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    showboq3 (prj_kode,sit_kode);
+
+                }
+            }],
+            buttons:[{
+                iconCls:'icon-save',
+                text:'Update CFS',
+                handler:function(btn,ev)
+                {
+                    if (grid.getStore().getCount() == 0)
+                    return false;
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                            var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+
+                            var boq3data = '';
+                            boq3store.each(function(store){
+                                boq3data += Ext.util.JSON.encode(store.data) + ',';
+                            })
+
+                            boq3data = '[' + boq3data.substring(0, boq3data.length - 1) + ']';
+
+                            var params = {
+                                boq3data:boq3data,
+                                prj_kode:prj_kode,
+                                sit_kode:sit_kode
+                            }
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.Ajax.request({
+                                url:'/projectmanagement/budget/doupdatecfsboq3',
+                                method:'POST',
+                                params:params,
+                                success:function(result){
+                                    Ext.getBody().unmask();
+                                    obj = Ext.util.JSON.decode(result.responseText);
+
+                                    if (obj.success)
+                                    {
+                                        Ext.Msg.alert ('Message','Success, Data cfs in boq3 has been update');
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                        url: '/projectmanagement/budget/showcreateboq3',
+                                        scripts : true
+                                        });
+                                    }else
+                                    {
+                                        Ext.Msg.alert('Error', obj.msg);
+                                    }
+                                },
+                                failure:function( action){
+                                    Ext.getBody().unmask();
+                                    if(action.failureType == 'server'){
+                                      obj = Ext.util.JSON.decode(action.response.responseText);
+                                      Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+
+                            })
+                        }
+
+                    })
+                }
+            }]
+        })
+
+    })
+
+
+</script>
+
+    <div id="edit_cfs_grid"></div>

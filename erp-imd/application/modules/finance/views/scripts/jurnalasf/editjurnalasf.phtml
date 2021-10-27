@@ -1,0 +1,1192 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        }
+    });
+
+    var editor = new Ext.ux.grid.RowEditor({
+        saveText: 'Update',
+        clicksToEdit: 2,
+        listeners: {
+            'afteredit': function(t, ch)
+            {
+                hitungTotal();
+            }
+        }
+    });
+
+    var coa_kode = '';
+    var coa_nama = '';
+    var job_number = '';
+
+
+    var jurnalasflist = Ext.data.Record.create([
+        {name: 'trano'},
+        {name: 'ref_number'},
+        {name: 'prj_kode'},
+        {name: 'sit_kode'},
+        {name: 'job_number'},
+        {name: 'tgl'},
+        {name: 'uid'},
+        {name: 'coa_kode'},
+        {name: 'coa_nama'},
+        {name: 'val_kode'},
+        {name: 'debit'},
+        {name: 'credit'},
+        {name: 'type'},
+        {name: 'id'},
+        {name: 'tgl'},
+        {name: 'description'}
+    ])
+
+    var storejurnalasf = new Ext.data.Store({
+        id: 'store-jurnalasf',
+        reader: new Ext.data.JsonReader({fields: jurnalasflist}),
+        listeners: {
+            'load': function(record) {
+                hitungTotal();
+            }
+        }
+    });
+    var tempstoreasf = new Ext.data.Store({
+        id: 'store-jurnalasf',
+        reader: new Ext.data.JsonReader({fields: jurnalasflist}),
+        listeners: {
+            'load': function(record) {
+                hitungTotal();
+            }
+        }
+    });
+    var totDebit = 0;
+    var totCredit = 0;
+
+    function hitungTotal()
+    {
+        totDebit = 0;
+        totCredit = 0;
+
+        storejurnalasf.each(function(items) {
+            totDebit += (parseFloat(items.data['debit']));
+            totCredit += (parseFloat(items.data['credit']));
+
+        });
+        Ext.getCmp('debittotal').setText('Total Debit : ' + Ext.util.Format.number(totDebit, '0,0.00'));
+        Ext.getCmp('credittotal').setText('Total Credit : ' + Ext.util.Format.number(totCredit, '0,0.00'));
+    }
+
+    function edit(r)
+    {
+
+//        var strPR = storejurnalasf.getAt(storePR.findExact('id',stores.data['id']));
+
+        var dat = storejurnalasf.getAt(r);
+        Ext.getCmp('acc-number').setValue(dat.data['ref_number']);
+        Ext.getCmp('coa-kode').setValue(dat.data['coa_kode']);
+        Ext.getCmp('coa-nama').setValue(dat.data['coa_nama']);
+        Ext.getCmp('val-kode').setValue(dat.data['val_kode']);
+        Ext.getCmp('debit').setValue(dat.data['debit']);
+        Ext.getCmp('credit').setValue(dat.data['credit']);
+
+        Ext.getCmp('form-insert-bank-in').stat = 'edit';
+        Ext.getCmp('form-insert-bank-in').idEdit = dat.id;
+    }
+
+    function deleterowgrid(idItem)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn) {
+            if (btn == 'yes')
+            {
+                var store = storejurnalasf;
+                var dat = store.getById(idItem);
+
+                if (dat)
+                {
+                    store.remove(dat);
+                    Ext.getCmp('form-insert-bank-in').stat = 'new';
+                    Ext.getCmp('form-insert-bank-in').idEdit = '';
+                    Ext.getCmp('grid-bankin').getView().refresh();
+                    hitungTotal();
+                }
+            }
+        });
+    }
+
+    function showcoalist(tipe)
+    {
+        var coastore = new Ext.data.Store({
+            autoLoad: true,
+            url: '/finance/paymentreimbursement/getcoalist',
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'coa_kode'
+                    }, {
+                        name: 'coa_nama'
+                    }, {
+                        name: 'tipe'
+                    }]
+            })
+
+        })
+
+        var coagrid = new Ext.grid.GridPanel({
+            store: coastore,
+            viewConfig: {
+                forceFit: true
+            },
+            height: 300,
+            columns: [{
+                    header: 'COA CODE',
+                    dataIndex: 'coa_kode',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'COA NAME',
+                    dataIndex: 'coa_nama',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Type',
+                    dataIndex: 'tipe',
+                    align: 'center',
+                    sortable: true
+                }],
+            bbar: new Ext.PagingToolbar({
+                id: 'paging-coa',
+                pageSize: 20,
+                store: coastore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }), tbar: [{
+                    text: 'Search By',
+                    xtype: 'label',
+                    style: 'margin-left:5px'
+                }, {
+                    xtype: 'combo',
+                    width: 100,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['name', 'nilai'],
+                        data: [
+                            ['Coa Code', 1],
+                            ['Coa Name', 2],
+                            ['Coa Type', 3]
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value: 1,
+                    id: 'option'
+                }, {
+                    xtype: 'textfield',
+                    id: 'search',
+                    style: 'margin-left:10px',
+                    enableKeyEvents: true,
+                    width: 100,
+                    listeners: {
+                        'keyup': function(txttext, event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                coastore.proxy.setUrl('/finance/paymentreimbursement/getcoalist/search/' + search + '/option/' + option);
+                                coastore.reload();
+                                coagrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+            listeners:
+                    {
+                        'rowdblclick': function(gridaktif, rowIndex, e)
+                        {
+                            isDbClick = true;
+
+                            editor.startEditing((editor.getCurrentRowIndex()));
+                            var coa = gridaktif.getStore().getAt(rowIndex);
+                            var coa_kode = coa.get('coa_kode');
+                            var coa_name = coa.get('coa_nama');
+                            Ext.getCmp('coa_kode').setValue(coa_kode);
+                            Ext.getCmp('coa_nama').setValue(coa_name);
+
+                            coawindow.close();
+
+                        }
+                    }
+
+
+
+        })
+
+        var coawindow = new Ext.Window({
+            title: 'COA List',
+            id: 'coa-list-window',
+            layout: 'absolute',
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask: true,
+            items: [
+                coagrid
+            ]
+
+        })
+
+        coawindow.show();
+    }
+
+    var fileRecord = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'filename',
+            type: 'string'
+        }, {
+            name: 'savename',
+            type: 'string'
+        }, {
+            name: 'status',
+            type: 'string'
+        }]);
+
+
+    var storeFiles = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: fileRecord})
+    });
+
+    var sm = new Ext.grid.CheckboxSelectionModel({singleSelect: true});
+    var rm = new Ext.grid.RowSelectionModel();
+
+    var filesColumn = new Ext.grid.ColumnModel([new Ext.grid.RowNumberer(),
+        sm,
+        {id: 'id', header: "", sortable: true, dataIndex: 'id', hidden: true},
+        {id: 'filename', header: "Filename", width: 350, sortable: true, dataIndex: 'filename'},
+        {id: 'savename', header: "", sortable: true, dataIndex: 'savename', hidden: true}
+    ]);
+
+    rightClick = new Ext.menu.Menu({
+        id: 'messageContextMenu' + Math.random(),
+        items: [
+            {
+                icon: '/images/icons/fam/copy.gif',
+                cls: "x-btn-text-icon",
+                text: 'Copy COA',
+                id: 'copycoa_id',
+                handler: function() {
+                    if (!Ext.getCmp('grid-jurnalasf').getSelectionModel().getCount()) {
+                        return false;
+                    }
+
+                    var gridasf = Ext.getCmp('grid-jurnalasf').getSelectionModel().getSelections();
+
+                    var oriasf = storejurnalasf.getAt(storejurnalasf.findExact('id', gridasf[0].data['id']));
+                    coa_kode = oriasf.data['coa_kode'];
+                    coa_nama = oriasf.data['coa_nama'];
+
+                    Ext.getCmp('pastecoa_id').enable();
+                }
+            },
+            {
+                icon: '/images/icons/fam/action_paste.gif',
+                cls: "x-btn-text-icon",
+                text: 'Paste COA Code',
+                id: 'pastecoa_id',
+                disabled: true,
+                handler: function() {
+                    if (!Ext.getCmp('grid-jurnalasf').getSelectionModel().getCount()) {
+                        return false;
+                    }
+
+                    var gridasf = Ext.getCmp('grid-jurnalasf').getSelectionModel().getSelections();
+                    var oriasf;
+                    Ext.each(gridasf, function(store) {
+                        oriasf = storejurnalasf.getAt(storejurnalasf.findExact('id', store.data['id']));
+
+                        oriasf.data['coa_kode'] = coa_kode;
+                        oriasf.data['coa_nama'] = coa_nama;
+                    });
+
+
+                    storejurnalasf.commitChanges();
+                    Ext.getCmp('grid-jurnalasf').getView().refresh();
+                }
+            },
+            {
+                icon: '/images/icons/fam/copy.gif',
+                cls: "x-btn-text-icon",
+                text: 'Copy Job Number',
+                id: 'copyjobnumber_id',
+                handler: function() {
+                    if (!Ext.getCmp('grid-jurnalasf').getSelectionModel().getCount()) {
+                        return false;
+                    }
+
+                    var gridasf = Ext.getCmp('grid-jurnalasf').getSelectionModel().getSelections();
+
+                    var oriasf = storejurnalasf.getAt(storejurnalasf.findExact('id', gridasf[0].data['id']));
+                    job_number = oriasf.data['job_number'];
+
+                    Ext.getCmp('pastejobnumber_id').enable();
+                }
+            },
+            {
+                icon: '/images/icons/fam/action_paste.gif',
+                cls: "x-btn-text-icon",
+                text: 'Paste Job Number',
+                id: 'pastejobnumber_id',
+                disabled: true,
+                handler: function() {
+                    if (!Ext.getCmp('grid-jurnalasf').getSelectionModel().getCount()) {
+                        return false;
+                    }
+
+                    var gridasf = Ext.getCmp('grid-jurnalasf').getSelectionModel().getSelections();
+                    var oriasf;
+                    Ext.each(gridasf, function(store) {
+                        oriasf = storejurnalasf.getAt(storejurnalasf.findExact('id', store.data['id']));
+
+                        oriasf.data['job_number'] = job_number;
+                    });
+
+
+                    storejurnalasf.commitChanges();
+                    Ext.getCmp('grid-jurnalasf').getView().refresh();
+                }
+            }
+        ]
+    });
+
+    function getNewID() {
+        //count the max record from origin Store
+        var maxRec = storejurnalasf.getTotalCount();
+
+        var maxRecFilter = storejurnalasf.getCount();
+
+        var newID = maxRec + maxRecFilter + 1;
+
+        //Clear filter
+        storejurnalasf.clearFilter();
+        return newID;
+    }
+
+    function resetAll() {
+
+        storejurnalasf.removeAll();
+//        storeFiles.removeAll();
+        Ext.getCmp('form-insert-journalasf').stat = 'new';
+        Ext.getCmp('grid-jurnalasf').getView().refresh();
+//        Ext.getCmp('grid_files').getView().refresh();
+        Ext.getCmp('trano').setValue('');
+//        Ext.getCmp('trano_text').setValue('');
+        Ext.getCmp('val_kode').setValue('');
+        Ext.getCmp('prj_kode').setValue('');
+        Ext.getCmp('sit_kode').setValue('');
+        Ext.getCmp('grid-jurnalasf').getView().refresh();
+        hitungTotal();
+        Ext.getCmp('add-data').disable();
+        Ext.getCmp('remove-data').disable();
+        Ext.getCmp('pastecoa_id').disable();
+        Ext.getCmp('pastejobnumber_id').disable();
+        coa_kode = '';
+        coa_nama = '';
+        job_number = '';
+
+    }
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+
+        var formpanel = new Ext.form.FormPanel({
+            title: 'ASF Journal',
+            id: 'form-insert-journalasf',
+            renderTo: 'insert_journalasf',
+            frame: true,
+            width: 300,
+//            stat: 'new',
+            items: [{
+                    layout: 'column',
+                    items: [
+                        {
+                            xtype: 'label',
+                            text: 'Transaction Number',
+                            style: 'margin-top:10;margin-right:10;'
+                        },
+                        {
+                            xtype: 'tranoalljurnalselector',
+                            width: 150,
+                            id: 'trano_jurnal',
+                            Selectid: 'trano',
+                            jurnalType: 'JS',
+                            style: 'margin-top:8;',
+                            addBaseParams: {
+                                order_by: 'tgl DESC',
+                                no_uid: true
+                            },
+                            url: '/finance/report/get-settlement-jurnal-trano',
+                            callbackFunc: function(trano) {
+
+                            }
+                        }
+                    ]
+                },
+//                {
+//                    xtype: 'tranoselector',
+//                    id: 'tranos',
+//                    Selectid: 'trano_text',
+//                    width: 130,
+//                    Tranotype: 'ASF',
+//                    Disabletype: true,
+//                    fieldLabel: 'ASF Number',
+//                    callbackFunc: function(trano)
+//                    {
+//                        Ext.Ajax.request({
+//                            url: '/default/home/cekfinal',
+//                            method: 'POST',
+//                            params: {
+//                                trano: trano
+//                            },
+//                            success: function(result, request) {
+//                                var returnData = Ext.util.JSON.decode(result.responseText);
+//                                if (returnData.success) {
+//                                    Ext.Ajax.request({
+//                                        url: '/default/home/cekjurnalsettle',
+//                                        method: 'POST',
+//                                        params: {
+//                                            trano: trano
+//                                        },
+//                                        success: function(result, request) {
+//                                            var returnData = Ext.util.JSON.decode(result.responseText);
+//                                            if (returnData.success) {
+//                                                Ext.Ajax.request({
+//                                                    url: '/finance/jurnalasf/get-asf-files',
+//                                                    method: 'POST',
+//                                                    params: {
+//                                                        trano: trano
+//                                                    },
+//                                                    success: function(result, request) {
+//                                                        var returnData = Ext.util.JSON.decode(result.responseText);
+//                                                        if (returnData.success) {
+//                                                            var data = Ext.util.JSON.decode(returnData.data);
+//
+//                                                            if (data.length > 0) {
+//                                                                storeFiles.loadData(data);
+//                                                            } else {
+//                                                                Ext.getCmp('tranos').setValue('');
+//                                                                Ext.getCmp('trano_text').setValue('');
+//                                                                Ext.Msg.alert("Error", "No attachments found. Please find another transaction.");
+//                                                                return false;
+//                                                            }
+//                                                        }
+//                                                        else
+//                                                        {
+//                                                            Ext.getCmp('tranos').setValue('');
+//                                                            Ext.getCmp('trano_text').setValue('');
+//                                                            Ext.Msg.alert("Error", "Failed when processing data. Please try again");
+//                                                            return false;
+//                                                        }
+//                                                    },
+//                                                    failure: function(action) {
+//                                                        if (action.failureType == 'server') {
+//                                                            obj = Ext.util.JSON.decode(action.response.responseText);
+//                                                            Ext.Msg.alert('Error!', obj.errors.reason);
+//                                                        }
+//                                                    }
+//                                                });
+//                                            }
+//                                            else
+//                                            {
+//                                                Ext.getCmp('tranos').setValue('');
+//                                                Ext.getCmp('trano_text').setValue('');
+//                                                Ext.Msg.alert("Error", returnData.msg);
+//                                                return false;
+//                                            }
+//                                        },
+//                                        failure: function(action) {
+//                                            if (action.failureType == 'server') {
+//                                                obj = Ext.util.JSON.decode(action.response.responseText);
+//                                                Ext.Msg.alert('Error!', obj.errors.reason);
+//                                            }
+//                                        }
+//                                    });
+//                                }
+//                                else
+//                                {
+//                                    Ext.getCmp('tranos').setValue('');
+//                                    Ext.getCmp('trano_text').setValue('');
+//                                    Ext.Msg.alert("Error", returnData.msg);
+//                                    return false;
+//                                }
+//                            },
+//                            failure: function(action) {
+//                                if (action.failureType == 'server') {
+//                                    obj = Ext.util.JSON.decode(action.response.responseText);
+//                                    Ext.Msg.alert('Error!', obj.errors.reason);
+//                                }
+//                            }
+//                        });
+//                    }
+//                },
+                {
+                    xtype: 'textfield',
+                    id: 'perkode',
+                    width: 130,
+                    fieldLabel: 'Periode',
+                    value: '<?= $this->perkode ?>',
+                    readOnly: true,
+                    hidden: true
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'year',
+                    width: 130,
+                    fieldLabel: 'Year',
+                    value: '<?= $this->year ?>',
+                    readOnly: true,
+                    hidden: true
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'val_kode',
+                    width: 130,
+                    fieldLabel: '',
+                    hidden: true,
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'prj_kode',
+                    width: 130,
+                    fieldLabel: '',
+                    hidden: true,
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'sit_kode',
+                    width: 130,
+                    fieldLabel: '',
+                    hidden: true,
+                },
+//                {
+//                    xtype: 'grid',
+//                    id: 'grid_files',
+//                    name: 'grid_files',
+//                    ds: storeFiles,
+//                    cm: filesColumn,
+//                    sm: sm,
+//                    height: 150,
+//                    title: 'List of Attachment',
+//                    border: true,
+//                    frame: true,
+//                    stripeRows: true,
+//                    stateful: true,
+//                    loadMask: true,
+//                    stateId: 'grid_files',
+//                    style: 'margin-bottom:5px;margin-top:5px;'
+////                    listeners: {
+////                        contextmenu: function(e) {
+////                        },
+////                        'rowdblclick': function(g, rowIndex, e) {
+////
+////                        }
+////                    }
+//                }
+            ],
+            buttons: [{
+                    text: 'Add to Grid',
+                    iconCls: 'silk-add',
+                    handler: function(btn, ev) {
+
+                        if (storejurnalasf.getCount() != 0)
+                            storejurnalasf.removeAll();
+
+
+                        var trano = Ext.getCmp('trano').getValue();
+                        if (trano == '' || trano == undefined)
+                            return false;
+
+                        Ext.Ajax.request({
+                            url: '/finance/jurnalasf/getjurnalasf',
+                            method: 'POST',
+                            params: {trano: trano},
+                            success: function(result, request) {
+
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                var asfheader = Ext.util.JSON.decode(returnData.asfheader);
+                                var asfdetail = Ext.util.JSON.decode(returnData.asfdetail);
+
+                                if (asfdetail.length <= 0 || asfheader <= 0) {
+                                    Ext.Msg.alert('Sorry!', 'No Data Found');
+                                    return false;
+                                }
+
+                                //get data from files
+                                for (var i = 0; i < asfdetail.length; i++) {
+
+                                    var e = new jurnalasflist({
+                                        trano: asfdetail[i].trano,
+                                        ref_number: asfdetail[i].ref_number,
+                                        debit: asfdetail[i].debit,
+                                        credit: 0,
+                                        job_number: asfdetail[i].job_number,
+                                        type: 'asfdd',
+                                        coa_kode: asfdetail[i].coa_kode,
+                                        coa_nama: asfdetail[i].coa_nama,
+                                        id: asfdetail[i].id,
+                                        tgl: asfdetail[i].tgl,
+                                        description: asfdetail[i].description
+                                    });
+                                    storejurnalasf.add(e);
+                                }
+
+                                //data from asf header
+                                for (var i = 0; i < asfheader.length; i++) {
+
+                                    var e = new jurnalasflist({
+                                        trano: asfheader[i].trano,
+                                        ref_number: asfheader[i].ref_number,
+                                        debit: 0,
+                                        credit: asfheader[i].credit,
+                                        job_number: asfheader[i].job_number,
+                                        type: 'asfheader',
+                                        coa_kode: asfheader[i].coa_kode,
+                                        coa_nama: asfheader[i].coa_nama,
+                                        id: asfheader[i].id,
+                                        tgl: asfheader[i].tgl,
+                                        description: asfdetail[i].description
+                                    });
+                                    storejurnalasf.add(e);
+                                }
+
+                                Ext.getCmp('val_kode').setValue(asfheader[0].val_kode);
+                                Ext.getCmp('prj_kode').setValue(asfheader[0].prj_kode);
+                                Ext.getCmp('sit_kode').setValue(asfheader[0].sit_kode);
+
+                                hitungTotal();
+
+                                Ext.getCmp('add-data').enable();
+                                Ext.getCmp('remove-data').enable();
+                            },
+                            failure: function(action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+
+                        })
+
+
+//                        }
+                        hitungTotal();
+                        Ext.getCmp('form-insert-journalasf').stat = '';
+                        Ext.getCmp('grid-jurnalasf').getView().refresh();
+
+                    }
+                }]
+
+        })
+
+
+
+        var gridpanel = new Ext.grid.GridPanel({
+            store: storejurnalasf,
+            renderTo: 'grid_jurnalasf',
+            id: 'grid-jurnalasf',
+            frame: true,
+            width: 800,
+            height: 400,
+            sm: rm,
+            style: 'margin:10 10 10 10',
+            viewConfig: {
+                forceFit: true
+            },
+            plugins: [editor],
+            columns: [new Ext.grid.RowNumberer(),
+                {
+                    header: 'Referrence',
+                    dataIndex: 'ref_number',
+                    sortable: true
+                }, {
+                    header: 'Description',
+                    dataIndex: 'description',
+                    sortable: true,
+                    width: 150,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'ket',
+                        width: 100
+                    },
+                    hidden: false
+                }, {
+                    header: 'COA Code',
+                    dataIndex: 'coa_kode',
+                    width: 100,
+                    sortable: true,
+                    editor: {
+                        xtype: 'trigger',
+                        id: 'coa_kode',
+                        triggerClass: 'teropong',
+                        editable: false,
+//                        allowBlank: false,
+                        width: 100,
+                        onTriggerClick: function()
+                        {
+                            editor.stopEditing();
+                            editor.hide();
+                            showcoalist('debet');
+                        }
+
+                    }
+                }, {
+                    header: 'COA Name',
+                    dataIndex: 'coa_nama',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'coa_nama',
+                        width: 100,
+//                        allowBlank: false,
+                        readOnly: true
+                    }
+                }, {
+                    header: 'Debit',
+                    dataIndex: 'debit',
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    },
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'debit',
+                        width: 100,
+//                        allowBlank: false,
+                        vtype: 'numeric',
+                        listeners: {
+                            focus: function(a, b) {
+                                Ext.getCmp('credit').setValue(0.00);
+                            }
+                        }
+                    }
+                }, {
+                    header: 'Credit',
+                    dataIndex: 'credit',
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    },
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'credit',
+                        width: 100,
+//                        allowBlank: false,
+                        vtype: 'numeric',
+                        listeners: {
+                            focus: function(a, b) {
+                                Ext.getCmp('debit').setValue(0.00);
+                            }
+                        }
+                    }
+                }, {
+                    header: 'Job Number',
+                    dataIndex: 'job_number',
+                    sortable: true,
+                    editor: {
+                        xtype: 'textfield',
+                        id: 'job_number',
+                        width: 100
+                    }
+                }, {
+                    header: 'Date Transaction',
+                    dataIndex: 'tgl',
+                    sortable: true,
+                    editor: {
+                        xtype: 'datefield',
+                        id: 'tgl',
+                        width: 100,
+                        format: 'Y-m-d'
+                    },
+                    hidden: true
+                }, {
+                    header: '',
+                    dataIndex: 'id',
+                    sortable: true,
+                    hidden: true
+                }
+            ],
+            tbar: [
+                {
+                    iconCls: 'silk-printer',
+                    text: 'Print This Journal',
+                    printTitle: 'ASF Journal',
+                    handler: function(btn, e) {
+                        Ext.ux.Printer.print({
+                            component: gridpanel,
+                            printTitle: this.printTitle,
+//                            additionalHTML: this.additionalHTML
+                        });
+                    }
+                },
+                {
+                    text: 'Add',
+                    iconCls: 'silk-add',
+                    id: 'add-data',
+                    handler: function() {
+                        var index = storejurnalasf.findExact('type', 'asfheader');
+                        var store = storejurnalasf.getAt(index);
+                        var e = new jurnalasflist({
+                            ref_number: store.data['ref_number'],
+                            debit: 0,
+                            credit: 0,
+                            job_number: Ext.getCmp('prj_kode').getValue() + '.000.0',
+                            type: 'asfdd',
+                            coa_kode: ''
+                        });
+                        storejurnalasf.insert(index, e);
+                        editor.startEditing(index);
+
+                    },
+                    disabled: true
+                }, {
+                    id: 'remove-data',
+                    text: 'Remove',
+                    iconCls: 'silk-delete',
+                    handler: function() {
+                        var sm = gridpanel.getSelectionModel().getSelections();
+                        editor.stopEditing();
+                        storejurnalasf.remove(sm);
+                        gridpanel.getSelectionModel().clearSelections();
+                        hitungTotal();
+                        Ext.getCmp('grid-jurnalasf').getView().refresh();
+                    },
+                    disabled: true
+                }
+            ],
+            buttons: [{
+                    text: 'Submit',
+                    iconCls: 'icon-save',
+                    handler: function(btn, ev)
+                    {
+                        var totdebit = parseFloat(totDebit.toString().replace(/\$|\,/g, ''));
+                        var totcredit = parseFloat(totCredit.toString().replace(/\$|\,/g, ''));
+
+                        if (!moneycomp(totdebit, '==', totcredit))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry, Debit and Credit Total Must be Balance',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+
+                            if (btn == 'yes')
+                            {
+                                var gridstore = Ext.getCmp('grid-jurnalasf').getStore();
+                                var json = '';
+                                var totaldata = 0;
+                                var valid = 0;
+                                var validdb = 0;
+                                var tempcoa;
+                                var id = 0;
+                                var totalcoa_debit = 0;
+                                var totalcoa_credit = 0;
+                                gridstore.each(function(store) {
+                                    json += Ext.util.JSON.encode(store.data) + ',';
+                                    if (store.data.coa_kode == '')
+                                        valid++;
+
+                                    if (store.data.debit == 0 && store.data.credit == 0)
+                                        validdb++;
+                                })
+
+                                if (validdb > 0) {
+                                    Ext.MessageBox.show({
+                                        title: 'Error',
+                                        msg: 'Please fill in debit/credit column',
+                                        buttons: Ext.MessageBox.OK,
+                                        icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+                                if (valid > 0) {
+                                    Ext.MessageBox.show({
+                                        title: 'Error',
+                                        msg: 'Please fill in all COA column',
+                                        buttons: Ext.MessageBox.OK,
+                                        icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+                                json = '[' + json.substring(0, json.length - 1) + ']';
+                                var params = {
+                                    json: json,
+                                    perkode: Ext.getCmp('perkode').getValue(),
+                                    trano: Ext.getCmp('trano').getValue(),
+                                    year: Ext.getCmp('year').getValue(),
+                                    val_kode: Ext.getCmp('val_kode').getValue(),
+                                    prj_kode: Ext.getCmp('prj_kode').getValue(),
+                                    sit_kode: Ext.getCmp('sit_kode').getValue()
+                                }
+
+                                Ext.Ajax.request({
+                                    url: '/finance/jurnalasf/doupdatejurnalasf',
+                                    method: 'POST',
+                                    params: params,
+                                    success: function(result) {
+                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                        if (obj.success)
+                                        {
+
+                                            gridstore.each(function(store) {
+                                                var total = false;
+                                                var job_number = '';
+                                                var id = '';
+                                                var e = tempstoreasf.getAt(tempstoreasf.findExact('coa_kode', store.data.coa_kode));
+                                                if (e == null)
+                                                {
+                                                    gridstore.filter([
+                                                        {
+                                                            property: 'coa_kode',
+                                                            value: store.data.coa_kode,
+                                                            anyMatch: true, //optional, defaults to true
+                                                            caseSensitive: true  //optional, defaults to true
+                                                        }]);
+
+                                                    gridstore.each(function(stores) {
+                                                        if (stores.data.type != 'asfdd') {
+                                                            totalcoa_credit = parseFloat(stores.data.credit);
+                                                            total = true;
+                                                            job_number = stores.data.job_number;
+                                                            id = stores.data.id;
+                                                        }
+                                                        else
+                                                            totalcoa_debit = parseFloat(totalcoa_debit) + parseFloat(stores.data.debit);
+                                                    });
+
+                                                    var e = new jurnalasflist({
+                                                        ref_number: store.data.ref_number,
+                                                        debit: totalcoa_debit,
+                                                        credit: 0,
+                                                        job_number: store.data.job_number,
+                                                        type: 'asfdd',
+                                                        coa_kode: store.data.coa_kode,
+                                                        coa_nama: store.data.coa_nama,
+                                                        id: store.data.id
+                                                    });
+
+                                                    tempstoreasf.add(e);
+
+                                                    if (total) {
+                                                        var b = new jurnalasflist({
+                                                            ref_number: store.data.ref_number,
+                                                            debit: 0,
+                                                            credit: totalcoa_credit,
+                                                            job_number: job_number,
+                                                            type: 'asfheader',
+                                                            coa_kode: store.data.coa_kode,
+                                                            coa_nama: store.data.coa_nama,
+                                                            id: id
+                                                        });
+                                                        tempstoreasf.add(b);
+                                                    }
+
+                                                    gridstore.clearFilter();
+                                                    totalcoa_debit = 0;
+                                                    totalcoa_credit = 0;
+
+                                                }
+                                            });
+
+
+                                            Ext.MessageBox.confirm(
+                                                    'Success',
+                                                    'Data has been saved' +
+                                                    '<br><br>Your Journal number is <b><font color="#ff0000">' +
+                                                    Ext.getCmp('trano').getValue() +
+                                                    '</font></b>' +
+                                                    '<br>Do You want to Print the Journal?',
+                                                    function(btn) {
+                                                        if (btn == 'yes')
+                                                        {
+                                                            Ext.ux.Printer.print({
+                                                                component: temppanel,
+                                                                printTitle: Ext.getCmp('trano').getValue(),
+                                                                additionalHTML: '<h3 style="padding: 10px">Transaction Number : <b>' + Ext.getCmp('trano').getValue() + '</b></h3>'
+                                                            });
+
+                                                        }
+
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/jurnalasf/editjurnalasf',
+                                                            scripts: true
+                                                        });
+                                                    }
+                                            );
+
+                                        } else
+                                        {
+                                            Ext.Msg.alert('Error', obj.msg);
+                                        }
+                                    },
+                                    failure: function(action) {
+                                        if (action.failureType == 'server') {
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        } else {
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+
+                                })
+                            }
+
+                        })
+
+                    }
+                },{
+                    text: 'Reset',
+                    style: 'margin-right:26px;',
+                    handler: function(btn, ev)
+                    {
+                        resetAll();
+                    }
+                }
+                ], bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style: "text-align:right;",
+                items: [{
+                        xtype: 'label',
+                        id: 'debittotal',
+                        style: 'color:red;font-weight:bold;margin-right:40px;font-size:12'
+                    },
+                    {
+                        xtype: 'label',
+                        id: 'credittotal',
+                        style: 'color:red;font-weight:bold;font-size:12;margin-right:80px'
+                    }
+                ],
+                layout: 'fit'
+            }),
+            listeners: {
+                'rowdblclick': function(g, r, e)
+                {
+//                    edit(r);
+
+                },
+                'afterrender': function(t)
+                {
+//                    hitungTotal();
+                },
+                contextmenu: function(e) {
+                    e.stopEvent();
+                    var coords = e.getXY();
+                    rightClick.showAt([coords[0], coords[1]]);
+                }}
+
+        });
+        var temppanel = new Ext.grid.GridPanel({
+            store: tempstoreasf,
+            id: 'grid_temp',
+            frame: true,
+            width: 500,
+            height: 300,
+            style: 'margin:10 10 10 10',
+            viewConfig: {
+                forceFit: true
+            },
+            columns: [new Ext.grid.RowNumberer(),
+                {
+                    header: 'Referrence',
+                    dataIndex: 'ref_number',
+                    sortable: true},
+                {
+                    header: 'COA Code',
+                    dataIndex: 'coa_kode',
+                    width: 100,
+                    sortable: true
+                }, {
+                    header: 'COA Name',
+                    dataIndex: 'coa_nama',
+                    sortable: true
+                }, {
+                    header: 'Debit',
+                    dataIndex: 'debit',
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    }},
+                {
+                    header: 'Credit',
+                    dataIndex: 'credit',
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '0.00';
+                    }},
+                {
+                    header: 'Job Number',
+                    dataIndex: 'job_number',
+                    sortable: true
+                }
+            ],
+            bbar: new Ext.Toolbar({
+                id: 'temp_bbar',
+                style: "text-align:right;",
+                items: [{
+                        xtype: 'label',
+                        id: 'debittotal_temp',
+                        style: 'color:red;font-weight:bold;margin-right:40px;font-size:12'
+                    },
+                    {
+                        xtype: 'label',
+                        id: 'credittotal_temp',
+                        style: 'color:red;font-weight:bold;font-size:12;margin-right:80px'
+            }
+                ],
+                layout: 'fit'
+        })
+
+
+        });
+    })
+
+</script>
+<div id="print" style="float:right;margin-left: 50px"></div>
+<div id="insert_journalasf"></div>
+<div id="grid_jurnalasf"></div>

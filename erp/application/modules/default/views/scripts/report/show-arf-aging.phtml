@@ -1,0 +1,123 @@
+<script type="text/javascript" src="/js/layout/base/iconcomboext.js"></script>
+
+<script type="text/javascript">
+
+var windowForm =  ({
+
+    title: 'ARF Aging Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype:'label',
+            text:'Project'
+        },'-',
+        {
+            xtype: 'projectselectorreport',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode',
+            Nameid: 'prj_nama',
+            ShowName: false,
+            callback: function(params){
+                Ext.getCmp('trano_text').setValue('');
+                Ext.getCmp('sit_kode').setValue('');
+            }
+        },
+        {
+            fieldLabel:'Site Code ',
+            xtype: 'siteselector',
+            id: 'site-select',
+            ProjectSelectid: 'prj_kode',
+            SiteSelectid: 'sit_kode',
+            SiteNameid: 'sit_nama',
+            ShowName: false,
+            noOverhead: false,
+            callback: function(params){
+                Ext.getCmp('trano_text').setValue('');
+            }
+//            width: 150
+        },
+        '-',
+        {
+            xtype:'label',
+            text:'ARF Number'
+        },'-',
+        {
+            xtype: 'tranoselector',
+            id: 'tranos',
+            Selectid: 'trano_text',
+            width: 120,
+            Tranotype: ['ARF','ARFO'],
+            Disabletype: true
+//            callbackFunc: callbackFunc
+        },
+        '-',
+        {
+            xtype: 'combo'
+            ,id: 'type'
+            ,store: new Ext.data.SimpleStore({
+                fields:['type','name']
+                ,data:[['all','Show All'],['settle','Only Settled'],['issued','Only Issued']]
+            })
+            ,valueField:'type'
+            ,displayField:'name'
+            ,typeAhead: false
+            ,mode: 'local'
+            ,triggerAction: 'all'
+            ,value: 'all'
+            ,emptyText:'Show Transaction..'
+            ,selectOnFocus:true
+            ,anchor:'95%'
+            ,width:90
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_trans',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler: function()
+            {
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/default/report/arf-detail-aging',
+                    params: {
+                        trano : Ext.getCmp('trano_text').getValue(),
+                        prj_kode : Ext.getCmp('prj_kode').getValue(),
+                        sit_kode : Ext.getCmp('sit_kode').getValue(),
+                        type : Ext.getCmp('type').getValue()
+                    },
+                    scripts : true
+                });
+            }
+        },
+        '-'
+//        ,
+//        combo,
+//        {
+//            xtype: 'button',
+//            id: 'export_button',
+//            cls:"x-btn-icon" ,
+//            icon:"/images/print.png",
+//            handler:exportReport
+//        }
+    ]
+});
+
+ viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+</script>
+

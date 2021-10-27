@@ -1,0 +1,368 @@
+<script type="text/javascript">
+
+var projectPopUphandler = function(button,event) {
+    idForm = button.id.toString();
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-pjr_kode_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    stateful:false,
+    modal: true,
+    resizable: false,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Code:'
+        },
+         new txtboks(80,10,80,'project_code',searchPrjKode),
+         {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Name:'
+        },
+        new txtboks(240,10,80,'project_name',searchPrjName),
+         new SampleGrid('project_list')
+    ]
+
+  });
+  aForm.title = 'Choose Project';
+  aForm.show();
+ };
+
+var supplierPopUpHandler = function(button,event) {
+    idForm = button.id.toString();
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-sup_kode_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Vendor Code:'
+        },
+        new txtboks(80,10,80,'sup_code',searchSupCode),
+        {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Vendor Name:'
+        },
+        new txtboks(240,10,80,'sup_nama',searchSupName),
+        new SampleGrid('suplier_list')
+    ]
+  
+  });
+  aForm.title = 'Choose Supplier';
+  aForm.show();
+ };
+
+var sitePopUpHandler = function(button,event) {
+
+    idForm = button.id.toString();
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-site_kode_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Site Code:'
+        },
+        new txtboks(80,10,80,'site_code',searchSiteKode),
+        {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Site Name:'
+        },
+        new txtboks(240,10,80,'site_name',searchSiteName),
+        new SampleGrid('site_list')
+    ]
+
+  });
+  aForm.title = 'Pop Up Window';
+  aForm.show();
+ };
+
+ showWhreturn = function(){
+//     Ext.util.Format.dateRenderer('d/m/Y')
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    prjKode = Ext.getCmp('prj_kode_text').getValue();
+	    sitKode = Ext.getCmp('sit_kode_text').getValue();
+	    supKode = Ext.getCmp('sup_kode_text').getValue();
+        var a = Ext.getCmp('date_text').getValue();
+        if (a != '')
+            date = a.format('m/d/Y');
+       
+		if (prjKode == '')
+		{
+			Ext.MessageBox.show({
+		           title: 'Error',
+		           msg: 'Please Insert/Select Project Code!',
+		           buttons: Ext.MessageBox.OK,
+		           icon: Ext.MessageBox.ERROR
+		       });
+			 return false;
+		}
+
+	    if (sitKode == '')
+                {
+                    urlLoad = '/report/whsupplier/prj_kode/' + prjKode + '/sit_kode/xx/sup_kode/xx/tgl/xx' + '/param/prj000000000';
+                }
+            else
+                {
+                if (supKode == '')
+                    {
+                    urlLoad = '/report/whsupplier/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/sup_kode/xx/tgl/xx' + '/param/prjsit000000';
+                    }
+                else
+                {
+                    if(date == '')
+                    {
+                       urlLoad = '/report/whsupplier/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/sup_kode/' + supKode + '/tgl/xx'+'/param/prjsitsup000';
+                    }
+                 else
+                 {
+                     urlLoad = '/report/whsupplier/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/sup_kode/' + supKode + '/tgl/' + date + '/param/prjsitsupdat';
+
+                 }
+                }
+                }
+	    myPanel.body.load({
+	        url: urlLoad,
+	        scripts:true
+
+	});
+	}
+
+var datas = new Ext.data.SimpleStore({
+    fields:['type','name']
+            ,data:[['pdf','PDF'],['xls','Excel']]
+        });
+
+var combo=new Ext.form.ComboBox({
+    fieldLabel: 'Export'
+    ,name:'showReport'
+    ,store: datas
+    ,valueField:'type'
+    ,displayField:'name'
+    ,typeAhead: true
+    ,mode: 'local'
+    ,triggerAction: 'all'
+    ,value:'pdf'
+    ,selectOnFocus:true
+    ,anchor:'95%'
+    ,hiddenName:'type'
+    ,width:70
+
+});
+
+exportReport = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+    sitKode = Ext.getCmp('sit_kode_text').getValue();
+    if (prjKode == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Project Code/Site Code!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	}
+	if (combo.getRawValue() == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Select Format!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+	}
+	else
+        	    if (sitKode == '')
+                {
+                    urlLoad = '/jasper/whsupplier/prj_kode/' + prjKode + '/sit_kode/xx/sup_kode/xx' + '/param/prj000000000' + '/type/' + combo.getValue();
+                }
+            else
+                {
+                if (supKode == '')
+                    {
+                    urlLoad = '/jasper/whsupplier/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/sup_kode/xx' + '/param/prjsit000000' + '/type/' + combo.getValue();
+                    }
+                 else
+                 {
+                    urlLoad = '/jasper/whsupplier/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/sup_kode/' + supKode + '/param/prjsitsup000' + '/type/' + combo.getValue();
+                 }
+                }
+
+
+//	{
+//		urlLoad =  '/jasper/whsupplier/prj_kode/' + prjKode + '/sit_kode/'+ sitKode +  '/type/' + combo.getValue();
+//	}
+
+    window.open(urlLoad,'mywin',
+    'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+};
+
+var windowForm =  ({
+    title: 'Material From Supplier Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype:'textfield',
+            id:'prj_kode_text',
+            width:70
+        },
+        {
+            xtype: 'button',
+            id: 'prj_kode_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/g_rec_src.png",
+            handler:projectPopUphandler
+        },'-',
+        {
+            xtype: 'tbtext',
+            text: 'Site Code'
+        },
+        {
+            xtype:'textfield',
+            id:'sit_kode_text',
+            width:70
+        },
+        {
+            xtype: 'button',
+            id: 'site_kode_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/g_rec_src.png",
+            handler:sitePopUpHandler
+        },'-',
+        {
+            xtype: 'tbtext',
+            text: 'Supplier Code'
+        },
+        {
+            xtype:'textfield',
+            id:'sup_kode_text',
+            width:70
+        },
+        {
+            xtype: 'button',
+            id: 'sup_kode_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/g_rec_src.png",
+            handler:supplierPopUpHandler
+        },        
+        '-',
+        {
+            xtype: 'tbtext',
+            text: 'Date'
+        },
+        {
+            xtype:'datefield',
+            id:'date_text',
+            width:100
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showWhreturn
+        },
+        '-'
+        ,
+        combo,
+        {
+            xtype: 'button',
+            id: 'export_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/print.png",
+            handler:exportReport
+        }
+    ]
+});
+
+<?php echo $this->action('popupgrid','grid'); ?>
+
+var aForm =  new Ext.Window({
+    id: 'a-form-panel-1',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    closable:false,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Code:'
+        },
+         new txtboks(80,10,80,'project_code',searchPrjKode),
+         {
+    	xtype: 'panel',
+    	x: 150,
+    	y: 11,
+    	items: {
+	    	xtype: 'button',
+                id: 'site_kode_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/g_rec_src.png"
+    	}
+    },
+         {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Name:'
+        },
+        new txtboks(240,10,80,'project_name',searchPrjName),
+         new SampleGrid('project_list')
+    ]
+
+  });
+
+
+  viewPort = Ext.getCmp('viewport');
+  
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>
+
+

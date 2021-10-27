@@ -1,0 +1,122 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var addtypecoa = new Ext.form.FormPanel({
+
+            title:'Create New Type COA',
+            id:'add-type-coa',
+            renderTo:'add_type_coa',
+            iconCls: 'silk-user',
+            frame: true,
+            width:360,
+            labelWidth:140,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'COA Type Name',
+                id:'coa_type_name',
+                width:180,
+                allowBlank:false
+            }],
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    if(!Ext.getCmp('add-type-coa').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('add-type-coa').getForm().submit({
+
+                        method:'POST',
+                        url:'/finance/coa/doinserttypecoa',
+                        success:function(thisForm,response)
+                        {
+                            Ext.getBody().unmask();
+                            typecoastore.reload();
+                            Ext.getCmp('list-type-coa').getView().refresh();
+                            Ext.getCmp('coa_type_name').setValue('');
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/coa/coamenu',
+                        scripts : true
+                    });
+                }
+            }]
+
+        })
+
+        var typecoastore = new Ext.data.Store ({
+
+            autoLoad:true,
+                url:'/finance/coa/getcoatype',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id'
+                    },{
+                        name:'tipe_nama'
+                    }]
+                })
+
+        })
+
+        var typecoalist = new Ext.grid.GridPanel ({
+
+            title:'COA Type List',
+            id:'list-type-coa',
+            renderTo:'list_type_coa',
+            store:typecoastore,
+            height:300,
+            width:360,
+            viewConfig:{
+                    forceFit:true
+                },
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'COA Type',
+                dataIndex:'tipe_nama',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-typecoa',
+                pageSize: 20,
+                store: typecoastore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+    })
+
+
+</script>
+
+    <div id="add_type_coa"></div>
+    <div id="list_type_coa" style="margin-top: 10px"></div>

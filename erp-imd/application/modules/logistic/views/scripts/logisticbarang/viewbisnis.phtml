@@ -1,0 +1,247 @@
+<script type="text/javascript">
+
+    var bisnisstore = new Ext.data.Store ({
+
+            url:'/logistic/logisticbarang/getbisnis',
+            autoLoad:true,
+            id:'bisnisstore',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'kode_bisnis'
+                },{
+                    name:'nama_bisnis'
+                }]
+
+            })
+
+        })
+
+    function editbisnis (id)
+    {
+        var bisnis = bisnisstore.getAt(bisnisstore.findExact('id',id));
+        var code_bisnis = bisnis.get('kode_bisnis');
+        var name_bisnis = bisnis.get('nama_bisnis');
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Edit Bisnis',
+            id:'edit-bisnis',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Bisnis Code ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'bisnis-code',
+                maxLength:2,
+                value:code_bisnis
+            },{
+                xtype:'textfield',
+                fieldLabel:'Bisnis Name ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'bisnis-name',
+                value:name_bisnis
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('edit-bisnis').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doupdatebisnis/id/' + id,
+                        success:function(thisForm,response){
+                            windowinsert.close();
+
+                            bisnisstore.reload();
+                            Ext.getCmp('bisnis-list').getView().refresh();
+
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+    }
+
+    Ext.onReady (function(){
+
+        Ext.QuickTips.init();
+
+        function insertbisnis ()
+        {
+            var formpanelbisnis = new Ext.form.FormPanel ({
+
+                    title:'Insert Bisnis',
+                    id:'insert-bisnis',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Bisnis Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'bisnis_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Bisnis Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'bisnis_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-bisnis').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertbisnis',
+                                success:function(thisForm,response){
+                                    windowinsertbisnis.close();
+
+                                    bisnisstore.reload();
+                                    Ext.getCmp('bisnis-list').getView().refresh();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsertbisnis.close();
+                        }
+                    }]
+
+                })
+
+
+            var windowinsertbisnis = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert-bisnis',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanelbisnis]
+
+            })
+
+            windowinsertbisnis.show();
+        }
+
+
+
+        var bisnisgrid = new Ext.grid.GridPanel ({
+
+            store:bisnisstore,
+            title:'Bisnis List',
+            id:'bisnis-list',
+            renderTo:'bisnis_list',
+            viewConfig:{
+                forceFit:true
+            },
+            width:340,
+            height:260,
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),
+            {
+                id:'edit',
+                header:'Edit',
+                width:40,
+                sortable:true,
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="editbisnis(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                }
+            },{
+                header:'Bisnis Code',
+                dataIndex:'kode_bisnis',
+                align:'center',
+                sortable:true
+            },{
+                header:'Bisnis Name',
+                dataIndex:'nama_bisnis',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-bisnis',
+                pageSize: 20,
+                store: bisnisstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                xtype:'button',
+                text:'Create New',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    insertbisnis();
+                }
+            }]
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="bisnis_list"></div>

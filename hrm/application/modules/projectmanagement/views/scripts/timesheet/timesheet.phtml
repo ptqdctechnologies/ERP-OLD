@@ -1,0 +1,368 @@
+<script type="text/javascript">
+
+//loadjscssfile("/js/layout/ux/calendar/resources/css/calendar.css","css");
+//loadjscssfile("/js/layout/ux/calendar/src/Ext.calendar.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/templates/DayHeaderTemplate.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/templates/DayBodyTemplate.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/templates/DayViewTemplate.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/templates/BoxLayoutTemplate.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/templates/MonthViewTemplate.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/dd/CalendarScrollManager.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/dd/StatusProxy.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/dd/CalendarDD.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/dd/DayViewDD.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/EventRecord.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/MonthDayDetailView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/widgets/CalendarPicker.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/WeekEventRenderer.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/CalendarView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/MonthView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/DayHeaderView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/DayBodyView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/DayView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/views/WeekView.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/widgets/DateRangeField.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/widgets/ReminderField.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/EventEditForm.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/EventEditWindow.js","js");
+//loadjscssfile("/js/layout/ux/calendar/src/CalendarPanel.js","js");
+//
+//loadjscssfile("/js/layout/ux/css/gridsearch.css","css");
+//loadjscssfile("/js/layout/ux/Ext.ux.grid.Search.js","js");
+
+showEdit = function(){
+    showTimesheetNumber();
+};
+
+function showTimesheetNumber(nums){
+    var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 120,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    id : 'prj_kode_text',
+                                    hidden: true,
+                                    xtype: 'textfield'
+                                },
+                                {
+								    fieldLabel : 'Timesheet Number',
+								    id : 'timesheet_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: nums,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showEditTimesheet();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('timesheet_no_text').getValue();
+                            var prj = Ext.getCmp('prj_kode_text').getValue();
+		 			        if (prno != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/projectmanagement/timesheet/edittimesheet/trano/' + prno + '/prj_kode/' + prj,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+}
+
+showEditTimesheet = function(){
+
+    var proxy = new Ext.data.HttpProxy({
+        url: '/projectmanagement/timesheet/list/draft/false'
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        idProperty: 'id',
+        root: 'posts'
+    }, [
+        {name: 'prj_kode', mapping: 'prj_kode'},
+        {name: 'trano', mapping: 'trano'},
+        {name: 'uid', mapping: 'uid'},
+        {name: 'id', mapping: 'id'}
+    ]);
+
+    var timeStore = new Ext.data.Store({
+        proxy: proxy,
+        reader: reader,
+        id: 'time-store'
+    });
+    timeStore.load();
+
+    searchTimesheetByCode= function(pname) {
+        newUrl = '/projectmanagement/timesheet/list/trano/' + pname;
+        timeStore.proxy = new Ext.data.HttpProxy( {
+            url: newUrl
+             });
+        timeStore.reload();
+        Ext.getCmp('time-grid').getView().refresh();
+    };
+
+    searchTimesheetByProject= function(pname) {
+        newUrl = '/projectmanagement/timesheet/list/prj_kode/' + pname;
+        timeStore.proxy = new Ext.data.HttpProxy( {
+            url: newUrl
+             });
+        timeStore.reload();
+        Ext.getCmp('time-grid').getView().refresh();
+    };
+    var forms =
+    {
+        xtype: 'form',
+        labelWidth: 120,
+        frame: true,
+        items: [
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Timesheet Number',
+                enableKeyEvents:true,
+                listeners: {
+                    keyup: function(field,e){
+                        if (field.getValue().toString().length >= 3)
+                        {
+                            searchTimesheetByCode(field.getValue());
+                        }
+                    }
+                }
+            },
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Project Code',
+                enableKeyEvents:true,
+                listeners: {
+                    keyup: function(field,e){
+                        if (field.getValue().toString().length >= 3)
+                        {
+                            searchTimesheetByProject(field.getValue());
+                        }
+                    }
+                }
+            },
+            new Ext.grid.GridPanel({
+                store: timeStore,
+                loadMask: true,
+                height: 300,
+                id: 'time-grid',
+                bbar:[ new Ext.PagingToolbar({
+                    pageSize: 100,
+                    store: timeStore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })],
+                columns: [
+                    new Ext.grid.RowNumberer(),
+                    {header: 'Trano', width: 150, dataIndex: 'trano', sortable: true},
+                    {header: 'Project Code', width: 120, dataIndex: 'prj_kode', sortable: true}
+                ],
+                listeners: {
+                    'rowdblclick': function(g, rowIndex, e){
+                        var trano = g.getStore().getAt(rowIndex).get('trano');
+                        var prjKode = g.getStore().getAt(rowIndex).get('prj_kode');
+                        showEdit(trano);
+                        Ext.getCmp('timesheet_no_text').setValue(trano);
+                        Ext.getCmp('prj_kode_text').setValue(prjKode);
+
+                        if (pwindow)
+                            pwindow.close();
+                    }
+                }
+            })
+        ]
+    };
+
+    var pwindow = new Ext.Window({
+        modal: true,
+        resizable: false,
+        closeAction: 'close',
+        width: 400,
+        height: 400,
+        title: 'Select Project',
+        items: forms
+    });
+
+    pwindow.show();
+
+};
+
+showInputTimesheet = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/timesheet/addtimesheet',
+        scripts : true
+    });
+};
+
+showEditDraft = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/timesheet/edittimesheetdraft',
+        scripts : true
+    });
+};
+
+showTimesheetDraft = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/timesheet/timesheetdraft',
+        scripts : true
+    });
+};
+
+showTimesheetSubmit = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/timesheet/timesheetsubmitted',
+        scripts : true
+    });
+};
+
+showWorkflow = function(prjKode,workflowItemID)
+{
+    var pwindow = new Ext.Window({
+        modal: true,
+        resizable: false,
+        closeAction: 'close',
+        layout: 'border',
+        width: 400,
+        height: 400,
+        title: 'Showing Workflow For ' + prjKode,
+        items: [
+            new Ext.Panel({
+                region: 'center',
+                id: 'workflow-panels',
+                bodyStyle: 'padding:5px;',
+                frame: false,
+                width: 398
+            })
+        ],
+        listeners: {
+            'show': function(){
+                myPanel = Ext.getCmp('workflow-panels');
+                myPanel.body.load({
+                    url: '/admin/workflow/showworkflowgenericroute/workflow_item_id/' + workflowItemID,
+                    scripts : true
+                });
+            }
+        }
+    });
+
+    pwindow.show();
+}
+
+var windowForm =  ({
+
+    title: 'Timesheet',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+						{
+						    id: 'timesheet_add_button',
+						    text: 'Create New Timesheet',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showInputTimesheet
+						},{
+						    id: 'timesheet_edit_button',
+						    text: 'Edit Existing Timesheet',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler: showEdit
+						},
+                        {
+						    id: 'timesheet_edit_draft_button',
+						    text: 'Edit Timesheet Draft',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler: showEditDraft
+						},
+//                        {
+//						    id: 'timesheet_add_draft_button',
+//						    text: 'Show My Timesheet Draft',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/calendar.gif",
+//						    handler:showTimesheetDraft
+//						},
+                        {
+						    id: 'timesheet_show_submit_button',
+						    text: 'Show My Submitted Timesheet',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/calendar.gif",
+						    handler:showTimesheetSubmit
+						}
+						]
+				}
+			}
+       ]
+});
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+// myPanel = Ext.getCmp('abs-budget-panel');
+// myPanel.body.load({
+//     url: '/projectmanagement/budget/createboq3',
+//     scripts : true
+// });
+        showSubmenu('abs-budget-panel');
+
+</script>

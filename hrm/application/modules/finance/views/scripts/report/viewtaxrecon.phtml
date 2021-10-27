@@ -1,0 +1,457 @@
+<script type="text/javascript">
+
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var muncul = false;
+
+        viewrecon = function ()
+        {
+            muncul = !muncul;
+            if (muncul)
+            {
+                taxgrid.setVisible(false);
+                recongrid.setVisible(true);
+            }
+            else
+            {
+                taxgrid.setVisible(true);
+                recongrid.setVisible(false);
+            }
+        }
+
+        var reconstore = new Ext.data.Store ({
+
+            autoLoad:true,
+            id:'reconstore',
+            url:'/finance/report/getrecontax',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'voc_trano'
+                },{
+                    name:'voc_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'voc_total'
+                },{
+                    name:'doc_trano'
+                },{
+                    name:"requester"
+                },{
+                    name:'val_kode'
+                },{
+                    name:'ppn_ref_number'
+                },{
+                    name:'payment_trano'
+                },{
+                    name:'payment_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'payment_total'
+                },{
+                    name:'uid'
+                },{
+                    name:'close_date',type:'date',dateFormat:'Y-m-d H:i:s'
+                },{
+                    name:'stsclose'
+                }]
+            })
+
+        })
+
+        var recongrid = new Ext.grid.GridPanel ({
+
+            store:reconstore,
+            viewConfig:{
+                forceFit:true
+            },
+            height: 400,
+            hidden: true,
+            id:'grid-info-payment',
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Trano',
+                dataIndex:'doc_trano',
+                sortable:true
+            },{
+                header:'BPV trano',
+                dataIndex:'voc_trano',
+                sortable:true
+            },{
+                header:'Payment Trano',
+                dataIndex:'payment_trano',
+                sortable:true
+            },{
+                header:'PPn Number',
+                dataIndex:'ppn_ref_number',
+                sortable:true
+            },{
+                header:'Requester',
+                dataIndex:'requester',
+                sortable:true
+            },{
+                header:'Valuta',
+                dataIndex:'val_kode',
+                sortable:true
+            },{
+                header:'Tax Value',
+                dataIndex:'voc_total',
+                sortable:true,
+                align:'right',
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                }
+            },{
+                header:'Payment value',
+                dataIndex:'payment_total',
+                sortable:true,
+                align:'right',
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                }
+            },{
+                header:'Recon Date',
+                dataIndex:'close_date',
+                sortable:true,
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Uid',
+                dataIndex:'uid',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-recon',
+                pageSize: 20,
+                store: reconstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+        })
+
+        var taxstore = new Ext.data.Store ({
+
+            autoLoad:true,
+            id:'taxstore',
+            url:'/finance/report/gettax',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'tax_trano'
+                },{
+                    name:'tax_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'tax_total'
+                },{
+                    name:'tax_refnumber'
+                },{
+                    name:"tax_requester"
+                },{
+                    name:'tax_ppnrefnumber'
+                },{
+                    name:'payment_trano'
+                },{
+                    name:'payment_date',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'payment_totalbayar'
+                },{
+                    name:'valuta'
+                }]
+            })
+
+        })
+
+        var cekgrid = new Ext.grid.CheckboxSelectionModel();
+
+        var columnmodel = new Ext.grid.ColumnModel ({
+
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'BPV trano',
+                dataIndex:'tax_trano',
+                sortable:true
+            },{
+                header:'BPV date',
+                dataIndex:'tax_date',
+                sortable:true,
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Trano',
+                dataIndex:'tax_refnumber',
+                sortable:true
+            },{
+                header:'Requester',
+                dataIndex:'tax_requester',
+                sortable:true
+            },{
+                header:'PPn Number',
+                dataIndex:'tax_ppnrefnumber',
+                sortable:true,
+                editor: {
+                    xtype: 'textfield',
+                    allowBlank: false
+                }
+            },{
+                header:'Valuta',
+                dataIndex:'valuta',
+                sortable:true
+            },{
+                header:'Tax Value',
+                dataIndex:'tax_total',
+                sortable:true,
+                align:'right',
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                }
+            },{
+                header:'Payment Trano',
+                dataIndex:'payment_trano',
+                sortable:true
+            },{
+                header:'Payment Date',
+                dataIndex:'payment_date',
+                sortable:true,
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Payment Value',
+                dataIndex:'payment_totalbayar',
+                sortable:true,
+                align:'right',
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                }
+            },{
+                xtype: 'checkcolumn',
+                header: 'Close',
+                dataIndex:'stsclose',
+                width: 55
+            }]
+
+        })
+
+        var editor = new Ext.ux.grid.RowEditor({
+            saveText: 'Update'
+        });
+
+        var taxgrid = new Ext.grid.EditorGridPanel ({
+
+            store:taxstore,
+            id: 'ap-grid',
+            cm:columnmodel,
+//            renderTo: 'tax-grid',
+            height: 400,
+//            frame: true,
+            clicksToEdit: 1,
+            sm:cekgrid,
+            iconCls:'icon-grid',
+            columnLines: true,
+            plugins: [editor],
+            viewConfig:{
+                forceFit:true
+            },
+            tbar:[{
+                xtype:'label',
+                text:'Search',
+                style:'margin-left:10px;'
+            },'-',{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['BPV Trano','tax_trano'],
+                            ['Trano','tax_refnumber'],
+                            ['Payment Trano','payment_trano']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'tax_trano',
+                id:'option'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                enableKeyEvents:true,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            taxstore.proxy.setUrl('/finance/report/gettax/option/' + option + '/search/' + search);
+                            taxstore.reload();
+
+                            taxgrid.getBottomToolbar().store.proxy.url= '/finance/report/gettax/option/' + option + '/search/' + search;
+                            taxgrid.getBottomToolbar().store.proxy.setUrl('/finance/report/gettax/option/' + option + '/search/' + search);
+                            taxgrid.getBottomToolbar().store.proxy.api.read['url']= '/finance/report/gettax/option/' + option + '/search/' + search;
+
+                            taxgrid.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-tax',
+                pageSize: 20,
+                store: taxstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    var json = '';
+                    var cek = '',modar = false, baris = 0, i=0,x=0;
+                    var total_bayar = 0;
+                    var total_payment = 0;
+                    var cek_payment = false;
+                    var cek_ppnnumber = false;
+                    var ppnnumber = '';
+
+                    taxgrid.getStore().each(function(item){
+                    i++;
+                       if (item.data['stsclose'] == true){
+
+                            ppnnumber = item.data['tax_ppnrefnumber'];
+
+                           if(item.data['payment_totalbayar'] == null)
+                            total_payment = 0;
+                           else
+                            total_payment = parseFloat(item.data['payment_totalbayar'].toString().replace(/\$|\,/g,''));
+                           x++;
+
+                           if (total_payment == 0)
+                           {
+                                if (!cek_payment)
+                                {
+                                    cek_payment = true;
+                                    baris = i;
+                                }
+                           }
+
+                           if (ppnnumber == '')
+                           {
+                                if (!cek_ppnnumber)
+                                {
+                                    cek_ppnnumber = true;
+                                    baris = i;
+                                }
+                           }
+
+                           json += Ext.util.JSON.encode(item.data) + ',';
+                       }
+
+                    })
+
+                    if (x == 0)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Please Check transaction',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (cek_payment)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry, Trans number ' + baris + ' no payment',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (cek_ppnnumber)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry, Trans number ' + baris + ' no ppnnumber please insert',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    json = '[' + json.substring(0, json.length - 1) + ']';
+
+                    var params = {
+                        jsonData:json
+                    }
+
+                    Ext.Ajax.request ({
+
+                        url:'/finance/report/doinserttaxrecon',
+                        method:'POST',
+                        params:params,
+                        success:function(result){
+                            obj = Ext.util.JSON.decode(result.responseText);
+
+                            if (obj.success)
+                            {
+                                Ext.Msg.alert ('Message','Success, Data has been saved');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                url: '/finance/report/taxrecon',
+                                scripts : true
+                                });
+                            }else
+                            {
+                                Ext.Msg.alert('Error', obj.msg);
+                            }
+                        },
+                        failure:function( action){
+                            if(action.failureType == 'server'){
+                              obj = Ext.util.JSON.decode(action.response.responseText);
+                              Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        }
+
+                    })
+                }
+            }]
+
+
+        })
+
+        var panelform = new Ext.form.FormPanel ({
+
+            renderTo:'recon-panel',
+            frame:true,
+            items:[taxgrid,recongrid],
+            tbar:['->',{
+                xtype:'button',
+                text:'Show Recon',
+                enableToggle:true,
+                iconCls: 'icon-log',
+                toggleHandler:viewrecon
+            }]
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="recon-panel"></div>

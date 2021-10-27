@@ -1,0 +1,934 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+            }
+    });
+
+    function windowinsert ()
+    {
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Insert Brand',
+            id:'insert-brand',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Brand Code ',
+                labelStyle:'width:140',
+    //                        width:160,
+                allowBlank: false,
+                id:'brand-code',
+                maxLength:2
+            },{
+                xtype:'textfield',
+                fieldLabel:'Brand Name ',
+                labelStyle:'width:140',
+    //                        width:160,
+                allowBlank: false,
+                id:'brand-name'
+            }],
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('insert-brand').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doinsertbrand',
+                        success:function(thisForm,response){
+                            windowinsert.close();
+
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+        //                title:'Choose Brand',
+            id:'window-insert',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 360,
+            height:150,
+            loadMask:true,
+            items:[formpanel]
+
+        })
+
+        windowinsert.show();
+    }
+
+    function showbrandlist ()
+    {
+        var storebrand = new Ext.data.Store ({
+
+            id:'store-brand',
+            url:'/logistic/logisticbarang/getbrand',
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'mrk_kode'
+                    },{
+                        name:'mrk_nama'
+                    },{
+                        name:'id'
+                    }]
+                })
+
+        })
+
+        var gridbrand = new Ext.grid.GridPanel ({
+
+            store:storebrand,
+            height:300,
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Brand Code',
+                dataIndex:'mrk_kode',
+                sortable:true,
+                width:120,
+                align:'center'
+            },{
+                header:'Brand Name',
+                dataIndex:'mrk_nama',
+                sortable:true,
+                width:120,
+                align:'center'
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-refnumber',
+                pageSize: 20,
+                store: storebrand,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype:'combo',
+                id:'option-brand',
+                width:100,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['mrk_nama','Brand Name'],
+                            ['mrk_kode','Brand Code']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'mrk_nama'
+            },'-',{
+                xtype:'textfield',
+                id:'search-brand',
+                enableKeyEvents:true,
+                listeners:{
+                    'keyup': function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option-brand').getValue();
+                            var search = Ext.getCmp('search-brand').getValue();
+
+                            storebrand.proxy.url= '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                            storebrand.proxy.setUrl('/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option);
+                            storebrand.proxy.api.read['url']= '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                            storebrand.load();
+                            gridbrand.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function (gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+
+                    var brand = gridaktif.getStore().getAt(rowIndex);
+
+                    var brandname = brand.get('mrk_nama');
+                    var brandcode = brand.get('mrk_kode');
+
+//                        console.log(brandcode);
+                    Ext.getCmp('brand').setValue(brandname);
+
+                    windowbrand.close();
+                }
+            }
+
+        })
+
+        var windowbrand = new Ext.Window ({
+
+        title:'Choose Brand',
+        id:'choose-brand',
+        layout:'absolute',
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        closeAction: 'close',
+        width: 500,
+        height: 330,
+        loadMask:true,
+        items:[gridbrand]
+
+        })
+
+        windowbrand.show();
+    }
+
+
+    function showfixedasset ()
+    {
+
+        var fixedassetstore = new Ext.data.Store ({
+            autoLoad:true,
+            url:'/logistic/fixedasset/getfixedasset',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'code'
+                },{
+                    name:'location'
+                },{
+                    name:'storage'
+                },{
+                    name:'clasification'
+                },{
+                    name:'old_code'
+                },{
+                    name:'marking_date',type:'date'
+                },{
+                    name:'accessories'
+                },{
+                    name:'brand'
+                },{
+                    name:'type'
+                },{
+                    name:'serial_number'
+                },{
+                    name:"description"
+                },{
+                    name:'purchase_status'
+                },{
+                    name:'purchase_date',type:'date'
+                },{
+                    name:'condition'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'purchase_price'
+                },{
+                    name:'depr_rate'
+                },{
+                    name:'depr_exp'
+                },{
+                    name:'input_date'
+                },{
+                    name:'uid'
+                },{
+                    name:'status_aktif'
+                },{
+                    name:'token'
+                },{
+                    name:'id'
+                },{
+                    name:'kode_kategori'
+                }]
+            })
+
+        })
+
+        var fixedassetgrid = new Ext.grid.GridPanel ({
+
+            store:fixedassetstore,
+            viewConfig:{
+                forceFit:true
+            },
+            height:300,
+            columns:[{
+                header:'Code',
+                dataIndex:'code',
+                align:'center',
+                sortable:true
+            },{
+                header:'Description',
+                dataIndex:'description',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-fixedaseet',
+                pageSize: 20,
+                store: fixedassetstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                        ['Code','code'],
+                        ['Description','description']
+                    ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'Code',
+                id:'option'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                style:'margin-left:10px',
+                enableKeyEvents:true,
+                width:100,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            fixedassetstore.proxy.url= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.proxy.setUrl('/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option);
+                            fixedassetstore.proxy.api.read['url']= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.load();
+                            fixedassetgrid.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function(gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+                    var asset = gridaktif.getStore().getAt(rowIndex);
+                    Ext.getCmp('code').setValue(asset.get('code'));
+                    Ext.getCmp('marking_date').setValue(asset.get('marking_date'));
+                    Ext.getCmp('storage').setValue(asset.get('storage'));
+                    Ext.getCmp('location').setValue(asset.get('location'));
+                    Ext.getCmp('description').setValue(asset.get('description'));
+                    Ext.getCmp('clasification').setValue(asset.get('clasification'));
+                    Ext.getCmp('brand').setValue(asset.get('brand'));
+                    Ext.getCmp('location').setValue(asset.get('location'));
+                    Ext.getCmp('type').setValue(asset.get('type'));
+                    Ext.getCmp('serial_number').setValue(asset.get('serial_number'));
+                    Ext.getCmp('accessories').setValue(asset.get('accessories'));
+                    Ext.getCmp('condition').setValue(asset.get('condition'));
+                    Ext.getCmp('status').setValue(asset.get('status_aktif'));
+                    Ext.getCmp('purchase_status').setValue(asset.get('purchase_status'));
+                    Ext.getCmp('purchase_date').setValue(asset.get('purchase_date'));
+                    Ext.getCmp('val_kode').setValue(asset.get('val_kode'));
+                    Ext.getCmp('price').setValue(asset.get('purchase_price'));
+                    Ext.getCmp('dep_rate').setValue(asset.get('depr_rate'));
+                    Ext.getCmp('dep_exp').setValue(Ext.util.Format.number(asset.get('depr_exp'),'0,0'));
+                    Ext.getCmp('kode_kategori').setValue(asset.get('kode_kategori'));
+
+
+                    fixedassetwindow.close();
+
+                }
+            }
+
+
+        })
+
+        var fixedassetwindow = new Ext.Window ({
+
+            title:'Fixed Asset List',
+            id:'fixedasset-list-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[
+                fixedassetgrid
+            ]
+
+        })
+
+        fixedassetwindow.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        function showkategori ()
+        {
+            var kategoristore = new Ext.data.Store ({
+                autoLoad:true,
+                url:'/finance/kategoriasset/getkategoriasset',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id'
+                    },{
+                        name:'kode_ktfa'
+                    },{
+                        name:'nama'
+                    },{
+                        name:'coa_debit'
+                    },{
+                        name:'coa_credit'
+                    }]
+                })
+
+            })
+
+            var kategorigrid = new Ext.grid.GridPanel ({
+                store:kategoristore,
+                viewConfig:{
+                    forceFit:true
+                },
+                height:300,
+                columns:[{
+                    header:'Kode Kategori',
+                    dataIndex:'kode_ktfa',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'Name',
+                    dataIndex:'nama',
+                    align:'center',
+                    sortable:true
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-coa',
+                    pageSize: 20,
+                    store: kategoristore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                listeners:
+                {
+                    'rowdblclick':function(gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var kategori = gridaktif.getStore().getAt(rowIndex);
+                        var kode = kategori.get('kode_ktfa');
+    //                        var coa_name = coa.get('coa_nama');
+                        Ext.getCmp('kode_kategori').setValue(kode);
+    //                        Ext.getCmp('coa-name').setValue(coa_name);
+
+                        kategoriwindow.close();
+
+                    }
+                }
+        })
+
+
+            var kategoriwindow = new Ext.Window ({
+
+                title:'Kategori List',
+                id:'kategori-list-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    kategorigrid
+                ]
+
+            })
+
+            kategoriwindow.show();
+        }
+
+        var locationinfo = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            title:'Location Information',
+            layout:'form',
+            items:[{
+                xtype:'datefield',
+                fieldLabel:'Marking Date ',
+                id:'marking_date',
+                allowBlank:false
+            },{
+                xtype:'combo',
+                id:'location',
+                width:140,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['Central Storage','Central Storage'],
+                            ['Warehouse Storage','Warehouse Storage']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                fieldLabel:'Storage Location ',
+                allowBlank:false,
+                listeners:{
+                    'select':function(combo,record,index)
+                    {
+                        Ext.getCmp('storage').clearValue();
+                        Ext.getCmp('storage').getStore().load({
+                            params: {
+                                type: record.data.nilai
+                            }
+                        });
+
+                    }
+                }
+            },{
+                xtype:'combo',
+                width:140,
+                fieldLabel:'Storage ',
+                store: new Ext.data.Store({
+                    fields:['nilai','name'],
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/logistic/fixedasset/getstorage'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'total',
+                        root: 'data'
+                    }, [{
+                            name: 'gdg_nama'
+                        },{
+                            name: 'gdg_nama'
+                        }])
+                }),
+                valueField:'gdg_nama',
+                displayField:'gdg_nama',
+                typeAhead: true,
+                forceSelection: true,
+                editable: true,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                id:'storage',
+                allowBlank:false
+            }]
+
+        })
+
+        var assetinfo = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            title:'Asset Information',
+            layout:'form',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textarea',
+                        fieldLabel:'Description ',
+                        id:'description',
+                        width:218,
+                        allowBlank:false
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Clasification ',
+                        id:'clasification',
+                        allowBlank:false
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.6,
+                            layout:'form',
+                            items:[{
+                                xtype:'trigger',
+                                fieldLabel:'Brand ',
+                                anchor:'85%',
+                                triggerClass: 'teropong',
+                                allowBlank: false,
+                                editable : false,
+                                id:'brand',
+                                name:'brand',
+                                onTriggerClick:function(){
+
+                                    showbrandlist();
+                                }
+                            }]
+                        },{
+                            columnWidth:0.4,
+                            layout:'form',
+                            items:[{
+                                xtype:'button',
+                                text:'Create Brand',
+                                handler:function(btn,ev)
+                                {
+                                    windowinsert ();
+                                }
+                            }]
+                        }]
+                    },{
+                        xtype:'trigger',
+                        fieldLabel:'Kode Kategori ',
+                        id:'kode_kategori',
+                        triggerClass: 'teropong',
+                        allowBlank: false,
+                        editable : false,
+                        width:100,
+                        onTriggerClick:function()
+                        {
+                            showkategori();
+                        }
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Type ',
+                        id:'type'
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Serial Number ',
+                        id:'serial_number'
+                    },{
+                        xtype:'textarea',
+                        fieldLabel:'Accessories ',
+                        id:'accessories',
+                        width:218
+                    },{
+                        xtype:'combo',
+                        width:240,
+                        fieldLabel:'Condition ',
+                        store: new Ext.data.Store({
+                            autoLoad: true,
+                            fields:['name','nilai'],
+                            proxy: new Ext.data.HttpProxy({
+                                url: '/logistic/fixedasset/getkondisi'
+                            }),
+                            reader: new Ext.data.JsonReader({
+                                totalProperty: 'total',
+                                root: 'data'
+                            }, [{
+                                    name: 'kds_nama'
+                                },{
+                                    name: 'kds_nama'
+                                }])
+                        }),
+                        valueField:'kds_nama',
+                        displayField:'kds_nama',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: true,
+                        mode: 'remote',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        id:'condition',
+                        allowBlank:false
+                    },{
+                        xtype: 'combo',
+                        width: 100,
+                        allowBlank: false,
+                        store: new Ext.data.SimpleStore({
+                            fields:['name','nilai'],
+                            data:[
+                                    ['Not Active','0'],
+                                    ['Active','1']
+                                ]
+                        }),
+                        valueField:'nilai',
+                        displayField:'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        id:'status',
+                        fieldLabel:'Status '
+//                        emptyText:'Select a type ...'
+                    }]
+                }]
+            }]
+
+        })
+
+        var purchaseinfo = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            title:'Purchase Information',
+            layout:'form',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Purchase Status ',
+                        id:'purchase_status',
+                        readOnly:true
+                    },{
+                        xtype:'datefield',
+                        fieldLabel:'Purchase Date ',
+                        id:'purchase_date',
+                        readOnly:true
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Valuta ',
+                        id:'val_kode',
+                        width:60,
+                        readOnly:true
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[new Ext.ux.customRendererField ({
+                        xtype:'textfield',
+                        fieldLabel:'Purchase Price ',
+                        priceDelemiter:',',
+                        style:"text-align:right",
+                        id:'price',
+                        vtype:'numeric',
+                        enableKeyEvents: true,
+                        allowBlank:false,
+                        listeners:{
+                            'keyup':function (t,e)
+                            {
+                                var price = parseFloat(t.getValue());
+                                var rate = parseFloat(Ext.getCmp('dep_rate').getValue().toString().replace(/\$|\,/g,''));
+
+                                var dep_exp = Ext.util.Format.number(((price * (rate/100)) / 12),'0,0');
+                                Ext.getCmp('dep_exp').setValue(dep_exp);
+
+                            }
+                        }
+                    }),{
+                        xtype:'textfield',
+                        fieldLabel:'Depr Rate ',
+                        id:'dep_rate',
+                        style:"text-align:right",
+                        vtype:'numeric',
+                        enableKeyEvents: true,
+                        allowBlank:false,
+                        listeners: {
+                            'keyup':function(t,e)
+                            {
+                                var price = parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g,''));
+
+                                if (price == '')
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please insert purchase price first  ',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                var rate = parseFloat(t.getValue());
+                                if (parseFloat(rate) > 100 || parseFloat(rate) < 1)
+                                {
+                                    Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Depreciation must be between 0 and 100 ',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                    });
+                                    return false;
+                                }
+
+                                var dep_exp = Ext.util.Format.number(((price * (rate/100)) / 12),'0,0');
+                                Ext.getCmp('dep_exp').setValue(dep_exp);
+                            }
+                        }
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Depr Exp / month ',
+                        id:'dep_exp',
+                        style:"text-align:right",
+                        readOnly:true,
+                        allowBlank:false
+                    }]
+                }]
+            }]
+
+        })
+
+        var formedit = new Ext.form.FormPanel ({
+
+            renderTo:'form-edit-fixedasset',
+            id:'form_edit_fixedasset',
+            frame:true,
+            layout:'form',
+            title:'Edit Fixed Asset',
+            style:'margin:10 10 10 10',
+            items:[{
+                fieldLabel : 'Fixed Asset Code',
+                id : 'code',
+                name: 'code',
+                xtype: 'trigger',
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                labelWidth:140,
+                onTriggerClick:
+                    function ()
+                    {
+                        showfixedasset();
+                    },
+                scope: this,
+                width: 157
+            },locationinfo,assetinfo,purchaseinfo],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    var code = Ext.getCmp('code').getValue();
+
+                    if (!Ext.getCmp('form_edit_fixedasset').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    if (Ext.getCmp('kode_kategori').getValue() == '' || Ext.getCmp('kode_kategori').getValue() == undefined)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry,Please Select Kode Kategori',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.getCmp('form_edit_fixedasset').getForm().submit({
+                            method:'POST',
+                            params:{
+                                status_asset:Ext.getCmp('status').getValue()
+                            },
+                            url:'/logistic/fixedasset/doupdatefixedasset',
+                            success:function(thisForm,response){
+                                Ext.getBody().unmask();
+                                Ext.Msg.alert('Message','Success, Fixed Asset Number ' + '<b><font color="#ff0000">' + code + '</font></b>' + ' has been Update');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                url: '/logistic/fixedasset/menu',
+                                scripts : true
+                                });
+                            },
+                            failure:function(thisForm,response){
+                                Ext.getBody().unmask();
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.pesan);
+                                }
+                            }
+                            })
+                        }
+
+                    })
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('form_edit_fixedasset').getForm().reset();
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/logistic/fixedasset/menu',
+                    scripts : true
+                    });
+                }
+            }]
+
+        })
+
+
+    })
+
+
+
+
+</script>
+
+    <div id="form-edit-fixedasset"></div>

@@ -1,0 +1,1143 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var hitungTotal = function(idTotal,qty,harga){
+            var total = parseFloat(qty) * parseFloat(harga);
+            Ext.getCmp(idTotal).setValue(total);
+        };
+
+        var uploadFile = new Ext.ux.uploadFile({
+            renderTo: 'upload-file',
+            width: 500,
+            frame: true
+        });
+
+        var loadAsfPulsa = function(captionID,json)
+        {
+            Ext.Ajax.request({
+                url: '/procurement/asf-pulsa/edit-get-data',
+                method:'POST',
+                params: {
+                    caption_id: captionID,
+                    json: json
+                },
+                success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if(returnData.success) {
+                        storeASF.loadData(returnData);
+                    }
+                    else
+                    {
+                        Ext.Msg.alert("Error",returnData.msg);
+                        return false;
+                    }
+                }
+                ,failure:function( action){
+                    if(action.failureType == 'server'){
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        };
+
+        var loadArfPulsa = function(captionID,json)
+        {
+            Ext.Ajax.request({
+                url: '/procurement/arf-pulsa/get-data',
+                method:'POST',
+                params: {
+                    trano: captionID,
+                    json: json,
+                    exclude_asf: true
+                },
+                success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if(returnData.success) {
+                        store.loadData(returnData);
+                    }
+                    else
+                    {
+                        Ext.Msg.alert("Error",returnData.msg);
+                        return false;
+                    }
+                }
+                ,failure:function( action){
+                    if(action.failureType == 'server'){
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        };
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'silk-add',
+                    qtip:'Add ASF',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if (record.get("invalid") !== true)
+                        {
+                            formASF.getForm().reset();
+                            Ext.getCmp('form-asf-edit').stat = '';
+                            formASF.getForm().loadRecord(record);
+                            formASF.enable();
+                        }
+                    }
+                },
+                {
+                    iconCls:'silk-magnifier',
+                    qtip:'Show Error Message',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if (record.get("invalid_msg") != '' && record.get("invalid_msg") != undefined)
+                            Ext.Msg.alert("Error Message",record.get("invalid_msg"));
+                    }
+                }
+            ],
+            header: '',
+            width: 12
+        });
+
+        var rowactions2 = new Ext.ux.grid.RowActions({
+            hideMode:"display",
+            actions:[
+                {
+                    iconCls:'silk-edit2',
+                    qtip:'Edit',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if (record.get("invalid") !== true)
+                        {
+                            formASF.getForm().reset();
+                            Ext.getCmp('form-asf-edit').stat = 'edit';
+                            Ext.getCmp('form-asf-edit').tranoEdit = record.get("trano");
+                            formASF.getForm().loadRecord(record);
+                            formASF.getForm().setValues([
+                                {
+                                    id: 'trano',
+                                    value: record.get("arf_no")
+                                },
+                                {
+                                    id: 'qty_asf',
+                                    value: parseFloat(record.get("qty"))
+                                },
+                                {
+                                    id: 'harga_asf',
+                                    value: parseFloat(record.get("harga"))
+                                },
+                                {
+                                    id: 'total_asf',
+                                    value: parseFloat(record.get("total"))
+                                },
+                                {
+                                    id: 'qty_asfcancel',
+                                    value: parseFloat(record.get("qtycancel"))
+                                },
+                                {
+                                    id: 'harga_asfcancel',
+                                    value: parseFloat(record.get("hargacancel"))
+                                },
+                                {
+                                    id: 'total_asfcancel',
+                                    value: parseFloat(record.get("totalcancel"))
+                                },
+                                {
+                                    id: 'ket',
+                                    value: (record.get("ket") == '""') ? '' : record.get("ket")
+                                },
+                                {
+                                    id: 'qty',
+                                    value: parseFloat(record.get("qty_arf"))
+                                },
+                                {
+                                    id: 'harga',
+                                    value: parseFloat(record.get("harga_arf"))
+                                },
+                                {
+                                    id: 'total',
+                                    value: parseFloat(record.get("total_arf"))
+                                },
+                            ]);
+                            formASF.enable();
+                        }
+                    }
+                },{
+                    iconCls:'silk-delete',
+                    qtip:'Delete',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        if (record.get("invalid") !== true)
+                        {
+                            storeASF.remove(record);
+                        }
+                    }
+                }
+            ],
+            header: '',
+            width: 12
+        });
+
+        var reader = new Ext.data.JsonReader({
+            idProperty: 'id',
+            root: 'posts',
+            fields: [
+                {name: 'id'},
+                {name: 'trano'},
+                {name: 'prj_kode'},
+                {name: 'prj_nama'},
+                {name: 'sit_kode'},
+                {name: 'sit_nama'},
+                {name: 'workid'},
+                {name: 'workname'},
+                {name: 'kode_brg'},
+                {name: 'nama_brg'},
+                {name: 'val_kode'},
+                {name: 'qty'},
+                {name: 'harga'},
+                {name: 'total'},
+                {name: 'progress'},
+                {name: 'total_in_asf'},
+                {name: 'invalid'},
+                {name: 'invalid_msg'}
+            ]
+        });
+
+        var store = new Ext.data.Store({
+            id: 'item-store',
+            reader: reader
+        });
+
+        var ASFList = Ext.data.Record.create([
+            {name: 'arf_no'},
+            {name: 'arf_id'},
+            {name: 'trano'},
+            {name: 'trano_ref'},
+            {name: 'caption_id'},
+            {name: 'arf_trano_ref'},
+            {name: 'arf_caption_id'},
+            {name: 'prj_kode'},
+            {name: 'prj_nama'},
+            {name: 'sit_kode'},
+            {name: 'sit_nama'},
+            {name: 'workid'},
+            {name: 'workname'},
+            {name: 'kode_brg'},
+            {name: 'nama_brg'},
+            {name: 'val_kode'},
+            {name: 'qty'},
+            {name: 'harga'},
+            {name: 'total'},
+            {name: 'qtycancel'},
+            {name: 'hargacancel'},
+            {name: 'totalcancel'},
+            {name: 'grand_total'},
+            {name: 'total_in_asf'},
+            {name: 'total_arf'},
+            {name: 'qty_arf'},
+            {name: 'harga_arf'},
+            {name: 'ket'}
+        ]);
+        var readerASF = new Ext.data.JsonReader({
+            root: 'posts',
+            fields: ASFList
+        });
+
+        var storeASF = new Ext.data.Store({
+            id: 'asf-store',
+            reader: readerASF
+        });
+
+        var form = new Ext.form.FormPanel({
+            title: 'Edit ASF Pulsa',
+            width: 400,
+            autoHeight: true,
+            items: [
+//                {
+//                    xtype:'tranoselector',
+//                    fieldLabel:'ARF Pulsa Trano',
+//                    id:'arf_trano',
+//                    Selectid: 'arf_trano_text',
+//                    allowBlank:false,
+//                    Tranotype: ['ARF Pulsa'],
+//                    width: 150,
+//                    Disabletype: true,
+//                    callbackFunc: callback
+//                },
+                {
+                    xtype: 'userselector',
+                    fieldLabel: 'Manager',
+                    ShowName: true,
+                    id: 'uid_manager',
+                    UserSelectid: 'manager_text',
+                    width: 200
+                },{
+                    xtype: 'userselector',
+                    fieldLabel: 'Requester',
+                    ShowName: true,
+                    id: 'uid_requester',
+                    UserSelectid: 'requester_text',
+                    width: 200
+                },{
+                    xtype: 'userselector',
+                    fieldLabel: 'Finance Receiving Name',
+                    ShowName: true,
+                    id: 'uid_finance',
+                    UserSelectid: 'finance_text',
+                    width: 200
+                },{
+                    xtype: 'textfield',
+                    fieldLabel: 'Remark',
+                    width: 250,
+                    id: 'ket'
+                }
+
+            ],
+            renderTo: 'form',
+            frame: true
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            id: 'asf-grid',
+            store: store,
+            autoWidth: true,
+            height: 300,
+            loadMask: true,
+            frame: true,
+            view: new Ext.grid.GridView({
+                enableRowBody:true,
+                forceFit: true,
+                getRowClass:function(record, rowIndex, p, store) {
+                    if(record.get("invalid") == true)
+                        return 'x-grid3-row-with-body3';
+                }
+            }),
+            renderTo:'grid',
+            plugins: [rowactions],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header: 'Trano',
+                    dataIndex: 'trano',
+                    width: 110,
+                    sortable: true
+                },
+                {
+                    header: 'Project',
+                    dataIndex: 'prj_kode',
+                    width: 70,
+                    sortable: true
+                },{
+                    header: 'Site',
+                    dataIndex: 'sit_kode',
+                    width: 50,
+                    sortable: true
+                },{
+                    header: 'Workid',
+                    dataIndex: 'workid',
+                    width: 50,
+                    sortable: true
+                },{
+                    header: 'Item',
+                    dataIndex: 'kode_brg',
+                    width: 200,
+                    sortable: true,
+                    renderer: function (v,p,r)
+                    {
+                        return v + ' - ' + r.get("nama_brg");
+                    }
+                },{
+                    header: 'Qty',
+                    dataIndex: 'qty',
+                    width: 50,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.0000');
+                    }
+                },{
+                    header: 'Price',
+                    dataIndex: 'harga',
+                    width: 100,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.00');
+                    }
+                },{
+                    header: 'Total',
+                    dataIndex: 'total',
+                    width: 100,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.00');
+                    }
+                },{
+                    header: 'Progress',
+                    dataIndex: 'progress',
+                    width: 100,
+                    renderer: function(v,p,r)
+                    {
+//                        var id = Ext.id();
+//                        (function(){
+//                            var progress = new Ext.ProgressBar({
+//                                renderTo: id,
+//                                value: v
+//                            });
+//                        }).defer(25);
+//                        return '<div id="'+ id + '"></div>';
+                        var percent = v * 100;
+                        if (percent > 100)
+                            percent = 100;
+                        percent = percent.toFixed(2);
+                        var warna = '#0a0';
+                        if (percent > 75)
+                            warna = '#FF3F7D';
+                        else if (percent > 50)
+                            warna = '#FFDA2F';
+
+                        return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+
+                    }
+                }
+            ]
+        });
+
+        var gridASF = new Ext.grid.GridPanel({
+            id: 'asf-item-grid',
+            title: 'ASF Cart',
+            store: storeASF,
+            autoWidth: true,
+            height: 300,
+            loadMask: true,
+            frame: true,
+            view: new Ext.grid.GridView({
+                enableRowBody:true,
+                forceFit: true,
+                getRowClass:function(record, rowIndex, p, store) {
+                    if(record.get("invalid") == true)
+                        return 'x-grid3-row-with-body3';
+                }
+            }),
+            renderTo:'grid-asf',
+            plugins: [rowactions2],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions2,
+                {
+                    header: 'ARF No',
+                    dataIndex: 'arf_no',
+                    width: 110,
+                    sortable: true
+                },
+                {
+                    header: 'Project',
+                    dataIndex: 'prj_kode',
+                    width: 70,
+                    sortable: true
+                },{
+                    header: 'Site',
+                    dataIndex: 'sit_kode',
+                    width: 50,
+                    sortable: true
+                },{
+                    header: 'Workid',
+                    dataIndex: 'workid',
+                    width: 50,
+                    sortable: true
+                },{
+                    header: 'Item',
+                    dataIndex: 'kode_brg',
+                    width: 170,
+                    sortable: true,
+                    renderer: function (v,p,r)
+                    {
+                        return v + ' - ' + r.get("nama_brg");
+                    }
+                },{
+                    header: 'Total Expense Claim',
+                    dataIndex: 'total',
+                    width: 100,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.00');
+                    }
+                },{
+                    header: 'Total Due to Company',
+                    dataIndex: 'totalcancel',
+                    width: 100,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.00');
+                    }
+                },{
+                    header: 'Total ASF',
+                    dataIndex: 'grand_total',
+                    width: 110,
+                    sortable: true,
+                    align: 'right',
+                    renderer: function(v,p,r)
+                    {
+                        return Ext.util.Format.number(v,'?0,000.00');
+                    }
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Submit ASF',
+                    handler: function(){
+                        var json = '';
+                        storeASF.each(function(store){
+                            json += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        json = '[' + json.substring(0, json.length - 1) + ']';
+
+                        var params = {
+                            captionID: '<?=$this->captionID?>',
+                            manager: Ext.getCmp('uid_manager').getUid(),
+                            requester: Ext.getCmp('uid_requester').getUid(),
+                            finance: Ext.getCmp('uid_finance').getUid(),
+                            ket: Ext.getCmp('ket').getValue(),
+                            file: uploadFile.getJSONFromStore(),
+                            json: json,
+                            useOverride: true
+                        };
+
+                        Ext.Ajax.request({
+                            url:'/procurement/asf-pulsa/update-asf-pulsa',
+                            method:'POST',
+                            params:params,
+                            success:function(result){
+                                obj = Ext.util.JSON.decode(result.responseText);
+
+                                if (obj.success)
+                                {
+                                    Ext.Msg.alert ('Message','Success, Data has been saved');
+//                                    myPanel = Ext.getCmp('abs-budget-panel');
+//                                    myPanel.body.load({
+//                                        url: '/finance/bankpaymentvoucher/paymentvoucher',
+//                                        scripts : true
+//                                    });
+                                }else
+                                {
+                                    if (obj.msgArray != '')
+                                    {
+                                        var errWindow = new Ext.Window({
+                                            title: 'Error',
+                                            height: 300,
+                                            width: 300,
+                                            modal: true,
+                                            items: [
+                                                new Ext.Panel({
+                                                    frame: false,
+                                                    height: 300,
+                                                    width: 300,
+                                                    html: obj.msgArray
+                                                })
+                                            ],
+                                            buttons: [
+                                                {
+                                                    text: 'OK',
+                                                    handler: function()
+                                                    {
+                                                        errWindow.close();
+                                                    }
+                                                }
+                                            ]
+                                        },this);
+
+                                        errWindow.show();
+                                    }
+                                }
+                            },
+                            failure:function( action){
+                                if(action.failureType == 'server'){
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }else{
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+
+                        })
+                    }
+                }
+            ]
+        });
+
+        var formASF = new Ext.form.FormPanel({
+            title: 'Item for ASF',
+            id: 'form-asf-edit',
+            autoHeight: true,
+            stat: '',
+            tranoEdit: '',
+            disabled: true,
+            width: 600,
+            frame: true,
+            renderTo: 'form-asf',
+            defaults: {
+                labelWidth: 70
+            },
+            items: [
+                {
+                    xtype: 'hidden',
+                    name: 'id'
+                },
+                {
+                    xtype: 'hidden',
+                    name: 'arf_trano_ref'
+                },
+                {
+                    xtype: 'hidden',
+                    name: 'arf_caption_id'
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'ARF Information',
+                    items: [
+                        {
+                            xtype: 'textfield',
+                            readOnly: true,
+                            fieldLabel: 'ARF Trano',
+                            name: 'trano',
+                            id: 'trano'
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Project',
+                            msgTarget : 'under',
+                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'prj_kode',
+                                    id: 'prj_kode'
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'prj_nama',
+                                    id: 'prj_nama'
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Site',
+                            msgTarget : 'under',
+                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'sit_kode',
+                                    id: 'sit_kode'
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'sit_nama',
+                                    id: 'sit_nama'
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Workid',
+                            msgTarget : 'under',
+                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'workid',
+                                    id: 'workid'
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'workname',
+                                    id: 'workname'
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Item',
+                            msgTarget : 'under',
+//                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'kode_brg',
+                                    id: 'kode_brg',
+                                    width: 100
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    name: 'nama_brg',
+                                    id: 'nama_brg',
+                                    width: 180
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Qty',
+                            msgTarget : 'under',
+//                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    id:'qty',
+                                    name: 'qty',
+                                    style:'text-align:right',
+                                    priceDelemiter:',',
+                                    readOnly: true,
+                                    width: 60
+                                }),
+                                {
+                                    xtype: 'displayfield',
+                                    value: 'Price',
+                                    width: 40
+                                },
+                                new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    id:'harga',
+                                    name: 'harga',
+                                    style:'text-align:right',
+                                    priceDelemiter:',',
+                                    readOnly: true,
+                                    width: 120
+                                }),
+                                {
+                                    xtype: 'displayfield',
+                                    value: 'Total',
+                                    width: 40
+                                },
+                                new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    id:'total',
+                                    name: 'total',
+                                    style:'text-align:right',
+                                    priceDelemiter:',',
+                                    readOnly: true,
+                                    width: 120
+                                }),
+                                {
+                                    xtype: 'textfield',
+                                    width: 50,
+                                    readOnly: true,
+                                    name: 'val_kode',
+                                    id: 'val_kode'
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Already ASF',
+                            msgTarget : 'under',
+//                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    id:'total_in_asf',
+                                    name: 'total_in_asf',
+                                    style:'text-align:right',
+                                    priceDelemiter:',',
+                                    readOnly: true,
+                                    width: 150
+                                })
+                            ]
+                        }
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Please fill this form',
+                    items:[
+                        {
+                            xtype: 'compositefield',
+                            hideLabel: true,
+                            msgTarget : 'under',
+//                            anchor    : '-20',
+                            defaults: {
+                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    title: 'Expense Claim',
+                                    items: [
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Qty',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel: 'Qty',
+                                                    xtype:'textfield',
+                                                    id:'qty_asf',
+                                                    name: 'qty_asf',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    listeners: {
+                                                        'customblur': function (t, val){
+                                                            hitungTotal('total_asf',val,Ext.getCmp('harga_asf').getOriginalValue());
+                                                        }
+                                                    }
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Price',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    xtype:'textfield',
+                                                    id:'harga_asf',
+                                                    name: 'harga_asf',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    listeners: {
+                                                        'customblur': function (t, val){
+                                                            hitungTotal('total_asf',Ext.getCmp('qty_asf').getOriginalValue(),val);
+                                                        }
+                                                    }
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Total',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    xtype:'textfield',
+                                                    id:'total_asf',
+                                                    name: 'total_asf',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    readOnly: true
+                                                })
+                                            ]
+                                        }
+
+                                    ]
+                                },
+                                {
+                                    xtype: 'fieldset',
+                                    title: 'Amount due to Company',
+                                    items: [
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Qty',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel: 'Qty',
+                                                    xtype:'textfield',
+                                                    id:'qty_asfcancel',
+                                                    name: 'qty_asfcancel',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    listeners: {
+                                                        'customblur': function (t, val){
+                                                            hitungTotal('total_asfcancel',val,Ext.getCmp('harga_asfcancel').getOriginalValue());
+                                                        }
+                                                    }
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Price',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    xtype:'textfield',
+                                                    id:'harga_asfcancel',
+                                                    name: 'harga_asfcancel',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    listeners: {
+                                                        'customblur': function (t, val){
+                                                            hitungTotal('total_asfcancel',Ext.getCmp('qty_asfcancel').getOriginalValue(),val);
+                                                        }
+                                                    }
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            xtype: 'compositefield',
+                                            msgTarget : 'under',
+                                            anchor    : '-20',
+                                            defaults: {
+                                                flex: 1
+                                            },
+                                            items: [
+                                                {
+                                                    xtype: 'displayfield',
+                                                    value: 'Total',
+                                                    width: 40
+                                                },
+                                                new Ext.ux.customRendererField({
+                                                    xtype:'textfield',
+                                                    id:'total_asfcancel',
+                                                    name: 'total_asfcancel',
+                                                    style:'text-align:right',
+                                                    priceDelemiter:',',
+                                                    readOnly: true
+                                                })
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            xtype: 'textfield',
+                            fieldLabel: 'Remark',
+                            name: 'ket',
+                            width: 290
+                        }
+                    ]
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Add',
+                    handler: function(){
+
+                        var values = formASF.getForm().getValues();
+                        if (Ext.getCmp('form-asf-edit').stat == '')
+                        {
+                            storeASF.clearFilter();
+                            storeASF.filterBy(function(record,id){
+                                if (record.get('arf_no') == values.trano.toString() && record.get('sit_kode') == values.sit_kode.toString() && record.get('prj_kode') == values.prj_kode.toString() && record.get('workid') == values.workid.toString() && record.get('kode_brg') == values.kode_brg.toString())
+                                {
+                                    return record.get('workid');
+                                }
+                            });
+
+                            if (storeASF.getCount() > 0)
+                            {
+                                storeASF.clearFilter();
+                                Ext.Msg.alert('Error', 'This item exists on ASF cart below, please use Edit for modify');
+                                return false;
+                            }
+                            storeASF.clearFilter();
+                        }
+
+                        values.qty_asf = Ext.getCmp('qty_asf').getOriginalValue();
+                        values.harga_asf = Ext.getCmp('harga_asf').getOriginalValue();
+                        values.total_asf = Ext.getCmp('total_asf').getOriginalValue();
+                        values.qty_asfcancel = Ext.getCmp('qty_asfcancel').getOriginalValue();
+                        values.harga_asfcancel = Ext.getCmp('harga_asfcancel').getOriginalValue();
+                        values.total_asfcancel = Ext.getCmp('total_asfcancel').getOriginalValue();
+                        values.total = Ext.getCmp('total').getOriginalValue();
+
+                        if(Ext.getCmp('form-asf-edit').stat == 'edit')
+                        {
+                            values.isEdit = true;
+                            values.asf_no = Ext.getCmp('form-asf-edit').tranoEdit;
+                        }
+                        else
+                            values.isEdit = false;
+
+                        var callback = function(ret)
+                        {
+                            var data = new ASFList ({
+                                arf_id: values.id,
+                                arf_no: values.trano,
+                                prj_kode: values.prj_kode,
+                                sit_kode: values.sit_kode,
+                                workid: values.workid,
+                                prj_nama: values.prj_nama,
+                                sit_nama: values.sit_nama,
+                                workname: values.workname,
+                                kode_brg: values.kode_brg,
+                                nama_brg: values.nama_brg,
+                                qty: values.qty_asf,
+                                harga: values.harga_asf,
+                                total: values.total_asf,
+                                val_kode: values.val_kode,
+                                qtycancel: values.qty_asfcancel,
+                                hargacancel: values.harga_asfcancel,
+                                totalcancel: values.total_asfcancel,
+                                grand_total: (parseFloat(values.total_asf) + parseFloat(values.total_asfcancel)),
+                                total_arf: values.total,
+                                ket: values.ket
+                            });
+
+                            storeASF.add(data);
+
+                            formASF.getForm().reset();
+                            formASF.disable();
+                        };
+
+                        var callbackEdit = function(ret)
+                        {
+                            var rec = storeASF.queryBy(function(record,id){
+                                if (record.get('arf_no') == values.trano.toString() && record.get('sit_kode') == values.sit_kode.toString() && record.get('prj_kode') == values.prj_kode.toString() && record.get('workid') == values.workid.toString() && record.get('kode_brg') == values.kode_brg.toString())
+                                {
+                                    return true;
+                                }
+                            });
+                            if (rec.length == 1)
+                            {
+                                rec.items[0].set("qty",values.qty_asf);
+                                rec.items[0].set("harga",values.harga_asf);
+                                rec.items[0].set("total",values.total_asf);
+                                rec.items[0].set("qtycancel",values.qty_asfcancel);
+                                rec.items[0].set("hargacancel",values.harga_asfcancel);
+                                rec.items[0].set("totalcancel",values.total_asfcancel);
+                                rec.items[0].set("total_arf",values.total);
+                                rec.items[0].set("ket",values.ket);
+                                rec.items[0].set("grand_total",(parseFloat(values.total_asf) + parseFloat(values.total_asfcancel)));
+                                rec.items[0].commit();
+                            }
+
+
+//                            storeASF.add(data);
+
+                            formASF.getForm().reset();
+                            formASF.disable();
+                        };
+
+                        Ext.Ajax.request({
+                            url: '/procurement/asf-pulsa/cek-arf-pulsa',
+                            method:'POST',
+                            params: values,
+                            success: function(result, request){
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if(returnData.success) {
+                                    if (Ext.getCmp('form-asf-edit').stat == '')
+                                        callback();
+                                    else
+                                        callbackEdit();
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert("Error",returnData.msg);
+                                    return false;
+                                }
+                            }
+                            ,failure:function( action){
+                                if(action.failureType == 'server'){
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    handler: function(){
+                        formASF.getForm().reset();
+                        formASF.disable();
+                        Ext.getCmp('form-asf-edit').stat = '';
+                    }
+                }
+            ]
+        });
+
+        var jsonFile = <?=$this->file?>;
+        uploadFile.store.loadData(jsonFile);
+
+        loadAsfPulsa('<?=$this->captionID?>','<?=$this->json?>');
+        loadArfPulsa('<?=$this->arfCaptionID?>','<?=$this->json?>');
+
+        Ext.getCmp('uid_manager').setUid('<?=$this->manager?>');
+        Ext.getCmp('manager_text').setValue('<?=$this->managerName?>');
+        Ext.getCmp('uid_requester').setUid('<?=$this->requester?>');
+        Ext.getCmp('requester_text').setValue('<?=$this->requesterName?>');
+        Ext.getCmp('uid_finance').setUid('<?=$this->finance?>');
+        Ext.getCmp('finance_text').setValue('<?=$this->financeName?>');
+        Ext.getCmp('ket').setValue('<?=$this->ket?>');
+
+    });
+</script>
+
+    <div id="form"></div><br>
+    <div id="upload-file"></div><br>
+    <div id="grid"></div><br>
+    <div id="form-asf"></div><br>
+    <div id="grid-asf"></div>

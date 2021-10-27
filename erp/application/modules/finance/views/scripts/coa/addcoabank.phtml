@@ -1,0 +1,302 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function showbanklist ()
+        {
+
+            var storebank = new Ext.data.Store ({
+
+            autoLoad:true,
+            url:'/finance/bank/getviewbanklist',
+            reader:new Ext.data.JsonReader ({
+
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'bnk_nama'
+                },{
+                    name:'bnk_norek'
+                },{
+                    name:'bnk_noreknama'
+                },{
+                    name:'bnk_cabang'
+                },{
+                    name:'bnk_alamat'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'cabang'
+                },{
+                    name:'bnk_kota'
+                }]
+
+            })
+
+        })
+
+            var gridbank = new Ext.grid.GridPanel ({
+
+            id:'bank_list',
+            title:'Bank Account List',
+            store:storebank,
+//            viewConfig:{
+//                forceFit:true
+//            },
+            height:300,
+            width:840,
+            columns:[{
+                header:'Bank Name',
+                dataIndex:'bnk_nama',
+                sortable:true,
+                align:'center',
+                width:100
+            },{
+                header:'Bank Account Number',
+                dataIndex:'bnk_norek',
+                sortable:true,
+                align:'center',
+                width:120
+            },{
+                header:'Bank Account Name',
+                dataIndex:'bnk_noreknama',
+                sortable:true,
+                align:'center',
+                width:120
+            },{
+                header:'Bank Valuta',
+                dataIndex:'val_kode',
+                sortable:true,
+                align:'center',
+                width:100
+            },{
+                header:'Bank Branch',
+                dataIndex:'bnk_cabang',
+                sortable:true,
+                align:'center',
+                width:140
+            },{
+                header:'Bank Address',
+                dataIndex:'bnk_alamat',
+                sortable:true,
+                align:'center',
+                width:180
+            },{
+                header:'Bank City Address',
+                dataIndex:'bnk_kota',
+                sortable:true,
+                align:'center',
+                width:120
+            }],bbar: new Ext.PagingToolbar ({
+                id: 'paging',
+                pageSize: 10,
+                store: storebank,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),listeners:
+                {
+                    'rowdblclick':function(gridaktif,rowindex,e)
+                    {
+                        isDbClick = true;
+                        var bank = gridaktif.getStore().getAt(rowindex);
+                        Ext.getCmp('bank_nama').setValue(bank.data['bnk_nama']);
+                        Ext.getCmp('banknoreknama').setValue(bank.data['bnk_noreknama']);
+                        Ext.getCmp('banknorek').setValue(bank.data['bnk_norek']);
+                        Ext.getCmp('bank_nama').id_bank = bank.data['id'];
+                        bankwindow.close();
+
+                    }
+                }
+
+
+        })
+
+
+            var bankwindow = new Ext.Window ({
+
+                title:'Choose Bank to Edit',
+                id:'choose-bank',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 854,
+                height: 330,
+                loadMask:true,
+                items:[gridbank]
+
+
+            })
+
+            bankwindow.show();
+        }
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var addcoa = new Ext.form.FormPanel({
+
+            title:'Create COA - Bank',
+            id:'add-new-coa',
+            renderTo:'add_new_coa',
+            iconCls: 'silk-user',
+            frame: true,
+            width:450,
+            labelWidth:100,
+            items:[{
+                xtype:'coaselector',
+                fieldLabel:'COA Code',
+                id:'coa_kode',
+                Selectid:'coa_kode_text',
+                Nameid:'coa_nama_text',
+                width:180,
+                ShowName: true,
+                allowBlank:false
+            },{
+                fieldLabel : 'Trano Type',
+                id:'trano_type',
+                xtype:'combo',
+                store: new Ext.data.Store({
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/finance/coa/gettranotype'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'count',
+                        root: 'data'
+                    }, [{
+                            name: 'trano'
+                        }])
+                }),
+                valueField:'trano',
+                displayField:'trano',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'remote',
+                triggerAction: 'all',
+                allowBlank: false,
+                editable: false,
+                selectOnFocus:true,
+                width:100
+            },
+            {
+                xtype:'trigger',
+                fieldLabel:'Bank Name',
+                triggerClass:'teropong',
+                allowBlank:false,
+                editable:false,
+                id_bank: '',
+                id:'bank_nama',
+                width:157,
+                onTriggerClick:function()
+                {
+                    showbanklist();
+                }
+            },
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Account Name',
+                id: 'banknoreknama',
+                readOnly: true
+            },
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Account No',
+                id: 'banknorek',
+                readOnly: true
+            },
+            {
+                    fieldLabel: 'Currency',
+                    xtype: 'combo',
+                    width: 100,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['name', 'nilai'],
+                        data: [
+                            ['CNY','CNY'],
+                            ['EUR','EUR'],
+                            ['USD','USD'],
+                            ['IDR','IDR'],
+                            ['KRW','KRW']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    value:'IDR',
+                    selectOnFocus: true,
+                    id: 'val_kode'
+            }
+            ],
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    if(!Ext.getCmp('add-new-coa').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('add-new-coa').getForm().submit({
+                        params: {
+                            bank_id: Ext.getCmp('bank_nama').id_bank,
+                            coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                            coa_nama: Ext.getCmp('coa_nama_text').getValue(),
+                            trano_type: Ext.getCmp('trano_type').getValue()
+                        },
+                        method:'POST',
+                        url:'/finance/coa/doinsertcoabank',
+                        success:function(thisForm,response)
+                        {
+                            Ext.getBody().unmask();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/coa/coabanklist',
+                                scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/coa/coamenu',
+                        scripts : true
+                    });
+                }
+            }]
+
+
+        })
+
+
+
+    })
+
+
+</script>
+
+    <div id="add_new_coa"></div>

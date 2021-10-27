@@ -1,0 +1,923 @@
+<script type="text/javascript">
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method:'POST',
+            success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if(returnData.success) {
+                        Ext.getCmp('rate_text').setValue(returnData.rate);
+                    }
+                }
+                ,failure:function( action){
+            if(action.failureType == 'server'){
+            obj = Ext.util.JSON.decode(action.response.responseText);
+            Ext.Msg.alert('Error!', obj.errors.reason);
+            }
+            }
+        });
+    }
+
+    var jurnal = new Ext.ux.grid.gridJurnal({
+        height: 300,
+        width: 750,
+        id: 'grid-jurnal',
+//        renderTo:'gridjurnal',
+        hideRefNumber: false
+    });
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+	        }
+    });
+
+    var adjustingjournallist = Ext.data.Record.create([
+        {name:'trano'},
+        {name:'type'},
+        {name:'prj_kode'},
+        {name:'prj_nama'},
+        {name:'sit_kode'},
+        {name:'sit_nama'},
+        {name:'sit_kode'},
+        {name:'ref_number'},
+        {name:'tgl'},
+        {name:'uid'},
+        {name:'ket'},
+        {name:'coa_kode'},
+        {name:'coa_nama'},
+        {name:'val_kode'},
+        {name:'rate'},
+        {name:'debit'},
+        {name:'credit'}
+    ])
+
+    var storeadjustingjournal = new Ext.data.GroupingStore ({
+        id:'store-adjustingjournal',
+        reader:new Ext.data.JsonReader({fields:adjustingjournallist}),
+        listeners:{
+            'load':function(record){
+                hitungTotal();
+            }
+        }
+    });
+
+    var totDebit = 0;
+    var totCredit = 0;
+
+    function hitungTotal()
+    {
+        totDebit = 0;
+        totCredit = 0;
+
+        storeadjustingjournal.each(function(items){
+                totDebit += (parseFloat(items.data['debit']));
+                totCredit += (parseFloat(items.data['credit']));
+
+        });
+        Ext.getCmp('debittotal').setText('Total Debit : ' + Ext.util.Format.number(totDebit, '0,0'));
+        Ext.getCmp('credittotal').setText('Total Credit : ' + Ext.util.Format.number(totCredit, '0,0'));
+    }
+
+    function edit(r)
+    {
+
+//        var strPR = storebankin.getAt(storePR.findExact('id',stores.data['id']));
+
+        var dat = storeadjustingjournal.getAt(r);
+        Ext.getCmp('type-journal').setValue(dat.data['type']);
+        Ext.getCmp('acc-number').setValue(dat.data['ref_number']);
+        Ext.getCmp('coa-kode').setValue(dat.data['coa_kode']);
+        Ext.getCmp('coa-nama').setValue(dat.data['coa_nama']);
+        Ext.getCmp('val-kode').setValue(dat.data['val_kode']);
+        Ext.getCmp('debit').setValue(dat.data['debit']);
+        Ext.getCmp('credit').setValue(dat.data['credit']);
+        Ext.getCmp('desc').setValue(dat.data['ket']);
+
+        Ext.getCmp('form-insert-adjustingjournal').stat = 'edit';
+        Ext.getCmp('form-insert-adjustingjournal').idEdit = dat.id;
+    }
+
+    function deleterowgrid (idItem)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+            if (btn == 'yes')
+            {
+                var store = storeadjustingjournal;
+                var dat = store.getById(idItem);
+
+                if (dat)
+                {
+                    store.remove(dat);
+                    Ext.getCmp('form-insert-adjustingjournal').stat = 'new';
+                    Ext.getCmp('form-insert-adjustingjournal').idEdit = '';
+                    Ext.getCmp('grid-adjustingjournal').getView().refresh();
+                    hitungTotal();
+                }
+            }
+        });
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'General Journal Entries',
+            id:'form-insert-adjustingjournal',
+            renderTo:'insert_adjustingjournal',
+            frame:true,
+            labelAlign: 'leftLabelField',
+            style:'margin:10 10 10 10',
+            width:400,
+//            stat:'new',
+            items:[
+            {
+                xtype:'combo',
+                fieldLabel:'Type Journal',
+                width:150,
+                store:new Ext.data.SimpleStore ({
+                    fields:['name','nilai'],
+                    data:[
+                        ['Adjusting Journal','ADJ'],
+                        ['Voucher Journal','JV'],
+                        ['Sales Journal','SJ'],
+                        ['Settlement Journal','JS']
+                    ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                allowBlank:false,
+//                emptyText:'Choose Type',
+                id:'type-journal',
+                listeners: {
+                    'select' : { fn:
+                        function(c, row, index)
+                        {
+                            jurnal.printTitle = row.get("name");
+                        }
+                    }
+                }
+            },{
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: true,
+                fieldLabel:'Project Code',
+                allowBlank:false
+            },{
+                xtype: 'siteselector',
+                anchor: '100%',
+                independent: false,
+                id: 'site-select',
+                SiteSelectid: 'sit_kode_text',
+                SiteNameid: 'sit_nama_text',
+                ProjectSelectid: 'prj_kode_text',
+                ShowName: true,
+                fieldLabel:'Site Code',
+                allowBlank:false
+            },
+            {
+                xtype:'tranoselector',
+                fieldLabel:'Referrence Number',
+                id:'acc-numbers',
+                Selectid: 'acc-number',
+                Enableeditable: true,
+                allowBlank:false,
+                width: 150
+            },{
+                xtype:'textarea',
+                fieldLabel:'Description ',
+                id:'desc',
+                width:200,
+                allowBlank:false
+            },
+//                {
+//                layout:'column',
+//                items:[{
+//                    columnWidth:0.33,
+//                    layout:'form',
+//                    items:[{
+//                        xtype:'combo',
+//                        width:100,
+//                        fieldLabel:'Chart Of Account ',
+//                        store: new Ext.data.Store({
+//                            autoLoad: true,
+//                            fields:['name','nilai'],
+//                            proxy: new Ext.data.HttpProxy({
+//                                url: '/finance/paymentreimbursement/getcoalist'
+//                            }),
+//                            reader: new Ext.data.JsonReader({
+//                                totalProperty: 'total',
+//                                root: 'data'
+//                            }, [{
+//                                    name: 'coa_kode'
+//                                },{
+//                                    name: 'coa_nama'
+//                                }])
+//                        }),
+//                        valueField:'coa_kode',
+//                        displayField:'coa_kode',
+//                        typeAhead: true,
+//                        forceSelection: true,
+//                        editable: true,
+//                        mode: 'remote',
+//                        triggerAction: 'all',
+//                        selectOnFocus: true,
+//                        id:'coa-kode',
+//                        allowBlank:false,
+//                        anchor:'79%',
+//                        listeners:{
+//                            'select':function(combo,rec,index)
+//                            {
+//                                var row = rec.data['coa_nama'];
+//                                Ext.getCmp('coa-nama').setValue(row);
+//
+//                            }
+//                        }
+//                    }]
+//                },{
+//                    columnWidth:0.67,
+//                    layout:'form',
+//                    items:[{
+//                        xtype:'textfield',
+//                        fieldLabel:'',
+//                        id:'coa-nama',
+//                        readOnly:true,
+//                        allowBlank:false
+//                    }]
+//                }]
+//            },
+                {
+                fieldLabel:'Valuta ',
+                xtype:'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['IDR','IDR'],
+                            ['USD','USD']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                id:'val-kode'
+            },new Ext.ux.customRendererField({
+                xtype:'textfield',
+                fieldLabel:'Rateidr ',
+                id:'rate_text',
+                vtype:'numeric',
+                style:'text-align:right',
+                priceDelemiter:',',
+                value:getExchangeRate()
+            }),{
+                xtype:'coaselector',
+                fieldLabel:'Chart Of Account',
+                id:'coa_kodes',
+                Selectid:'coa_kode',
+                Nameid:'coa_nama',
+                width:180,
+                ShowName: true,
+                allowBlank:false
+            },{
+                xtype:'textfield',
+                id:'debit',
+                style:'text-align:right',
+                priceDelemiter:',',
+                fieldLabel:'Debit ',
+                vtype:'numeric',
+                value:'0.00',
+                listeners:{
+                    'blur': function(t) {
+                            if (!isNaN(t.getValue()))
+                            {
+                                t.setValue(CommaFormatted(t.getValue()));
+                            }
+                        },
+                        'focus': function(t) {
+                            if (t.getValue().search(",")>0)
+                                t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+                            Ext.getCmp('credit').setValue('0.00');
+                        }
+                }
+            },{
+                xtype:'textfield',
+                id:'credit',
+                style:'text-align:right',
+                priceDelemiter:',',
+                fieldLabel:'Credit ',
+                vtype:'numeric',
+                value:'0.00',
+                listeners:{
+                    'blur': function(t) {
+                        if (!isNaN(t.getValue()))
+                        {
+                            t.setValue(CommaFormatted(t.getValue()));
+                        }
+                    },
+                    'focus': function(t) {
+                        if (t.getValue().search(",")>0)
+                            t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+                        Ext.getCmp('debit').setValue('0.00');
+                    }
+                }
+            }
+//                ,{
+//                layout:'column',
+//                items:[{
+//                    columnWidth:0.5,
+//                    layout:'form',
+//                    items:[{
+//                        xtype:'textfield',
+//                        id:'debit',
+//                        style:'text-align:right',
+//                        priceDelemiter:',',
+//                        fieldLabel:'Debit ',
+//                        vtype:'numeric',
+//                        value:0,
+//                        listeners:{
+//                            'blur': function(t) {
+//                                    if (!isNaN(t.getValue()))
+//                                    {
+//                                        t.setValue(CommaFormatted(t.getValue()));
+//                                    }
+//                                },
+//                                'focus': function(t) {
+//                                    if (t.getValue().search(",")>0)
+//                                        t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+//                                    Ext.getCmp('credit').setValue(0);
+//                                }
+//                        }
+//                    }]
+//                },{
+//                    columnWidth:0.5,
+//                    layout:'form',
+//                    items:[{
+//                            xtype:'textfield',
+//                            id:'credit',
+//                            style:'text-align:right',
+//                            priceDelemiter:',',
+//                            fieldLabel:'Credit ',
+//                            vtype:'numeric',
+//                            value:0,
+//                            listeners:{
+//                                'blur': function(t) {
+//                                    if (!isNaN(t.getValue()))
+//                                    {
+//                                        t.setValue(CommaFormatted(t.getValue()));
+//                                    }
+//                                },
+//                                'focus': function(t) {
+//                                    if (t.getValue().search(",")>0)
+//                                        t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+//                                    Ext.getCmp('debit').setValue(0);
+//                                }
+//                            }
+//                    }]
+//                }]
+//            }
+            ],
+            buttons:[{
+                text:'Add to Grid',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    if (!Ext.getCmp('form-insert-adjustingjournal').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    if (Ext.getCmp('prj_kode_text').getValue() == '' )
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry , please insert Project Code',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (Ext.getCmp('sit_kode_text').getValue() == '' )
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry , please insert Site Code',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,'') == 0 && Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,'') == 0 )
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry , please insert field debit or credit',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (storeadjustingjournal.getCount() > 0)
+                    {
+                        var row = storeadjustingjournal.getAt(storeadjustingjournal.findExact('val_kode',Ext.getCmp('val-kode').getValue()));
+
+                        if (row == null)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Sorry this document different valuta',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                        }
+                    }
+
+//                    if (storeadjustingjournal.getCount() > 0)
+//                    {
+//                        var row = storeadjustingjournal.getAt(storeadjustingjournal.findExact('type',Ext.getCmp('type-journal').getValue()));
+//
+//                        if (row == null)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Sorry this document has different journal type',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR
+//                                });
+//                                return false;
+//                        }
+//                    }
+
+                    var e = new adjustingjournallist ({
+                        type:Ext.getCmp('type-journal').getValue(),
+                        prj_kode:Ext.getCmp('prj_kode_text').getValue(),
+                        prj_nama:Ext.getCmp('prj_nama_text').getValue(),
+                        sit_kode:Ext.getCmp('sit_kode_text').getValue(),
+                        sit_nama:Ext.getCmp('sit_nama_text').getValue(),
+                        ref_number:Ext.getCmp('acc-number').getValue(),
+                        coa_kode:Ext.getCmp('coa_kode').getValue(),
+                        coa_nama:Ext.getCmp('coa_nama').getValue(),
+                        val_kode:Ext.getCmp('val-kode').getValue(),
+                        ket:Ext.getCmp('desc').getValue(),
+                        debit:Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,''),
+                        credit:Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,''),
+                        rate:parseFloat(Ext.getCmp('rate_text').getValue().toString().replace(/\$|\,/g,''))
+                    })
+
+                    storeadjustingjournal.add(e);
+
+//                    Ext.MessageBox.alert('Status', 'Changes saved successfully.');
+
+                    var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+                    var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                    var type = Ext.getCmp('type-journal').getValue();
+                    var ref_number = Ext.getCmp('acc-number').getValue();
+                    var coa_kode = Ext.getCmp('coa_kode').getValue();
+                    var coa_nama = Ext.getCmp('coa_nama').getValue();
+                    var val_kode = Ext.getCmp('val-kode').getValue();
+                    var ket  = Ext.getCmp('desc').getValue();
+                    var debit = parseFloat(Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,''));
+                    var credit = parseFloat(Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,''));
+                    var rate = parseFloat(Ext.getCmp('rate_text').getValue().toString().replace(/\$|\,/g,''));
+
+
+                    var coas = '';
+
+                    var addInfo = {
+                        prj_kode: 'prj_kode',
+                        sit_kode: 'sit_kode',
+                        trano: '',
+                        ref_number: ref_number,
+                        rateidr: '',
+                        tipe: 'DELETED'
+                    };
+
+                    if (debit == 0)
+                    {
+                        coas = [{
+                             coa_kode: coa_kode,
+                             value: parseFloat(Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,'')),
+                             side: 'credit'
+                        }]
+                    }
+
+                    if (credit == 0)
+                    {
+                        coas = [{
+                             coa_kode: coa_kode,
+                             value: parseFloat(Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,'')),
+                             side: 'debit'
+                        }]
+                    }
+
+                     jurnal.getCoa(coas,addInfo);
+
+//                    var ref_number = Ext.getCmp('acc-number').getValue();
+//                    var valuta = Ext.getCmp('val-kode').getValue();
+//                    var type = Ext.getCmp('type-journal').getValue();
+
+                    Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+
+                    Ext.getCmp('acc-number').setValue(ref_number);
+                    Ext.getCmp('val-kode').setValue(val_kode);
+                    Ext.getCmp('type-journal').setValue(type);
+                    Ext.getCmp('desc').setValue(ket);
+                    Ext.getCmp('rate_text').setValue(rate);
+                    Ext.getCmp('coa_kode').setValue('');
+                    Ext.getCmp('coa_nama').setValue('');
+                    Ext.getCmp('type-journal').disable();
+                    
+
+//                    if (Ext.getCmp('form-insert-adjustingjournal').stat == 'new')
+//                    {
+//                        var e = new adjustingjournallist ({
+//                        type:Ext.getCmp('type-journal').getValue(),
+//                        ref_number:Ext.getCmp('acc-number').getValue(),
+//                        coa_kode:Ext.getCmp('coa-kode').getValue(),
+//                        coa_nama:Ext.getCmp('coa-nama').getValue(),
+//                        val_kode:Ext.getCmp('val-kode').getValue(),
+//                        ket:Ext.getCmp('desc').getValue(),
+//                        debit:Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,''),
+//                        credit:Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,'')
+//                        })
+//
+//                        storeadjustingjournal.add(e);
+//
+////                        Ext.MessageBox.alert('Status', 'Changes saved successfully.');
+//
+//                    }else
+//                    {
+//                        if (Ext.getCmp('form-insert-adjustingjournal').stat == 'edit')
+//                        {
+//                            var row = storeadjustingjournal.getById(Ext.getCmp('form-insert-adjustingjournal').idEdit);
+//
+//                            row.data['type'] = Ext.getCmp('type-journal').getValue(),
+//                            row.data['ref_number'] = Ext.getCmp('acc-number').getValue(),
+//                            row.data['coa_kode'] = Ext.getCmp('coa-kode').getValue(),
+//                            row.data['coa_nama'] = Ext.getCmp('coa-nama').getValue(),
+//                            row.data['val_kode'] = Ext.getCmp('val-kode').getValue(),
+//                            row.data['ket'] = Ext.getCmp('desc').getValue(),
+//                            row.data['debit'] = Ext.getCmp('debit').getValue().toString().replace(/\$|\,/g,''),
+//                            row.data['credit'] = Ext.getCmp('credit').getValue().toString().replace(/\$|\,/g,'')
+//
+//                            Ext.MessageBox.alert('Status', 'Update Data successfully.');
+//                        }
+//                    }
+//
+//                    Ext.getCmp('form-insert-adjustingjournal').stat = 'new';
+//                    Ext.getCmp('form-insert-adjustingjournal').idEdit = '';
+//                    Ext.getCmp('grid-adjustingjournal').getView().refresh();
+//
+//                    var ref_number = Ext.getCmp('acc-number').getValue();
+//                    var valuta = Ext.getCmp('val-kode').getValue();
+//                    var type = Ext.getCmp('type-journal').getValue();
+//
+//                    Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+//
+//                    Ext.getCmp('acc-number').setValue(ref_number);
+//                    Ext.getCmp('val-kode').setValue(valuta);
+//                    Ext.getCmp('type-journal').setValue(type);
+//
+//                    hitungTotal();
+
+                }
+            },{
+                text:'Reset',
+                style:'margin-right:26px;',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('form-insert-adjustingjournal').getForm().reset();
+                    Ext.getCmp('prj_kode_text').setValue('');
+                    Ext.getCmp('prj_nama_text').setValue('');
+                    Ext.getCmp('sit_kode_text').setValue('');
+                    Ext.getCmp('sit_nama_text').setValue('');
+                    Ext.getCmp('rate_text').setValue(getExchangeRate());
+                }
+            }]
+
+        })
+
+        var paneljurnal = new Ext.form.FormPanel ({
+
+            renderTo:'jurnal_panel',
+            frame:true,
+            labelAlign: 'top',
+            style:'margin:10 10 10 10',
+            width:760,
+            items:[
+                jurnal
+            ],
+            buttons:[{
+                text:'Submit',
+                iconCls:'icon-save',
+                handler:function(btn,ev)
+                {
+//                    var totdebit = parseFloat(totDebit.toString().replace(/\$|\,/g,''));
+//                    var totcredit = parseFloat(totCredit.toString().replace(/\$|\,/g,''));
+//
+//                    if (totdebit != totcredit)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Sorry, Debit and Credit Total Must be Balance',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR
+//                        });
+//                        return false;
+//                    }
+
+                    var count =  storeadjustingjournal.getCount();
+                    if (count == 0)
+                    {
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var adjustingjournaldata = '';
+                            var jsonJurnal = '';
+                            var totaldata = 0;
+                            storeadjustingjournal.each(function(store){
+                                adjustingjournaldata += Ext.util.JSON.encode(store.data) + ',';
+                            })
+
+                            adjustingjournaldata = '[' + adjustingjournaldata.substring(0, adjustingjournaldata.length - 1) + ']';
+
+                            jsonJurnal =jurnal.getJSONFromStore();
+
+                            if (jsonJurnal == false)
+                                return false;
+
+                            var params = {
+                                adjustingjournaldata:adjustingjournaldata,jsonJurnal:jsonJurnal
+                            }
+
+                            Ext.Ajax.request({
+                                url:'/finance/adjustingjournal/doinsertadjustingjournal',
+                                method:'POST',
+                                params:params,
+                                success:function(result){
+                                    obj = Ext.util.JSON.decode(result.responseText);
+
+                                    if (obj.success)
+                                    {
+//                                        Ext.Msg.alert ('Message','Success, ');
+                                        Ext.MessageBox.confirm(
+                                            'Success',
+                                            'Data has been saved' +
+                                            '<br><br>Your Transaction number is <b><font color="#ff0000">' +
+                                            obj.number +
+                                            '</font></b>' +
+                                            '<br>Do You want to Print the Journal?',
+                                            function(btn){
+                                                if (btn == 'yes')
+                                                {
+                                                    jurnal.additionalHTML = '<h3 style="padding: 10px">Transaction Number : <b>' + obj.number + '</b></h3>'
+                                                    jurnal.printJurnal();
+                                                }
+
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                myPanel.body.load({
+                                                    url: '/finance/adjustingjournal/insertjournal',
+                                                    scripts : true
+                                                });
+                                            }
+                                        );
+
+
+
+                                    }else
+                                    {
+                                        Ext.Msg.alert('Error', obj.msg);
+                                    }
+                                },
+                                failure:function( action){
+                                    if(action.failureType == 'server'){
+                                      obj = Ext.util.JSON.decode(action.response.responseText);
+                                      Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+
+                            })
+                        }
+
+                    })
+
+                }
+            }]
+
+        })
+
+//        var gridpanel = new Ext.grid.GridPanel ({
+//
+//            store:storeadjustingjournal,
+//            renderTo:'grid_adjustingjournal',
+//            id:'grid-adjustingjournal',
+//            frame:true,
+//            width:800,
+//            height:200,
+//            style:'margin:10 10 10 10',
+//            viewConfig:{
+//                forceFit:true
+//            },
+//            columns:[new Ext.grid.RowNumberer(),{
+//                header: "Action",
+//                width: 60,
+//                dataIndex: 'id',
+//                css:'text-align:center;',
+//                renderer: function (v,p,r) {
+//                        return '<a href="#" onclick="deleterowgrid(\'' + r.id + '\')"><img src="/images/g_rec_del.png"></a>';
+//                }
+//            },{
+//                header:'Type',
+//                dataIndex:'type',
+//                sortable:true
+//            },{
+//                header:'Referrence',
+//                dataIndex:'ref_number',
+//                sortable:true
+//            },{
+//                header:'COA Code',
+//                dataIndex:'coa_kode',
+//                sortable:true
+//            },{
+//                header:'COA Name',
+//                dataIndex:'coa_nama',
+//                sortable:true
+//            },{
+//                header:'Valuta',
+//                dataIndex:'val_kode'
+//            },{
+//                header:'Debit',
+//                dataIndex:'debit',
+//                sortable:true,
+//                align:'right',
+//                renderer: function(v){
+//                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+//                }
+//            },{
+//                header:'Credit',
+//                dataIndex:'credit',
+//                sortable:true,
+//                align:'right',
+//                renderer: function(v){
+//                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+//                }
+//            }],
+//            buttons:[{
+//                text:'Submit',
+//                iconCls:'icon-save',
+//                handler:function(btn,ev)
+//                {
+//                    var totdebit = parseFloat(totDebit.toString().replace(/\$|\,/g,''));
+//                    var totcredit = parseFloat(totCredit.toString().replace(/\$|\,/g,''));
+//
+//                    if (totdebit != totcredit)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Sorry, Debit and Credit Total Must be Balance',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR
+//                        });
+//                        return false;
+//                    }
+//
+//                    var count =  storeadjustingjournal.getCount();
+//                    if (count == 0)
+//                    {
+//                        return false;
+//                    }
+//
+//                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+//
+//                        if (btn == 'yes')
+//                        {
+//                            var adjustingjournaldata = '';
+//                            var totaldata = 0;
+//                            storeadjustingjournal.each(function(store){
+//                                adjustingjournaldata += Ext.util.JSON.encode(store.data) + ',';
+//                            })
+//
+//                            adjustingjournaldata = '[' + adjustingjournaldata.substring(0, adjustingjournaldata.length - 1) + ']';
+//
+//                            var params = {
+//                                adjustingjournaldata:adjustingjournaldata
+//                            }
+//
+//                            Ext.Ajax.request({
+//                                url:'/finance/adjustingjournal/doinsertadjustingjournal',
+//                                method:'POST',
+//                                params:params,
+//                                success:function(result){
+//                                    obj = Ext.util.JSON.decode(result.responseText);
+//
+//                                    if (obj.success)
+//                                    {
+//                                        Ext.Msg.alert ('Message','Success, Data has been saved');
+//                                        myPanel = Ext.getCmp('abs-budget-panel');
+//                                        myPanel.body.load({
+//                                        url: '/finance/adjustingjournal/menu',
+//                                        scripts : true
+//                                        });
+//                                    }else
+//                                    {
+//                                        Ext.Msg.alert('Error', obj.msg);
+//                                    }
+//                                },
+//                                failure:function( action){
+//                                    if(action.failureType == 'server'){
+//                                      obj = Ext.util.JSON.decode(action.response.responseText);
+//                                      Ext.Msg.alert('Error!', obj.errors.reason);
+//                                    }else{
+//                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+//                                    }
+//                                }
+//
+//                            })
+//                        }
+//
+//                    })
+//
+//                }
+//            }],bbar: new Ext.Toolbar({
+//                id: 'total-bbar',
+//                style:"text-align:right",
+//                items: [{
+//                         xtype: 'label',
+//                         id: 'debittotal',
+//                        style:'color:red;font-weight:bold;margin-right:20px;font-size:12'
+//                        },
+//                        {
+//                         xtype: 'label',
+//                         id: 'credittotal',
+//                        style:'color:red;font-weight:bold;font-size:12;margin-right:10px'
+//                        }],
+//                layout: 'fit'
+//            }),
+//            listeners:{
+//                'rowdblclick':function(g,r,e)
+//                {
+//                    edit(r);
+//
+////                    var dat = storebankin.getAt(r);
+////                    Ext.getCmp('acc-number').setValue(dat.data['ref_number']);
+////                    Ext.getCmp('coa-kode').setValue(dat.data['coa_kode']);
+////                    Ext.getCmp('coa-nama').setValue(dat.data['coa_nama']);
+////                    Ext.getCmp('val-kode').setValue(dat.data['val_kode']);
+////                    Ext.getCmp('debit').setValue(dat.data['debit']);
+////                    Ext.getCmp('credit').setValue(dat.data['credit']);
+////
+////                    Ext.getCmp('form-insert-bank-in').stat = 'edit';
+////                    Ext.getCmp('form-insert-bank-in').idEdit = dat.id;
+//                },
+//                'afterrender':function(t)
+//                {
+//                    hitungTotal();
+//                }
+//            }
+//
+//        })
+
+
+
+
+    })
+
+</script>
+
+    <div id="insert_adjustingjournal"></div>
+    <div id="jurnal_panel"></div>
+<!--    <div id="gridjurnal" style="margin-top:10px;margin-left:10px;"></div>-->

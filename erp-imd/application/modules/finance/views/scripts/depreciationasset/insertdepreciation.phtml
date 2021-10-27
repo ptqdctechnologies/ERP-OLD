@@ -1,0 +1,116 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var periode = new Ext.form.FieldSet ({
+
+            title: 'Current Periode',
+            width:260,
+            items: [{
+                xtype:'textfield',
+                fieldLabel:'Periode Code',
+                width:104,
+                id:'perkode',
+                name: 'perkode',
+                readOnly: true,
+                value: '<?=$this->perkode?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Year',
+                width:104,
+                value: '<?=$this->year?>',
+                readOnly: true,
+                id:'year'
+            },{
+                id:'month',
+                xtype:'textfield',
+                fieldLabel:'Month',
+                width:104,
+                value: '<?=$this->month?>',
+                readOnly: true
+            },{
+                xtype:'textfield',
+                fieldLabel: 'Start Date',
+                id: 'startdt',
+                value: '<?=$this->tgl_awal?>',
+                width:104,
+                readOnly: true
+            },{
+                xtype:'textfield',
+                fieldLabel: 'End Date',
+                id: 'enddt',
+                value: '<?=$this->tgl_akhir?>',
+                width:104,
+                readOnly: true
+            }],
+            buttons:[{
+                text:'Submit',
+                style:'margin-right:20px',
+                handler:function(btn,ev)
+                {
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn)
+                    {
+                        if(btn == 'yes')
+                        {
+                            Ext.getCmp('depreciation-asset-entries').getForm().submit({
+                            method:'POST',
+                            url:'/finance/depreciationasset/doinsertdepreciation',
+                            success:function(thisForm,response){
+                            if (response.result.success)
+                            {
+                                var trano = response.result.trano;
+                                Ext.Msg.alert('Message','Success,' + ' Data has been saved' +
+                                                '<br><br>Your transaction number is <b><font color="#ff0000">' +
+                                                trano +
+                                                '</font></b>');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                url: '/finance/depreciationasset/menu',
+                                scripts : true
+
+                                });
+                            }
+//                            Ext.Msg.alert('Message','Success,' + ' Data has been saved' +
+//                                            '<br><br>Your transaction number is <b><font color="#ff0000">' +
+//                                            trano +
+//                                            '</font></b>');
+
+                            },
+                            failure:function(thisForm,response){
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.msg);
+                                }
+                            }
+                            })
+
+                        }
+                    })
+                }
+            }]
+
+        })
+
+
+        var panel = new Ext.form.FormPanel ({
+
+            title:'Depreciation Fixed Asset Entries',
+            id:'depreciation-asset-entries',
+            renderTo:'depreciation_asset_entries',
+            frame:true,
+            width:272,
+            items:[periode]
+
+
+        })
+
+
+    })
+
+
+</script>
+
+<div id="depreciation_asset_entries"></div>

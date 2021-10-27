@@ -1,0 +1,375 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function showDetail (objBrg)
+        {
+            var rowactions = new Ext.ux.grid.RowActions({
+                autoWidth: false,
+                width: 50,
+                actions:[
+                    {
+                        iconCls:'silk-magnifier',
+                        qtip:'View Transaction',
+                        id: 'view',
+                        callback: function (grid,record,action,row,col)
+                        {
+                            if (record.get("trans") == 'ISUPP')
+                                popup('/logistic/report/isupp-detail/popup/true/trano/' + record.data['trano'],'trans-detail');
+                            else if (record.get("trans") == 'ICAN')
+                                popup('/logistic/report/ican-detail/popup/true/trano/' + record.data['trano'],'trans-detail');
+                            else if (record.get("trans") == 'ILOV')
+                                popup('/logistic/report/ilov-detail/popup/true/trano/' + record.data['trano'],'trans-detail');
+                            else if (record.get("trans") == 'DO')
+                                popup('/default/report/dodetail/popup/true/trano/' + record.data['trano'],'trans-detail');
+                        }
+                    }
+                ]
+                ,index: 'actions'
+                ,header: ''
+            });
+
+            var kode_brg = objBrg.data['kode_brg'],
+                nama_brg = objBrg.data['nama_brg'],
+                perkode = '<?=$this->perkode?>',
+                start_date = '<?=$this->start_date?>',
+                end_date = '<?=$this->end_date?>',
+                gdg_kode = '<?=$this->gdg_kode?>';
+
+            nama_brg = nama_brg.toString().substr(0,30) + " ...";
+
+            var summary = new Ext.grid.GroupSummary();
+            var store = new Ext.ux.MultiGroupingStore({
+                url:'/logistic/inventory/get-transaction-detail/kode_brg/' + kode_brg,
+                baseParams: {
+                    perkode: perkode,
+                    start_date: start_date,
+                    end_date: end_date,
+                    gdg_kode: gdg_kode
+                },
+                reader: new Ext.data.JsonReader({
+                        totalProperty: 'count',
+                        root : 'data'},
+                    [
+                        {name:'id'},
+                        {name:'trano'},
+                        {name:'trans'},
+                        {name:'tgl'},
+                        {name:'qty'},
+                        {name:'prj_kode'},
+                        {name:'sit_kode'},
+                        {name:'sat_kode'},
+                        {name:'type'},
+                        {name:'sub_type'}
+                    ]
+                )
+                ,sortInfo: {field: 'tgl', direction: 'DESC'}
+                ,groupField: ['type','sub_type']
+            });
+
+            var groupView = new Ext.ux.MultiGroupingView({
+                hideGroupedColumn :true
+                ,enableRowBody:true
+                ,getRowClass:function(record, rowIndex, p, store) {
+//                return 'x-grid3-row-with-body3';
+                }
+                ,startCollapsed: false
+                ,forceFit: true
+                ,emptyGroupText: 'NULL'
+                ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+                ,groupTextTpl:
+                    '{gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Item" : "Items"]})'
+//                        '{[values.group == "arf_no" ? (values.rs[0].data["bt"] == true ? "&nbsp;&nbsp;<span style=\'color: red;\'>(Bussiness Trip)</span>" : "") : "" ]} '
+                ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+            });
+
+            store.load();
+
+            var barang_grid = new Ext.ux.MultiGroupingPanel({
+                store:store,
+                stateful: false,
+                columns: [
+                    rowactions,
+                    {
+                        header: 'Type',
+                        dataIndex: 'type',
+                        sortable: true,
+                        width: 80
+                    },{
+                        header: 'Desc.',
+                        dataIndex: 'sub_type',
+                        sortable: true,
+                        width: 80
+                    },{
+                        header: 'Date',
+                        dataIndex: 'tgl',
+                        sortable: true,
+                        renderer: Ext.util.Format.dateRenderer('d M Y'),
+                        width: 80
+                    },{
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        sortable: true,
+                        width: 120
+                    },{
+                        header: 'Project',
+                        dataIndex: 'prj_kode',
+                        sortable: true,
+                        width: 120
+                    },{
+                        header: 'Site',
+                        dataIndex: 'sit_kode',
+                        sortable: true,
+                        width: 120
+                    },
+                    {
+                        header: 'UOM',
+                        width: 40,
+                        sortable: true,
+                        dataIndex: 'sat_kode'
+                    },{
+                        header: 'Qty',
+                        dataIndex: 'qty',
+                        sortable: true,
+                        width: 120,
+                        summaryType: 'sum',
+                        align: 'right',
+                        renderer: function(v,p,r){
+                            var value = Ext.util.Format.number(v,'?0,000.0000');
+                            return value;
+                        }
+                    }
+                ],
+                id: 'barang-grid',
+                height:300,
+                view : groupView,
+                plugins: [summary, rowactions]
+            });
+
+            var window = new Ext.Window ({
+
+                title:'Transaction Detail for ' + kode_brg + " - " + nama_brg,
+                id:'barang_windows',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 680,
+                height: 360,
+                loadMask:true,
+                items:[
+                    barang_grid
+                ],
+//                tbar: [{
+//                    xtype: 'button',
+//                    iconCls: 'silk-printer',
+//                    text: 'Print This Table',
+//                    handler: function(){
+//                        Ext.ux.Printer.print({
+//                            component: barang_grid,
+//                            printTitle: 'Detail Warehouse Transaction',
+//                            additionalHTML: '<h1>Product ID : ' + kode_brg + '</h1>' +
+//                                '<h1>Product Name : ' + nama_brg + '</h1>' +
+//                                '<h2>Periode : ' + perkode + '</h2>' +
+//                                '<h2>Date From : ' + Ext.util.Format.date('d M Y',start_date) + ' To ' + Ext.util.Format.date('d M Y',end_date) + '</h2>'
+//                        });
+//                    }
+//                }]
+                buttons: [
+                    {
+                        text: 'Close',
+                        handler: function()
+                        {
+                            window.close();
+                        }
+                    }
+                ]
+            });
+
+            window.show();
+
+        };
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions:[
+                {
+                    iconCls:'silk-magnifier',
+                    qtip:'View Transaction',
+                    id: 'view',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        showDetail(record);
+                    }
+                }
+            ]
+            ,index: 'actions'
+            ,header: ''
+        });
+
+
+        var store = new Ext.data.Store({
+            url: '/logistic/inventory/get-current-inventory',
+            baseParams: {
+                perkode: '<?=$this->perkode?>',
+                start_date: '<?=$this->start_date?>',
+                end_date: '<?=$this->end_date?>',
+                gdg_kode: '<?=$this->gdg_kode?>'
+            },
+            autoLoad: true,
+            reader: new Ext.data.JsonReader({
+                    totalProperty: 'count',
+                    root: 'data'
+                },
+                [
+                    {name: 'id'},
+                    {name: 'kode_brg', type: 'string'},
+                    {name: 'nama_brg', type: 'string'},
+                    {name: 'qtyIn', type: 'float'},
+                    {name: 'qtyOut', type: 'float'},
+                    {name: 'qty', type: 'float'},
+                    {name: 'sat_kode', type: 'string'}
+                ]
+            )
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            stateful: false,
+            renderTo: 'grid',
+            id: 'current-inventory-grid',
+            store: store,
+            frame: true,
+            tbar: [
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Search By'
+                },
+                {
+                    id : 'option',
+                    name: 'option',
+                    xtype: 'combo',
+                    width: 100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name','nilai'],
+                        data:[
+                            ['Product ID','kode_brg'],
+                            ['Product Name','nama_brg']
+                        ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value: 'kode_brg'
+                },
+                {
+                    xtype: 'textfield',
+                    name: 'search',
+                    id: 'search',
+                    width: 125,
+                    enableKeyEvents: true,
+                    listeners:{
+                        'keyup' : function(txttext,event){
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 2 ){
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+                                store.load({
+                                    params: {
+                                        option: option,
+                                        search: search
+                                    }
+                                });
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    iconCls: 'silk-printer',
+                    text: 'Print',
+                    handler: function(){
+                        Ext.Msg.alert('Printing', 'Click OK to print.');
+                        location.href='/logistic/report/print-current-inventory/perkode/<?=$this->perkode?>/start_date/<?=$this->start_date?>/end_date/<?=$this->end_date?>/gdg_kode/<?=$this->gdg_kode?>';
+//                        Ext.ux.Printer.print({
+//                            component: grid,
+//                            printTitle: 'Current Inventory Report'
+//                        });
+                    }
+                }
+            ],
+            plugins: rowactions,
+            columns: [
+                new Ext.ux.grid.RowNumberer({
+                    width: 40
+                }),
+                rowactions,
+                {
+                    header: 'Product ID',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'kode_brg'
+                },
+                {
+                    header: 'Name',
+                    width: 200,
+                    sortable: true,
+                    dataIndex: 'nama_brg'
+                },
+                {
+                    header: 'UOM',
+                    width: 40,
+                    sortable: true,
+                    dataIndex: 'sat_kode'
+                },
+                {
+                    header: 'Qty In',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qtyIn',
+                    align: 'right'
+                },
+                {
+                    header: 'Qty Out',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qtyOut',
+                    align: 'right'
+                },
+                {
+                    header: 'Balance',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qty',
+                    align: 'center'
+                }
+
+            ],
+            viewConfig : {
+                forceFit: true
+            },
+            loadMask: true,
+            height: 450,
+            bbar: [
+                new Ext.PagingToolbar({
+                    pageSize: 100,
+                    store: store,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            ]
+
+        });
+    });
+</script>
+<div id="grid"></div>

@@ -1,0 +1,195 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function showrequestprice ()
+        {
+            var requeststore = new Ext.data.Store ({
+
+                url:'/sales/requestprice/getrequestprice',
+                autoLoad:true,
+                reader: new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'tgl'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'nama_brg'
+                    },{
+                        name:'spec'
+                    }]
+                })
+
+            })
+
+            var requestgrid = new Ext.grid.GridPanel ({
+
+                store:requeststore,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Trano',
+                    dataIndex:'trano',
+                    sortable:true
+                },{
+                    header:'Uid',
+                    dataIndex:'uid',
+                    sortable:true
+                },{
+                    header:'Date',
+                    dataIndex:'tgl',
+                    sortable:true
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-request',
+                    pageSize: 20,
+                    store: requeststore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['trano','Trano'],
+                                ['tgl','Date'],
+                                ['uid','Uid']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'trano'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                requeststore.proxy.url= '/sales/requestprice/getrequestprice/search/' + search + '/option/' + option;
+                                requeststore.proxy.setUrl('/sales/requestprice/getrequestprice/search/' + search + '/option/' + option);
+                                requeststore.proxy.api.read['url']= '/sales/requestprice/getrequestprice/search/' + search + '/option/' + option;
+                                requeststore.load();
+                                requestgrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:
+                {
+                    'rowdblclick':function(gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var request = gridaktif.getStore().getAt(rowIndex);
+                        var trano = request.get('trano');
+                        Ext.getCmp('trano-request').setValue(trano);
+
+                        requestwindow.close();
+
+                    }
+                }
+
+            })
+
+            var requestwindow = new Ext.Window ({
+
+                title:'Request Price List',
+                id:'requestprice-list-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    requestgrid
+                ]
+
+            })
+
+            requestwindow.show();
+        }
+
+        var windowForm = ({
+
+            title:'Update Request Price',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:['-',{
+                xtype:'trigger',
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                id:'trano-request',
+                onTriggerClick:function ()
+                {
+                    showrequestprice();
+                }
+            },'-',{
+                xtype: 'button',
+                id: 'export_button',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                text:'Show',
+                handler:function(btn,ev)
+                {
+                    var trano = Ext.getCmp('trano-request').getValue();
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/sales/requestprice/viewrequest/trano/' + trano,
+                    scripts : true
+                    });
+                }
+            }]
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+
+</script>

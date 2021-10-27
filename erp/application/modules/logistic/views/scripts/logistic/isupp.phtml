@@ -1,0 +1,350 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+	function showIsuppChoose(num)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 350,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth : 150,
+//                        labelPad : 7,
+						items: [{
+								    fieldLabel : 'i-SUPP Number',
+								    id : 'isupp_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: num,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showIsuppList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var isuppno = Ext.getCmp('isupp_no_text').getValue();
+		 			        if (isuppno != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/logistic/logistic/editisupp/trano/' + isuppno,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showIsuppList()
+    {
+        var columns = [ {header:'Trano',width:120,sortable:true,dataIndex:'trano'},
+                        {header:'PO Number',width:120,sortable:true,dataIndex:'po_no'},
+                        {header:'Project ID',width:80,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:170,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:55,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                    ];
+
+        urlJson = '/isupp/list';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'po_no', mapping: 'po_no'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'},];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showIsuppChoose(trano);
+                                Ext.getCmp('isupp_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/isupp/listByParams/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPoNo = function(field,e){
+            newUrl = '/isupp/listByParams/name/po_no/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/isupp/listByParams/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/isupp/listByParams/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,10,80,'po_no',searchPoNo)
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    showAddIsupp = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/logistic/logistic/addisupp',
+	        scripts : true
+        });
+	};
+
+	showEditIsupp = function(){
+			showIsuppChoose();
+	};
+
+	showAppIsupp = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/ISUPP',
+	        scripts : true
+        });
+	};
+
+
+    var windowForm =  ({
+
+    title: 'i-Supp Transaction',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+						{
+						    id: 'isupp_add_button',
+						    text: 'Add New i-Supp',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddIsupp
+						}
+						,{
+						    id: 'isupp_edit_button',
+						    text: 'Edit Existing i-Supp',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditIsupp
+						},
+//                                                {
+//						    id: 'isupp_app_button',
+//						    text: 'Verify & Approval',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/page_script.gif",
+//						    handler:showAppIsupp
+//						}
+						]
+				}
+			}
+         ]
+    });
+    
+//    function getExchangeRate()
+//        {
+//            Ext.Ajax.request({
+//                url: '/default/valuta/getexchangerate/val_kode/USD',
+//                method: 'POST',
+//                success: function(result, request) {
+//                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                    if (returnData.success) {
+//                        if(returnData.rate == 0)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR,
+//                                fn:function(){window.location='';}
+//                            });
+//                        }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//                },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//            });
+//        }
+//        getExchangeRate();
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+});
+</script>

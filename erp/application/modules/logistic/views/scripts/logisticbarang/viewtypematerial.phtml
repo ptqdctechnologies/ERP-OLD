@@ -1,0 +1,267 @@
+<script type="text/javascript">
+    var new_project = <?=($this->new_project == true) ? 'true' : 'false'?>;
+    var typematerialstore = new Ext.data.Store ({
+
+        url:'/logistic/logisticbarang/gettypebarang',
+        baseParams: {
+            new_project: new_project
+        },
+        autoLoad:true,
+        id:'typematerialstore',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'kode_type'
+            },{
+                name:'nama_type'
+            }]
+
+        })
+
+    })
+
+    function edittype (id)
+    {
+        var type = typematerialstore.getAt(typematerialstore.findExact('id',id));
+        var code_type = type.get('kode_type');
+        var name_type = type.get('nama_type');
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Edit Type',
+            id:'edit-type',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Type Material Code ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'type-code',
+                maxLength:2,
+                value:code_type,
+                maskRe: /([0-9]+)$/,
+                regex: /[0-9]/
+            },{
+                xtype:'textfield',
+                fieldLabel:'Type Material Name ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'type-name',
+                value:name_type
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('edit-type').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doupdatetype/id/' + id ,
+                        params: {
+                            new_project: new_project
+                        },
+                        success:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            windowinsert.close();
+
+                            typematerialstore.reload();
+                            Ext.getCmp('typematerial-list').getView().refresh();
+
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function inserttype ()
+        {
+            var formpaneltype = new Ext.form.FormPanel ({
+
+                    title:'Insert Type Material',
+                    id:'insert-type',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Type Material Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'type_material_code',
+                        maxLength:2,
+                        maskRe: /([0-9]+)$/,
+                        regex: /[0-9]/
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Type Material Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'type_material_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            if (!Ext.getCmp('insert-type').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error', 'Please check in all required fields');
+                            return false;
+                        }
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.getCmp('insert-type').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinserttypematerial',
+                                params: {
+                                    new_project: new_project
+                                },
+                                success:function(thisForm,response){
+                                    Ext.getBody().unmask();
+                                    windowinserttype.close();
+
+                                    typematerialstore.reload();
+                                    Ext.getCmp('typematerial-list').getView().refresh();
+
+                                },
+                                failure:function(thisForm,response){
+                                    Ext.getBody().unmask();
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinserttype.close();
+                        }
+                    }]
+
+                })
+
+
+            var windowinserttype = new Ext.Window ({
+
+                id:'window-insert-type',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpaneltype]
+
+            })
+
+            windowinserttype.show();
+        }
+
+        var typematerialgrid = new Ext.grid.GridPanel ({
+
+            store:typematerialstore,
+            title:'Type Material List',
+            id:'typematerial-list',
+            renderTo:'typematerial_list',
+            viewConfig:{
+                forceFit:true
+            },
+            width:340,
+            height:260,
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),
+            {
+                id:'edit',
+                header:'Edit',
+                width:40,
+                sortable:true,
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="edittype(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                }
+            },{
+                header:'Type Material Code',
+                dataIndex:'kode_type',
+                align:'center',
+                sortable:true
+            },{
+                header:'Type Material Name',
+                dataIndex:'nama_type',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-type',
+                pageSize: 20,
+                store: typematerialstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                xtype:'button',
+                text:'Create New',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    inserttype();
+                }
+            }]
+
+        })
+
+    })
+
+
+</script>
+
+    <div id="typematerial_list"></div>

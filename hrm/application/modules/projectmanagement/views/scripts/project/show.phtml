@@ -1,0 +1,225 @@
+<script type="text/javascript">
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : 		'/default/project/list/type/bycustomer',
+        create : 	'/projectmanagement/project/create'
+    }
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'id'},
+    {name: 'prj_nama'},
+    {name: 'prj_kode'},
+    {name: 'cus_kode'},
+    {name: 'cus_nama'},
+    {name: 'keter'}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: true
+});
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user-store',
+    proxy: proxy,
+    reader: reader,
+    writer: writer
+});
+
+store.load();
+
+//A new generic text field
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns =  [
+    new Ext.grid.RowNumberer(),
+    {header: "Project Code", width: 100, sortable: true, dataIndex: 'prj_kode'},
+    {header: "Project Name", width: 200, sortable: true, dataIndex: 'prj_nama'},
+    {header: "Customer Code", width: 100, sortable: true, dataIndex: 'cus_kode'},
+    {header: "Customer Name", width: 200, sortable: true, dataIndex: 'cus_nama'},
+    {header: "Description", width: 200, sortable: true, dataIndex: 'keter'}
+];
+
+userForm = Ext.extend(Ext.form.FormPanel, {
+    iconCls: 'silk-user',
+    frame: true,
+    id: 'user-forms',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Create New Project',
+    width: 300,
+//    defaults: {
+//        anchor: '100%'
+//    }
+//,
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    },
+//
+    buildForm : function() {
+        return [
+			{fieldLabel: 'Project Code',id:'prj_kode',name: 'prj_kode', xtype: 'textfield',allowBlank:false,width: 80},   
+			{fieldLabel: 'Project Name',id:'prj_nama',name: 'prj_nama', xtype: 'textfield',allowBlank:false,width: 180},     
+			{xtype:'trigger', name:'cus_kode',id: 'cus_kode_text',fieldLabel: 'Customer Code', triggerClass: 'search-button',
+				onTriggerClick: function( ){
+				customerPopUphandler();				
+				},
+	            editable: false,
+				allowBlank: true,
+				width: 80
+			},
+			{fieldLabel: 'Customer Name',id:'cus_nama_text', xtype: 'textfield',readOnly: true,width: 180},
+			{fieldLabel: 'Description',id:'keter',name: 'keter', xtype: 'textfield',width: 180}
+        ];
+    },
+//
+//    /**
+//     * buildUI
+//     * @private
+//     */
+    buildUI: function(){
+        return [
+//        {
+//            text: 'Save',
+//            iconCls: 'icon-save',
+//            handler: this.onUpdate,
+//            scope: this
+//        }, 
+        {
+            text: 'Create',
+            iconCls: 'silk-user-add',
+            handler: this.onCreate,
+            scope: this
+        }, {
+            text: 'Reset',
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            scope: this
+        }, {
+            text: 'Cancel',
+            handler: function(btn, ev){
+	        	myPanel = Ext.getCmp('abs-budget-panel');
+	    	    myPanel.body.load({
+	    	        url: '/projectmanagement/budget/showcreateboq3',
+	    	        scripts : true
+	            });
+            },
+            scope: this
+        }];
+    },
+    loadRecord : function(rec) {
+        this.record = rec;
+        this.getForm().loadRecord(rec);
+    },
+    onUpdate : function(btn, ev) {
+        if (this.record == null) {
+            return;
+        }
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid.");
+            return false;
+        }
+        this.getForm().updateRecord(this.record);
+    },
+    onCreate : function(btn, ev) {
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid");
+            return false;
+        }
+        var prjKode = Ext.getCmp('prj_kode').getValue();
+        prjKode = prjKode.toString().replace(/^ +| +$|( )+/, "");
+        prjKode = prjKode.toString().replace(/[^ _a-zA-Z0-9-]+/g,"");
+
+        var cekUrl = '/default/project/cekprojectexist/prj_kode/' + prjKode;
+        Ext.Ajax.request({
+            url: cekUrl,
+            method:'POST',
+            success: function(result, request){
+            	   var returnData = Ext.util.JSON.decode(result.responseText);
+
+    				if( returnData.success) {
+    					Ext.Msg.alert('Error!', 'Project Code Exists!');
+    				} else {
+        				var myForm = Ext.getCmp('user-forms');
+        				myForm.fireEvent('create', this, myForm.getForm().getValues());
+        				myForm.getForm().reset();
+    				}
+    			}
+			,
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}
+          	}
+        }); 
+        
+    },
+    onReset : function(btn, ev) {
+        this.fireEvent('update', this, this.getForm().getValues());
+        this.getForm().reset();
+    }
+});
+
+/**
+ * App.user.Grid
+ * A typical EditorGridPanel extension.
+ */
+userGrid = Ext.extend(Ext.grid.GridPanel, {
+	id:'user-grids',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 450,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+	
+    initComponent : function() {
+        userGrid.superclass.initComponent.call(this);
+    }
+
+});
+
+<?php echo $this->action('popupgrid','grid'); ?>    
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    var userForms = new userForm({
+        renderTo: 'user-form',
+        listeners: {
+            create : function(fpanel, data) {
+                var rec = new userGrids.store.recordType(data);
+                userGrids.store.insert(0, rec);
+            }
+        }
+    });
+
+    var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        store: store,
+        columns : userColumns,
+        width: 500
+    });
+
+
+});
+</script>
+<div>
+ <div id="user-form" style="float:left"></div>
+ <div id="user-grid" style="margin-left: 10px;float:left"></div>
+ </div>

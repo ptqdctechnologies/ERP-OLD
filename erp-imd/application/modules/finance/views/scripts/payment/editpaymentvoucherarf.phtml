@@ -1,0 +1,825 @@
+<script type="text/javascript">
+
+function getExchangeRate()
+	{
+		Ext.Ajax.request({
+		    url: '/default/valuta/getexchangerate',
+		    method:'POST',
+		    success: function(result, request){
+			   		var returnData = Ext.util.JSON.decode(result.responseText);
+					if(returnData.success) {
+						Ext.getCmp('rateidr').setValue(returnData.rate);
+					}
+				}
+				,failure:function( action){
+			if(action.failureType == 'server'){
+		    obj = Ext.util.JSON.decode(action.response.responseText);
+		    Ext.Msg.alert('Error!', obj.errors.reason);
+			}
+			}
+		});
+	}
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+	        }
+        });
+
+        var type = 'ARF';
+
+        function balancesum ()
+        {
+            var totalval = parseFloat(Ext.getCmp('voc-val').getValue().toString().replace(/\$|\,/g,''));
+            var totalpaid = parseFloat(Ext.getCmp('voc-paid').getValue().toString().replace(/\$|\,/g,''));
+
+            var balance = totalval - totalpaid;
+
+            Ext.getCmp('voc-balan').setValue(balance);
+//            Ext.getCmp('pay-value').setValue(balance);
+        }
+
+        function setpayment (trano)
+        {
+            Ext.Ajax.request({
+                url:'/finance/payment/getpayment/foredit/true/trano/' + trano + '/tranoedit/<?=$this->data['trano']?>/type/<?=$this->data['jenis_document']?>',
+                method:'POST',
+                success: function (result,request)
+                {
+                    var returndata = Ext.util.JSON.decode(result.responseText);
+                    Ext.getCmp('voc-val').setValue(returndata.gtotal);
+                    Ext.getCmp('voc-paid').setValue(returndata.paid);
+                    if (returndata.voc_data.length > 0)
+                    {
+                        Ext.getCmp('valuta-1').setValue(returndata.voc_data[0].valuta);
+                        Ext.getCmp('valuta-2').setValue(returndata.voc_data[0].valuta);
+                        Ext.getCmp('valuta-3').setValue(returndata.voc_data[0].valuta);
+                        Ext.getCmp('valuta-4').setValue(returndata.voc_data[0].valuta);
+
+                        <?php if ($this->data['voc_trano'] == '') { ?>
+                            var loadData = [];
+                            loadData['data'] = returndata.voc_data;
+                            store_payment.loadData(loadData);
+                            Ext.getCmp('grid-payment').getView().refresh();
+                        <?php } ?>
+
+                    }
+                    balancesum ()
+                },
+                failure:function(action)
+                {
+                    if (action.failureType == 'server')
+                    {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert(('Error!'),obj.errors.reason);
+                    }
+                }
+            })
+        }
+
+
+
+        function showarfvoucherpayment ()
+        {
+            var storevoucher = new Ext.data.Store ({
+                url:'/finance/payment/getvoucher/type/<?=$this->type?>',
+                autoLoad:true,
+                reader: new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'tgl',
+                        type: 'date',
+                        format: 'd M Y H:i:s'
+                    },{
+                        name:'item_type'
+                    },{
+                        name:'prj_kode'
+                    },{
+                        name:'valuta'
+                    }]
+                })
+            })
+
+            var gridvoucher = new Ext.grid.GridPanel({
+                store:storevoucher,
+                height:300,
+                width:600,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Trano',
+                    dataIndex:'trano',
+                    sortable:true
+                },{
+                    header:'Date',
+                    dataIndex:'tgl',
+                    width:120,
+                    sortable:true
+                },{
+                    header:'Type',
+                    dataIndex:'item_type',
+                    sortable:true
+                },{
+                    header:'Project Code',
+                    dataIndex:'prj_kode',
+                    sortable:true
+                },{
+                    header:'Valuta',
+                    dataIndex:'valuta',
+                    sortable:true
+                }],bbar:new Ext.PagingToolbar ({
+                    id: 'paging-arf',
+                    pageSize: 20,
+                    store: storevoucher,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                [1,'Trano'],
+                                [2,'Date'],
+                                [3,'Type'],
+                                [4,'Project Code'],
+                                [5,'Valuta']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:1
+                },'-',{
+                    xtype:'textfield',
+                    id:'search',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+                                var type = 'ARF';
+
+                                storevoucher.proxy.setUrl('/finance/payment/getvoucher/search/' + search + '/option/' + option + '/type/' + type);
+                                storevoucher.reload();
+                                gridvoucher.getView().refresh();
+                            }
+                        }
+                    }
+                }],listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var voucher = gridaktif.getStore().getAt(rowIndex);
+                        var trano = voucher.get('trano');
+                        Ext.getCmp('voc-number').setValue(trano);
+
+                        store_payment.proxy.setUrl('/finance/payment/getvoucherlistdetail/type/<?=$this->type?>/tranoedit/<?=$this->trano?>/trano/' + trano);
+                        store_payment.load();
+                        Ext.getCmp('grid-payment').getView().refresh();
+
+                        setpayment(trano);
+
+                        windowvoucher.close();
+                    }
+                }
+
+            })
+
+            var windowvoucher = new Ext.Window ({
+
+            title:'Choose Bank Payment Voucher',
+            id:'choose-bank-payment-voucher',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 612,
+            height: 330,
+            loadMask:true,
+            items:[
+                gridvoucher
+            ]
+        })
+
+            windowvoucher.show();
+        }
+
+        function showpaymenthistory ()
+        {
+            var storehistory = new Ext.data.Store ({
+                url:'/finance/payment/getpaymenthistory/trano/' + Ext.getCmp('voc-number').getValue(),
+                autoLoad:true,
+                reader: new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'tgl',
+                        type: 'date',
+                        format: 'd M Y H:i:s'
+                    },{
+                        name:'val_kode'
+                    },{
+                        name:'total_bayar'
+                    },{
+                        name: 'username'
+                    }]
+                })
+            })
+
+            var gridhistory = new Ext.grid.GridPanel({
+                store:storehistory,
+                height:300,
+                width:600,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Payment Number',
+                    dataIndex:'trano',
+                    sortable:true
+                },{
+                    header:'Date',
+                    dataIndex:'tgl',
+                    width:120,
+                    sortable:true
+                },{
+                    header:'Total Payment',
+                    dataIndex:'total_bayar',
+                    width:150,
+                    sortable:true,
+                    renderer: function(v,p,r){
+                            return v ? r.data['val_kode'] + ' ' + Ext.util.Format.number(v, '0,0.00') : '';
+                            },
+                    align:'right'
+                },{
+                    header:'Username',
+                    dataIndex:'username',
+                    width:120,
+                    sortable:true
+                }],bbar:new Ext.PagingToolbar ({
+                    id: 'paging-history',
+                    pageSize: 20,
+                    store: storehistory,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            })
+
+            var windowhistory = new Ext.Window ({
+
+            title:'Payment History for ' + Ext.getCmp('voc-number').getValue(),
+            id:'payment-history-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 612,
+            height: 330,
+            loadMask:true,
+            items:[
+                gridhistory
+            ],
+            buttons: [
+                {
+                    text: 'Close',
+                    handler: function(){
+                        windowhistory.close();
+                    }
+                }
+            ]
+        })
+
+            windowhistory.show();
+        }
+
+        var proxy = new Ext.data.HttpProxy({
+           url : 'what ever'
+        });
+
+        var record = new Ext.data.Record.create([
+            {name:'ref_number'},
+            {name:'prj_kode'},
+            {name:'sit_kode'},
+            {name:'coa_kode'},
+            {name:'total_bayar'},
+            {name:'total_payment'},
+            {name:'statusppn'},
+            {name:'holding_tax_status'},
+            {name:'holding_tax'},
+            {name:'total'},
+            {name:'valuta'}
+        ])
+
+        var store_payment = new Ext.data.Store ({
+            proxy:proxy,
+            id:'store-payment',
+            reader:new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total',
+                fields:record
+            }),
+            listeners: {
+                'load': function(){
+                    hitungTotalPayment();
+                }
+            }
+        })
+
+        function hitungTotalPayment()
+        {
+            var tot = 0;
+            store_payment.each(function(stores){
+                tot += parseFloat(stores.data['total_payment']);
+            });
+
+            Ext.getCmp('pay-value').setValue(tot);
+        }
+
+        var editor = new Ext.ux.grid.RowEditor({
+            saveText: 'Save',
+            clicksToEdit: 1,
+            listeners: {
+                'canceledit': function(ed,close){
+                    ed.record.cancelEdit();
+                },
+                'afteredit': function(ed,obj,rec,index){
+                    var recs = store_payment.getAt(index);
+                    var total = parseFloat(recs.data['total']);
+                    var totalPayment = parseFloat(recs.data['total_payment']);
+
+                    if (totalPayment > total)
+                    {
+                        Ext.Msg.alert('Error','Total Payment is greater than Total Voucher');
+                        return false;
+                    }
+                    ed.record.commit(); //Commit changes into store
+
+                    hitungTotalPayment();
+
+                }
+            }
+        });
+
+        var grid_payment = new Ext.grid.GridPanel ({
+            store:store_payment,
+            height:200,
+            id:'grid-payment',
+            viewConfig:{
+                forceFit:true
+            },
+            plugins: [editor],
+            columns:[{
+                header:'Ref Number',
+                dataIndex:'ref_number',
+                sortable:true,
+                width:120
+            },{
+                header:'Project Code',
+                dataIndex:'prj_kode',
+                sortable:true
+            },{
+                header:'Site Code',
+                dataIndex:'sit_kode',
+                sortable:true
+            },{
+                header:'Coa Code',
+                dataIndex:'coa_kode',
+                sortable:true
+            },{
+                header:'Valuta',
+                dataIndex:'valuta',
+                sortable:true,
+                align:'right'
+            },{
+                header:'Voucher Value',
+                dataIndex:'total_bayar',
+                sortable:true,
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                        },
+                align:'right'
+            },{
+                header:'PPN',
+                dataIndex:'statusppn',
+                sortable:true
+            },{
+                header:'Holding Tax',
+                dataIndex:'holding_tax_status',
+                sortable:true
+            },{
+                header:'Holding Tax Value',
+                dataIndex:'holding_tax',
+                sortable:true,
+                renderer: function (v,p,r) {
+                        if (!isNaN(v) && v != '')
+                            return (parseFloat(v) * 100).toString() + '%';
+                    },
+                align:'right'
+            },{
+                header:'Total',
+                dataIndex:'total',
+                sortable:true,
+                renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                        },
+                align:'right'
+            },{
+              xtype: 'numbercolumn',
+              header: 'Total Payment',
+              dataIndex: 'total_payment',
+              align: 'right',
+              width: 100,
+              renderer: function(v){
+                return v ? Ext.util.Format.number(v, '0,0') : '';
+                },
+              sortable: true,
+              editor: {
+                  xtype: 'numberfield',
+                  allowBlank: false,
+                  minValue: 0
+              }
+          }]
+        })
+
+        var fieldset_payment = new Ext.form.FieldSet ({
+            title:'ARF bank payment voucher list',
+            collapsible: true,
+            items:[grid_payment]
+        })
+
+        var panel_payment = new Ext.form.FormPanel ({
+
+            title:'Edit ARF voucher payment',
+            renderTo:'arf-voucher-payment',
+            id:'arf_voucher_payment',
+            frame:true,
+            layout:'form',
+            labelWidth:130,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Payment Number ',
+                id:'trano',
+                width:150,
+                readOnly: true,
+                value: '<?=$this->data['trano']?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Voucher number ',
+                readOnly : true,
+                id:'voc-number',
+                width: 150,
+                value: '<?=$this->data['voc_trano']?>'
+            },fieldset_payment,{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[
+//                    {
+//                        xtype:'combo',
+//                        fieldLabel:'Payment Type ',
+//                        id:'pay-type',
+//                        allowBlank:false,
+//                        width:100,
+//                        store: new Ext.data.SimpleStore({
+//                            fields:['nilai','name'],
+//                            data:[
+//                                ['CASH','CASH'],
+//                                ['CHEQUE','CHEQUE'],
+//                                ['GIRO','GIRO']
+//                            ]
+//                        }),
+//                        valueField:'nilai',
+//                        displayField:'name',
+//                        typeAhead: true,
+//                        forceSelection: true,
+//                        editable: false,
+//                        mode: 'local',
+//                        triggerAction: 'all',
+//                        selectOnFocus: true,
+//                        emptyText: 'Select a type ...'
+//                    },{
+//                        fieldLabel: 'Due Date ',
+//                        id : 'date',
+//                        xtype: 'datefield',
+//                        width: 100
+//                    },
+                    {
+                        fieldLabel:'Notes ',
+                        id:'notes',
+                        xtype:'textarea',
+                        width:200,
+                        value: '<?=$this->data['ket']?>'
+                    },new Ext.ux.customRendererField(
+                        {
+                            priceDelemiter:',',
+                            fieldLabel: 'Exchange Rate',
+                            style:"text-align:right",
+                            xtype: 'textfield',
+                            width: 100,
+                            id: 'rateidr',
+                            value: getExchangeRate()
+                        })
+                    ]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.7,
+                            layout:'form',
+                            items:[
+                                new Ext.ux.customRendererField ({
+                                    xtype:'textfield',
+                                    fieldLabel:'Voucher Total Value ',
+                                    anchor:'98%',
+                                    priceDelemiter:',',
+                                    id:'voc-val',
+                                    readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                                })
+                            ]
+                        },{
+                            columnWidth:0.1,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                anchor:'97%',
+                                hideLabel:true,
+                                id:'valuta-1',
+                                readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.7,
+                            layout:'form',
+                            items:[
+                                new Ext.ux.customRendererField ({
+                                    xtype:'textfield',
+                                    fieldLabel:'Voucher Already Paid ',
+                                    priceDelemiter:',',
+                                    id:'voc-paid',
+                                    anchor:'98%',
+                                    readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                                })
+                            ]
+                        },{
+                            columnWidth:0.1,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                anchor:'97%',
+                                id:'valuta-2',
+                                readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                            }]
+                        },{
+                            columnWidth:0.08,
+                            layout:'form',
+                            items:[{
+                                xtype: 'button',
+                                cls:"x-btn-icon" ,
+                                icon:"/images/icons/fam/information.png",
+                                anchor:'98%',
+                                handler: function(){ showpaymenthistory() }
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.7,
+                            layout:'form',
+                            items:[
+                                new Ext.ux.customRendererField ({
+                                    xtype:'textfield',
+                                    fieldLabel:'Voucher Balance ',
+                                    anchor:'98%',
+                                    priceDelemiter:',',
+                                    id:'voc-balan',
+                                    readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                                })
+                            ]
+                        },{
+                            columnWidth:0.1,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                anchor:'97%',
+                                id:'valuta-3',
+                                readOnly:true,
+                                style: { 'font-weight' : 'bold', 'text-align': 'right' }
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.7,
+                            layout:'form',
+                            items:[
+                                new Ext.ux.customRendererField ({
+                                    xtype:'textfield',
+                                    fieldLabel:'Payment Value ',
+                                    anchor:'98%',
+                                    priceDelemiter:',',
+                                    style:"text-align:right",
+                                    id:'pay-value',
+                                    vtype:'numeric',
+                                    readOnly:true
+                                })
+                            ]
+                        },{
+                            columnWidth:0.1,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                style:"text-align:right",
+                                anchor:'97%',
+                                id:'valuta-4',
+                                readOnly:true
+                            }]
+                        }]
+                    }]
+                }]
+            }],
+            buttons:[{
+                text:'Submit',
+                iconCls:'silk-add',
+                handler:function (btn,ev)
+                {
+                    if (!Ext.getCmp('arf_voucher_payment').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    if (parseFloat(Ext.getCmp('pay-value').getValue().toString().replace(/\$|\,/g,'')) <= 0)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry payment value must be grater then 0',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (parseFloat(Ext.getCmp('pay-value').getValue().toString().replace(/\$|\,/g,'')) > parseFloat(Ext.getCmp('voc-val').getValue().toString().replace(/\$|\,/g,'')))
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry payment value is greater than voucher total value !',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (parseFloat(Ext.getCmp('pay-value').getValue().toString().replace(/\$|\,/g,'')) > parseFloat(Ext.getCmp('voc-balan').getValue().toString().replace(/\$|\,/g,'')))
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry payment value is greater than voucher balance !',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+                        if (btn == 'yes')
+                        {
+//                            var form = Ext.getCmp('rpi_voucher_payment').getForm().getValues();
+
+                            var formfield = Ext.getCmp('arf_voucher_payment').findByType('textfield');
+                            var jsonform = '';
+                            Ext.each(formfield, function (t,index){
+                                jsonform =  jsonform + '"' + t.id + '"' + ":" + '"' + t.getValue().toString().replace(/\"|\'|\n|\t|\r/g,'') + '",';
+                            });
+
+                            jsonform = jsonform.substring(0, jsonform.length - 1);
+                            var form_encode = "{" + jsonform + "}";
+
+                            var voucherlist = '';
+                            store_payment.each(function(store){
+                                voucherlist += Ext.util.JSON.encode(store.data) + ',';
+                            })
+
+                            voucherlist = '[' + voucherlist.substring(0, voucherlist.length - 1)+ ']';
+
+                            var params = {
+                                form:form_encode,
+                                list:voucherlist,
+                                <?php if ($this->data['voc_trano'] == '') { ?>
+                                no_voc: true,
+                                <?php } ?>
+                                trano: '<?=$this->trano?>'
+                            }
+
+                            Ext.Ajax.request({
+                                url:'/finance/payment/doupdatearfvoucherpayment',
+                                method:'POST',
+                                params:params,
+                                success:function (result)
+                                {
+                                    Ext.Msg.alert ('Message','Success, Data has been saved');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                    url: '/finance/payment/paymentvoucherarf',
+                                    scripts : true
+                                    });
+                                },
+                                failure:function(action)
+                                {
+                                    if(action.failureType == 'server'){
+                                      obj = Ext.util.JSON.decode(action.response.responseText);
+                                      Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+                            })
+
+
+                        }
+                    })
+
+
+                }
+            },{
+                text:'Reset',
+                handler:function (btn,ev)
+                {
+                    Ext.getCmp('arf_voucher_payment').getForm().reset();
+                    store_payment.removeAll();
+                }
+            },{
+                text:'Cancel',
+                handler:function (btn,ev)
+                {
+                    mypanel = Ext.getCmp('abs-budget-panel');
+                    mypanel.body.load({
+                        url:'/procurement/procurement/arf',
+                        scripts:true
+                    });
+                }
+            }]
+
+        })
+
+        <?php
+            if($this->data['voc_trano'] != '') {
+        ?>
+        store_payment.proxy.setUrl('/finance/payment/getvoucherlistdetail/type/<?=$this->type?>/tranoedit/<?=$this->trano?>/trano/<?=$this->data['voc_trano']?>');
+        store_payment.load();
+        <?php } ?>
+        Ext.getCmp('grid-payment').getView().refresh();
+        setpayment('<?=$this->data['voc_trano']?>');
+    })
+
+
+</script>
+
+    <div id="arf-voucher-payment"></div>

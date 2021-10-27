@@ -1,0 +1,274 @@
+<script>
+    Ext.onReady(function() {
+
+        var DATA = null;
+
+        var clearForm = function()
+        {
+            store.removeAll();
+            Ext.getCmp('warehouse').setValue('');
+            Ext.getCmp('periode_txt').setValue('');
+            Ext.getCmp('upload-file').setValue('');
+        };
+
+        function deleterowgrid(rec)
+        {
+            if (rec)
+            {
+                store.remove(rec);
+                grid.getView().refresh();
+            }
+        }
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions: [
+//                {
+//                    iconCls: 'icon-edit',
+//                    qtip: 'Edit',
+//                    id: 'edit',
+//                    callback: function(grid, record, action, row, col)
+//                    {
+//                        edit(record);
+//                    }
+//                },
+                {
+                    iconCls: 'icon-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        deleterowgrid(rec);
+                                    }
+                                }
+                        );
+
+                    }
+                }
+            ]
+            , index: 'actions'
+            , header: ''
+        });
+
+        var record = Ext.data.Record.create([
+            {
+                name: 'kode_brg',
+                type: 'string'
+            }, {
+                name: 'nama_brg',
+                type: 'string'
+            }, {
+                name: 'actual',
+                type: 'float'
+            }, {
+                name: 'invalid',
+                type: 'boolean'
+            }
+        ]);
+
+        var store = new Ext.data.Store({
+            reader: new Ext.data.JsonReader({fields: record})
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            store: store,
+            frame: true,
+            height: 400,
+            autoWidth: true,
+            renderTo: 'grid',
+            title: 'Uploaded Card Stock',
+            viewConfig: {
+                forceFit: true
+            },
+            plugins: [rowactions],
+            view: new Ext.grid.GridView({
+                enableRowBody: true,
+                forceFit: true,
+                getRowClass: function(record, rowIndex, p, store) {
+                    if (record.get("invalid") == true)
+                        return 'x-grid3-row-with-body3';
+                }
+            }),
+            hidden: true,
+            columns: [
+                new Ext.grid.RowNumberer({
+                    width: 40
+                }), rowactions,
+                {
+                    header: 'Product ID',
+                    width: 100,
+                    dataIndex: 'kode_brg'
+                },
+                {
+                    header: 'Name',
+                    width: 250,
+                    dataIndex: 'nama_brg'
+                },
+                {
+                    header: 'Actual QTY',
+                    dataIndex: 'actual',
+                    renderer: function(v, p, r) {
+                        return (v) ? Ext.util.Format.number(v, '0,00.0000') : '0';
+                    }
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function()
+                    {
+                        var periode = Ext.getCmp('periode_txt').getValue();
+
+                        if (periode == '') {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Periode field is required!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        var whouse = Ext.getCmp('warehouse_selector_id').getWarehouse();
+
+                        if (whouse == '' || whouse == undefined) {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Warehouse field is required!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Submit Inventory Adjustment, Proceed ?', function(btn) {
+
+                            if (btn == 'yes')
+                            {
+                                if (store.getCount() > 0)
+                                {
+                                    var params = {
+                                        gdg_kode: whouse,
+                                        periode: periode,
+                                        data: Ext.util.JSON.encode(DATA)
+                                    };
+
+                                    Ext.Ajax.request({
+                                        url: '/logistic/inventory/insert-adjustment',
+                                        params: params,
+                                        method: 'POST',
+                                        success: function(result, request) {
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+                                            Ext.Msg.alert("Success", "Adjustment Number : <b>" + returnData.trano + "</b>");
+                                            clearForm();
+                                            grid.hide();
+                                        },
+                                        failure: function(action) {
+                                            if (action.failureType == 'server') {
+                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                Ext.Msg.alert('Error!', obj.msg);
+                                            } else {
+                                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+
+        var fp = new Ext.form.FormPanel({
+            title: 'Upload Inventory Adjustment',
+            width: 400,
+            height: 200,
+            renderTo: 'form',
+            fileUpload: true,
+            frame: true,
+            items: [
+                 {
+                    xtype: 'periodefinanceselector',
+                    id: 'perkode_text',
+                    Selectid: 'periode_txt',
+                    fieldLabel: 'Periode',
+                    inventory: true,
+                    width: 150
+                },
+                {
+                    xtype: 'warehouseselector',
+                    Selectid: 'warehouse',
+                    fieldLabel: 'Warehouse',
+                    width: 150,
+                    id: 'warehouse_selector_id'
+                },
+                {
+                    xtype: 'fileuploadfield',
+                    id: 'upload-file',
+                    emptyText: 'Select a File',
+                    fieldLabel: 'File Excel Adjustment',
+                    name: 'file-path',
+                    buttonText: '',
+                    buttonCfg: {
+                        iconCls: 'upload-icon'
+                    },
+                    allowBlank: false
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Upload',
+                    handler: function()
+                    {
+                        DATA = null;
+                        if (fp.getForm().isValid()) {
+                            fp.getForm().submit({
+                                params: {
+                                },
+                                url: '/logistic/inventory/upload-adjustment',
+                                waitMsg: 'Uploading your file...',
+                                success: function(fp, o) {
+                                    Ext.Msg.show({
+                                        title: 'Success',
+                                        msg: 'Processed file on the server',
+                                        minWidth: 200,
+                                        modal: true,
+                                        icon: Ext.Msg.INFO,
+                                        buttons: Ext.Msg.OK
+                                    });
+
+                                    store.removeAll();
+                                    store.loadData(o.result.data);
+
+                                    DATA = o.result.data;
+
+                                    grid.show();
+                                },
+                                failure: function(fp, o) {
+
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    text: 'Reset',
+                    handler: function()
+                    {
+                        clearForm();
+                    }
+                }
+            ]
+        });
+
+
+
+    });
+</script>
+
+<div id="form"></div><br>
+<div id="grid"></div>

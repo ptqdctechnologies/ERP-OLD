@@ -1,0 +1,404 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+            }
+    });
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        function showuomlist ()
+        {
+            var storeuom = new Ext.data.Store ({
+
+                id:'store-uom',
+                url:'/logistic/logisticbarang/getuom',
+                autoLoad:true,
+                    reader:new Ext.data.JsonReader ({
+                        root:'data',
+                        totalProperty:'total',
+                        fields:[{
+                            name:'sat_kode'
+                        },{
+                            name:'sat_nama'
+                        },{
+                            name:'id'
+                        }]
+                    })
+            })
+
+            var griduom = new Ext.grid.GridPanel ({
+
+                store:storeuom,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[new Ext.grid.RowNumberer(),{
+                    header:'Uom Code',
+                    dataIndex:'sat_kode',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                },{
+                    header:'Uom Name',
+                    dataIndex:'sat_nama',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-refnumber',
+                    pageSize: 20,
+                    store: storeuom,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option-uom',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['sat_nama','Uom Name'],
+                                ['sat_kode','Uom Code']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'sat_nama'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search-uom',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup': function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option-uom').getValue();
+                                var search = Ext.getCmp('search-uom').getValue();
+
+                                storeuom.proxy.url= '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.proxy.setUrl('/logistic/logisticbarang/getuom/search/' + search + '/option/' + option);
+                                storeuom.proxy.api.read['url']= '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.load();
+                                griduom.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+
+                        var uom = gridaktif.getStore().getAt(rowIndex);
+
+                        var uomcode = uom.get('sat_kode');
+                        Ext.getCmp('uom').setValue(uomcode);
+
+                        windowuom.close();
+                    }
+                }
+
+
+
+
+            })
+
+            var windowuom = new Ext.Window ({
+
+                title:'Choose Brand',
+                id:'choose-brand',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask:true,
+                items:[griduom]
+
+            })
+
+            windowuom.show();
+        }
+
+        var supplier = new Ext.form.FieldSet ({
+
+            title:'Supplier Information',
+            collapsible:true,
+            items:[
+//                {
+//                xtype: 'supplierselector',
+//                fieldLabel:'Supplier Code ',
+//                width:160,
+//                allowBlank: false,
+//                Selectid: 'text_sup_kode',
+//                Namaid: 'sup_nama',
+//                Alamatid: 'sup_add',
+//                Cityid:'sup_city',
+//                Phoneid:'sup_phone',
+//                Faxid:'sup_fax',
+//                Emailid:'sup_email',
+//                ShowName: false,
+//                id:'sup_kode'
+//            },
+                {
+                xtype:'textfield',
+                fieldLabel:'Supplier Name ',
+                id:'sup_nama',
+                width:160,
+                allowBlank:false,
+//                readOnly:true,
+                value:'<?=$this->sup_nama?>'
+            },{
+                xtype:'textarea',
+                fieldLabel:'Supplier Address ',
+                id:'sup_add',
+                width:160,
+                allowBlank:false,
+//                readOnly:true,
+                value:'<?=$this->alamat?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier City ',
+                id:'sup_city',
+                width:160,
+                allowBlank:false,
+//                readOnly:true,
+                value:'<?=$this->master_kota?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier Phone ',
+                id:'sup_phone',
+                width:160,
+                allowBlank:false,
+                vtype:'numeric',
+//                readOnly:true,
+                value:'<?=$this->tlp?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier Fax ',
+                id:'sup_fax',
+                width:160,
+                allowBlank:false,
+                vtype:'numeric',
+//                readOnly:true,
+                value:'<?=$this->fax?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier Email ',
+                id:'sup_email',
+                width:160,
+                allowBlank:false,
+//                readOnly:true,
+                value:'<?=$this->email?>'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Contact Person ',
+                id:'contact',
+                allowBlank:false,
+                width:160,
+                value:'<?=$this->contact?>'
+//                readOnly:true,
+            }]
+
+        })
+
+        var formedit = new Ext.form.FormPanel ({
+
+            title:'Update Request Voucher',
+            renderTo:'update_request_voucher',
+            id:'update-request-voucher',
+            width:400,
+            style:'margin:10 10 10 10',
+            frame:true,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Material Name ',
+                value:'<?=$this->nama_brg?>',
+                readOnly:true,
+                id:'nama_brg'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Spec ',
+                value:'<?=$this->spec?>',
+                readOnly:true,
+                id:'spec'
+            },{
+                xtype:'trigger',
+                fieldLabel:'Uom/Satuan ',
+//                labelStyle:'margin-left:10px;width:120',
+                width:60,
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                id:'uom',
+                onTriggerClick:function(){
+                    showuomlist();
+                },
+                value:'<?=$this->uom?>'
+            },{
+                xtype:'textarea',
+                fieldLabel:'Franco ',
+                width:160,
+                allowBlank:false,
+                id:'fraco',
+                value:'<?=$this->fraco?>'
+            },supplier,{
+                xtype:'combo',
+                id:'valuta',
+                fieldLabel:'Valuta ',
+                width:160,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['IDR','IDR'],
+                            ['USD','USD']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                emptyText:'Please choose valuta',
+                allowBlank:false,
+                value:'<?=$this->val_kode?>'
+            },new Ext.ux.customRendererField({
+                xtype:'textfield',
+                fieldLabel:'Material Price ',
+                id:'price',
+                width:160,
+                vtype:'numeric',
+                priceDelemiter:',',
+                allowBlank:false,
+                style:'text-align:right',
+                value:'<?=$this->price?>'
+            })],
+            buttons:[{
+                text:'Submit',
+                iconCls:'icon-save',
+                handler:function(btn,ev)
+                {
+                    if (!Ext.getCmp('update-request-voucher').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+//                    if (Ext.getCmp('text_sup_kode').getValue().toString().replace(/\$|\,/g,'') == '')
+//                    {
+//                        Ext.MessageBox.show({
+//                        title: 'Error',
+//                        msg: 'Sorry, Please Insert Supplier',
+//                        buttons: Ext.MessageBox.OK,
+//                        icon: Ext.MessageBox.ERROR
+//                        });
+//                        return false;
+//                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            Ext.getCmp('update-request-voucher').getForm().submit({
+
+                                method:'POST',
+                                params: {
+                                    id:'<?=$this->id?>',
+                                    trano: '<?=$this->trano?>'
+                                },
+                                url:'/sales/requestprice/doupdaterequestprice',
+                                success:function(thisForm,response){
+                                    Ext.Msg.alert('Success','Request Price haas been Update');
+                                    var trano = Ext.getCmp('trano-request').getValue();
+
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                    url: '/sales/requestprice/viewrequest/trano/' + trano,
+                                    scripts : true
+                                    });
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+
+                            })
+                        }
+
+                    })
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('uom').setValue('');
+                    Ext.getCmp('fraco').setValue('');
+                    Ext.getCmp('text_sup_kode').setValue('');
+                    Ext.getCmp('sup_nama').setValue('');
+                    Ext.getCmp('sup_add').setValue('');
+                    Ext.getCmp('sup_city').setValue('');
+                    Ext.getCmp('sup_phone').setValue('');
+                    Ext.getCmp('sup_fax').setValue('');
+                    Ext.getCmp('sup_email').setValue('');
+                    Ext.getCmp('valuta').setValue('');
+                    Ext.getCmp('price').setValue('');
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    var trano = Ext.getCmp('trano-request').getValue();
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/sales/requestprice/viewrequest/trano/' + trano,
+                    scripts : true
+                    });
+                }
+            }]
+
+        })
+
+        Ext.getCmp('text_sup_kode').setValue('<?=$this->sup_kode?>');
+
+    })
+
+
+
+</script>
+
+    <div id="update_request_voucher"></div>

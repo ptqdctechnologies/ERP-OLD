@@ -1,0 +1,98 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var editsatuan = new Ext.FormPanel ({
+
+            title:'Edit Satuan',
+            id:'editsatuan',
+            width:400,
+            height:180,
+            renderTo:'satuanedit',
+            iconCls: 'silk-user',
+            frame: true,
+            labelWidth:140,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'UOM Code',
+                    name:'sat_kode',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['sat_kode']?>'
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'UOM Name',
+                    name:'sat_name',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false,
+                    value:'<?php echo $this->tampil['sat_nama']?>'
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'UOM Description',
+                    name:'sat_desc',
+                    width:180,
+                    value:'<?php echo $this->tampil['ket']?>'
+                }
+            ],
+            buttons:[
+                {
+                    text:'Edit',
+                    handler:function(btn, ev)
+                    {
+                        if(!Ext.getCmp('editsatuan').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.getCmp('editsatuan').getForm().submit({
+                            method:'POST',
+                            url:'/logistic/logisticsatuan/geteditsatuan/id/<?=$this->tampil['id']?>',
+                            success:function(thisForm,response){
+                                Ext.getBody().unmask();
+                                Ext.Msg.alert('Success','Satuan has been update');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                url: '/logistic/logisticsatuan/satuan',
+                                scripts : true
+                                });
+                            },
+                            failure:function(thisForm,response){
+                                Ext.getBody().unmask();
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.pesan);
+                                }
+                            }
+                        })
+                    }
+                },{
+                    text:'Cancel',
+                    handler: function(btn, ev){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/logistic/logisticsatuan/satuan',
+                        scripts : true
+                    });
+           }
+                }
+            ]
+
+
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="satuanedit"></div>

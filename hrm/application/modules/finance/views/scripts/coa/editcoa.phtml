@@ -1,0 +1,333 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        function showcoalist ()
+        {
+            var coastore = new Ext.data.Store ({
+                autoLoad:true,
+                url:'/finance/paymentreimbursement/getcoalist',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id'
+                    },{
+                        name:'coa_kode'
+                    },{
+                        name:'coa_nama'
+                    },{
+                        name:'tipe'
+                    },{
+                        name:'dk'
+                    },{
+                        name:'hd'
+                    },{
+                        name:'level'
+                    }]
+                })
+
+            })
+
+            var coagrid = new Ext.grid.GridPanel ({
+
+                store:coastore,
+                viewConfig:{
+                    forceFit:true
+                },
+                height:300,
+                columns:[{
+                    header:'COA CODE',
+                    dataIndex:'coa_kode',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'COA NAME',
+                    dataIndex:'coa_nama',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'Type',
+                    dataIndex:'tipe',
+                    align:'center',
+                    sortable:true
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-coa',
+                    pageSize: 20,
+                    store: coastore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },{
+                    xtype: 'combo',
+                    width: 100,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name','nilai'],
+                        data:[
+                                ['Coa Code',1],
+                                ['Coa Name',2],
+                                ['Coa Type',3]
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:1,
+                    id:'option'
+                },{
+                    xtype:'textfield',
+                    id:'search',
+                    style:'margin-left:10px',
+                    enableKeyEvents:true,
+                    width:100,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                coastore.proxy.setUrl('/finance/paymentreimbursement/getcoalist/search/' + search + '/option/' + option);
+                                coastore.reload();
+                                coagrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:
+                {
+                    'rowdblclick':function(gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var coa = gridaktif.getStore().getAt(rowIndex);
+                        Ext.getCmp('coa_id').setValue(coa.get('id'));
+                        Ext.getCmp('coa_kode').setValue(coa.get('coa_kode'));
+                        Ext.getCmp('coa_nama').setValue(coa.get('coa_nama'));
+                        Ext.getCmp('coa_tipe').setValue(coa.get('tipe'));
+                        Ext.getCmp('dk').setValue(coa.get('dk'));
+                        Ext.getCmp('hd').setValue(coa.get('hd'));
+                        Ext.getCmp('level').setValue(coa.get('level'));
+
+                        coawindow.close();
+
+                    }
+                }
+
+
+
+            })
+
+            var coawindow = new Ext.Window ({
+
+                title:'COA List',
+                id:'coa-list-window',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    coagrid
+                ]
+
+            })
+
+            coawindow.show();
+        }
+
+        var editcoa = new Ext.form.FormPanel ({
+
+            title:'Edit Existing COA',
+            id:'edit-coa',
+            renderTo:'edit_coa',
+            iconCls: 'silk-user',
+            frame: true,
+            width:360,
+            labelWidth:140,
+            items:[{
+                xtype:'hidden',
+                id:'coa_id'
+            },{
+                xtype:'trigger',
+                fieldLabel:'COA Code ',
+                id:'coa_kode',
+                msgTarget:'side',
+                width:180,
+                allowBlank:false,
+                triggerClass: 'teropong',
+                onTriggerClick:function()
+                {
+                    showcoalist ();
+                }
+            },{
+                xtype:'textfield',
+                fieldLabel:'COA Name',
+                id:'coa_nama',
+                width:180,
+                allowBlank:false
+            },{
+                fieldLabel : 'COA Type',
+                id:'coa_tipe',
+                xtype:'combo',
+                store: new Ext.data.Store({
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/finance/coa/gettypecoa'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'count',
+                        root: 'data'
+                    }, [{
+                            name: 'tipe_nama'
+                        }])
+                }),
+                valueField:'tipe_nama',
+                displayField:'tipe_nama',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'remote',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:180
+            },{
+                fieldLabel : 'Debit/Credit',
+                id:'dk',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           ['Debit','Debit'],
+                           ['Credit','Credit']
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:180
+            },{
+                fieldLabel : 'Header/Detail',
+                id:'hd',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           ['Header','Header'],
+                           ['Detail','Detail']
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:180
+            },{
+                fieldLabel : 'Level',
+                id:'level',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai', 'type']
+                    ,data:[
+                           [1,1],
+                           [2,2],
+                           [3,3],
+                           [4,4],
+                           [5,5]
+                       ]
+                }),
+                valueField:'nilai',
+                displayField:'type',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                allowBlank: false,
+                selectOnFocus:true,
+                width:180
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    if(!Ext.getCmp('edit-coa').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+
+                    Ext.getCmp('edit-coa').getForm().submit({
+
+                        method:'POST',
+                        url:'/finance/coa/doupdatecoa',
+                        success:function(thisForm,response)
+                        {
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/coa/coamenu',
+                                scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+                }
+            },{
+                text:'Cancel',
+                handler:function(bnt,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/coa/coamenu',
+                        scripts : true
+                    });
+                }
+            }]
+
+        })
+
+    })
+
+
+
+</script>
+
+    <div id="edit_coa"></div>

@@ -1,0 +1,752 @@
+<script type="text/javascript">
+
+    var token = '';
+
+    var filelist = Ext.data.Record.create([ {
+            name: 'id',
+            type: 'integer'
+        },{
+            name: 'filename',
+            type: 'string'
+        },{
+            name: 'savename',
+            type: 'string'
+        },{
+            name: 'status',
+            type: 'string'
+        },{
+            name: 'path',
+            type: 'string'
+    }]);
+
+    var storeFile = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn){
+                if (btn== 'yes')
+                {
+                    if (theFile.data['status'] == 'new')
+                        var params = {filename:theFile.data['savename']};
+                        Ext.Ajax.request({
+                            url: '/procurement/procurement/deletefile',
+                            method:'POST',
+                            success: function(result, request){
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if (returnData.success)
+                                {
+                                    storeFile.remove(theFile);
+                                    Ext.getCmp('files-grid').getView().refresh();
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error!', returnData.msg);
+                                    return false;
+                                }
+                            },
+                            failure:function( action){
+                            if(action.failureType == 'server'){
+                              obj = Ext.util.JSON.decode(action.response.responseText);
+                              Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                            },
+                            params: params
+                        });
+                }
+            });
+        }
+    };
+
+    var proxy = new Ext.data.HttpProxy({
+       url : 'what ever'
+    });
+
+    var storetrans = new Ext.data.Store ({
+
+        id:'store-trans',
+        proxy:proxy,
+        reader: new Ext.data.JsonReader({
+            root:'data',
+            totalProperty:'total'
+            },[
+            {name:'trano'},
+            {name:'code'},
+            {name:'tgl'},
+            {name:'uid'},
+            {name:'uid_pic'},
+            {name:'status'},
+            {name:'condition'},
+            {name:'ket'},
+            {name:'sup_kode'}
+
+        ])
+    })
+
+    function showfixedasset ()
+    {
+
+        var fixedassetstore = new Ext.data.Store ({
+            autoLoad:true,
+            url:'/logistic/fixedasset/getfixedasset',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'code'
+                },{
+                    name:'location'
+                },{
+                    name:'storage'
+                },{
+                    name:'clasification'
+                },{
+                    name:'old_code'
+                },{
+                    name:'marking_date',type:'date'
+                },{
+                    name:'accessories'
+                },{
+                    name:'brand'
+                },{
+                    name:'type'
+                },{
+                    name:'serial_number'
+                },{
+                    name:"description"
+                },{
+                    name:'purchase_status'
+                },{
+                    name:'purchase_date',type:'date'
+                },{
+                    name:'condition'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'purchase_price'
+                },{
+                    name:'depr_rate'
+                },{
+                    name:'depr_exp'
+                },{
+                    name:'input_date'
+                },{
+                    name:'uid'
+                },{
+                    name:'status_aktif'
+                },{
+                    name:'token'
+                },{
+                    naem:'id'
+                }]
+            })
+        })
+
+        var fixedassetgrid = new Ext.grid.GridPanel ({
+
+            store:fixedassetstore,
+            id:'fixed-asset-store',
+            viewConfig:{
+                forceFit:true
+            },
+            height:300,
+            columns:[{
+                header:'Code',
+                dataIndex:'code',
+                align:'center',
+                sortable:true
+            },{
+                header:'Description',
+                dataIndex:'description',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-fixedaseet',
+                pageSize: 20,
+                store: fixedassetstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                        ['Code','code'],
+                        ['Description','description']
+                    ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'Code',
+                id:'option'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                style:'margin-left:10px',
+                enableKeyEvents:true,
+                width:100,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            fixedassetstore.proxy.url= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.proxy.setUrl('/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option);
+                            fixedassetstore.proxy.api.read['url']= '/logistic/fixedasset/getfixedasset/search/' + search + '/option/' + option;
+                            fixedassetstore.load();
+                            fixedassetgrid.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function(gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+                    var asset = gridaktif.getStore().getAt(rowIndex);
+
+                    var code = asset.get('code');
+
+                    Ext.getCmp('code').setValue(asset.get('code'));
+                    Ext.getCmp('storage').setValue(asset.get('storage'));
+                    Ext.getCmp('location').setValue(asset.get('location'));
+                    Ext.getCmp('description').setValue(asset.get('description'));
+                    Ext.getCmp('clasification').setValue(asset.get('clasification'));
+                    Ext.getCmp('brand').setValue(asset.get('brand'));
+                    Ext.getCmp('type').setValue(asset.get('type'));
+                    Ext.getCmp('serial_number').setValue(asset.get('serial_number'));
+                    Ext.getCmp('accessories').setValue(asset.get('accessories'));
+                    Ext.getCmp('condition').setValue(asset.get('condition'));
+                    Ext.getCmp('status').setValue(asset.get('status_aktif'));
+                    token = asset.get('token');
+
+                    storetrans.proxy.setUrl('/logistic/fixedasset/getstatusasset/code/' + code)
+                    storetrans.load();
+                    Ext.getCmp('grid-trans').getView().refresh();
+
+                    fixedassetwindow.close();
+                }
+            }
+        })
+
+        var fixedassetwindow = new Ext.Window ({
+
+            title:'Fixed Asset List',
+            id:'fixedasset-list-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[
+                fixedassetgrid
+            ]
+        })
+        fixedassetwindow.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+            }}
+        ];
+
+        var gridattach = new Ext.grid.GridPanel ({
+            id:'files-grid',
+            iconCls: 'silk-grid',
+            height: 100,
+            store: storeFile,
+            trackMouseOver: true,
+            width:490,
+            view : new Ext.grid.GridView({
+                forceFit: true
+            }),
+            columns: fileColumns
+        })
+
+        var fileUploads = new Ext.FormPanel({
+
+            title:'File Attachment',
+            renderTo:'panel_attachment',
+            fileUpload: true,
+            width:500,
+            frame:true,
+            allowBlank: false,
+             msgTarget: 'side',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.7,
+                    layout:'form',
+                    items:[{
+                        xtype: 'fileuploadfield',
+                        id: 'po-file',
+                        emptyText: 'Select a File',
+                        fieldLabel: 'Attach File',
+                        allowBlank: false,
+                        name: 'file-path',
+                        buttonText: '',
+                        buttonCfg: {
+                            iconCls: 'upload-icon'
+                        },
+                        width:200,
+                        anchor:'98%'
+                    }]
+                },{
+                    columnWidth:0.2,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Upload',
+                        handler:function()
+                        {
+                            if(fileUploads.getForm().isValid()){
+                                form_action=1;
+                                fileUploads.getForm().submit({
+                                    url: '/procurement/procurement/uploadfile/type/ASSET',
+                                    waitMsg: 'Uploading file...',
+                                    success: function(form,action){
+                                        var returnData = action.result;
+                                        if( returnData.success) {
+                                            var c = new filelist({
+                                                id:parseFloat(storeFile.getCount() + 1),
+                                                filename: returnData.filename,
+                                                savename: returnData.savename,
+                                                path: returnData.path,
+                                                status: 'new'
+                                          });
+                                          storeFile.add(c);
+                                          Ext.getCmp('files-grid').getView().refresh();
+                                            Ext.getCmp('po-file').setValue('');
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', returnData.msg);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }]
+                }]
+            },gridattach]
+
+        })
+
+        var gridtrans = new Ext.grid.GridPanel ({
+
+            store:storetrans,
+            viewConfig:{
+                forceFit:true
+            },height:190,
+            id:'grid-trans',
+            style:'margin:0 0 0 0',
+            columns:[{
+                header:'Trano',
+                dataIndex:'trano'
+            },{
+                header:'Date',
+                dataIndex:'tgl',
+                renderer: Ext.util.Format.dateRenderer('d M Y H:i:s')
+            },{
+                header:'PIC',
+                dataIndex:'uid_pic'
+            },{
+                header:'Status',
+                dataIndex:'status'
+            },{
+                header:'Condition',
+                dataIndex:'condition'
+            }]
+        })
+
+        var transinput = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            id:'asset-info',
+            style:'margin:0 10 10 10',
+            title:'Transaction Input',
+            layout:'form',
+            height:230,
+            items:[{
+                xtype:'combo',
+                id:'trans-status',
+                width:140,
+                store: new Ext.data.SimpleStore({
+                    fields:['nilai','name'],
+                    data:[
+                            ['IN USE','IN USE'],
+                            ['STORAGE','STORAGE'],
+                            ['SERVICE','SERVICE'],
+                            ['CALIBRATE','CALIBRATE']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                fieldLabel:'Status ',
+                allowBlank:false,
+                listeners:{
+                    'select':function(combo,record,index)
+                    {
+                        if (record.data.nilai == 'SERVICE' || record.data.nilai == 'CALIBRATE' )
+                        {
+                            Ext.getCmp('supplier').setVisible(true);
+                            Ext.getCmp('sup_kode').setValue('');
+                        }else
+                        {
+                            Ext.getCmp('supplier').setVisible(false);
+                            Ext.getCmp('sup_kode').setValue('');
+                        }
+                    }
+                }
+            },{
+                fieldLabel:'Supplier ',
+                id:'supplier',
+                Selectid:'sup_kode',
+                xtype:'supplierselector',
+                width: 200,
+                hidden:true,
+                allowBlank:false
+            },{
+                fieldLabel:'PIC ',
+                id:'pic',
+                UserSelectid:'uid',
+                xtype:'userselector',
+                width: 200,
+                allowBlank:false
+            },{
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                fieldLabel:'Project Code',
+                allowBlank:false
+            },{
+                xtype:'combo',
+                width:200,
+                fieldLabel:'Condition ',
+                store: new Ext.data.Store({
+                    autoLoad: true,
+                    fields:['name','nilai'],
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/logistic/fixedasset/getkondisi'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'total',
+                        root: 'data'
+                    }, [{
+                            name: 'kds_nama'
+                        },{
+                            name: 'kds_nama'
+                        }])
+                }),
+                valueField:'kds_nama',
+                displayField:'kds_nama',
+                typeAhead: true,
+                forceSelection: true,
+                editable: true,
+                mode: 'remote',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                id:'condition',
+                allowBlank:false
+            },{
+                fieldLabel:'Comment ',
+                id:'comment',
+                xtype:'textarea',
+                width: 200
+            }]
+        })
+
+        var transinfo = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            id:'asset-info',
+            style:'margin:0 10 10 10',
+            title:'Transaction Information',
+            layout:'form',
+            height:230,
+            items:[gridtrans]
+        })
+
+        var assetinfo = new Ext.form.FieldSet ({
+
+            collapsible:false,
+            id:'asset-info',
+            style:'margin:0 10 10 10',
+            title:'Fixed Asset Information',
+            layout:'form',
+            defaults:{
+                labelWidth:120
+            },
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        fieldLabel : 'Code ',
+                        id : 'code',
+                        name: 'code',
+                        xtype: 'trigger',
+                        triggerClass: 'teropong',
+                        allowBlank: false,
+                        editable : false,
+                        onTriggerClick:
+                            function ()
+                            {
+                                showfixedasset();
+                            },
+                        scope: this,
+                        width: 200
+                    },{
+                        fieldLabel:'Location ',
+                        id:'location',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Storage ',
+                        id:'storage',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Description ',
+                        id:'description',
+                        xtype:'textarea',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Clasification ',
+                        id:'clasification',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        fieldLabel:'Brand ',
+                        id:'brand',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Type ',
+                        id:'type',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Serial Number ',
+                        id:'serial_number',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Accessories ',
+                        id:'accessories',
+                        xtype:'textarea',
+                        readOnly:true,
+                        width: 200
+                    },{
+                        fieldLabel:'Status ',
+                        id:'status',
+                        xtype:'textfield',
+                        readOnly:true,
+                        width: 200
+                    }]
+                }]
+            }]
+        })
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Fixed Asset Transaction',
+            renderTo:'panel_transaction',
+            id:"panel-transaction",
+            frame:true,
+            layout:'form',
+            items:[assetinfo,{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[transinfo]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[transinput]
+                }]
+            }],
+            buttons:[{
+                text:'Submit',
+                handler: function()
+                {
+                    if (!Ext.getCmp('panel-transaction').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    if (Ext.getCmp('trans-status').getValue() == 'SERVICE' && Ext.getCmp('sup_kode').getValue() == '' )
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry, Please select Supplier',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    if (Ext.getCmp('uid').getValue() == '')
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry, Please select uid PIC',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    var data = '';
+
+                    if (storetrans.getCount() > 0)
+                    {
+                        data = storetrans.getAt(0);
+
+                        if (Ext.getCmp('trans-status').getValue() == data.data['status'])
+                        {
+                            Ext.MessageBox.show({
+                            title: 'Error',
+                            msg: 'Last Status for this Asset : ' + data.data['status'] + ', Please choose another status.',
+                            buttons: Ext.MessageBox.OK,
+                            icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var filedata = '';
+                            storeFile.each(function(store){
+                                filedata += Ext.util.JSON.encode(store.data) + ',';
+                            })
+
+                            filedata = '[' + filedata.substring(0, filedata.length - 1) + ']';
+
+
+                            Ext.getCmp('panel-transaction').getForm().submit({
+                                method:'POST',
+                                params:{
+                                    pic:Ext.getCmp('pic').getUid(),
+                                    token:token,
+                                    filedata:filedata,
+                                    prj_kode:Ext.getCmp('prj_kode_text').getValue()
+                                },
+                                url:'/logistic/fixedasset/doinserttransasset',
+                                success:function(thisForm,response){
+
+                                    var trano = response.result.trano;
+//                                    response.result('');
+
+                                    Ext.Msg.alert('Message','Success,' + ' Data has been saved' +
+                                                    '<br><br>Your transaction number is <b><font color="#ff0000">' +
+                                                    trano +
+                                                    '</font></b>');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                    url: '/logistic/fixedasset/menu',
+                                    scripts : true
+                                    });
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    })
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('panel-transaction').getForm().reset();
+                    Ext.getCmp('uid').setValue('');
+                    Ext.getCmp('sup_kode').setValue('');
+                    storetrans.removeAll();
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                    url: '/logistic/fixedasset/menu',
+                    scripts : true
+                    });
+                }
+            }]
+        })
+    })
+
+</script>
+
+    <div id="panel_attachment" style="margin-bottom: 10px;"></div>
+    <div id="panel_transaction"></div>

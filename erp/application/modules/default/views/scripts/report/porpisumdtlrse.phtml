@@ -1,0 +1,245 @@
+<?php if ($this->popup) { ?>
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<?php } ?>
+
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<style type="text/css">
+
+    .title {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+    .parentContainer{ 
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 900px; 
+        height: 700px; 
+        overflow: auto; 
+        font-size: 14px;
+    }
+
+</style>
+<?php if ($this->cod) { ?>
+    <div class="title">PO to RPI (COD) </div>
+<?php } else { ?>
+    <div class="title">PO to RPI (Without COD) </div>
+<?php } ?>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+        <tr>
+        <th scope="col"><center><b>No</b></center></th>
+        <th scope="col"><center><b>PO Number</b></center></th>
+        <th scope="col"><center><b>PO Total</b></center></th>
+        <th scope="col"><center><b>Currency</b></center></th>
+        <th scope="col"><center><b>Status PO</b></center></th>
+        <th scope="col"><center><b>RPI Number</b></center></th>
+        <th scope="col"><center><b>RPI Total</b></center></th>
+        <th scope="col"><center><b>Balance PO - RPI</b></center></th>
+        <th scope="col"><center><b>Net RPI Total</b></center></th>
+        <th scope="col"><center><b>Payment</b></center></th>
+        <th scope="col"><center><b>Payment Date</b></center></th>
+        <th scope="col"><center><b>Balance Net RPI - Pay</b></center></th>
+        </tr>
+        <tr>
+        </tr>
+        </thead>
+        <tbody>
+            <?php
+            $i = 0;
+            $totalPOIDR = 0;
+            $totalPOUSD = 0;
+            $totalRPIIDR = 0;
+            $totalRPIUSD = 0;
+            $totalNetRPIIDR = 0;
+            $totalNetRPIUSD = 0;
+            $totalPaymentIDR = 0;
+            $totalPaymentUSD = 0;
+            $totalBalRPIPOIDR = 0;
+            $totalBalRPIPOUSD = 0;
+            $totalBalPayRPIIDR = 0;
+            $totalBalPayRPIUSD = 0;
+            $colorBalRPIPOIDR = '';
+            $colorBalRPIPOUSD = '';
+            $colorBalPayRPIIDR = '';
+            $colorBalPayRPiUSD = '';
+            
+            foreach ($this->result as $k => $v) 
+            {
+                $row = 1;
+                $totalRow = 0;
+                $totalRPIperPO = 0;
+                
+                foreach($v as $k0 => $v0){
+                    $totalRow += count($v0);
+                    $totalRPIperPO += $v0[0]['total_RPI'];
+                }
+                        
+                foreach($v as $k1 => $v1)
+                {
+                    $row2 = 1;
+                    $totalPayperRPI = 0;
+                    
+                    $totalRow2 = count($v1);
+                    
+                    foreach($v1 as $k2 => $v2){
+                        $totalPayperRPI += $v2['total_PayRPI'];
+                    }
+                    
+                    foreach($v1 as $k3 => $v3)
+                    {
+                        ?>
+                <tr>
+                    <td><?=$i+1; ?></td>
+                    <?php if (($row== 1)&&($row2== 1)){
+                        $totalPOIDR += ($v3['val_kode'] == 'IDR') ? $v3['total_PO'] : 0;
+                        $totalPOUSD += ($v3['val_kode'] == 'USD') ? $v3['total_PO'] : 0;
+                        
+                        ?>
+                    <td rowspan="<?=$totalRow?>" align="right"><?= $v3['trano_PO']; ?></td>
+                    <td rowspan="<?=$totalRow?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_PO']) : number_format($v3['total_PO'], 2)); ?></td>
+                    <td rowspan="<?=$totalRow?>" align="right"><?= $v3['val_kode']; ?></td>
+                    <td rowspan="<?=$totalRow?>" align="right"><?= $v3['msg']; ?></td>
+                    <?php } if ($row2== 1) { 
+                        $totalRPIIDR += ($v3['val_kode'] == 'IDR') ? $v3['total_RPI'] : 0;
+                        $totalRPIUSD += ($v3['val_kode'] == 'USD') ? $v3['total_RPI'] : 0;
+                        
+                        ?>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= $v3['trano_RPI']; ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_RPI']) : number_format($v3['total_RPI'], 2)); ?></td>
+                    <?php } 
+                    if (($row== 1)&&($row2== 1)){ 
+                        $balanceRPIPO = $v3['total_PO'] - $totalRPIperPO;
+
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalBalRPIPOIDR += $balanceRPIPO;
+                        } else {
+                            $totalBalRPIPOUSD += $balanceRPIPO;
+                        }
+                        
+                        $colorRPIPO = '';
+                        
+                        if($balanceRPIPO < 0) {
+                            $colorRPIPO = "red"; 
+                        } else {
+                            $colorRPIPO = "black";
+                        }
+                    ?>
+                    <td rowspan="<?=$totalRow?>" align="right"><p style="color:<?=$colorRPIPO?>;"><?= (($v3['val_kode'] != 'USD') ? number_format($balanceRPIPO) : number_format($balanceRPIPO, 2)); ?></p></td>
+                    <?php } if ($row2== 1) { 
+                        
+                        $totalNetRPIIDR += ($v3['val_kode'] == 'IDR') ? $v3['total_netRPI'] : 0;
+                        $totalNetRPIUSD += ($v3['val_kode'] == 'USD') ? $v3['total_netRPI'] : 0;
+                        
+                        ?>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_netRPI']) : number_format($v3['total_netRPI'], 2)); ?></td>
+                    <?php } ?>
+                    <td align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_PayRPI']) : number_format($v3['total_PayRPI'], 2)); ?></td>
+                    <td align="right"><?= ($v3['tgl_PayRPI'] != '-') ? date('d-m-Y', strtotime($v3['tgl_PayRPI'])) : '-'; ?></td>
+                    <?php if ($row2== 1) { 
+                        $balancePayRPI = $v3['total_netRPI'] - $totalPayperRPI;
+
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalBalPayRPIIDR += $balancePayRPI;
+                        } else {
+                            $totalBalPayRPIUSD += $balancePayRPI;
+                        }
+                        
+                        $colorPayRPI = '';
+                        
+                        if($balancePayRPI < 0) {
+                            $colorPayRPI = "red"; 
+                        } else {
+                            $colorPayRPI = "black";
+                        }
+                    ?>
+                    <td rowspan="<?=$totalRow2?>" align="right"><p style="color:<?=$colorPayRPI?>;"><?= (($v3['val_kode'] != 'USD') ? number_format($balancePayRPI) : number_format($balancePayRPI, 2)); ?></p></td>
+                    <?php } ?>
+                </tr>
+
+                <?php
+                        $totalPaymentIDR += ($v3['val_kode'] == 'IDR') ? $v3['total_PayRPI'] : 0;
+                        $totalPaymentUSD += ($v3['val_kode'] == 'USD') ? $v3['total_PayRPI'] : 0;
+                        $i++;
+                        $row2++;
+                    }
+                    $row++;
+                }
+            }
+            
+            if($totalBalRPIPOIDR < 0) {
+                $colorBalRPIPOIDR = "red";
+            } else {
+                $colorBalRPIPOIDR = "black";
+            }
+            
+            if($totalBalRPIPOUSD < 0) {
+                $colorBalRPIPOUSD = "red";
+            } else {
+                $colorBalRPIPOUSD = "black";
+            }
+            
+            if($totalBalPayRPIIDR < 0) {
+                $colorBalPayRPIIDR = "red";
+            } else {
+                $colorBalPayRPIIDR = "black";
+            }
+            
+            if($totalBalPayRPIUSD < 0) {
+                $colorBalPayRPIUSD = "red";
+            } else {
+                $colorBalPayRPIUSD = "black";
+            }
+            
+            ?>       
+            <tr>
+                <td colspan="3" align="right"><b>Total IDR</b></td>
+                <td align="right"><b><?= number_format($totalPOIDR); ?></b></td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td align="right"><b><?= number_format($totalRPIIDR); ?></b></td>
+                <td align="right"><b><p style="color:<?=$colorBalRPIPOIDR?>;"><?= number_format($totalBalRPIPOIDR); ?></p></b></td>
+                <td align="right"><b><?= number_format($totalNetRPIIDR); ?></b></td>
+                <td align="right"><b><?= number_format($totalPaymentIDR); ?></b></td>
+                <td>&nbsp</td>
+                <td align="right"><b><p style="color:<?=$colorBalPayRPIIDR?>;"><?= number_format($totalBalPayRPIIDR); ?></p></b></td>
+            </tr>	
+            <tr>
+                <td colspan="3" align="right"><b>Total USD</b></td>
+                <td align="right"><b><?= number_format($totalPOUSD, 2); ?></b></td>
+                <td>&nbsp</td>
+                <td>&nbsp</td>
+                <td align="right"><b><?= number_format($totalRPIUSD, 2); ?></b></td>
+                <td align="right"><b><p style="color:<?=$colorBalRPIPOUSD?>;"><?= number_format($totalBalRPIPOUSD, 2); ?></p></b></td>
+                <td align="right"><b><?= number_format($totalNetRPIUSD, 2); ?></b></td>
+                <td align="right"><b><?= number_format($totalPaymentUSD, 2); ?></b></td>
+                <td>&nbsp</td>
+                <td align="right"><b><p style="color:<?=$colorBalPayRPIUSD?>;"><?= number_format($totalBalPayRPIUSD, 2); ?></p></b></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script type="text/javascript">
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 2,
+            headerRows: 2
+        });
+    })();
+
+</script>

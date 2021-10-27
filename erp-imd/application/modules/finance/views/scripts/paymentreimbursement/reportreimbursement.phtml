@@ -1,0 +1,348 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        exportReport = function ()
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            noTrans = Ext.getCmp('reimburs-number').getValue();
+            sign = Ext.getCmp('sign').getValue();
+
+
+
+            if (noTrans == '')
+            {
+                Ext.MessageBox.show({
+                       title: 'Error',
+                       msg: 'Please Insert/Select Trans No!',
+                       buttons: Ext.MessageBox.OK,
+                       icon: Ext.MessageBox.ERROR
+                   });
+                 return false;
+
+            }
+            if (sign == '')
+            {
+                Ext.MessageBox.show({
+                       title: 'Error',
+                       msg: 'Please Insert/Select Sign Document!',
+                       buttons: Ext.MessageBox.OK,
+                       icon: Ext.MessageBox.ERROR
+                   });
+                 return false;
+
+            }
+            if (combo.getRawValue() == '')
+            {
+                Ext.MessageBox.show({
+                       title: 'Error',
+                       msg: 'Please Select Format!',
+                       buttons: Ext.MessageBox.OK,
+                       icon: Ext.MessageBox.ERROR
+                   });
+                 return false;
+            }else
+            {
+                urlLoad =  '/jasper/reimbursreport/trano/' + noTrans + '/type/' + combo.getValue() + '/sign/' + sign;
+            }
+
+            params = {trano:noTrans};
+            Ext.Ajax.request({
+                url: '/default/home/cekprint',
+                method:'POST',
+                success: function(resp){
+                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                    if (returnData.success)
+                    {
+                        window.open(urlLoad,'mywin',
+                        'left=20, top=20, width=100, height=20, toolbar=0, resizable=0');
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Error', returnData.msg);
+                    }
+                },
+                failure:function( action){
+                if(action.failureType == 'server'){
+                  obj = Ext.util.JSON.decode(action.responseText);
+                  Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                  Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                }
+                },
+                params: params
+            });
+
+
+        }
+
+        showwindow = function(btn,ev)
+        {
+            var debitnotestore = new Ext.data.Store ({
+
+                autoLoad:true,
+                url:'/finance/paymentreimbursement/getdebitnotelist',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'prem_no'
+                    },{
+                        name:'rem_no'
+                    },{
+                        name:'prj_kode'
+                    },{
+                        name:'sit_kode'
+                    },{
+                        name:'cus_kode'
+                    },{
+                        name:'coa_kode'
+                    }]
+                })
+
+            })
+
+            var debitnotegrid = new Ext.grid.GridPanel ({
+
+                store:debitnotestore,
+                height:370,
+                width:786,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Debit Note Trano',
+                    dataIndex:'trano',
+                    align:'left',
+                    sortable:true
+                },{
+                    header:'Payment Reimbursement Trano',
+                    dataIndex:'prem_no',
+                    align:'left',
+                    sortable:true
+                },{
+                    header:'Reimbursement Number',
+                    dataIndex:'rem_no',
+                    align:'left',
+                    sortable:true
+                },{
+                    header:'Project Code',
+                    dataIndex:'prj_kode',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'Site Code',
+                    dataIndex:'sit_kode',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'Customer Code',
+                    dataIndex:'cus_kode',
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'COA code',
+                    dataIndex:'coa_kode',
+                    align:'center',
+                    sortable:true
+                }],bbar:new Ext.PagingToolbar ({
+                id: 'paging-debitnote',
+                pageSize: 20,
+                store: debitnotestore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px;margin-right:5px'
+                },'-',{
+                    xtype: 'combo',
+                    width: 146,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name','nilai'],
+                        data:[
+                                ['Debit Note Trano',1],
+                                ['Payment Reimbursement',2],
+                                ['Reimbursement Number',3],
+                                ['Project Code',4],
+                                ['Site Code',5],
+                                ['Customer Code',6]
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:1,
+                    id:'option'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search',
+                    style:'margin-left:10px',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                debitnotestore.proxy.setUrl('/finance/paymentreimbursement/getdebitnotelist/search/' + search + '/option/' + option);
+                                debitnotestore.reload();
+                                debitnotegrid.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowindex,e)
+                    {
+                        isDbClick = true;
+                        var debitnote = gridaktif.getStore().getAt(rowindex);
+                        var trano = debitnote.get('trano');
+                        Ext.getCmp('reimburs-number').setValue(trano);
+
+                        debitnotewindow.close();
+                    }
+                }
+
+            })
+
+
+            var debitnotewindow = new Ext.Window ({
+
+            title:'Payment Reimbursement Debit Note List',
+            layout: 'absolute',
+            minWidth: 300,
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            width: 800,
+            height: 400,
+            loadMask:true,
+            frame:true,
+            items:[debitnotegrid]
+
+            })
+
+            debitnotewindow.show();
+        }
+
+        var managerstore = new Ext.data.JsonStore ({
+
+            autoLoad:true,
+            url:'/finance/paymentreimbursement/listmanager',
+            root:'posts',
+    //                totalProperty:'count',
+            fields:[{
+                name:'uid_manager'
+            },{
+                name:'display_name'
+            },{
+                name:'role_name'
+            }]
+
+            
+
+        })
+
+        var combosign = new Ext.form.ComboBox ({
+
+            store:managerstore
+            ,id:'sign'
+            ,valueField:'uid_manager'
+            ,displayField:'display_name'
+            ,typeAhead: true
+            ,mode: 'local'
+            ,triggerAction: 'all'
+            ,selectOnFocus:true
+            ,anchor:'95%'
+            ,hiddenName:'type'
+            ,width:140
+            ,editable: false
+
+        })
+
+        var datas = new Ext.data.SimpleStore({
+            fields:['type','name']
+            ,data:[['pdf','PDF'],['xls','Excel']]
+        });
+
+        var combo=new Ext.form.ComboBox({
+            fieldLabel: 'Export'
+            ,name:'showReport'
+            ,store: datas
+            ,valueField:'type'
+            ,displayField:'name'
+            ,typeAhead: true
+            ,mode: 'local'
+            ,triggerAction: 'all'
+            ,value:'pdf'
+            ,selectOnFocus:true
+            ,anchor:'95%'
+            ,hiddenName:'type'
+            ,width:70
+            ,editable: false
+
+        });
+
+        var windowForm = ({
+
+            title:'Reimbursement Debit Note Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'tbtext',
+                text:'Payment Reimbursement Number'
+            },{
+                xtype:'textfield',
+                id:'reimburs-number',
+                readOnly:true,
+                width:100
+            },{
+                xtype:'button',
+                id:'reimburs-number-button',
+                cls:'x-btn-icon',
+                icon:'/images/g_rec_src.png',
+                handler:showwindow
+            },'-',
+                combosign,'-',combo,{
+                xtype: 'button',
+                id: 'export_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/print.png",
+                handler:exportReport
+            }]
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+</script>

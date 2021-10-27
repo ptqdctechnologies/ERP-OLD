@@ -1,0 +1,289 @@
+<style>
+        .x-tip {
+        background-color: #fff;
+        border-radius: 0.5em;
+        -moz-border-radius: 0.5em;
+        -webkit-border-radius: 0.5em;
+        border-radius: 0.5em;
+        border: 1px solid rgba(134, 84, 41, 0.5);
+        opacity: 0.95;
+    }
+    .x-tip-header {
+        margin-bottom: 5px;
+    }
+    .x-tip .x-panel .x-panel-body.x-layout-fit {
+        border: none;
+    }
+    .x-tip .x-panel.x-grid-section.x-panel-noborder.x-fit-item {
+        margin: 0;
+    }
+    .x-tip .x-panel.x-box-item {
+        top: 0 !important;
+    }
+    .x-tip-header-body .x-component.x-box-item {
+        width: 100%;
+        text-align: center;
+    }
+    .x-tip-body {
+        text-shadow: none;
+    }
+    /*.x-panel {*/
+            /*margin: 5px;*/
+        /*}*/
+</style>
+
+<script type="text/javascript">
+Ext.require(['Ext.data.*']);
+Ext.require('Ext.chart.*');
+Ext.require(['Ext.layout.container.Fit']);
+
+Ext.onReady(function() {
+    var store1 = Ext.create('Ext.data.JsonStore', {
+        fields: ['BOQ3','MIP', 'PROGRESS', 'week' <?=$this->fields?>],
+        data: <?=$this->json?>
+    });
+
+    var gridStore = Ext.create('Ext.data.JsonStore', {
+        id: 'grid-store',
+        fields: ['name', 'data'],
+        listeners: {
+            'load': function(t,r,o) {
+//                console.log(r);
+            }
+        }
+    });
+
+    var grid = Ext.create('Ext.grid.Panel', {
+        id: 'grid-panel',
+        store: gridStore,
+        height: 130,
+        width: 480,
+        viewConfig:{
+            forceFit: true
+        },
+        columns: [
+            new Ext.grid.RowNumberer(),
+            {
+                text   : 'Workid',
+                dataIndex: 'name',
+                width: 150
+            },
+            {
+                text   : 'Total',
+                dataIndex: 'total',
+                width: 200
+            }
+        ]
+    });
+
+    var panel = Ext.create('widget.panel', {
+        width: <?=$this->width?>,
+        height: <?=$this->height?>,
+        <?php if (!$this->notitle) { ?>
+        title: 'S Curve Baseline, Cost & Progress',
+        <?php } ?>
+        renderTo: Ext.getBody(),
+        layout: 'fit',
+//        tbar: [
+//            {
+//                text:'Show Options',
+//                iconCls: 'silk-application-view-list',  // <-- icon
+//                menu: Ext.create('Ext.menu.Menu', {
+//                        id: 'mainMenu',
+//                        style: {
+//                            overflow: 'visible'     // For the Combo popup
+//                        },
+//                        items: [
+//                            {
+//                                text: 'Show All',
+//                                handler: function()
+//                                {
+//                                    var chart = Ext.ComponentMgr.get('scurve-chart');
+////                                    chart.series.items[0].showInLegend = true;
+//                                    chart.series.items[0].showMarkers = true;
+//                                    chart.series.items[0].showAll();
+////                                    chart.series.items[1].showInLegend = true;
+//                                    chart.series.items[1].showMarkers = true;
+//                                    chart.series.items[1].showAll();
+////                                    chart.series.items[2].showInLegend = true;
+//                                    chart.series.items[2].showMarkers = true;
+//                                    chart.series.items[2].showAll();
+////                                    chart.refresh();
+//                                }
+//                            },
+//                            {
+//                                text: 'Baseline to Cost',
+//                                handler: function()
+//                                {
+//                                    var chart = Ext.ComponentMgr.get('scurve-chart');
+////                                    chart.series.items[0].showInLegend = true;
+//                                    chart.series.items[0].showMarkers = true;
+//                                    chart.series.items[0].showAll();
+////                                    chart.series.items[1].showInLegend = true;
+//                                    chart.series.items[1].showMarkers = true;
+//                                    chart.series.items[1].showAll();
+//                                    chart.series.items[2].showInLegend = false;
+////                                    chart.series.items[2].showMarkers = false;
+//                                    chart.series.items[2].hideAll();
+////                                    chart.refresh();
+//                                }
+//                            },
+//                            {
+//                                text: 'Baseline to Progress',
+//                                handler: function()
+//                                {
+//                                    var chart = Ext.ComponentMgr.get('scurve-chart');
+//                                    chart.series.items[0].showInLegend = true;
+//                                    chart.series.items[0].showAll();
+//                                    chart.series.items[1].showInLegend = false;
+//                                    chart.series.items[1].hideAll();
+//                                    chart.series.items[2].showInLegend = true;
+//                                    chart.series.items[2].showAll();
+//                                    chart.refresh();
+//                                }
+//                            },
+//                            {
+//                                text: 'Progress to Cost',
+//                                handler: function()
+//                                {
+//                                    var chart = Ext.ComponentMgr.get('scurve-chart');
+//                                    chart.series.items[0].showInLegend = false;
+//                                    chart.series.items[0].hideAll();
+//                                    chart.series.items[1].showInLegend = true;
+//                                    chart.series.items[1].showAll();
+//                                    chart.series.items[2].showInLegend = true;
+//                                    chart.series.items[2].showAll();
+//                                    chart.refresh();
+//                                }
+//                            }
+//                        ]
+//                })
+//            }
+//        ],
+        items: [{
+            xtype: 'chart',
+            id: 'scurve-chart',
+            animate: true,
+            shadow: true,
+            store: store1,
+            legend: {
+                position: 'top'
+            },
+            axes: [{
+                type: 'Numeric',
+                minimum: 0,
+                position: 'left',
+                fields: ['BOQ3','MIP'],
+                title: '%',
+                minorTickSteps: 1,
+                grid: {
+                    odd: {
+                        opacity: 1,
+                        fill: '#ddd',
+                        stroke: '#bbb',
+                        'stroke-width': 0.5
+                    }
+                }
+            }, {
+                type: 'Category',
+                position: 'bottom',
+                fields: ['week'],
+                title: 'Week ( Start: <?=date('d M Y',strtotime($this->startDate))?>, End: <?=date('d M Y',strtotime($this->endDate))?>, Current: <?=date('d M Y',strtotime($this->currentDate))?> )'
+            }],
+            series: [{
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['BOQ3'],
+                title: 'BASELINE',
+                markerConfig: {
+                    type: 'cross',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+                ,tips: {
+                    trackMouse: true,
+                    width: 580,
+                    height: 170,
+                    layout: 'fit',
+                    title: 'Budget Information per Workid',
+                    items: {
+                        xtype: 'container',
+                        layout: 'hbox',
+                        items: [
+                            grid
+                        ]
+                    },
+                    renderer: function(klass, item) {
+                        var storeItem = item.storeItem,
+                            data = [];
+                        Ext.each(storeItem.data,function(stores){
+                            Ext.iterate(stores,function(k,v){
+                                if (k.search('data') >= 0)
+                                {
+                                    if (v != '' || v != "")
+                                    {
+                                        var indeks = k.substr(-1,1);
+
+                                        data.push({
+                                           name: storeItem.get(k),
+                                           total: storeItem.get('acc'+indeks)
+                                        });
+                                    }
+                                }
+
+                            });
+                        });
+                        gridStore.loadData(data);
+                        grid.setSize(480, 130);
+                    }
+                }
+            },{
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['MIP'],
+                title: 'COST (PO & ARF)',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+            },{
+                type: 'line',
+                highlight: {
+                    size: 7,
+                    radius: 7
+                },
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['PROGRESS'],
+                title: 'CONSTRUCTION PERCENTAGE',
+                markerConfig: {
+                    type: 'circle',
+                    size: 4,
+                    radius: 4,
+                    'stroke-width': 0
+                }
+            }]
+        }]
+    });
+});
+
+</script>

@@ -1,0 +1,182 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init ();
+
+        var windowForm = ({
+
+            title: 'Profit & Loss Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[
+                {
+                    xtype: 'tbtext',
+                    text: 'Year'
+                },
+                {
+                    xtype: 'combo',
+                    id: 'combo-year',
+                    width: 80,
+                    store: new Ext.data.Store({
+                        autoLoad: true,
+                        fields:['tahun'],
+                        proxy: new Ext.data.HttpProxy({
+                            url: '/finance/report/getyearperiode'
+                        }),
+                        reader: new Ext.data.JsonReader({
+                            root: 'data'
+                        }, [{
+                                name: 'tahun'
+                            }])
+                    }),
+                    valueField:'tahun',
+                    displayField:'tahun',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: true,
+                    mode: 'remote',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    listeners:{
+                        'select':function(combo,rec,index)
+                        {
+                            var year = rec.data['tahun'];
+                            Ext.getCmp('combo-month').clearValue();
+                            Ext.getCmp('combo-month').store.load({
+                                    params:{ year: year }
+                            });
+                        }
+                    }
+                },
+                {
+                    xtype: 'tbtext',
+                    text: 'Month'
+                },
+                {
+                    xtype: 'combo',
+                    id: 'combo-month',
+                    width: 80,
+                    store: new Ext.data.Store({
+                        fields:['bulan','nama_bulan'],
+                        proxy: new Ext.data.HttpProxy({
+                            url: '/finance/report/getmonthperiode'
+                        }),
+                        reader: new Ext.data.JsonReader({
+                            root: 'data'
+                        }, [{
+                                name: 'bulan'
+                            },
+                            {
+                                name: 'nama_bulan'
+                            }])
+                    }),
+                    valueField:'bulan',
+                    displayField:'nama_bulan',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: true,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    listeners:{
+                        'select':function(combo,rec,index)
+                        {
+//                            var row = Ext.getCmp('the-grid').getSelectionModel().getSelections();
+//                            var recordDiGrid = Ext.getCmp('the-grid').getStore().getAt(Ext.getCmp('the-grid').getStore().findExact('id',row[0].data['id']));
+//                            if(recordDiGrid != undefined)
+//                            {
+//                                recordDiGrid.data['coa_nama'] = rec.data['coa_nama'];
+//                            }
+                        }
+                    }
+                },
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width:70,
+                    id: 'show_budget',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/icons/fam/control_rewind.png",
+                    handler:function(){
+                        var myPanel = Ext.getCmp('abs-budget-panel'),
+                        year = Ext.getCmp('combo-year').getValue(),
+                        month = Ext.getCmp('combo-month').getValue();
+
+                        if (year == '')
+                        {
+                            Ext.MessageBox.show({
+                                   title: 'Error',
+                                   msg: 'Please choose Year!',
+                                   buttons: Ext.MessageBox.OK,
+                                   icon: Ext.MessageBox.ERROR
+                               });
+                             return false;
+
+                        }
+
+
+                        var urlLoad = '/finance/report/viewprofitloss/year/' + year;
+                        if (month != '')
+                            urlLoad += '/month/' + month;
+
+                        myPanel.body.load({
+                            url: urlLoad ,
+                            scripts: true
+
+                        });
+                    }
+                },
+                '-'
+                ,
+                new Ext.form.ComboBox({
+                    fieldLabel: 'Export'
+                    ,name:'showReport'
+                    ,store: new Ext.data.SimpleStore({
+                        fields:['type','name']
+                        ,data:[['pdf','PDF'],['xls','Excel']]
+                    })
+                    ,valueField:'type'
+                    ,displayField:'name'
+                    ,typeAhead: true
+                    ,mode: 'local'
+                    ,triggerAction: 'all'
+                    ,value: 'pdf'
+                    ,emptyText:'Select..'
+                    ,selectOnFocus:true
+                    ,anchor:'95%'
+                    ,hiddenName:'type'
+                    ,width:70
+
+                }),
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls:"x-btn-icon" ,
+                    icon:"/images/print.png",
+                    handler:function()
+                    {
+
+                    }
+                }
+
+            ]
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+    })
+
+
+</script>

@@ -1,0 +1,211 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>'
+	});
+
+	var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+			{name: 'item_id'},
+			{name: 'type'},
+			{name: 'date', type: 'date',  dateFormat: 'Y-m-d H:i:s'},
+			{name: 'username_prev'},
+			{name: 'manager_name'},
+			{name: 'comment'},
+			{name: 'reject'},
+			{name: 'approve'},
+			{name: 'is_bt'},
+			{name: 'isPA'}
+          ]
+		);
+
+	var store = new Ext.data.Store({
+        reader: reader,
+        proxy: proxy
+    });
+	store.load();
+
+    searchDocument = function(){
+        var docs = Ext.getCmp('document-text').getValue();
+    	<?php if ($this-isType) { ?>
+        var newUrl = '/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>/type/<?php echo $this->type; ?>/id/' + docs;
+    	<?php } else { ?>
+        var newUrl = '/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>/id/' + docs;
+    	<?php } ?>
+        Ext.getCmp('user-grids').getBottomToolbar().store.proxy.api.read['url'] = newUrl;
+        Ext.getCmp('user-grids').getBottomToolbar().store.proxy.url = newUrl;
+        Ext.getCmp('user-grids').getBottomToolbar().store.proxy.setUrl(newUrl);
+        Ext.getCmp('user-grids').getBottomToolbar().moveFirst();
+    	Ext.getCmp('user-grids').getView().refresh();
+    };
+
+    searchDocumentType = function(){
+        var docs = Ext.getCmp('combo-type').getRawValue();
+        var newUrl = '/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>/type/' + docs;
+    	Ext.getCmp('user-grids').getBottomToolbar().store.proxy.api.read['url'] = newUrl;
+        Ext.getCmp('user-grids').getBottomToolbar().store.proxy.url = newUrl;
+        Ext.getCmp('user-grids').getBottomToolbar().store.proxy.setUrl(newUrl);
+        Ext.getCmp('user-grids').getBottomToolbar().moveFirst();
+    	Ext.getCmp('user-grids').getView().refresh();
+    };
+	var grid = new Ext.grid.GridPanel({
+        store: store,
+        id: 'user-grids',
+        stateful: false,
+        loadMask: true,
+        <?php if ($this->isType) { ?>
+        title: 'Verify & Approval',
+        <?php } else { ?>
+        title: 'My Manager\'s Document',
+        <?php } ?>
+        columns: [
+             new Ext.grid.RowNumberer(),    
+            {header: "", width: 60, dataIndex: 'item_id',renderer: function (v,p,r) {
+                var bt = '';
+                if (r.data['is_bt'])
+                {
+                    p.attr ='ext:qtip="This Document has Business Trip items."';
+                    bt = "&nbsp;<img src='/images/folder_public.png'>";
+                }
+                return "<img src='/images/list.png'>" + bt;
+	        }},
+            {header: "Trano", width: 100, sortable: true, dataIndex: 'item_id'},
+            {header: "Manager's Name", width: 120, sortable: true, dataIndex: 'manager_name'},
+            {header: "From", width: 120, sortable: true, dataIndex: 'username_prev'},
+            {header: "Date", width: 120, sortable: true, dataIndex: 'date',renderer: Ext.util.Format.dateRenderer('d/m/Y H:i:s')},
+            {header: "Status", width: 100, sortable: true, dataIndex: 'approve'},
+            {header: "Comment", width: 300, sortable: true, dataIndex: 'comment'}
+       ],
+       view: new Ext.grid.GridView({
+			enableRowBody:true
+	        ,getRowClass:function(record, rowIndex, p, store) {
+	            var reject = record.get('reject');
+	            if (reject) 
+	       	        return 'x-grid3-row-with-body3';
+         }
+
+	       }),
+        frame:true,
+        height: 400,
+        layout: 'fit',
+        renderTo: 'grids',
+        loadMask: true,
+        bbar: new Ext.PagingToolbar({
+            id: 'paging',
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        }),
+        tbar: [
+				{
+					text: 'Trano',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					xtype: 'textfield',
+					id: 'document-text'
+				},
+				{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchDocument,
+				    scope: this
+				},
+				'-',
+				{
+					text: 'Document Type',
+					id: 'label-doc-type',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{	
+					 id: 'combo-type',
+		             name: 'workflow_item_type_id',
+		             hiddenName : 'workflow_item_type_id',
+		             width: 100,
+		             xtype: 'combo',
+		             triggerAction: 'all',
+		             mode: 'remote',
+		             displayField: 'name',
+		             valueField: 'workflow_item_type_id',
+		             store: new Ext.data.JsonStore({
+//		                 autoLoad: true,
+		                 url: '/admin/workflow/listworkflowitemtype',
+		                 root: 'posts',
+		                  fields:[
+		                      { name: "name"},{ name: "workflow_item_type_id"}
+		                  ]
+		             })
+	             },
+				{
+				    text: 'Search',
+					id: 'search-doc-type',
+				    iconCls: 'search-icon',
+				    handler: searchDocumentType,
+				    scope: this
+				},'-',
+				{
+					text: 'Manager\'s Name',
+					id: 'label-manager',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					 id: 'combo-manager',
+		             name: 'manager_uid',
+		             hiddenName : 'manager_uid',
+		             width: 150,
+		             xtype: 'combo',
+		             triggerAction: 'all',
+		             mode: 'remote',
+		             displayField: 'name',
+		             valueField: 'manager_uid',
+		             store: new Ext.data.JsonStore({
+		                 url: '/default/home/getmymanager',
+		                 root: 'posts',
+		                  fields:[
+		                      { name: "name"},{ name: "manager_uid"}
+		                  ]
+		             }),
+                    listeners: {
+                        'select': function(c, rec, i) {
+                            var uid = rec.data.manager_uid;
+                            store.proxy.setUrl('/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>/type/<?php echo $this->type; ?>/manager_uid/' + uid);
+                            Ext.getCmp('user-grids').getStore().reload();
+                            Ext.getCmp('user-grids').getView().refresh();
+                        }
+                    }
+	             }
+               ]
+    });
+
+
+	<?php if ($this->isType) { ?>
+
+
+	store.proxy.setUrl('/default/home/documenttoprocessnew/pa/true/userid/<?php echo $this->userId; ?>/type/<?php echo $this->type; ?>');
+	Ext.getCmp('user-grids').getStore().reload();
+	Ext.getCmp('user-grids').getView().refresh();
+
+	Ext.getCmp('combo-type').setVisible(false);
+	Ext.getCmp('label-doc-type').setVisible(false);
+	Ext.getCmp('search-doc-type').setVisible(false);
+
+	<?php } ?>
+    
+	
+});
+
+
+</script>
+
+<div id="grids"></div>

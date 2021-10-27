@@ -1,0 +1,381 @@
+<script type="text/javascript">
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/barang/list'
+	});
+
+var searchcode = function(){
+        var userName = Ext.getCmp('txtcode').getValue();
+    	store.proxy.setApi('read','/barang/list/code/' + userName);
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+
+var searchname = function(){
+        var userName = Ext.getCmp('txtname').getValue();
+    	store.proxy.setApi('read','/barang/list/name/' + userName);
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+var searchrefresh = function(){
+    Ext.getCmp('txtcode').setValue("");
+    Ext.getCmp('txtname').setValue("");
+    var proxy = new Ext.data.HttpProxy({
+	    url : '/barang/list'
+	});
+        gridhistories.setVisible(false);
+        grid.setVisible(true);
+        var userName = Ext.getCmp('txtname').getValue();
+    	store.proxy.setApi('read','/barang/list/' + userName);
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+var searchhistories = function(){
+    var userName = Ext.getCmp('txtcode').getValue();
+	if (userName == undefined || userName == '')
+	{
+		App.setAlert(false, 'Please fill Product ID!');
+        return false;
+	}
+        gridhistories.setVisible(true);
+        grid.setVisible(false);
+//        storehistories.proxy = new Ext.data.HttpProxy( {
+//   	        url: '/baranghistories/list/code/' + userName
+//        });
+        storehistories.proxy.setApi('read','/baranghistories/list/code/' + userName);
+        storehistories.reload();
+    	Ext.getCmp('user-grids2').getStore().loadData(storehistories);
+//        Ext.getCmp('user-grids2').getView().refresh();
+
+    };
+
+    var readerhistories = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+            {name: 'tra_no', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat : 'Y-m-d'},
+            {name: 'brg_kode', type: 'string'},
+            {name: 'brg_nama', type: 'string'},
+            {name: 'val_kode', type: 'string'},
+            {name: 'sat_kode', type: 'string'},
+            {name: 'harga', type: 'double'},
+            {name: 'sup_kode', type: 'string'},
+            {name: 'sup_nama', type: 'string'},
+            {name: 'master_kota',type:'string'}
+
+         ]
+    );
+    
+     var storehistories = new Ext.data.Store({
+	    id: 'user',
+	    proxy: proxy,
+	    reader: readerhistories
+    });
+    
+
+    storehistories.load();
+    var gridhistories = new Ext.grid.GridPanel({
+        store: storehistories,
+        hidden: true,
+        stateful : false,
+        id : 'user-grids2',
+        columns: [
+
+{
+                id: 'description',
+                header: 'ID',
+                width: 50,
+
+                sortable: true,
+                dataIndex: 'tra_no'
+                ,hideable: false,
+                hidden: true
+
+            },
+            {
+                header: 'Trans No',
+                width: 100,
+                sortable: true,
+                dataIndex: 'tra_no'
+            },{
+                header: 'Date',
+                width: 70,
+                sortable: true,
+                dataIndex: 'tgl',
+                renderer : function(v){
+                    if (v != '' && v != undefined)
+                    return  Ext.util.Format.date(v,'m/d/Y');
+                }
+            },{
+                header: 'Product ID',
+                width: 70,
+                sortable: true,
+                dataIndex: 'brg_kode'
+            },
+            {
+                header: 'Description',
+                width: 400,
+                sortable: true,
+                dataIndex: 'brg_nama'
+            },
+            {
+                header: 'Curr',
+                width: 30,
+                sortable: true,
+                dataIndex: 'val_kode'
+            },
+            {
+                header: 'Uom',
+                width: 30,
+                sortable: true,
+                dataIndex: 'sat_kode'
+            },
+            {
+                header: 'Price',
+                width: 100,
+                sortable: true,
+                align: 'right',
+                renderer: change,
+                dataIndex: 'harga'
+            },
+             {
+                header: 'Vendor Code',
+                width: 60,
+                sortable: true,
+                dataIndex: 'sup_kode'
+            },
+             {
+                header: 'Vendor Name',
+                width: 100,
+                sortable: true,
+                dataIndex: 'sup_nama'
+            },{
+                header:'Vendor City',
+                width: 100,
+                sortable: true,
+                dataIndex: 'master_kota'
+            }
+            ],
+
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 3,
+            store: storehistories,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        tbar : [
+                {
+                            xtype: 'button',
+                            text : 'Back to Master List',
+                            id: 'refresh_button2',
+                            iconCls:"silk-table-refresh" ,
+                            handler:searchrefresh
+                        }
+
+                ],
+
+        frame: true,
+        width: 1020,
+        height: 450,
+        clicksToEdit: 1,
+        collapsible: true,
+        animCollapse: false,
+        trackMouseOver: false,
+        //enableColumnMove: false,
+        title: 'Histories Price Material',
+        iconCls: 'icon-grid',
+        renderTo: 'list-material2'
+    });
+
+
+
+var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'val_kode', type: 'string'},
+            {name: 'sat_kode', type: 'string'},
+            {name: 'harga', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat : 'Y-m-d'}
+
+         ]
+    );
+
+
+    var store = new Ext.data.Store({
+	    id: 'user',
+	    proxy: proxy,
+	    reader: reader
+    });
+store.load();
+    var grid = new Ext.grid.GridPanel({
+        store: store,
+        stateful : false,
+        id : 'user-grids',
+        listeners: {
+            rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                Ext.getCmp('txtcode').setValue(rec.data['kode_brg']);
+                Ext.getCmp('txtname').setValue(rec.data['nama_brg']);
+            }
+        },
+        columns: [
+
+{
+                id: 'description',
+                header: 'ID',
+                width: 50,
+
+                sortable: true,
+                dataIndex: 'kode_brg'
+                ,hideable: false,
+                hidden: true
+
+            },
+            {
+                header: 'Product ID',
+                width: 60,
+                sortable: true,
+                dataIndex: 'kode_brg'
+            },{
+                header: 'Description',
+                width: 500,
+                sortable: true,
+                dataIndex: 'nama_brg'
+            },{
+                header: 'UoM',
+                width: 40,
+                sortable: true,
+                dataIndex: 'sat_kode'
+            },{
+                header: 'Last Price',
+                width: 100,
+                sortable: true,
+                dataIndex: 'harga',
+                align: 'right'
+            },{
+                header: 'Curr',
+                width: 50,
+                sortable: true,
+                dataIndex: 'val_kode'
+            },{
+                header: 'Last Update',
+                width: 100,
+                sortable: true,
+                dataIndex: 'tgl',
+                renderer: Ext.util.Format.dateRenderer('m/d/Y')
+            }
+        ],
+
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        tbar : [
+                        {
+                            xtype : 'label',
+                            text : 'Product ID'
+                        },'-'
+                        ,
+                        {
+                            xtype : 'textfield',
+                            name : 'txtcode',
+                            id : 'txtcode',
+                            enableKeyEvents:true,
+                           listeners: {                               
+//                                   keyup: searchcode
+                              keypress:
+                                  function(field, e) {
+                               	  if(e.button==12){
+                                      searchcode() ;
+                                      	    }
+                                     	  }
+
+                                }
+                        }
+        
+                        ,{
+                        xtype: 'button',
+                        text: 'Search',
+                        width:70,
+                        id: 'search_id',
+                        cls:"x-btn-text-icon" ,
+                        icon:"/images/g_rec_src.png",
+                        handler:searchcode
+                    },'-'
+
+                        ,
+                        {
+                            xtype : 'label',
+                            text : 'Description'
+                        },'-'
+                        ,
+                        {
+                            xtype : 'textfield',
+                            name : 'txtname',
+                            id : 'txtname',
+                            enableKeyEvents:true,
+                        listeners: {
+                              keypress:
+                                  function(field, e) {
+                               	  if(e.button==12){
+                                      searchname() ;
+                                      	    }
+                                     	  }
+                        }
+                        },{
+                        xtype: 'button',
+                        text: 'Search',
+                        width:70,
+                        id: 'search_name',
+                        cls:"x-btn-text-icon" ,
+                        icon:"/images/g_rec_src.png",
+                        handler:searchname
+                    },'-'
+                    ,{
+                            xtype: 'button',
+                            text : 'Refresh',
+                            id: 'refresh_button',
+                            iconCls:"silk-table-refresh" ,
+                            handler:searchrefresh
+                    },'-'
+                    ,{
+                            xtype: 'button',
+                            text : 'Search Histories',
+                            id: 'searchhis_button',
+                            icon:"/images/g_rec_src.png",
+                                handler:searchhistories
+                    }
+                ],
+
+        frame: true,
+        width: 1020,
+        height: 450,
+        clicksToEdit: 1,
+        collapsible: true,
+        animCollapse: false,
+        trackMouseOver: false,
+        //enableColumnMove: false,
+        title: 'Master List',
+        iconCls: 'icon-grid',
+        renderTo: 'list-material'
+    });
+
+ function change(val)
+    {
+        return Ext.util.Format.number(val, '?0,000.00?');
+    }
+});
+</script>
+<div id='list-material'></div>
+
+<div id='list-material2'></div>

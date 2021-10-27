@@ -1,0 +1,257 @@
+<script type="text/javascript">
+
+        function showpolist ()
+    {
+        var storepolist = new Ext.data.Store ({
+
+            autoLoad:true,
+            url:'/finance/cancelpo/getpolist',
+            reader: new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'count',
+                fields:[{
+                    name:'trano',type:'String'
+                },{
+                    name:'tgl'
+                },{
+                    name:'prj_kode',type:'String'
+                },{
+                    name:'prj_nama',type:'String'
+                },{
+                    name:'petugas',type:'String'
+                },{
+                    name:'sup_kode',type:'String'
+                },{
+                    name:'sup_nama',type:'String'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'total'
+                }]
+            })
+
+        })
+
+        var gridpolist = new Ext.grid.GridPanel ({
+
+            store:storepolist,
+            height:370,
+            columns:[{
+                header:'PO Trano',
+                dataIndex:'trano',
+                align:'center',
+                sortable:true
+            },{
+                header:'Date',
+                dataIndex:'tgl',
+                align:'center',
+                sortable:true
+            },{
+                header:'Project Code',
+                dataIndex:'prj_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Project Name',
+                dataIndex:'prj_nama',
+                align:'center',
+                sortable:true
+            }],
+            bbar: new Ext.PagingToolbar ({
+                id: 'paging',
+                pageSize: 100,
+                store: storepolist,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype:'combo',
+                allowBlank:false,
+                store: new Ext.data.SimpleStore ({
+                    fields:['nilai','name'],
+                    data:[
+                        [1,'PO Trano'],
+                        [2,'Date'],
+                        [3,'Project Code'],
+                        [4,'Project Name']
+                    ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:1,
+                width:120,
+                id:'option'
+            },'-',{
+                xtype:'textfield',
+                id:'search',
+                enableKeyEvents:true,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            storepolist.proxy.setUrl('/finance/cancelpo/getpolist/search/' + search + '/option/' + option);
+                            storepolist.reload();
+                            gridpolist.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function (gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+                    var po = gridaktif.getStore().getAt(rowIndex);
+                    var potrano = po.get('trano');
+                    Ext.getCmp('po-trano').setValue(potrano);
+
+                    windowpolist.close();
+                }
+            }
+
+
+        })
+
+        var windowpolist = new Ext.Window ({
+
+            title:'PO Final Approve list',
+            width:430,
+            height:400,
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            loadMask:true,
+            items:[
+                gridpolist
+            ]
+
+        })
+
+        windowpolist.show();
+    }
+
+    Ext.onReady (function(){
+
+        Ext.QuickTips.init ();
+
+        var windowForm = ({
+
+            title: 'Cancel PO',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[{
+                xtype:'tbtext',
+                text:'PO Number'
+            },'-',{
+                xtype:'trigger',
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                id:'po-trano',
+                onTriggerClick:function ()
+                {
+                    showpolist ();
+                }
+            },'-',{
+                xtype: 'button',
+                text: 'Show',
+                width:70,
+                id: 'show_report',
+                cls:"x-btn-text-icon" ,
+                icon:"/images/icons/fam/control_rewind.png",
+                handler:function (btn,ev)
+                {
+                    var potrano = Ext.getCmp('po-trano').getValue();
+
+//                    if (potrano == '')
+//                    {
+//                        Ext.MessageBox.show({
+//                        title: 'Error',
+//                        msg: 'Please select PO Number',
+//                        buttons: Ext.MessageBox.OK,
+//                        icon: Ext.MessageBox.ERROR
+//                        });
+//                        return false;
+//                    }
+
+                    Ext.getCmp('abs-budget-panel').body.load({
+                        url:'/finance/cancelpo/formcancelpo/trano/' + potrano,
+                        scripts:true
+                    })
+
+                }
+            }]
+
+        })     
+        
+        function getExchangeRate()
+        {
+            Ext.Ajax.request({
+                url: '/default/valuta/getexchangerate/val_kode/USD',
+                method: 'POST',
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        if(returnData.rate == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Input Current IDR Rate. Thank You.',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR,
+                                fn:function(){window.location='';}
+                            });
+                        }
+                    
+                        Ext.getCmp('rateidr').setValue(returnData.rate);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//        panelBaru.body.load ({
+//            url:'/finance/cancelpo/formcancelpo',
+//            scripts:true
+//        })
+
+    })
+
+
+</script>

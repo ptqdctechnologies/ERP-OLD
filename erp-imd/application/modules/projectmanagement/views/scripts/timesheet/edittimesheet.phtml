@@ -1,0 +1,410 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+var today = new Date().clearTime();
+
+var eventList = {
+    "evts": <?php echo $this->json; ?>
+};
+
+    App = function() {
+    return {
+        init : function() {
+		    this.eventStore = new Ext.data.JsonStore({
+		        id: 'eventStore',
+		        root: 'evts',
+		        data: eventList, // defined in event-list.js
+				proxy: new Ext.data.MemoryProxy(),
+		        fields: Ext.calendar.EventRecord.prototype.fields.getRange()
+		    });
+
+            new Ext.Panel ({
+                id: 'app-center',
+                renderTo: 'calendars',
+                title: 'Edit Existing Timesheet <?php echo $this->trano; ?>',
+                stateful: false,
+                frame: true,
+                fbar: [
+                    '->',
+                    {
+                        text: 'Save Timesheet',
+                        iconCls: 'icon-save',
+                        disabled: false,
+                        handler: this.onSubmit,
+                        scope: this
+                    }
+                ],
+                items: [
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth: .22,
+                                    items: [
+                                        new Ext.DatePicker({
+                                            id: 'app-nav-picker',
+                                            cls: 'ext-cal-nav-picker',
+                                            disabledDays: [0,6],
+                                            listeners: {
+                                                'select': {
+                                                    fn: function(dp, dt){
+                    //                                    Ext.getCmp('app-calendar').setStartDate(dt);
+                                                        App.calendarPanel.setStartDate(dt);
+                                                    },
+                                                scope: this
+                                                }
+                                            }
+                                        })
+                                    ]
+                                   },
+                                    {
+                                    columnWidth: .78,
+                                    items: [
+                                        new Ext.calendar.CalendarPanel({
+                                            eventStore: this.eventStore,
+                                            calendarStore: this.calendarStore,
+                                            border: false,
+                                            id:'app-calendar',
+                                            height: 500,
+                                            activeItem: 2, // month view
+
+                                            monthViewCfg: {
+                                                showHeader: true,
+                                                showWeekLinks: true,
+                                                showWeekNumbers: true
+                                            },
+
+                                            initComponent: function() {
+                                                App.calendarPanel = this;
+                                                this.constructor.prototype.initComponent.apply(this, arguments);
+                                            },
+
+                                            listeners: {
+                                                'afterrender': {
+                                                    fn: function (t) {
+                                                        var d = new Date("<?php echo date('d M Y H:i:s',strtotime($this->start)); ?>");
+                                                        Ext.getCmp('app-calendar').setStartDate(d);
+                                                    }
+                                                },
+                                                'eventclick': {
+                                                    fn: function(vw, rec, el){
+                                                        if (!rec.data['IsPrev'])
+                                                        {
+                                                            this.showEditWindow(rec, el);
+                                                            this.clearMsg();
+                                                        }
+                                                        else
+                                                        {
+                                                            if (rec.data['CalendarId'] == 2)
+                                                                Ext.Msg.alert('Error','Cannot edit this Event, Reason: Already submitted into Workflow.');
+                                                            else
+                                                                Ext.Msg.alert('Error','Cannot edit this Event, Reason: Use Edit Timesheet Draft.');
+
+                                                        }
+                                                    },
+                                                    scope: this
+                                                },
+                                                'viewchange': {
+                                                    fn: function(p, vw, dateInfo){
+                                                        if(this.editWin){
+                                                            this.editWin.hide();
+                                                        };
+                                                        if(dateInfo !== null){
+                                                            // will be null when switching to the event edit form so ignore
+                                                            Ext.getCmp('app-nav-picker').setValue(dateInfo.activeDate);
+                                                            this.updateTitle(dateInfo.viewStart, dateInfo.viewEnd);
+                                                        }
+                                                    },
+                                                    scope: this
+                                                },
+                                                'dayclick': {
+                                                    fn: function(vw, dt, ad, el){
+                                                        var hasil=true;
+//                                                        hasil = this.checkDateWithinEvent({StartDate: dt});
+                                                        if (hasil)
+                                                        {
+                                                            this.showEditWindow({
+                                                                StartDate: dt,
+                                                                IsAllDay: ad
+                                                            }, el);
+                                                        }
+                                                        else
+                                                        {
+                                                            Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                                        }
+                                                        this.clearMsg();
+                                                    },
+                                                    scope: this
+                                                },
+                                                'rangeselect': {
+                                                    fn: function(win, dates, onComplete){
+
+                                                        var hasil=true;
+
+                                                        hasil = this.checkDateWithinEvent(dates);
+                                                        if (hasil)
+                                                        {
+                                                            this.showEditWindow(dates);
+                                                            this.editWin.on('hide', onComplete, this, {single:true});
+                                                        }
+                                                        else
+                                                        {
+                                                            Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                                        }
+                                                        this.clearMsg();
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventmove': {
+                                                    fn: function(vw, rec){
+                                                        var hasil=true;
+                                                        if (!rec.data['IsPrev'])
+                                                        {
+                                                            hasil = this.checkDateWithinEvent(rec.data, rec);
+                                                            if (hasil)
+                                                            {
+                                                                rec.commit();
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                                            }
+
+                                                            var time = rec.data.IsAllDay ? '' : ' \\a\\t g:i a';
+                            //                                    this.showMsg('Event '+ rec.data.Title +' was moved to '+rec.data.StartDate.format('F jS'+time));
+                                                        }
+                                                        else
+                                                        {
+                                                            if (rec.data['CalendarId'] == 2)
+                                                                Ext.Msg.alert('Error','Cannot move this event because it still on Workflow Progress..');
+                                                            else
+                                                                Ext.Msg.alert('Error','Cannot move this event because it still on Draft..');
+
+                                                            rec.reject();
+                                                        }
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventresize': {
+                                                    fn: function(vw, rec){
+                                                        rec.commit();
+                        //                                    this.showMsg('Event '+ rec.data.Title +' was updated');
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventdelete': {
+                                                    fn: function(win, rec){
+                                                        this.eventStore.remove(rec);
+                        //                                    this.showMsg('Event '+ rec.data.Title +' was deleted');
+                                                    },
+                                                    scope: this
+                                                },
+                                                'initdrag': {
+                                                    fn: function(vw){
+                                                        if(this.editWin && this.editWin.isVisible()){
+                                                            this.editWin.close();
+                                                        }
+                                                    },
+                                                    scope: this
+                                                }
+                                            }
+                                        })
+                                        ]
+                                    }
+                                    ]
+                        }
+                                    ]
+                                });
+        },
+        onSubmit: function() {
+            var json = '';
+            var parameter = '';
+
+            this.eventStore.filter([
+                {
+                    property: 'IsPrev',
+                    value: false
+                }
+            ]);
+            this.eventStore.each(function(store){
+                
+                var D = Ext.calendar.Date;
+                store.data.StartDate = D.formatDate(store.data.StartDate,'dd-mm-yyyy hh:nn:ss');
+                store.data.EndDate = D.formatDate(store.data.EndDate,'dd-mm-yyyy hh:nn:ss');
+//                store.data.Notes = store.data.Notes.toString().replace(/\'|\"|\n|\r|\t/g,'');
+
+                json += Ext.util.JSON.encode(store.data) + ',';
+            });
+            json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+            var paramEtc = '[{"trano": "<?php echo $this->trano; ?>", "prj_kode": "<?php echo $this->prjKode; ?>"}]';
+            params = {posts:json, etc: paramEtc};
+            myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+            myPanel.body.load({
+                url: '/projectmanagement/timesheet/apptimesheet/from/edit/trano/<?php echo $this->trano; ?>', //the url
+                scripts : true,
+                params: params //our params goes here
+            });
+        },
+        // The edit popup window is not part of the CalendarPanel itself -- it is a separate component.
+        // This makes it very easy to swap it out with a different type of window or custom view, or omit
+        // it altogether. Because of this, it's up to the application code to tie the pieces together.
+        // Note that this function is called from various event handlers in the CalendarPanel above.
+		showEditWindow : function(rec, animateTarget){
+//	        if(!this.editWin){
+	            this.editWin = new Ext.calendar.EventEditWindow({
+                    closeAction: 'close',
+                    calendarStore: this.calendarStore,
+                    sumRecord: this.eventStore.getCount(),
+					listeners: {
+						'eventadd': {
+							fn: function(win, rec){
+                                var hasil=true;
+                                hasil = this.checkDateWithinEvent(rec.data);
+                                if (hasil)
+                                {
+                                    win.close();
+                                    rec.data.IsNew = false;
+                                    this.eventStore.add(rec);
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                    return false;
+                                }
+//                                this.showMsg('Event '+ rec.data.Title +' was added');
+							},
+							scope: this
+						},
+                        'eventcancel': {
+							fn: function(win, rec){
+								win.close();
+
+							},
+							scope: this
+						},
+						'eventupdate': {
+							fn: function(win, rec){
+								win.close();
+								rec.commit();
+//                                this.showMsg('Event '+ rec.data.Title +' was updated');
+							},
+							scope: this
+						},
+						'eventdelete': {
+							fn: function(win, rec){
+								this.eventStore.remove(rec);
+								win.close();
+//                                this.showMsg('Event '+ rec.data.Title +' was deleted');
+							},
+							scope: this
+						},
+                        'editdetails': {
+                            fn: function(win, rec){
+                                win.close();
+                                App.calendarPanel.showEditForm(rec);
+                            }
+                        }
+					}
+                });
+//	        }
+
+	        this.editWin.show(rec, animateTarget);
+		},
+        checkDateWithinEvent: function(dates, move) {
+          var ret = true;
+            var behalfof = dates.BehalfOf;
+          if (behalfof != '')
+          {
+              this.eventStore.filterBy(function(record,id){
+                return record.get('BehalfOf') == behalfof;
+              });
+          }
+          this.eventStore.each(function(store){
+              if (behalfof == '' && store.data.BehalfOf != '')
+                return true;
+
+                var D = Ext.calendar.Date,
+                start = store.data.StartDate,
+                end = store.data.EndDate;
+                if (store.data.IsAllDay && move == undefined)
+                {
+                    var startD = D.formatDate(start,'dd mmm yyyy');
+                    var checkD = D.formatDate(dates.StartDate,'dd mmm yyyy');
+
+                    if (startD == checkD)
+                    {
+                        ret = false;
+                        return false;
+                    }
+                    else
+                    {
+                       if (dates.EndDate == undefined)
+                            dates.EndDate = dates.StartDate;
+
+                        var hasil = D.dateWithin(start,end,dates.StartDate);
+                        var hasil2 = D.dateWithin(start,end,dates.EndDate);
+                        if (hasil || hasil2)
+                        {
+                            ret = false;
+                            return false;
+                        }
+                        var hasil = D.dateWithin(dates.StartDate,dates.EndDate,start);
+                        var hasil2 = D.dateWithin(dates.StartDate,dates.EndDate,end);
+                        if (hasil || hasil2)
+                        {
+                            ret = false;
+                            return false;
+                        }
+                    }
+                }
+
+                if (dates.EndDate == undefined)
+                    dates.EndDate = dates.StartDate;
+
+                if (move != undefined)
+                {
+                    if (move.data.EventId == store.data.EventId)
+                        return true;
+                    var hasil = D.dateWithin(dates.StartDate,dates.EndDate,start);
+                    var hasil2 = D.dateWithin(dates.StartDate,dates.EndDate,end);
+                    if (hasil || hasil2)
+                    {
+                        ret = false;
+                        return false;
+                    }
+                }
+                var hasil = D.dateWithin(start,end,dates.StartDate);
+                var hasil2 = D.dateWithin(start,end,dates.EndDate);
+                if (hasil || hasil2)
+                {
+                    ret = false;
+                    return false;
+                }
+            });
+            this.eventStore.clearFilter();
+
+          return ret;
+        },
+        updateTitle: function(startDt, endDt){
+
+        },
+        showMsg: function(msg){
+//            Ext.fly('app-msg').update(msg).removeClass('x-hidden');
+        },
+
+        clearMsg: function(){
+//            Ext.fly('app-msg').update('').addClass('x-hidden');
+        }
+    }
+
+}();
+});
+
+Ext.onReady(App.init, App);
+</script>
+
+<div  id="date-picks">
+</div>
+<div  id="calendars">
+</div>

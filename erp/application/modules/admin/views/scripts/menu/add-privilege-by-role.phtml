@@ -1,0 +1,359 @@
+<script type="text/javascript">
+var nodeJson = [];
+function checkChild(node)
+{
+
+    if (node.hasChildNodes) {
+        node.eachChild(function(child){
+            child.getUI().toggleCheck(true);
+            checkChild(child);
+        });
+    }
+}
+
+function uncheckChild(node)
+{
+
+    if (node.hasChildNodes) {
+        node.eachChild(function(child){
+            child.getUI().toggleCheck(false);
+            uncheckChild(child);
+        });
+    }
+}
+
+function getUncheckChild(node)
+{
+    if (node.hasChildNodes) {
+        node.eachChild(function(child){
+            if (child.isLeaf() && !child.hasChildNodes())
+            {
+                var status = (child.attributes.checked) ? 1 : 0;
+                nodeJson.push({
+                    menu_id: child.attributes.id_name,
+                    status: status
+                });
+            }
+            getUncheckChild(child);
+        });
+    }
+}
+
+
+
+Ext.onReady(function(){
+
+    var submitPrivilege = function (json, exparams)
+    {
+        var u = userGrid.getSelectionModel().getSelected(),
+            role_id = u.get("id_role");
+
+        if (role_id == '')
+            return false;
+
+        if (exparams == undefined)
+            exparams = {};
+
+        exparams.posts = json;
+        exparams.id_role = role_id;
+        exparams.by_role = true;
+
+        Ext.Ajax.request({
+            url: '/admin/menu/submitmenuprivilege',
+            method:'POST',
+            success: function(result, request){
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if( !returnData.success) {
+                    Ext.Msg.alert('Error!', returnData.message);
+                } else {
+                    Ext.Msg.alert('Success!', 'Menu Privilege have been submitted!');
+                    tree.root.reload();
+                    tree.getRootNode().expand(true);
+                }
+            }
+            ,failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            },
+            params: exparams
+        });
+    }
+
+    var W = Ext.getBody().getViewSize();
+
+    var store = new Ext.data.Store({
+        proxy: new Ext.data.HttpProxy({
+            url: '/admin/userrole/listroletype/status/1'
+        }),
+        reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        }, [
+            {name: 'id_role'},
+            {name: 'display_name'},
+            {name: 'role_name'}
+        ]),
+        autoLoad: true
+    });
+
+    var userGrid = new Ext.grid.GridPanel({
+        renderTo: 'user-grid',
+        title: 'Role List',
+        store: store,
+        height: W.height - 120,
+        width: 350,
+        sm: new Ext.grid.RowSelectionModel({singleSelect:true}),
+        columns : [
+            new Ext.grid.RowNumberer(),
+            {header: "Role Name", width: 250, sortable: true, dataIndex: 'display_name'}
+        ],
+        listeners: {
+            'rowclick': function(g, ind) {
+                var u = g.getStore().getAt(ind),
+                    uid = u.get("id_role");
+
+                if (uid && comboModule.getValue() != '')
+                {
+                    tree.getLoader().dataUrl ='/menu/get-role-menu/modulename/' + comboModule.getValue();
+                    tree.getLoader().load(tree.root);
+                    tree.getRootNode().expand(true);
+                }
+
+                tree.setTitle('Menu Privilege for ' + u.get("display_name"));
+            }
+        }
+    });
+
+    var comboModule = new Ext.form.ComboBox({
+        store: new Ext.data.Store({
+            proxy: new Ext.data.HttpProxy({
+                url: '/default/menu/get-module'
+            }),
+            reader: new Ext.data.JsonReader({
+                root: 'data'
+            }, [
+                {name: 'module_name'},{name: 'text'}
+            ])
+        })
+        ,valueField:'module_name'
+        ,displayField:'text'
+        ,hideLabel: true
+        ,typeAhead: true
+        ,editable: false
+        ,mode: 'remote'
+        ,triggerAction: 'all'
+        ,selectOnFocus:true
+        ,forceSelection:false
+        ,width: 200
+        ,listeners: {
+            'select': function (combo,selected) {
+
+                tree.getLoader().dataUrl ='/menu/get-role-menu/modulename/' + combo.getValue();
+                tree.getLoader().load(tree.root);
+                tree.getRootNode().expand(true);
+            }
+        },
+        emptyText: 'Select Module'
+    });
+
+    var tree = new Ext.tree.TreePanel({
+        renderTo:'user-tree',
+        title: 'Menu Privilege',
+        height: W.height - 120,
+        width: 600,
+        useArrows:true,
+        autoScroll:true,
+        animate:true,
+        containerScroll: true,
+        rootVisible: false,
+        loader: new Ext.tree.TreeLoader({
+            dataUrl:'/menu/get-role-menu'
+        }),
+        root: new Ext.tree.AsyncTreeNode({
+            id: 'menu',
+            expanded: true
+        }),
+        load: function() {
+            this.el.mask('loading...', 'loadingMask');
+        },
+        tbar: [
+            comboModule,'-',
+            {
+                text: 'Check All',
+                iconCls: 'silk-add',
+                handler: function(){
+                    node = tree.getRootNode();
+                    node.eachChild(function(child){
+                        child.getUI().toggleCheck(true);
+                        checkChild(child);
+                    });
+
+                },
+                scope: this
+            },
+            {
+                text: 'unCheck All',
+                iconCls: 'silk-del',
+                handler: function(){
+                    node = tree.getRootNode();
+                    node.eachChild(function(child){
+                        child.getUI().toggleCheck(false);
+                        uncheckChild(child);
+                    });
+
+                },
+                scope: this
+            },
+            {
+                text: 'Refresh',
+                iconCls: 'silk-table-refresh',
+                handler: function(){
+                    tree.root.reload();
+                    tree.getRootNode().expand(true);
+
+                },
+                scope: this
+            }
+        ],
+
+        listeners: {
+            'checkchange': function(node, checked){
+                if(checked){
+                    node.getUI().addClass('complete');
+                }else{
+                    node.getUI().removeClass('complete');
+                }
+            },
+            'load': function(n){
+                n.expand(true);
+            }
+        },
+
+        buttons: [
+            {
+                text: 'Flush Privileges',
+                style: {
+                    overflow: 'visible'     // For the Combo popup
+                },
+                menu: {
+                    xtype: 'menu',
+                    plain: true,
+                    items: [
+                        {
+                            text: 'Flush Privilege All Module',
+                            iconCls: 'silk-delete',
+                            handler: function() {
+                                var u = userGrid.getSelectionModel().getSelected(),
+                                    name = u.get("display_name");
+                                Ext.MessageBox.confirm('Confirmation','This will Flush / Reset Menu Privilege for ' + name + ', Proceed ?',function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        var json = Ext.util.JSON.encode([
+                                            {
+                                                delete_all: true
+                                            }
+                                        ]);
+                                        submitPrivilege(json);
+                                    }
+                                });
+                            }
+                        },
+                        {
+                            text: 'Flush Privilege Selected Module',
+                            iconCls: 'silk-delete',
+                            id: 'selected-module',
+                            handler: function() {
+                                var u = userGrid.getSelectionModel().getSelected(),
+                                    name = u.get("display_name"),
+                                    modulename = comboModule.getValue();
+
+                                if (modulename == '')
+                                    return false;
+
+                                Ext.MessageBox.confirm('Confirmation','This will Flush / Reset Menu Privilege for ' + name + ' on Module ' + modulename + ', Proceed ?',function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        var json = Ext.util.JSON.encode([
+                                            {
+                                                delete_all: true,
+                                                delete_module: modulename
+                                            }
+                                        ]);
+                                        submitPrivilege(json);
+
+                                    }
+                                });
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                text: 'Disable Privileges',
+                style: {
+                    overflow: 'visible'     // For the Combo popup
+                },
+                menu: {
+                    xtype: 'menu',
+                    plain: true,
+                    items: [
+                        {
+                            text: 'Disable Selected Module',
+                            iconCls: 'silk-delete',
+                            handler: function() {
+                                var u = userGrid.getSelectionModel().getSelected(),
+                                    name = u.get("display_name"),
+                                    modulename = comboModule.getValue();
+
+                                if (modulename == '')
+                                    return false;
+
+                                Ext.MessageBox.confirm('Confirmation','This will Disable All Menu Privilege for ' + name + ' on Module ' + modulename + ', Proceed ?',function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        var json = Ext.util.JSON.encode([
+                                            {
+                                                disable_all: true,
+                                                disable_module: modulename
+                                            }
+                                        ]);
+                                        submitPrivilege(json);
+                                    }
+                                });
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                text: 'Save Privilege',
+                handler: function(){
+                    nodeJson = [];
+                    node = tree.getRootNode();
+                    node.eachChild(function(child){
+                        getUncheckChild(child);
+                    });
+
+                    if (nodeJson.length == 0)
+                        return false;
+
+                    modulename = comboModule.getValue();
+
+                    submitPrivilege(Ext.util.JSON.encode(nodeJson),{module_name: modulename});
+                }
+            }
+        ]
+    });
+    new Ext.tree.TreeSorter(tree, {
+        folderSort: true,
+        dir: "asc"
+    });
+})
+
+</script>
+<div style="float:left">
+    <div id="user-grid" style="float:left"></div>
+    <div id="user-tree" style="float:left;margin-left:5px;"></div>
+</div>

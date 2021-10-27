@@ -1,0 +1,95 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+    var summary = new Ext.grid.GroupSummary();
+
+    var store = new Ext.ux.MultiGroupingStore({
+        url : '/finance/report/getbpvitem/trano/<?=$this->trano?>'
+       ,reader: new Ext.data.JsonReader({
+           totalProperty: 'count',
+           root : 'data'},
+            [
+                {name: 'id'},
+                {name: 'trano', type: 'string'},
+                {name: 'ref_number', type: 'string'},
+                {name: 'name', type: 'string'},
+                {name: 'val_kode', type: 'string'},
+                {name: 'total'},
+                {name: 'tgl', type: 'date', dateFormat: 'Y-m-d'}
+               ]
+           )
+        ,sortInfo: {field: 'id', direction: 'ASC'}
+       ,groupField: ['trano','ref_number']
+     });
+
+        store.load();
+
+        var groupView = new Ext.ux.MultiGroupingView({
+            hideGroupedColumn :true
+           ,enableRowBody:true
+           ,getRowClass:function(record, rowIndex, p, store) {
+            }
+           ,startCollapsed: false
+           ,forceFit: true
+           ,emptyGroupText: 'NULL'
+           ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+           ,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Item" : "Items"]})'
+           ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+           });
+
+        var grid = new Ext.ux.MultiGroupingPanel({
+            stateful: false,
+            store: store,
+            frame: true,
+            renderTo: 'grid-bpv',
+            columns: [
+                {
+                    header: 'Trans. No.',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'trano'
+                },
+                {
+                    header: 'Ref Number',
+                    width: 320,
+                    sortable: true,
+                    dataIndex: 'ref_number'
+                },
+                {
+                    header: 'Description',
+                    width: 350,
+                    sortable: true,
+                    dataIndex: 'name'
+                },
+                {
+                    header: 'Currency',
+                    width: 80,
+                    sortable: true,
+                    dataIndex: 'val_kode'
+                },
+                {
+                    header: 'Total',
+                    width: 220,
+                    sortable: true,
+                    dataIndex: 'total',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    },
+                    summaryType: 'sum'
+                }
+            ],
+            view : groupView,
+            plugins: summary,
+            loadMask: true,
+            height: 450
+        });
+    });
+</script>
+
+    <div id="grid-bpv"></div>

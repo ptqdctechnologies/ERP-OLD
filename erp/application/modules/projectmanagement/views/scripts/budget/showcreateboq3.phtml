@@ -1,0 +1,445 @@
+
+<script type="text/javascript" src="/js/layout/ux/RowActions.js"></script>
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowActions.css" />
+        
+<script type="text/javascript">
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+	function showPraBOQChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 110,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'PRABOQ3 Number',
+								    id : 'praboq_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showPraBOQList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('praboq_no_text').getValue();
+		 			        if (prno != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/projectmanagement/budget/edittempboq3/trano/' + prno,
+				          	        scripts : true
+                                });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showPraBOQList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        var store = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'}
+            ,[
+			{name: 'id'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'sit_kode'},
+			{name: 'prj_nama'},
+			{name: 'sit_nama'}
+          ]),
+        proxy: new Ext.data.HttpProxy({
+           url : '/projectmanagement/budget/list/type/PRABOQ3'
+        })
+        })
+        store.load();
+
+        yAxis=100;
+        var grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: store,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:'po_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 50,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:250,
+            width:380,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showPraBOQChoose(trano);
+                                Ext.getCmp('praboq_no_text').setValue(trano);
+
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+
+        }
+        store.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PO
+        searchTrano = function(field,e){
+            newUrl = '/projectmanagement/budget/listByParams/name/trano/data/' + field.getValue();
+//            prox = Pk+'_proxy';
+//            gri = Pk+'_grid';
+            proxies = Ext.getCmp('po_grid').getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp('po_grid').getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/projectmanagement/budget/listByParams/name/prj_kode/data/' + field.getValue();
+//            prox = Pk+'_proxy';
+//            gri = Pk+'_grid';
+            proxies = Ext.getCmp('po_grid').getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp('po_grid').getStore().reload();
+    };
+        searchPrj_nama = function(field,e){
+            newUrl = '/projectmanagement/budget/listByParams/name/prj_nama/data/' + field.getValue();
+//            prox = Pk+'_proxy';
+//            gri = Pk+'_grid';
+            proxies = Ext.getCmp('po_grid').getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp('po_grid').getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/projectmanagement/budget/listByParams/name/sit_kode/data/' + field.getValue();
+//            prox = Pk+'_proxy';
+//            gri = Pk+'_grid';
+            proxies = Ext.getCmp('po_grid').getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp('po_grid').getStore().reload();
+        };
+        searchSit_nama = function(field,e){
+            newUrl = '/projectmanagement/budget/listByParams/name/sit_nama/data/' + field.getValue();
+//            prox = Pk+'_proxy';
+//            gri = Pk+'_grid';
+            proxies = Ext.getCmp('po_grid').getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp('po_grid').getStore().reload();
+        };
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 37,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,35,80,'prj_kode',searchPrj_kode),
+           {
+               x : 6,
+               y: 62,
+               xtype: 'label',
+               text: 'Project Name'
+           },
+           new txtboks(80,60,80,'prj_nama',searchPrj_nama),
+           {
+                 x: 180,
+                 y: 37,
+            	xtype: 'label',
+                text: 'Site Code'
+           },
+           new txtboks(240,35,80,'sit_kode',searchSit_kode),
+           {
+                x: 180,
+                y: 62,
+            	xtype: 'label',
+                text: 'Site Name'
+            },
+            new txtboks(240,60,80,'sit_nama',searchSit_nama)
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose Temporary BOQ3';
+      aForm.show();
+
+
+    }
+
+showEditPraBOQ = function(){
+	    showPraBOQChoose();
+	};
+
+
+showInputProject = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/project/show',
+        scripts : true
+    });
+};
+
+showAddSite = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/project/showsite',
+        scripts : true
+    });
+};	
+
+showInputBudget = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/budget/createboq3',
+        scripts : true
+    });
+};
+
+showInputNonPrj = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/budget/createbudgetnonproject',
+        scripts : true
+    });
+};
+
+showInputbudgetnonproject = function ()
+{
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/budget/createbudgetperiodenonproject',
+        scripts : true
+    });
+}
+
+showEditsiteBOQ3 = function ()
+{
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/budget/editsiteboq3',
+        scripts : true
+    });
+}
+
+showEditcfsBOQ3 = function ()
+{
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/budget/editcfsboq3',
+        scripts : true
+    });
+}
+
+var windowForm =  ({
+
+    title: 'Project Budget Input',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+			
+			    items: [
+						{
+						    id: 'budget_add_project_button',
+						    text: 'Create New Project',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showInputProject
+						}
+						,{
+						    id: 'budget_add_site_button',
+						    text: 'Add New Site on Project',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/g_rec_add.png",
+						    handler:showAddSite
+						}
+						,{
+						    id: 'budget_add_button',
+						    text: 'Input Project Budget',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showInputBudget
+						},{
+						    id: 'budget_edit_button',
+						    text: 'Edit Existing Temporary BOQ3',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditPraBOQ
+						},
+                    {
+						    id: 'budget_add_overhead_button',
+						    text: 'Input Non Project / Overhead Budget',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showInputNonPrj
+						},
+                        {
+						    id: 'add_new_budget_periode_non_project',
+						    text: 'Add New Budget Periode Non Project',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/g_rec_add.png",
+						    handler:showInputbudgetnonproject
+						},{
+                            id:'edit_existing_site_boq3',
+                            text: 'Edit Existing Site BOQ3',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/page_edit.gif",
+                            handler:showEditsiteBOQ3
+                        },{
+                            id:'edit_existing_cfs_boq3',
+                            text: 'Edit Existing CFS BOQ3',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/page_edit.gif",
+                            handler:showEditcfsBOQ3
+                        }
+						]
+				}
+			}
+       ]
+});
+
+    function getExchangeRate()
+        {
+            Ext.Ajax.request({
+                url: '/default/valuta/getexchangerate/val_kode/USD',
+                method: 'POST',
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        if(returnData.rate == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR,
+                                fn:function(){window.location='';}
+                            });
+                        }
+                    
+                        Ext.getCmp('rateidr').setValue(returnData.rate);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+        getExchangeRate();
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+// myPanel = Ext.getCmp('abs-budget-panel');
+// myPanel.body.load({
+//     url: '/projectmanagement/budget/createboq3',
+//     scripts : true
+// });
+        showSubmenu('abs-budget-panel');
+
+</script>

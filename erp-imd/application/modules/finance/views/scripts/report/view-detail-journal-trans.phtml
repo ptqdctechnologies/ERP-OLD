@@ -1,0 +1,146 @@
+<?php
+if (count($this->data) == 0)
+{
+    echo "No Data to display...";
+    die();
+}
+
+?>
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 840px;
+        height: 420px;
+        overflow: auto;
+        font-size: 14px;
+    }
+</style>
+<div style="border-bottom: 2px solid #99BBE8;width:840px;float:left;margin-bottom: 10px;">
+    <h1 style="font-size: 18px;font-family: tahoma,verdana,arial,sans-serif;">DETAIL JOURNAL <?=$this->title?></h1>
+    <!--<h2 style="font-size: 16px;float: left;"><b>--><?//=$this->periode?><!--</b></h2>-->
+    <h3 style="font-size: 11px;float: left;"><b><?=$this->tgl?></b></h3>
+    <h3 style="font-size: 11px;float: right;"><i>Currency : IDR</i></h3>
+</div>
+<br>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Trano</center></th>
+            <th scope="col"><center>Ref Number</center></th>
+            <th scope="col"><center>Date</center></th>
+            <th scope="col"><center>COA Code</center></th>
+            <th scope="col"><center>COA Name</center></th>
+            <th scope="col"><center>Debit</center></th>
+            <th scope="col"><center>Credit</center></th>
+            <th scope="col"><center>Debit (Conversion)</center></th>
+            <th scope="col"><center>Credit (Conversion)</center></th>
+        </tr>
+        </thead>
+        <tbody>
+
+        <?php
+        $nomer = 1;$totalDebit = 0;$totalCredit = 0;
+        foreach($this->data as $k => $v )
+        {
+            $trano = $k;
+            $jum = count($v);
+            $indeks = 0;
+            $totalTransDebit = 0;
+            $totalTransCredit = 0;
+            $totalTransDebitConv = 0;
+            $totalTransCreditConv = 0;
+            foreach($v as $k2 => $v2)
+            {
+                $totalDebit += $v2['debit'];
+                $totalCredit += $v2['credit'];
+                $totalTransDebit += $v2['debit'];
+                $totalTransCredit += $v2['credit'];
+                $totalTransDebitConv += $v2['debit_conversion'];
+                $totalTransCreditConv += $v2['credit_conversion'];
+            ?>
+            <tr>
+                <td><?=$nomer;?></td>
+                <?php if ($indeks == 0) { ?><td rowspan=<?=$jum?>><?=$v2['trano']?></td><?php } ?>
+                <td><?=($v2['ref_number'] != '') ? $v2['ref_number'] : "&nbsp;"?></td>
+                <td><?=($v2['tgl'] != '') ? date("d M y",strtotime($v2['tgl'])) : "&nbsp;"?></td>
+                <td><?=($v2['coa_kode'] != '') ? $v2['coa_kode'] : "&nbsp;"?></td>
+                <td><?=($v2['coa_nama'] != '') ? $v2['coa_nama'] : $v2['text']?></td>
+                <td align="right"><?=number_format($v2['debit'],2)?></td>
+                <td align="right"><?=number_format($v2['credit'],2)?></td>
+                <td align="right"><?=number_format($v2['debit_conversion'],2)?></td>
+                <td align="right"><?=number_format($v2['credit_conversion'],2)?></td>
+            </tr>
+
+            <?php
+                $indeks++;
+                $nomer++;
+            }
+            $color = '';$selisih = ''; $selisih_conversion = '';
+            if (bccomp($totalTransCredit,$totalTransDebit,2) != 0)
+            {
+                $color = "#ffea8f";
+                $selisih = $totalTransCredit - $totalTransDebit;
+                if ($selisih < 0)
+                {
+                    $selisih = -1 * $selisih;
+                }
+                $selisih = "<b>Variance : " . number_format($selisih,2) . "</b>";
+            }
+            if (bccomp($totalTransCreditConv,$totalTransDebitConv,2) != 0)
+            {
+                $color = "#ffea8f";
+                $selisih_conversion = $totalTransCreditConv - $totalTransDebitConv;
+                if ($selisih_conversion < 0)
+                {
+                    $selisih_conversion = -1 * $selisih_conversion;
+                }
+                $selisih_conversion = "<b>Variance : " . number_format($selisih_conversion,2) . "</b>";
+            }
+            ?>
+            <tr bgcolor="<?=$color?>">
+                <td colspan = 6 align="right"><?=($selisih) ? $selisih : '&nbsp;'?></td>
+                <td align="right"><b><?=number_format($totalTransDebit,2)?></b></td>
+                <td align="right"><b><?=number_format($totalTransCredit,2)?></b></td>
+                <td colspan = 2 align="right"><?=($selisih_conversion) ? $selisih_conversion : '&nbsp;'?></td>
+            </tr>
+        <?php
+        }
+        ?>
+        <!--        TOTAL -->
+        <?php
+        if (bccomp($this->totalCredit,$this->totalDebit,2) != 0)
+        {
+            $color = "#ffea8f";
+            $selisih = $this->totalCredit - $this->totalDebit;
+            if ($selisih < 0)
+            {
+                $selisih = -1 * $selisih;
+            }
+            $selisih = "&nbsp;(<b>Variance : " . number_format($selisih,2) . "</b>)";
+        }
+        ?>
+        <tr bgcolor="<?=$color?>">
+            <td colspan = 6 >GRAND TOTAL <?=($selisih) ? $selisih : ''?></td>
+            <td align="right"><b><?=number_format($this->totalDebit,2)?></b></td>
+            <td align="right"><b><?=number_format($this->totalCredit,2)?></b></td>
+        </tr>
+
+        </tbody>
+    </table>
+</div>
+<script type="text/javascript">
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin : "sSky",
+            fixedCols : 3,
+            headerRows : 1
+        });
+    })();
+
+</script>

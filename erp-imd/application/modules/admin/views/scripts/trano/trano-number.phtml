@@ -1,0 +1,237 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var rec = null;
+
+    var panel = new Ext.form.FormPanel({
+        renderTo: 'form',
+        title: 'Add Trano Number',
+        frame: true,
+        border: true,
+        layout: 'form',
+        autoHeight: true,
+        hidden: true,
+        width: 350,
+        items: [
+            {
+                xtype: 'textfield',
+                name: 'trano_prefix',
+                readOnly: true,
+                fieldLabel: 'Trano Prefix'
+            },
+            {
+                xtype: 'checkbox',
+                name : 'statusfinance',
+                fieldLabel: 'Format Finance (Ex: POR-1301/101)',
+                trueText: '1',
+                falseText: '0'
+            },
+            {
+                xtype: 'checkbox',
+                name : 'statuspayment',
+                fieldLabel: 'Status Payment (For Payment Purpose)',
+                trueText: '1',
+                falseText: '0',
+                listeners: {
+                    'check' : function(ch,val)
+                    {
+                        if (val)
+                        {
+                            Ext.getCmp('payment_name').show();
+                        }
+                        else
+                            Ext.getCmp('payment_name').hide();
+                    }
+                }
+            },
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Payment Name',
+                hidden: true,
+                id: 'payment_name',
+                name: 'name'
+            },
+            {
+                xtype: 'textfield',
+                fieldLabel: 'Counter',
+                name: 'urut'
+            }
+        ],
+        buttons: [
+            {
+                text: 'Create',
+                handler: function() {
+                    var newTrans = false;
+                    if (rec.get("bulan") == null && rec.get("tahun") == null)
+                        newTrans = true;
+
+                    var params = panel.getForm().getValues();
+                    params.statusfinance = (params.statusfinance == 'on') ? 1 : 0;
+                    params.statuspayment = (params.statuspayment == 'on') ? 1 : 0;
+
+                    if (newTrans)
+                    {
+
+                        Ext.MessageBox.confirm('Confirm', 'This action will generate new Trano Number, Proceed?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    Ext.Ajax.request({
+                                        url: '/admin/trano/create-trano-number',
+                                        method:'POST',
+                                        params: params,
+                                        success: function(result, request){
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                            if (returnData.success)
+                                            {
+                                                grid.getStore().reload();
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error',returnData.msg);
+                                            }
+
+                                        }
+                                    });
+                                }
+                            }
+                        );
+                    }
+                    else
+                    {
+                        var cb = function(params)
+                        {
+                            Ext.Ajax.request({
+                                url: '/admin/trano/update-trano-number',
+                                method:'POST',
+                                params: params,
+                                success: function(result, request){
+                                    var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                    if (returnData.success)
+                                    {
+                                        grid.getStore().reload();
+                                        panel.getForm().reset();
+                                    }
+                                    else
+                                    {
+                                        if (returnData.counter_diff == null || returnData.counter_diff == undefined)
+                                            Ext.Msg.alert('Error',returnData.msg);
+                                        else
+                                        {
+                                            Ext.MessageBox.confirm('Confirm', returnData.msg,
+                                                function(btn)
+                                                {
+                                                    if (btn == 'yes')
+                                                    {
+                                                        params.force = true;
+                                                        cb(params);
+                                                    }
+                                                }
+                                            );
+                                        }
+                                    }
+
+                                }
+                            });
+                        };
+                        Ext.MessageBox.confirm('Confirm', 'This action will update Trano Number, Proceed?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    params.id = rec.get("id_counter");
+                                    cb(params);
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+        ]
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id'},
+        {name: 'id_counter'},
+        {name: 'type'},
+        {name: 'ket'},
+        {name: 'urut',mapping: 'last_trano'},
+        {name: 'trano_prefix'},
+        {name: 'statuspayment'},
+        {name: 'statusfinance'},
+        {name: 'name'},
+        {name: 'tahun'},
+        {name: 'bulan'},
+
+    ]);
+
+    var store = new Ext.data.Store({
+        url : '/admin/trano/get-trano-type/last_trano/true',
+        reader:reader,
+        autoLoad: true
+    });
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        actions:[
+            {
+                iconCls:'icon-add',
+                qtip:'Add',
+                callback: function (grid,record,action,row,col)
+                {
+                    if (record)
+                    {
+                        var id = record.data['id'];
+                        panel.show();
+                        panel.getForm().loadRecord(record);
+
+                        rec = record;
+                    }
+                }
+            }
+        ]
+        ,index: 'actions'
+        ,header: ''
+    });
+
+    var columns =  [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: "Type", width: 60, sortable: true, dataIndex: 'type'},
+        {header: "Trano Prefix", width: 80, sortable: true, dataIndex: 'trano_prefix'},
+        {header: "Last Trano", width: 100, sortable: true, dataIndex: 'urut'},
+        {header: "Last<br>Month & Year", width: 80, sortable: true, dataIndex: 'bulan',renderer: function(v,p,r){
+            return r.data['bulan'] + "-" + r.data['tahun'];
+        }},
+        {header: "Ket", width: 250, sortable: true, dataIndex: 'ket'}
+    ];
+
+    var grid = new Ext.grid.GridPanel({
+        plugins: [rowactions],
+        bbar: [
+            new Ext.PagingToolbar({
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        ],
+        title: 'Trano Type List',
+        width: 600,
+        height: 400,
+        columns: columns,
+        store: store,
+        renderTo: 'grid'
+    })
+});
+</script>
+
+<div id="grid"></div>
+<br/>
+<div id="form"></div>

@@ -1,0 +1,1400 @@
+<script type="text/javascript">
+
+    var isPO = isDO = false;
+    var journal = false;
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9.]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        }
+    });
+
+    var polist = Ext.data.Record.create([
+        {
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'po_no',
+            type: 'string'
+        }, {
+            name: 'pr_no',
+            type: 'string'
+        }, {
+            name: 'pr_number',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        }, {
+            name: 'totalISUPP',
+            type: 'float'
+        }, {
+            name: 'remark',
+            type: 'string'
+        }
+    ]
+            );
+
+
+    var isupplist = Ext.data.Record.create([
+        {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'po_no',
+            type: 'string'
+        }, {
+            name: 'pr_no',
+            type: 'string'
+        }, {
+            name: 'pr_number',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        }, {
+            name: 'totalISUPP',
+            type: 'float'
+        }, {
+            name: 'totalPO',
+            type: 'float'
+        }, {
+            name: 'remark',
+            type: 'string'
+        }
+    ]);
+
+    var proxy = new Ext.data.HttpProxy({
+        url: '/default/home/getposummary'
+    });
+
+    var storePO = new Ext.data.Store({
+        id: 'po',
+        proxy: proxy,
+        reader: new Ext.data.JsonReader({fields: polist})
+    });
+
+    var storeIsupp = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({
+            totalProperty: 'count',
+            idProperty: 'isupplist',
+            root: 'posts',
+            fields: isupplist
+        })
+    });
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        actions: [
+            {
+                iconCls: 'silk-add',
+                qtip: 'Add',
+                callback: function(grid, record, action, row, col)
+                {
+                    Ext.getCmp('isupp-form').records = record;
+                    Ext.getCmp('isupp-form').edit = false;
+                    Ext.getCmp('save-isupp').setText('Add to i-supp List(Cart)');
+                    Ext.getCmp('workid_text').setValue(record.data['workid']);
+                    Ext.getCmp('workname_text').setValue(record.data['workname']);
+                    Ext.getCmp('kode_brg_text').setValue(record.data['kode_brg']);
+                    Ext.getCmp('nama_brg_text').setValue(record.data['nama_brg']);
+                    Ext.getCmp('prj_kode_text').setValue(record.data['prj_kode']);
+                    Ext.getCmp('prj_nama_text').setValue(record.data['prj_nama']);
+                    Ext.getCmp('sit_kode_text').setValue(record.data['sit_kode']);
+                    Ext.getCmp('sit_nama_text').setValue(record.data['sit_nama']);
+
+                    Ext.getCmp('remark_text').setValue(record.data['remark']);
+
+                    var satuan = record.data['uom'];
+                    Ext.getCmp('qty_text').setValue('');
+                    Ext.getCmp('uom_text').setValue(satuan);
+                    Ext.getCmp('uom_text1').setValue(satuan);
+                    Ext.getCmp('uom_text2').setValue(satuan);
+                    Ext.getCmp('uom_text3').setValue(satuan);
+
+                    var poQty = record.data['qty'].toString().replace(/\$|\,/g, '');
+                    var isuppQty = record.data['totalISUPP'].toString().replace(/\$|\,/g, '');
+                    Ext.getCmp('po_qty_text').setValue(CommaFormatted(poQty));
+                    Ext.getCmp('isupp_qty_text').setValue(CommaFormatted(isuppQty));
+
+                    var balance = parseFloat(poQty) - parseFloat(isuppQty);
+                    Ext.getCmp('balance_qty_text').setValue(CommaFormatted(balance));
+
+                    Ext.getCmp('po-detail-grid').disable();
+                    Ext.getCmp('isupp-grid').disable();
+                    Ext.getCmp('cancel-isupp').setText('Cancel Add');
+                    Ext.getCmp('cancel-isupp').enable();
+                }
+            }
+        ]
+        , index: 'actions'
+        , header: ''
+    });
+
+    var userColumns = [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: 'Project', width: 200, sortable: true, dataIndex: 'prj_kode', renderer: function(v, p, r) {
+                return "<b>" + v + "</b>, " + r.get("prj_nama");
+            }},
+        {header: 'Site', width: 200, sortable: true, dataIndex: 'sit_kode', renderer: function(v, p, r) {
+                return "<b>" + v + "</b>, " + r.get("sit_nama");
+            }},
+        {header: 'Work ID', width: 60, sortable: true, dataIndex: 'workid'},
+        {header: 'Product Id', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', width: 200, sortable: true, dataIndex: 'nama_brg'},
+        {header: 'Qty', width: 80, sortable: true, dataIndex: 'qty', renderer: change, align: 'right'},
+        {header: 'UoM', width: 45, sortable: true, dataIndex: 'uom'},
+        {header: "Progress", width: 100, renderer: function(v, p, r) {
+                var percent = 0;
+                if (r.data['qty'] != 0 && r.data['totalISUPP'] != 0)
+                {
+                    var qty = r.data['qty'];
+                    percent = (r.data['totalISUPP'] / qty) * 100;
+                    if (percent > 100)
+                        percent = 100;
+                    percent = percent.toFixed(2);
+                    var warna = '#0a0';
+                    if (percent > 75)
+                        warna = '#FF3F7D';
+                    else if (percent > 50)
+                        warna = '#FFDA2F';
+                }
+                return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+            }}
+    ];
+
+    var rowactions2 = new Ext.ux.grid.RowActions({
+        actions: [
+            {
+                iconCls: 'silk-edit',
+                qtip: 'Edit',
+                callback: function(grid, record, action, row, col)
+                {
+                    Ext.getCmp('po-detail-grid').disable();
+                    Ext.getCmp('isupp-grid').disable();
+                    Ext.getCmp('isupp-form').records = record;
+                    Ext.getCmp('isupp-form').edit = true;
+                    Ext.getCmp('save-isupp').setText('Update i-supp List(Cart)');
+                    Ext.getCmp('workid_text').setValue(record.data['workid']);
+                    Ext.getCmp('workname_text').setValue(record.data['workname']);
+                    Ext.getCmp('kode_brg_text').setValue(record.data['kode_brg']);
+                    Ext.getCmp('nama_brg_text').setValue(record.data['nama_brg']);
+                    Ext.getCmp('prj_kode_text').setValue(record.data['prj_kode']);
+                    Ext.getCmp('prj_nama_text').setValue(record.data['prj_nama']);
+                    Ext.getCmp('sit_kode_text').setValue(record.data['sit_kode']);
+                    Ext.getCmp('sit_nama_text').setValue(record.data['sit_nama']);
+
+                    Ext.getCmp('remark_text').setValue(record.data['remark']);
+
+                    var satuan = record.data['uom'];
+                    Ext.getCmp('qty_text').setValue(record.data['qty']);
+                    Ext.getCmp('uom_text').setValue(satuan);
+                    Ext.getCmp('uom_text1').setValue(satuan);
+                    Ext.getCmp('uom_text2').setValue(satuan);
+                    Ext.getCmp('uom_text3').setValue(satuan);
+
+                    var poQty = record.data['totalPO'].toString().replace(/\$|\,/g, '');
+                    var isuppQty = record.data['totalISUPP'].toString().replace(/\$|\,/g, '');
+                    Ext.getCmp('po_qty_text').setValue(CommaFormatted(poQty));
+                    Ext.getCmp('isupp_qty_text').setValue(CommaFormatted(isuppQty));
+
+                    var balance = parseFloat(poQty) - parseFloat(isuppQty);
+                    Ext.getCmp('balance_qty_text').setValue(CommaFormatted(balance));
+
+                    Ext.getCmp('po-detail-grid').disable();
+                    Ext.getCmp('cancel-isupp').setText('Cancel');
+                    Ext.getCmp('cancel-isupp').enable();
+                }
+            },
+            {
+                iconCls: 'icon-delete',
+                qtip: 'Delete',
+                callback: function(grid, record, action, row, col)
+                {
+                    storeIsupp.remove(record);
+                    submitPO();
+                }
+            }
+        ]
+        , index: 'actions'
+        , header: ''
+    });
+
+    var userColumns2 = [
+        new Ext.grid.RowNumberer(),
+        rowactions2,
+        {header: 'Project', name: 'prj_kode', width: 150, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Site', name: 'sit_kode', width: 100, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Work ID', name: 'workid', width: 100, sortable: true, dataIndex: 'workid'},
+        {header: 'Product Id', name: 'kode_brg', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', name: 'nama_brg', width: 200, sortable: true, dataIndex: 'nama_brg'},
+        {header: 'Qty', name: 'qty', width: 100, sortable: true, dataIndex: 'qty', renderer: change},
+        {header: 'Uom', name: 'uom', width: 55, sortable: true, dataIndex: 'uom'}
+    ];
+
+    function change(val)
+    {
+        return Ext.util.Format.number(val, '?0,000.000?');
+    }
+
+    function getNewID()
+    {
+
+//  var maxRecordPO = storePO.getCount();
+//
+//    var maxRecordISUPP = storeIsupp.getCount();
+//
+//  var newID = maxRecordPO + maxRecordISUPP + 1;
+
+//  return newID;
+        return Ext.id();
+    }
+
+    function insertISUPPtoList()
+    {
+        if (Ext.getCmp('isupp-form').records == null)
+        {
+            return false;
+        }
+        if (!Ext.getCmp('user-forms').getForm().isValid())
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Blank Field!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        if (!Ext.getCmp('isupp-form').getForm().isValid())
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Blank Field!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        var params = Ext.getCmp('isupp-form').records.data,
+                qtyRequest = parseFloat(Ext.getCmp('qty_text').getOriginalValue());
+
+        if (qtyRequest == 0)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'QTY Request cannot be Zero (0)!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        var isEdit = Ext.getCmp('isupp-form').edit,
+                exist = getIsupp(params);
+
+        if (!isEdit)
+        {
+            if (exist !== false)
+            {
+                var existQty = parseFloat(exist.get("qty"));
+                qtyRequest += existQty;
+            }
+        }
+
+        params.qty_request = qtyRequest;
+        params.is_po = isPO;
+        params.is_do = isDO;
+
+        Ext.Ajax.request({
+            scope: this,
+            results: 0,
+            url: '/logistic/logistic/cek-isupp',
+            method: 'POST',
+            params: params,
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                Ext.getCmp('po-detail-grid').enable();
+                Ext.getCmp('isupp-grid').enable();
+                if (returnData.success)
+                {
+                    if (!isEdit)
+                    {
+                        if (exist === false)
+                        {
+                            params.total = params.qty;
+                            params.qty = params.qty_request;
+                            var d = new polist(params);
+                            storeIsupp.add(d);
+                        }
+                        else
+                        {
+                            exist.set("qty", params.qty_request);
+                        }
+                    }
+                    else
+                    {
+                        exist.set("qty", params.qty_request);
+                    }
+                    Ext.getCmp('isupp-form').getForm().reset();
+                    submitPO();
+                }
+                else
+                {
+                    Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: returnData.msg,
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                    });
+                    return false;
+                }
+
+            },
+            failure: function(action) {
+                if (action.failureType == 'server') {
+                    Ext.getCmp('po-detail-grid').enable();
+                    Ext.getCmp('isupp-grid').enable();
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+    ;
+
+
+    function getPoDetail(trano, type)
+    {
+        var url = '';
+        if (type == 'PO')
+        {
+            url = '/procurement/procurement/get-po-summary/trano/' + trano;
+            isPO = true;
+            isDO = false;
+        }
+        else
+        {
+            url = '/logistic/logistic/get-do-summary/trano/' + trano;
+            isDO = true;
+            isPO = false;
+        }
+        Ext.getCmp('po-detail-grid').setTitle(type + ' Detail');
+        Ext.getCmp('po_qty_text').label.update('QTY In ' + type);
+        Ext.getCmp('isupp-form').doLayout();
+        Ext.Ajax.request({
+            scope: this,
+            results: 0,
+            url: url,
+            method: 'POST',
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                returnData = returnData.posts[0];
+                Ext.getCmp('po_kode_text').setValue(returnData.trano);
+                Ext.getCmp('prj_kode_header').setValue(returnData.prj_kode);
+                Ext.getCmp('prj_nama_header').setValue(returnData.prj_nama);
+                if (isPO)
+                {
+                    Ext.getCmp('sup_kode_text').setValue(returnData.sup_kode);
+                    Ext.getCmp('sup_nama_text').setValue(returnData.sup_nama);
+                    Ext.getCmp('ket_text').setValue(returnData.ket);
+                }
+                if (isDO) {
+                    Ext.getCmp('warehouse').setWarehouse(returnData.gdg_kode_from);
+                    Ext.getCmp('warehouse_tujuan').setWarehouse(returnData.gdg_kode_to);
+                    Ext.getCmp('warehouse').setWarehouseName(returnData.deliveryfrom);
+                    Ext.getCmp('warehouse_tujuan').setWarehouseName(returnData.deliveryto);
+//                console.log(returnData.gdg_kode_from);
+                }
+            },
+            failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+
+    }
+    ;
+
+    function getIsupp(rec)
+    {
+        var indeks = storeIsupp.findBy(function(record, id) {
+            if (
+                    record.get("prj_kode") == rec.prj_kode
+                    && record.get("sit_kode") == rec.sit_kode
+                    && record.get("workid") == rec.workid
+                    && record.get("kode_brg") == rec.kode_brg
+                    && record.get("po_no") == rec.po_no
+                    && record.get("pr_no") == rec.pr_no
+                    )
+                return true;
+        });
+
+        if (indeks > -1)
+        {
+            return storeIsupp.getAt(indeks);
+        }
+
+        return false;
+    }
+
+    function refreshPOGrid(rec)
+    {
+        storePO.removeAll();
+        Ext.each(rec, function(op) {
+
+            var qtyExist = 0,
+                    searchParam = op;
+
+            searchParam.po_no = op.trano;
+            var isExist = getIsupp(searchParam);
+
+            if (isExist !== false)
+            {
+                qtyExist = parseFloat(isExist.get("qty"));
+            }
+
+            var c = new polist({
+                po_no: op['trano'],
+                pr_no: op['pr_no'],
+                tgl_po: op['tgl'],
+                tgl_pr: op['tglpr'],
+                urut: op['urut'],
+                prj_kode: op['prj_kode'],
+                prj_nama: op['prj_nama'],
+                sit_kode: op['sit_kode'],
+                sit_nama: op['sit_nama'],
+                workid: op['workid'],
+                workname: op['workname'],
+                kode_brg: op['kode_brg'],
+                nama_brg: op['nama_brg'],
+                qty: op['qty'],
+                uom: op['uom'],
+                remark: op['ket'],
+                price: op['harga'],
+                totalPrice: op['totalPrice'],
+                val_kode: op['val_kode'],
+                totalISUPP: (parseFloat(op['totalISUPP']) + qtyExist),
+                totalPriceISUPP: op['totalPriceISUPP'],
+                balanceISUPP: op['balanceISUPP'],
+                net_act: op['myob'],
+                statusppn: op['statusppn'],
+                id: getNewID()
+
+            });
+            storePO.insert(0, c);
+
+        });
+        Ext.getCmp('po-detail-grid').getView().refresh();
+    }
+
+    function submitPO()
+    {
+        if (!Ext.getCmp('user-forms').getForm().isValid())
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Blank Field!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        var trano = Ext.getCmp('po_kode_text').getValue(),
+                url = '';
+
+        if (isPO)
+        {
+            url = '/logistic/logistic/get-po-isupp-summary/trano/' + trano;
+        }
+        else
+        {
+            url = '/logistic/logistic/get-do-isupp-summary/trano/' + trano;
+        }
+
+        Ext.Ajax.request({
+            results: 0,
+            url: url,
+            method: 'POST',
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                refreshPOGrid(returnData.posts);
+                Ext.getCmp('isupp-form').edit = false;
+                Ext.getCmp('isupp-form').records = null;
+            }
+        });
+        Ext.getCmp('po_kode_text').disable();
+        Ext.getCmp('po-submit').disable();
+    }
+
+    var fromPO =
+            {
+                layout: 'column',
+                items: [
+                    {
+                        columnWidth: .95,
+                        layout: 'form',
+                        items: [
+                            {
+                                fieldLabel: 'PO Number',
+                                name: 'sup_kode',
+                                xtype: 'tranoselector',
+                                Selectid: 'po_kode_text',
+                                width: 120,
+                                Tranotype: ['PO', 'POO'],
+                                Disabletype: true,
+                                callbackFunc: function(trano) {
+                                    getPoDetail(trano, 'PO');
+                                }
+                            },
+                            {
+                                layout: 'column',
+                                items: [
+                                    {
+                                        columnWidth: .35,
+                                        layout: 'form',
+                                        items: [
+                                            {
+                                                fieldLabel: 'Project Code',
+                                                id: 'prj_kode_header',
+                                                xtype: 'textfield',
+                                                disabled: true,
+                                                width: 80
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        columnWidth: .5,
+                                        layout: 'form',
+                                        items: [{
+                                                id: 'prj_nama_header',
+                                                xtype: 'textfield',
+                                                hideLabel: true,
+                                                disabled: true,
+                                                width: 190
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                layout: 'column',
+                                items: [
+                                    {
+                                        columnWidth: .35,
+                                        layout: 'form',
+                                        items: [{
+                                                fieldLabel: 'Supplier Code',
+                                                id: 'sup_kode_text',
+                                                xtype: 'textfield',
+                                                disabled: true,
+                                                width: 80
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        columnWidth: .49,
+                                        layout: 'form',
+                                        items: [{
+                                                id: 'sup_nama_text',
+                                                xtype: 'textfield',
+                                                hideLabel: true,
+                                                disabled: true,
+                                                width: 180
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                fieldLabel: 'Net Act',
+                                id: 'net_act_text',
+                                name: 'net_act',
+                                xtype: 'textfield',
+                                disabled: true,
+                                readOnly: true,
+                                width: 120
+                            },
+                            {
+                                fieldLabel: 'Remark',
+                                id: 'ket_text',
+                                name: 'remark',
+                                xtype: 'textfield',
+                                width: 150
+                            },
+                            {
+                                xtype: 'warehouseselector',
+                                id: 'warehouse',
+                                Selectid: 'wh_kode_text',
+                                width: 200,
+                                fieldLabel: 'Warehouse'
+                            },
+                            {
+                                xtype: 'displayfield',
+                                hidden: true,
+                                id: 'wh_kode_tujuan_text'
+                            }
+                        ]
+                    }
+
+                ]
+            };
+
+    var fromDO = {
+        layout: 'column',
+        items: [
+            {
+                columnWidth: .95,
+                layout: 'form',
+                items: [
+                    {
+                        fieldLabel: 'DO Number',
+                        name: 'sup_kode',
+                        xtype: 'tranoselector',
+                        Selectid: 'po_kode_text',
+                        width: 120,
+                        Tranotype: ['DO'],
+                        Disabletype: true,
+                        callbackFunc: function(trano) {
+                            getPoDetail(trano, 'DO');
+                        }
+                    },
+                    {
+                        layout: 'column',
+                        items: [
+                            {
+                                columnWidth: .35,
+                                layout: 'form',
+                                items: [
+                                    {
+                                        fieldLabel: 'Project Code',
+                                        id: 'prj_kode_header',
+                                        xtype: 'textfield',
+                                        disabled: true,
+                                        width: 80
+                                    }
+                                ]
+                            },
+                            {
+                                columnWidth: .5,
+                                layout: 'form',
+                                items: [{
+                                        id: 'prj_nama_header',
+                                        xtype: 'textfield',
+                                        hideLabel: true,
+                                        disabled: true,
+                                        width: 190
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        layout: 'column',
+                        items: [
+                            {
+                                columnWidth: .35,
+                                layout: 'form',
+                                items: [{
+                                        fieldLabel: 'Supplier Code',
+                                        id: 'sup_kode_text',
+                                        xtype: 'textfield',
+                                        disabled: true,
+                                        hidden: true,
+                                        width: 80
+                                    }
+                                ]
+                            },
+                            {
+                                columnWidth: .49,
+                                layout: 'form',
+                                items: [{
+                                        id: 'sup_nama_text',
+                                        xtype: 'textfield',
+                                        hideLabel: true,
+                                        disabled: true,
+                                        hidden: true,
+                                        width: 180
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        fieldLabel: 'Net Act',
+                        id: 'net_act_text',
+                        name: 'net_act',
+                        xtype: 'textfield',
+                        disabled: true,
+                        hidden: true,
+                        readOnly: true,
+                        width: 120
+                    },
+                    {
+                        fieldLabel: 'Remark',
+                        id: 'ket_text',
+                        name: 'remark',
+                        xtype: 'textfield',
+                        width: 150
+                    },
+                    {
+                        xtype: 'warehouseselector',
+                        id: 'warehouse',
+                        Selectid: 'wh_kode_text',
+                        width: 200,
+                        fieldLabel: 'Warehouse (From)',
+                        disabled: true
+                    },
+                    {
+                        xtype: 'warehouseselector',
+                        id: 'warehouse_tujuan',
+                        Selectid: 'wh_kode_tujuan_text',
+                        width: 200,
+                        fieldLabel: 'Warehouse (Destination)',
+                        disabled: true
+                    }
+                ]
+            }
+
+        ]
+    };
+
+    userForm = new Ext.extend(Ext.form.FormPanel, {
+        id: 'user-forms',
+        iconCls: 'silk-user',
+        title: 'Add New i-Supp',
+        frame: true,
+        width: 600,
+        labelAlign: 'left',
+        initComponent: function() {
+            this.items = this.buildForm();
+            this.addEvents({
+                create: true
+            });
+            this.buttons = this.buildUI();
+            userForm.superclass.initComponent.call(this);
+        },
+        buildForm: function() {
+            return [
+                {
+                    xtype: 'combo',
+                    width: 200,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['nilai', 'name'],
+                        data: [
+                            ['po', 'From Supplier'],
+                            ['do', 'Warehouse to Warehouse']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    fieldLabel: 'Material Source',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    listeners: {
+                        select: function(com, rec, ind) {
+                            var choose = rec.get("nilai"),
+                                    fieldset = Ext.getCmp('form-choose'),
+                                    forms = Ext.getCmp('user-forms');
+                            fieldset.setVisible(true);
+                            switch (choose)
+                            {
+                                case 'po':
+                                    fieldset.removeAll();
+                                    fieldset.add(fromPO);
+                                    forms.doLayout();
+                                    break;
+                                case 'do':
+                                    fieldset.removeAll();
+                                    fieldset.add(fromDO);
+                                    forms.doLayout();
+                                    break;
+                            }
+                        }
+                    }
+                },
+                {
+                    xtype: 'fieldset',
+                    id: 'form-choose',
+                    hidden: true
+                }
+            ];
+        },
+        buildUI: function() {
+            return [
+                {
+                    text: 'Submit',
+                    id: 'po-submit',
+                    iconCls: 'silk-add',
+                    handler: function() {
+
+                        submitPO();
+
+                    },
+                    scope: this
+                },
+                {
+                    text: 'Reset',
+                    handler: function(btn, ev) {
+
+                    },
+                    scope: this
+                }, {
+                    text: 'Cancel',
+                    handler: function(btn, ev) {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/logistic/isupp',
+                            scripts: true
+                        });
+                    },
+                    scope: this
+                }
+            ];
+        }
+    });
+
+    userForm2 = new Ext.extend(Ext.form.FormPanel, {
+        renderTo: 'user-form2',
+        id: 'isupp-form',
+        iconCls: 'silk-user',
+        title: 'Detail i-Supp',
+        frame: true,
+        width: 750,
+        labelAlign: 'left',
+        style: 'margin-top: 10px',
+        records: null,
+        edit: false,
+        initComponent: function() {
+            this.items = this.buildForm();
+            this.addEvents({
+                create: true
+            });
+            this.buttons = this.buildUI();
+            userForm2.superclass.initComponent.call(this);
+        }
+        ,
+        buildForm: function() {
+            return [
+                {
+                    layout: 'column',
+                    items: [
+                        {columnWidth: .55,
+                            layout: 'form',
+                            items: [
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .43,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                    fieldLabel: 'Project Code',
+                                                    id: 'prj_kode_text',
+                                                    name: 'prj_kode',
+                                                    xtype: 'displayfield',
+                                                    width: 65
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .49,
+                                            layout: 'form',
+                                            items: [
+                                                {
+                                                    id: 'prj_nama_text',
+                                                    xtype: 'displayfield',
+                                                    hideLabel: true,
+                                                    width: 180
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .43,
+                                            layout: 'form',
+                                            items: [{
+                                                    fieldLabel: 'Site Code',
+                                                    id: 'sit_kode_text',
+                                                    name: 'sit_kode',
+                                                    xtype: 'displayfield',
+                                                    width: 65
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .49,
+                                            layout: 'form',
+                                            items: [{
+                                                    id: 'sit_nama_text',
+                                                    xtype: 'displayfield',
+                                                    hideLabel: true,
+                                                    width: 180
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .43,
+                                            layout: 'form',
+                                            items: [{
+                                                    fieldLabel: 'Work ID',
+                                                    id: 'workid_text',
+                                                    name: 'workid',
+                                                    xtype: 'displayfield',
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .49,
+                                            layout: 'form',
+                                            items: [{
+                                                    id: 'workname_text',
+                                                    xtype: 'displayfield',
+                                                    hideLabel: true,
+                                                    width: 180
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .43,
+                                            layout: 'form',
+                                            items: [{
+                                                    fieldLabel: 'Product ID',
+                                                    id: 'kode_brg_text',
+                                                    xtype: 'displayfield',
+                                                    width: 65
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .49,
+                                            layout: 'form',
+                                            items: [{
+                                                    id: 'nama_brg_text',
+                                                    xtype: 'displayfield',
+                                                    hideLabel: true,
+                                                    width: 180
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    layout: 'column',
+                                    items: [
+                                        {
+                                            columnWidth: .43,
+                                            layout: 'form',
+                                            items: [
+                                                new Ext.ux.customRendererField({
+                                                    xtype: 'textfield',
+                                                    fieldLabel: 'QTY ',
+                                                    id: 'qty_text',
+                                                    vtype: 'numeric',
+                                                    style: 'text-align:right',
+                                                    priceDelemiter: ',',
+                                                    allowBlank: false,
+                                                    width: 65
+                                                })
+                                            ]
+                                        },
+                                        {
+                                            columnWidth: .49,
+                                            layout: 'form',
+                                            items: [{
+                                                    id: 'uom_text',
+                                                    xtype: 'displayfield',
+                                                    hideLabel: true,
+                                                    width: 30
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    fieldLabel: 'Remark',
+                                    id: 'remark_text',
+                                    xtype: 'textarea',
+                                    width: 200
+                                }
+
+                            ]
+                        },
+                        {columnWidth: .4,
+                            layout: 'form',
+                            items: [{
+                                    xtype: 'fieldset',
+                                    title: 'Balance',
+                                    id: 'Balance-fieldset',
+                                    autoHeight: true,
+                                    layout: 'form',
+                                    labelWidth: 110,
+                                    items: [
+                                        {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: .8,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            fieldLabel: 'Qty in PO',
+                                                            id: 'po_qty_text',
+                                                            xtype: 'displayfield',
+                                                            style: "text-align:right;font-weight: bold;color: red;",
+                                                            width: 100
+                                                        }]
+                                                }, {
+                                                    columnWidth: .2,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            id: 'uom_text1',
+                                                            xtype: 'displayfield',
+                                                            hideLabel: true,
+                                                            width: 30
+                                                        }]
+                                                }
+                                            ]
+                                        }, {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: .8,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            fieldLabel: 'Qty in i-Supp',
+                                                            id: 'isupp_qty_text',
+                                                            xtype: 'displayfield',
+                                                            style: "text-align:right;font-weight: bold;color: red;",
+                                                            width: 100
+                                                        }]
+                                                }, {
+                                                    columnWidth: .2,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            id: 'uom_text2',
+                                                            xtype: 'displayfield',
+                                                            hideLabel: true,
+                                                            width: 30
+                                                        }]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            layout: 'column',
+                                            items: [
+                                                {
+                                                    columnWidth: .8,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            fieldLabel: 'Balance Qty',
+                                                            id: 'balance_qty_text',
+                                                            style: "text-align:right;font-weight: bold;color: green;",
+                                                            xtype: 'displayfield',
+                                                            width: 100
+                                                        }]
+                                                }, {
+                                                    columnWidth: .2,
+                                                    layout: 'form',
+                                                    items: [{
+                                                            id: 'uom_text3',
+                                                            xtype: 'displayfield',
+                                                            hideLabel: true,
+                                                            width: 30
+                                                        }]
+                                                }
+                                            ]
+
+                                        }
+
+                                    ]
+                                }
+
+                            ]
+                        }
+                    ]
+                }
+
+            ];
+        },
+        buildUI: function() {
+            return [
+                {
+                    text: 'Add to iSupp List',
+                    id: 'save-isupp',
+                    iconCls: 'icon-add',
+                    handler: function() {
+                        insertISUPPtoList();
+                    }
+
+                }, {
+                    text: 'Cancel Add',
+                    id: 'cancel-isupp',
+                    iconCls: 'icon-cancel',
+                    handler: function() {
+                        Ext.getCmp('po-detail-grid').enable();
+                        Ext.getCmp('isupp-grid').enable();
+                        Ext.getCmp('isupp-form').records = null;
+                        Ext.getCmp('isupp-form').edit = false;
+                        Ext.getCmp('isupp-form').getForm().reset();
+                        Ext.getCmp('save-isupp').setText('Add i-supp List(Cart)');
+
+                    }, scope: this
+                }
+            ];
+        }
+    });
+
+
+    userGrid = Ext.extend(Ext.grid.GridPanel, {
+        title: 'PO Detail',
+        iconCls: 'silk-grid',
+        frame: true,
+        height: 250,
+        style: 'margin-top: 10px',
+        trackMouseOver: true,
+        initComponent: function() {
+            userGrid.superclass.initComponent.call(this);
+        }
+
+    });
+
+    userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+        iconCls: 'silk-grid',
+        id: 'isupp-grid',
+        frame: true,
+        height: 250,
+        title: 'i-supp list Cart',
+        style: 'margin-top: 10px',
+        initComponent: function() {
+
+            userGrid.superclass.initComponent.call(this);
+        }
+    });
+
+    Ext.onReady(function() {
+        Ext.QuickTips.init();
+
+
+        var userForms = new userForm({
+            renderTo: 'user-form'
+
+        });
+
+        var userGrids = new userGrid({
+            renderTo: 'user-grid',
+            id: 'po-detail-grid',
+            store: storePO,
+            columns: userColumns,
+            autoWidth: true,
+            plugins: [rowactions],
+            bbar: [
+                new Ext.PagingToolbar({
+                    id: 'paging',
+                    pageSize: 100,
+                    store: storePO,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            ]
+        });
+
+        var userForms2 = new userForm2({
+            renderTo: 'user-form2'
+        });
+
+        var userGrids2 = new userGrid2({
+            renderTo: 'user-grid2',
+            store: storeIsupp,
+            columns: userColumns2,
+            autoWidth: true,
+            plugins: [rowactions2],
+            bbar: [
+                '->',
+                {
+                    xtype: 'button',
+                    text: 'Save iSupp',
+                    id: 'save-isupplist',
+                    iconCls: 'icon-save',
+                    handler: function()
+                    {
+                        var json = '';
+                        var parameter = '';
+                        if (storeIsupp.getCount() == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Cart is Empty!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        storeIsupp.each(function(store) {
+
+                            json += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                        //Get add. Data
+                        var whKode = Ext.getCmp('warehouse').getWarehouse();
+
+                        if (whKode == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select warehouse!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        parameter = Ext.util.JSON.encode({
+                            po_no: Ext.getCmp('po_kode_text').getValue(),
+                            prj_kode: Ext.getCmp('prj_kode_header').getValue(),
+                            prj_nama: Ext.getCmp('prj_nama_header').getValue(),
+                            sup_kode: Ext.getCmp('sup_kode_text').getValue(),
+                            sup_nama: Ext.getCmp('sup_nama_text').getValue(),
+                            net_act: Ext.getCmp('net_act_text').getValue(),
+                            ket: Ext.getCmp('ket_text').getValue(),
+                            wh_kode: Ext.getCmp('warehouse').getWarehouse(),
+                            wh_nama: Ext.getCmp('warehouse').getWarehouseName(),
+                            wh_kode_tujuan: (Ext.getCmp('warehouse_tujuan') != undefined) ? Ext.getCmp('warehouse_tujuan').getWarehouse() : null,
+                            wh_nama_tujuan: (Ext.getCmp('warehouse_tujuan') != undefined) ? Ext.getCmp('warehouse_tujuan').getWarehouseName() : null
+                        });
+                        Ext.MessageBox.confirm('Confirm', 'Do you want create I-Supp with Journal?', function(btn) {
+                            if (btn == 'yes') {
+                                params = {posts: json, etc: parameter,journal : true};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/logistic/logistic/appisupp', //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+                            } else {
+                                params = {posts: json, etc: parameter,journal : false};
+                                myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                                myPanel.body.load({
+                                    url: '/logistic/logistic/appisupp', //the url
+                                    scripts: true,
+                                    params: params //our params goes here
+                                });
+                            }
+                        });
+
+                    },
+                    scope: this
+                },
+                {
+                    xtype: 'button',
+                    text: 'Cancel',
+                    id: 'cancel-list',
+                    disabled: true,
+                    iconCls: 'icon-cancel',
+                    handler: function() {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/logistic/addisupp',
+                            scripts: true
+                        });
+                    },
+                    scope: this
+                }
+            ]
+        });
+    });
+
+
+
+</script>
+
+<div id="user-form"></div>
+<div id="user-grid"></div>
+<div id="separator">
+    <div id="user-form2" style="float:left"></div>
+</div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

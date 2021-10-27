@@ -1,0 +1,108 @@
+<script type="text/javascript">
+
+// Create HttpProxy instance.  Notice new configuration parameter "api" here instead of load.  However, you can still use
+// the "url" paramater -- All CRUD requests will be directed to your single url instead.
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/workflow/listworkflowitemgeneric'
+    }
+});
+
+// Typical JsonReader.  Notice additional meta-data params for defining the core attributes of your json-response
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'workflow_item_id'},
+    {name: 'name'}
+]);
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user',
+    proxy: proxy,
+    reader: reader
+});
+
+// load the store immeditately
+store.load();
+
+var userColumns =  [
+                    new Ext.grid.RowNumberer(),
+                    {header: "Workflow Name", width: 140, sortable: true, dataIndex: 'name'}
+                ];
+
+userGrid = Ext.extend(Ext.grid.EditorGridPanel, {
+    renderTo: 'user-grid',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 250,
+    width: 500,
+    style: 'margin-top: 10px',
+
+    initComponent : function() {
+
+        // typical viewConfig
+        this.viewConfig = {
+            forceFit: true
+        };
+
+        // super
+        userGrid.superclass.initComponent.call(this);
+    }
+
+});
+
+userForm = Ext.extend(Ext.form.FormPanel, {
+    renderTo: 'user-form',
+    iconCls: 'silk-user',
+    frame: true,
+    width: 400,
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Add Workflow Process',
+    defaults: {
+        anchor: '100%'
+    }
+});
+
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        title: 'Workflow List',
+        store: store,
+         bbar:[ new Ext.PagingToolbar({
+	            pageSize: 100,
+	            store: store,
+	            displayInfo: true,
+	            displayMsg: 'Displaying data {0} - {1} of {2}',
+	            emptyMsg: "No data to display"
+	        })],
+        columns : userColumns,
+        listeners: {
+            rowclick: function(g, index, ev) {
+//                var rec = g.store.getAt(index).get('workflow_item_type_id');
+                var rec = encodeURI(g.store.getAt(index).get('name'));
+                userForms.body.load({
+//                    url: '/admin/workflow/addworkflowprocessgeneric/workflow_item_type_id/' + rec
+        	        url: '/admin/workflow/addworkflowprocessgeneric/workflow_item_name/' + rec
+        	        ,scripts : true
+                });
+            }
+        }
+    });
+    var userForms = new userForm({
+    	renderTo: 'user-form'
+    });
+
+
+});
+</script>
+
+ <div id="user-grid"></div>
+ <div id="user-form"></div>
+ 

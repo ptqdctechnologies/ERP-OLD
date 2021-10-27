@@ -1,0 +1,170 @@
+<script type="text/javascript">
+
+    var proxy = new Ext.data.HttpProxy({
+        url : '/default/file/list'
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        idProperty: 'id',
+        root: 'posts'
+        }, [
+            {name: 'id'},
+            {name: 'trano'},
+            {name: 'filename'},
+            {name: 'name'},
+            {name: 'uid'},
+            {name: 'prj_kode'},
+            {name: 'status'},
+            {name: 'date', type: 'date', dateFormat: 'd-m-Y H:i:s'},
+            {name: 'savename'}
+    ]);
+
+    var store = new Ext.data.Store({
+        id: 'file-store',
+        proxy: proxy,
+        reader: reader
+    });
+
+    var rowactions = new Ext.ux.grid.RowActions({
+    	actions:[
+            {
+                iconCls:'icon-delete',
+                qtip:'Delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    Ext.MessageBox.confirm('Confirm', 'This action will delete this file, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                if (record)
+                                {
+                                    var id = record.data['id'];
+                                    Ext.Ajax.request({
+                                        results: 0,
+                                        url: '/default/file/delete/force/true/id/'+ id,
+                                        method:'POST',
+                                        success: function(result, request){
+                                           var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                           if (returnData.success)
+                                           {
+                                               store.remove(record);
+                                               grid.getView().refresh();
+                                           }
+                                           else
+                                           {
+                                                Ext.Msg.alert('Error',returnData.msg);
+                                           }
+
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+        ]
+    	,index: 'actions'
+    	,header: ''
+    	});
+
+    store.load();
+
+    var grid = new Ext.grid.GridPanel({
+        id: 'files-grid',
+        store: store,
+        width: 800,
+        height: 500,
+        frame: true,
+        title: 'File Attachment Manager',
+        stateful: false,
+        loadMask: true,
+        view : new Ext.grid.GridView({
+        	forceFit: false
+        }),
+        renderTo:'file-grid',
+        bbar: [
+                new Ext.PagingToolbar({
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        ],
+        tbar: [
+//                {
+//                    iconCls: 'icon-add-new',
+//                    text: 'Add New Item',
+//                    handler: function(){
+//
+//                    }
+//                },
+//                '-',
+                {
+                    text: 'Refresh',
+                    iconCls: 'silk-table-refresh',
+                    handler: function(){
+                        grid.getView().refresh();
+                    },
+                    scope: this
+                }
+               ],
+        plugins: [rowactions,new Ext.ux.grid.Search({
+            iconCls:'silk-magnifier',
+            store: store,
+            minChars:4,
+            autoFocus:true,
+            mode:'remote',
+            disableIndexes:['name','status']
+            })],
+        columns: [
+                  new Ext.grid.RowNumberer(),
+                  rowactions,
+                  {
+                      header: 'Trano',
+                      dataIndex: 'trano',
+                      width: 90,
+                      sortable: true
+                  },{
+                      header: 'Project',
+                      dataIndex: 'prj_kode',
+                      width: 70,
+                      sortable: true
+                  },{
+                      header: 'User Name',
+                      dataIndex: 'name',
+                      width: 120,
+                      sortable: true
+                  },{
+                      header: 'Date',
+                      dataIndex: 'date',
+                      width: 100,
+                      sortable: true
+                  },{
+                      header: 'File Name',
+                      dataIndex: 'filename',
+                      width: 150,
+                      sortable: true
+                  },{
+                      header: 'Save Name',
+                      dataIndex: 'savename',
+                      width: 150,
+                      sortable: true
+                  },{
+                      header: 'Status',
+                      dataIndex: 'status',
+                      width: 40,
+                      renderer: function(v){
+                          if (v == "0")
+                            return '<img src="/images/icons/fam/page_cross.gif" />';
+                      }
+                  }
+                   ]
+      });
+</script>
+
+        <div id="file-grid" />

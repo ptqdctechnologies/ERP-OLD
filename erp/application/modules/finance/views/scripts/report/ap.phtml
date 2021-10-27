@@ -1,0 +1,177 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        Ext.QuickTips.init();
+
+        var windowForm = ({
+
+            title:'AP Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[
+                {
+                    xtype: 'tbtext',
+                    text: 'Trano '
+                },
+                {
+                    xtype:'tranoselector',
+                    id:'trano_select',
+                    Selectid: 'trano',
+                    groupBy: true,
+                    width: 120
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'AP Number '
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'ap_number',
+                    width: 80
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'From'
+                },
+                {
+                    xtype:'datefield',
+                    name: 'startdt',
+                    id: 'startdt',
+                    vtype: 'daterange',
+                    endDateField: 'enddt', // id of the end date field
+                    msgTarget:'side',
+                    format:'d-m-Y'
+                },
+                {
+                    xtype: 'tbtext',
+                    text: 'To'
+                },
+                {
+                    xtype:'datefield',
+                    name: 'enddt',
+                    id: 'enddt',
+                    vtype: 'daterange',
+                    startDateField: 'startdt',
+                    msgTarget:'side',
+                    format:'d-m-Y'
+                },
+                '-',
+                {
+                    xtype: 'checkbox',
+                    id: 'cek-box',
+                    boxLabel: 'Grouped'
+                },
+                '-',
+                {
+                    xtype: 'tbbutton',
+                    text: 'Reset',
+                    handler: function()
+                    {
+                        Ext.getCmp('trano').setValue('');
+                        Ext.getCmp('ap_number').setValue('');
+                        Ext.getCmp('startdt').setValue('');
+                        Ext.getCmp('enddt').setValue('');
+                    }
+                },
+                '-',
+                {
+                    xtype: 'tbbutton',
+                    text: 'Search',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/icons/fam/magnifier.png",
+                    handler: function()
+                    {
+                        var myPanel = Ext.getCmp('abs-budget-panel'),
+                            trano = Ext.getCmp('trano').getValue(),
+                            ap = Ext.getCmp('ap_number').getValue(),
+                            startd = Ext.getCmp('startdt').getValue(),
+                            endd = Ext.getCmp('enddt').getValue(),
+                            group = Ext.getCmp('cek-box').getValue();
+
+                        myPanel.body.load({
+                            url: '/finance/report/view-ap',
+                            params: {
+                                trano: trano,
+                                ap_number: ap,
+                                start_date: startd,
+                                end_date: endd,
+                                grouped: group
+                            },
+                            scripts: true
+                        });
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    id: 'button_print_jurnal',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/print.png",
+                    handler: function () {
+                        var trano = Ext.getCmp('trano').getValue(),
+                            ap = Ext.getCmp('ap_number').getValue(),
+                            startd = Ext.getCmp('startdt').getValue(),
+                            endd = Ext.getCmp('enddt').getValue(),
+                            group = Ext.getCmp('cek-box').getValue();
+
+                        var newurl = Ext.util.urlEncodeZend({
+                            trano: trano,
+                            ap_number: ap,
+                            start_date: startd,
+                            end_date: endd,
+                            grouped: group
+                        });
+
+                        location.href = '/finance/report/view-ap/print/true/' + newurl;
+                    }
+                }
+            ]
+
+        });
+
+
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+    });
+</script>

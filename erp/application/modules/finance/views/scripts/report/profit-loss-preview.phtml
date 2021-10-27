@@ -1,0 +1,242 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+
+        var exportReport = function()
+        {
+            if (checkValid())
+            {
+                var startdate = Ext.getCmp('startdt').getValue();
+                var enddate = Ext.getCmp('enddt').getValue();
+                if ((startdate != '' && enddate == '') || (startdate == '' && enddate != ''))
+                {
+                    Ext.Msg.alert('Error','Please Select Start/End Date');
+                    return false;
+                }
+
+                var prj = Ext.getCmp('prj_kode_text').getValue();
+                var D = Ext.calendar.Date;
+                var urldate = '';
+
+                if (startdate != '') {
+                    startdate = D.formatDate(startdate, 'yyyy-mm-dd');
+                    urldate += '/startdate/' + startdate;
+                }
+                if (startdate != '' && enddate != '') {
+                    enddate = D.formatDate(enddate, 'yyyy-mm-dd');
+                    urldate += '/enddate/' + enddate;
+                }
+
+                location.href = '/finance/report/view-profit-loss-preview/export/true' + "/prj_kode/" + prj + urldate;
+            }
+
+        };
+
+        var checkValid = function(all)
+        {
+            (all == '') ? all = false : all = true;
+
+            var prj = Ext.getCmp('prj_kode_text').getValue();
+//                    m = Ext.getCmp('month').getValue();
+//                    coa = Ext.getCmp('coa_kode_text').getValue();
+            var startdate = Ext.getCmp('startdt').getValue();
+            var enddate = Ext.getCmp('enddt').getValue();
+
+            if (prj == '' && (startdate == '' && enddate == '') )
+            {
+                Ext.Msg.alert("Error", "Please select Project Or Date");
+                return false;
+            }
+
+//            if (!all)
+//            {
+//                if (coa == '' || coa == undefined)
+//                {
+//                    Ext.Msg.alert("Error","Please select COA");
+//                    return false;
+//                }
+//            }
+
+            return true;
+        };
+
+        var windowForm = ({
+            title: 'Profit Loss Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {
+                    xtype: 'label',
+                    text: 'Project'
+                }, '-',
+                {
+                    xtype: 'projectselectorreport',
+                    anchor: '100%',
+                    id: 'project-select',
+                    Selectid: 'prj_kode_text',
+                    Nameid: 'prj_nama_text',
+                    ShowName: false,
+                    showAll: true
+                },
+                '<b class="menu-title">Start Date</b>',
+                {
+                    xtype: 'datefield',
+                    name: 'startdate',
+                    id: 'startdt',
+                    msgTarget: 'side',
+                    endDateField: 'enddt', // id of the end date field
+                    vtype: 'daterange',
+                    format: 'Y-m-d', // or other format you'd like
+                    listeners: {
+                        'select': function(t, newDate) {
+
+                        }
+                    }
+                },
+                '<b class="menu-title">End Date</b>',
+                {
+                    xtype: 'datefield',
+                    name: 'enddate',
+                    id: 'enddt',
+                    startDateField: 'startdt', // id of the start date field
+                    msgTarget: 'side',
+                    vtype: 'daterange',
+                    format: 'Y-m-d', // or other format you'd like
+                    listeners: {
+                        'select': function(t, newDate) {
+
+                        }
+                    }
+                }, '-',
+//                {
+//                    xtype:'label',
+//                    text:'Month & Year'
+//                },'-',{
+//                    xtype:'datefield',
+//                    name: 'month',
+//                    id: 'month',
+//                    msgTarget:'side',
+//                    format: 'm-Y', // or other format you'd like
+//                    plugins: 'monthPickerPlugin'
+//                },
+//                {
+//                    xtype:'label',
+//                    text:'COA Code'
+//                },'-',
+//                {
+//                    xtype:'coaselector',
+//                    fieldLabel:'Chart Of Account',
+//                    id:'coa_kodes',
+//                    Selectid:'coa_kode_text',
+//                    Nameid:'coa_nama_text',
+////                    width:180,
+//                    ShowName: false
+//                },
+                {
+                    xtype: 'button',
+                    text: 'Reset',
+                    handler: function() {
+                        Ext.getCmp('startdt').setValue('');
+                        Ext.getCmp('enddt').setValue('');
+                        Ext.getCmp('prj_kode_text').setValue('');
+//                        Ext.getCmp('coa_kode_text').setValue('');
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width: 70,
+                    id: 'show_report',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: function(btn, ev)
+                    {
+                        if (checkValid())
+                        {
+                            var startdate = Ext.getCmp('startdt').getValue();
+                            var enddate = Ext.getCmp('enddt').getValue();
+                            if ((startdate != '' && enddate == '') || (startdate == '' && enddate != ''))
+                            {
+                                Ext.Msg.alert('Error','Please Select Start/End Date');
+                                return false;
+                            }
+
+                            var prj = Ext.getCmp('prj_kode_text').getValue();
+                            var D = Ext.calendar.Date;
+                            if (startdate != '' && enddate != '') {
+                                startdate = D.formatDate(startdate, 'yyyy-mm-dd');
+                                enddate = D.formatDate(enddate, 'yyyy-mm-dd');
+                            }
+
+
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/report/view-profit-loss-preview',
+                                params: {
+                                    prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                                    startdate: startdate,
+                                    enddate: enddate
+//                                    coa_kode : Ext.getCmp('coa_kode_text').getValue()
+                                },
+                                scripts: true
+                            });
+                        }
+                    }
+                }, '-',
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls: "x-btn-icon",
+                    icon: "/images/print.png",
+                    handler: exportReport
+                }
+            ]
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+
+</script>

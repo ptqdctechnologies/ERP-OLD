@@ -1,0 +1,2128 @@
+<style type="text/css">
+
+
+    .home-page { background-image: url(/images/icons/fam/icon_home.gif) !important; background-repeat: no-repeat; }
+
+    .ux-chip-notification {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        background: #CEDFF5;
+        z-index: 1001;
+        border: 1px solid #99BBE8;
+        font:normal 12px tahoma,verdana,arial,sans-serif;
+    }    
+
+    .message-preview .x-panel-body {
+        background:#fff;
+        color:#222;
+        font:normal 12px tahoma,verdana,arial,sans-serif;
+    }
+
+    .message-preview .x-panel-body p {
+        line-height:18px;
+        margin:8px 0;
+    }
+
+    .message-preview .x-panel-body ul {
+        margin-left:18px;
+    }
+
+    .message-preview .x-panel-body ul li {
+        display:list-item;
+        list-style-image:none !important;
+        list-style-position:outside !important;
+        list-style-type:disc !important;
+        margin-left:18px;
+    }
+
+    .message-preview .x-panel-body pre, #preview .x-panel-body code {
+        background:#f1f1f1;
+        display:block;
+    }
+
+    .message-preview .x-panel-body h4.message-sender {
+        font-weight:normal;
+        color:#555;
+        font-size:11px;
+    }
+
+    .message-preview .x-panel-body span.message-date {
+        font-weight:normal;
+        color:#555;
+        float:right;
+        font-size:11px;
+    }
+
+    .message-preview .x-panel-body div.message-unread {
+        background: transparent url(/images/icons/fam/icon_favourites.gif) no-repeat 0 2px;
+        padding-left:15px;
+        padding-top:2px;
+        color: #F3740C;
+    }
+
+
+    .message-preview .x-panel-body div.message-data {
+        background:#f1f2f4;
+        padding:5px;
+        border-bottom:1px solid #dadadb;
+    }
+    .message-preview .x-panel-body div.message-body {
+        padding:10px;
+    }
+
+    .message-preview .x-panel-body div.message-data-old {
+        background:#f1f2f4;
+        padding:5px;
+        border-bottom:1px solid #dadadb;
+    }
+
+    .message-preview .x-panel-body div.message-body-old {
+
+        margin-top: 3px;
+        padding:10px;
+        background: #E9E9E9;
+        border-bottom:1px solid #dadadb;
+    }
+
+    .message-preview .x-panel-body div.message-body-old-unread {
+        padding:10px;
+        background: transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-td-message b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-message b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-message .messagenew {
+        padding-left:5px;
+        background:transparent url(/images/icons/mail_accept.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-message .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .x-grid3-row-body .messagenew {
+        padding-left:5px;
+        background:transparent url(/images/icons/mail_accept.png) no-repeat 0 2px;
+        height: 40px;
+    }
+
+    .x-grid3-row-expanded-messagenew {
+        background: #F9F4CD;
+    }
+
+    .x-grid3-row-expanded-messageold {
+        background: #FFFFFF;
+    }
+
+    .post-date {
+        font-weight:bold;
+        color:#333;
+    }
+
+    .rolename {
+        float: left;
+        color:#333;
+    }
+
+    .regco-files {
+        background: #F9F4CD;
+    }
+    .regco-files ul {
+        padding: 3px 3px 3px 3px;
+    }
+</style>
+
+<script type="text/javascript">
+
+    <?php if ($this->isPA) { ?>
+    var heightPanel = 220;
+    var heightTengah = 310;
+    var heightForum = 90;
+    <?php } else { ?>
+    var heightPanel = 140;
+    var heightTengah = 230;
+    var heightForum = 90;
+    <?php } ?>
+
+    var msg1 = '';
+    var msg2 = '';
+Ext.onReady(function(){
+
+	Ext.QuickTips.init();
+
+	// This is an inner body element within the Details panel created to provide a "slide in" effect
+	// on the panel body without affecting the body's box itself.  This element is created on
+	// initial use and cached in this var for subsequent access.
+	var detailEl;
+	
+	var App = new Ext.App({});
+	Ext.data.DataProxy.purgeListeners();
+	Ext.data.DataProxy.addListener('write', function(proxy, action, result, res, rs) {
+	    App.setAlert(true, action + ':' + res.message);
+	});
+	Ext.data.DataProxy.addListener('exception', function(proxy, type, action, options, res) {
+	    if (type === 'remote') {
+	        Ext.Msg.show({
+	            title: 'REMOTE EXCEPTION',
+	            msg: res.message,
+	            icon: Ext.MessageBox.ERROR,
+	            buttons: Ext.Msg.OK
+	        });
+	    }
+	});
+
+    var start = {
+        id: 'start-panel',
+        title: 'Home Page',
+        layout: 'fit',
+        bodyStyle: 'padding:25px',
+        contentEl: 'start-div'  // pull existing content from the page
+    };
+    var contentPanel = {
+        id: 'content-panel',
+        region: 'center', // this is what makes this panel into a region within the containing layout
+        layout: 'card',
+        margins: '2 5 5 0',
+        activeItem: 0,
+        border: false
+    };
+
+	var datas = new Ext.data.SimpleStore({
+        fields:['type','name']
+                ,data:[            	
+                       ['home','Home'],
+                       ['procurement','Procurement and Commercial'],
+                       ['projectmanagement','Project Management'],
+                       ['projectstaff','Project Staff'],
+                       ['logistic','Logistic'],
+                       ['finance','Finance'],
+                       ['hr','Human Resource'],
+                       ['sales','Sales']
+                        <?php if ($this->privilege >= 300) { ?>
+                       ,['admin','Admin']  
+                        <?php } ?>
+                      ]
+            });
+            
+    var combo=new Ext.form.ComboBox({
+        name:'selectMenu'
+        ,store: datas
+        ,valueField:'type'
+        ,displayField:'name'
+        ,typeAhead: true
+        ,mode: 'local'
+        ,triggerAction: 'all'
+        ,value: 'procurement'
+        ,selectOnFocus:true
+        ,forceSelection:false
+        ,hiddenName:'type'
+        ,width: 200
+//        ,onSelect: function(record){
+//    	treePanel.getLoader().load(treePanel.root);
+//    }
+    });
+        combo.addListener('select', function (combo,selected) {
+        	treePanel.getLoader().dataUrl ='/menu/getmenu/modulename/' + combo.getValue();
+        	treePanel.getLoader().load(treePanel.root);
+    });   
+    var treePanel = new Ext.tree.TreePanel({
+    	id: 'tree-panel',
+    	title: 'Navigation',
+        region:'center',
+        split: true,
+        height: 300,
+        width:100,
+        minSize: 150,
+        autoScroll: true,
+//        plugins: new Ext.ux.plugins.TreePanelStatefull(),
+        // tree-specific configs:
+        rootVisible: false,
+        lines: false,
+        singleExpand: true,
+        useArrows: true,
+
+        loader: new Ext.tree.TreeLoader({
+            dataUrl:'/menu/getmenu'
+        }),
+        load: function() {
+               this.el.mask('loading...', 'loadingMask');
+            },
+        root: new Ext.tree.AsyncTreeNode({
+                expanded: true
+})
+    });
+
+	// Assign the changeLayout function to be called on tree node click.
+    treePanel.on('click', function(n){
+
+    	var sn = this.selModel.selNode || {}; // selNode is null on initial selection
+    	//bypass for treeSaveState
+        if(n.leaf){  // ignore clicks on folders and currently selected node
+
+        	cPanel = Ext.getCmp('content-panel');
+			cPanel.setHeight('100%');
+	        cPanel.load({
+	                url: n.attributes.link,
+	               scripts: true
+	        });
+        	
+                //Use for treestatesave
+                //Save to cookie
+//                this.cp.set('LastSelectedNodePath_' + this.id, n.getPath());
+//                this.cp.set('LastSelectedNodeId_' + this.id, n.id);
+
+//    		Ext.getCmp('content-panel').layout.setActiveItem(n.id + '-panel');
+    		if(!detailEl){
+//    			var bd = Ext.getCmp('details-panel').body;
+//    			bd.update('').setStyle('background','#fff');
+//    			detailEl = bd.createChild(); //create default empty div
+    		}
+//    		detailEl.hide().update(Ext.getDom(n.id+'-details').innerHTML).slideIn('l', {stopFx:true,duration:.2});
+
+    	}
+        else
+        {
+			n.expand();
+        }
+    });
+
+
+	// This is the Details panel that contains the description for each example layout.
+	var detailsPanel = {
+		id: 'details-panel',
+        region: 'south',
+        height: heightPanel,
+        bodyStyle: 'background:#eee;',
+		autoScroll: true,
+		html: ''
+        
+    };
+
+	var menuPanel = {
+	id: 'menu-panel',
+        title: 'Menu',
+        height:50,
+        region: 'north',
+        items: [combo]
+	};
+
+
+    var forumPanel = {
+		id: 'forum-panel',
+        title: 'Notification',
+        region: 'north',
+        height: 90,
+        bodyStyle: 'background:#eee;',
+		autoScroll: true,
+		html: ''
+    };
+
+    var panelTengah = {
+	    id: 'panel-tengah',
+        region: 'south',
+        height: heightTengah,
+        items: [
+            forumPanel,
+            detailsPanel    
+        ]
+	};
+
+	var clock = new Ext.Toolbar.TextItem('');
+	
+var usermenu = new Ext.Toolbar({
+
+        id : 'toolbar-menu-user',
+        items : [
+                {
+		            xtype: 'tbbutton',
+		            text: 'Home Page',
+		            iconCls: 'home-page',
+		            handler: function() {
+                        var cPanel = Ext.getCmp('content-panel');
+                        cPanel.load({
+                            url: '/default/home/homepage',
+                            scripts: true
+                        });
+                    }
+		        },
+                 {
+		            xtype: 'tbbutton',
+		            text: 'User',
+		            iconCls: 'user',
+		            menu: {
+		
+		            items: [
+		                        {id:"menu-mod-logout", text:'Logout', iconCls: 'logout',handler: function() {  window.location = '/logout'; } , scope:this }
+		                    ]}
+		        },
+		        {
+		        	   xtype: 'tbfill'
+	        	},
+		        clock,
+                        <?php if ($this->read != "")
+                         {?>
+                            {
+                             xtype: 'tbtext',
+                             cls :'header-read',
+                            text:'<?php echo $this->read; ?>'
+                        }
+                        <?php } ?>
+                       ]
+});
+
+var menuLoad = [ usermenu ];
+
+var dateServer = "<?php echo date('d M Y H:i:s'); ?>";
+
+function dateAdd(dateVal)
+{
+    var myDate = new Date(dateVal);
+    var p_Number = 1;
+    p_Number = new Number(p_Number);
+    myDate.setSeconds(myDate.getSeconds() + p_Number);
+    dateServer = myDate.format('d M Y g:i:s A');
+    return myDate.format('d M Y g:i:s A');
+}
+
+Ext.TaskMgr.start({
+    run: function(){
+        Ext.fly(clock.getEl()).update(dateAdd(dateServer));
+        //Ext.fly(clock.getEl()).update(new Date().format('d M Y g:i:s A'));
+    },
+    interval: 1000
+});
+
+var toolmenu = new Ext.Panel({
+  region:'north',
+  applyTo: 'header',
+  height:30,
+  tbar: menuLoad
+});
+
+
+	// Finally, build the main layout once all the pieces are ready.  This is also a good
+	// example of putting together a full-screen BorderLayout within a Viewport.
+    new Ext.Viewport({
+		layout: 'border',
+		title: 'Ext Layout Browser',
+                id: 'viewport',
+		items: [
+                   toolmenu
+//                    {
+//			xtype: 'box',
+//			region: 'north',
+//			applyTo: 'header',
+//			height: 30}
+			,{
+			layout: 'border',
+	    	id: 'layout-browser',
+	        region:'west',
+	        border: false,
+	        split:true,
+	        collapsible: true,
+	        stateful : false,
+			margins: '2 0 5 5',
+	        width: 200,
+	        minSize: 100,
+	        maxSize: 500,
+	        <?php if ($this->managed) { ?>
+			items: [treePanel,panelTengah],
+			<?php } else { ?>
+            items: [menuPanel,treePanel,panelTengah],
+          	<?php } ?>					
+			listeners: {
+                	   resize: function (p,w,h,rw,rh) {
+							combo.setWidth(w);
+							
+                   		}
+                   }
+		},
+			contentPanel
+		],
+        renderTo: Ext.getBody()
+    });
+    Ext.getCmp('details-panel').el.mask('Loading...', 'loadingMask');
+    Ext.getCmp('forum-panel').el.mask('Loading...','loadingMask');
+    cPanel = Ext.getCmp('content-panel');
+    cPanel.load({
+       url: "/default/home/homepage",
+       scripts: true
+    });
+});
+
+Ext.apply(Ext.EventObject, {
+    within_el:function(el) {
+        el = Ext.get(el);
+        if(!el)
+            return false;
+        var evt_xy = this.getXY();
+        var evt_x = evt_xy[0];
+        var evt_y = evt_xy[1];
+
+        return (evt_x > el.getLeft() && evt_x < el.getRight() && evt_y > el.getTop() && evt_y < el.getBottom());
+    }
+    });
+
+//Start Conversation Module...
+function showCancelPO (rec)
+{
+    var data = rec.data;
+        var heightPanel = 330;
+
+    var windowcancelpo = new Ext.Window ({
+        id:'form-panel',
+        title:'Request Cancel PO',
+        layout: {
+                type: 'vbox',
+                align: 'stretch'  // Child items are stretched to full width
+            },
+        width: 500,
+        height: heightPanel,
+        minWidth: 300,
+        minHeight: 250,
+        resizable: false,
+        stateful: false,
+        modal: true,
+        items:[
+            new Ext.Panel({
+                bodyStyle: 'padding:15px;',
+                id:'cancel-message',
+                height: 210,
+                autoScroll:true,
+                cls:'message-preview single-preview',
+                html:'From : ' + data.name_sender + '<br/><br />' +
+                     'Date : ' + Ext.util.Format.date(data.date, 'd M Y H:i:s') + '<br/><br/>' +
+                     'Request to cancel PO Number : <b><font color="#FF0000">' + data.trano + '</font></b><br/><br/>' +
+                     'Reason : ' + data.message + '<br/><br/>'
+//                html: Ext.Template.from('message-cancel-po',{
+//                    compiled:true,
+//                    getMessage : function (v,all){
+//                        if (v !== "" && v != null)
+//                        {
+//                            var updates = '';
+//                            updates += '<div class="message-data">';
+//                            updates += '<span class="message-date">' + data.date + '</span>';
+//                            if (data.name_sender == "")
+//                                data.name_sender = 'Unknown';
+//                            updates += '<h4 class="message-sender">From : <b>' + data.name_sender + '</b></h4>';
+//                            updates += '</div>';
+//                            updates += '<div class="message-body">' + Ext.util.Format.stripScripts(data.message) + '</div>';
+//
+//                            Ext.getCmp('cancel-message').update(updates);
+//                            return '<div class="message-body">' + Ext.util.Format.stripScripts(v) + '</div>';
+//                        }else
+//                            return '';
+//
+//                    }
+//
+//                }).apply(data),
+//                closable:true,
+//                autoScroll:true,
+//                border:true
+            }),{
+                buttons:[{
+                    text:'Go To Cancel PO',
+                    iconCls: 'icon-reply',
+                    scale: 'large',
+                    handler:function (btn,ev)
+                    {
+                        windowcancelpo.close();
+                        Ext.getCmp('d-form-panel').close();
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/finance/cancelpo/formcancelpo/trano/' + data.trano + '/id_cancel/' + data.id_cancel,
+                        scripts : true
+                        });
+                    }
+                }]
+            }
+        ],
+        buttons:[{
+            text:'Close',
+            handler:function (btn,ev)
+            {
+                windowcancelpo.close();
+            }
+        }]
+
+    })
+
+//    console.log(Ext.getCmp('cancel-message'));
+
+    windowcancelpo.show();
+}
+
+
+function showRegco (rec)
+{
+    var data = rec.data;
+    var heightPanel = 420;
+//    console.log(rec);return false;
+
+    var windowregco = new Ext.Window ({
+
+        id:'form-panel',
+        title:'Register Customer Order',
+        layout: {
+                type: 'vbox',
+                align: 'stretch'  // Child items are stretched to full width
+            },
+        width: 500,
+        height: heightPanel,
+        minWidth: 300,
+        minHeight: 250,
+        resizable: false,
+        stateful: false,
+        modal: true,
+        items:[
+            new Ext.Panel({
+                bodyStyle: 'padding:15px;',
+                id:'cancel-message',
+                height: 300,
+                autoScroll:true,
+                cls:'message-preview single-preview',
+                html:'Register Customer Order Number : <b><font color="#FF0000">' + data.trano + '</font></b><br/><br/>' +
+                     'From : ' + data.name_sender + '<br/><br/>' +
+                     'Date : ' + Ext.util.Format.date(data.date, 'd M Y') + '<br/><br/>' +
+                     'Customer : ' + data.cus_nama + '<br/><br/>' +
+                     'PO Customer : ' + data.pocustomer + '<br/><br/>' +
+                     'Value IDR : ' + data.totalidr + '<br/><br/>' +
+                     'Value USD : ' + data.totalusd + '<br/><br/>' +
+                     'Description : ' + data.message + '<br/><br/>'
+            }),{
+                buttons:[{
+                    text:'GO TO assign PM',
+                    iconCls: 'icon-reply',
+                    scale: 'large',
+                    handler:function (btn,ev)
+                    {
+                        windowregco.close();
+                        Ext.getCmp('d-form-panel').close();
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/projectmanagement/budget/appregisco/trano/' + data.trano,
+                        scripts : true
+                        });
+                    }
+                }]
+            }
+        ],
+        buttons:[{
+            text:'Close',
+            handler:function (btn,ev)
+            {
+                windowregco.close();
+            }
+        }]
+
+    })
+
+    windowregco.show();
+}
+
+function showPMs (rec)
+{
+    var pmstore = new Ext.data.Store ({
+        autoLoad:true,
+        url:'/default/manager/list',
+        reader:new Ext.data.JsonReader ({
+            root:'posts',
+            totalProperty:'count',
+            fields:[{
+                name:'uid'
+            },{
+                name:'nama'
+            }]
+        })
+    });
+
+    pmstore.setDefaultSort('nama','ASC');
+
+    var pmgrid = new Ext.grid.GridPanel ({
+        store:pmstore,
+        viewConfig:{
+            forceFit:true
+        },
+        height:300,
+        columns:[
+        new Ext.grid.RowNumberer(),
+        {
+            header:'Name',
+            dataIndex:'nama'
+        }],
+        listeners:
+        {
+            'rowdblclick':function (gridaktif,rowIndex,e)
+            {
+                isDbClick = true;
+                var regisco = gridaktif.getStore().getAt(rowIndex);
+
+                uid = regisco.get('uid');
+
+                Ext.MessageBox.prompt('Confirmation', 'Message To New Project Manager : ',
+                    function(btn,text) {
+                        if (btn == 'ok') {
+                            Ext.Ajax.request({
+                                url: '/projectmanagement/budget/reassignco/idmsg/' + rec.data['id'],
+                                params: {
+                                    newUid: uid,
+                                    trano: rec.data['trano'],
+                                    text: text
+                                },
+                                method:'POST',
+                                success: function(result, request){
+                                    var returnData = Ext.util.JSON.decode(result.responseText);
+                                    if( returnData.success) {
+                                        pmwindow.close();
+                                        Ext.getCmp('form-panel').close();
+                                        Ext.getCmp('d-form-panel').close();
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    true //Multiline...
+                );
+
+
+            }
+        }
+    })
+
+    var pmwindow = new Ext.Window ({
+
+        title:'Choose Projet Manager',
+        id:'window-pm',
+        layout:'absolute',
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        closeAction: 'close',
+        width: 432,
+        height: 330,
+        loadMask:true,
+        items:[pmgrid]
+
+    })
+
+    pmwindow.show();
+}
+
+function showpraco (rec,files)
+{
+    var data = rec.data;
+    var heightPanel = 330;
+
+    var htmlFile = '';
+
+    if (files != undefined || files != '')
+    {
+        htmlFile = '<div class="regco-files"><fieldset><legend>Attachment Files</legend><ul>';
+        Ext.each(files,function(file){
+            htmlFile += '<li><a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + file.savename + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');">' + file.filename + '</a></li>';
+        });
+        htmlFile += '</ul></fieldset></div>';
+    }
+
+    if(rec.data['reject_regco'])
+    {
+        var reassignButton = {
+            text:'Re-Assign this REGCO',
+            iconCls: 'icon-reply',
+            scale: 'large',
+            handler:function (btn,ev)
+            {
+                showPMs(rec);
+            }
+        };
+
+        var editButton = {
+                    text:'Edit this REGCO',
+                    iconCls: 'icon-reply',
+                    scale: 'large',
+                    handler:function (btn,ev)
+                    {
+                        windowpraco.close();
+                        Ext.getCmp('d-form-panel').close();
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/projectmanagement/budget/editregisco/trano/' + rec.data['trano'],
+                        scripts : true
+                        });
+                    }
+                };
+        var theButtons = [reassignButton,editButton];
+    }
+    else
+    {
+        var goToButton = {
+                                text:'Go To Create CO',
+                                iconCls: 'icon-reply',
+                                scale: 'large',
+                                handler:function (btn,ev)
+                                {
+                                    windowpraco.close();
+                                    Ext.getCmp('d-form-panel').close();
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                    url: '/sales/sales/createco',
+                                    scripts : true
+                                    });
+                                }
+                            };
+        var rejectButton = {
+                                text:'Reject this CO',
+                                iconCls: 'icon-cancel',
+                                scale: 'large',
+                                handler:function (btn,ev)
+                                {
+                                    Ext.MessageBox.prompt('Confirmation', 'Reason to reject : ',
+                                        function(btn,text) {
+                                            if (btn == 'ok') {
+                                                Ext.Ajax.request({
+                                                    url: '/projectmanagement/budget/rejectco/idmsg/' + data.id,
+                                                    params: {
+                                                        reason: text,
+                                                        trano: data.trano
+                                                    },
+                                                    method:'POST',
+                                                    success: function(result, request){
+                                                        var returnData = Ext.util.JSON.decode(result.responseText);
+                                                        if( returnData.success) {
+                                                            windowpraco.close();
+                                                            Ext.getCmp('d-form-panel').close();
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        },
+                                        true //Multiline...
+                                    );
+
+                                }
+                            };
+
+        var theButtons = [goToButton,rejectButton];
+    }
+    var windowpraco = new Ext.Window ({
+        id:'form-panel',
+        title:'Assign Customer Order',
+        layout: {
+                type: 'vbox',
+                align: 'stretch'  // Child items are stretched to full width
+            },
+        width: 500,
+        height: heightPanel,
+        minWidth: 300,
+        minHeight: 250,
+        resizable: false,
+        stateful: false,
+        modal: true,
+        items:[
+            new Ext.Panel({
+                bodyStyle: 'padding:15px;',
+                id:'praco-message',
+                height: 210,
+                autoScroll:true,
+                cls:'message-preview single-preview',
+                html:'From : ' + data.name_sender + '<br/><br />' +
+                     'Date : ' + Ext.util.Format.date(data.date, 'd M Y H:i:s') + '<br/><br/>' +
+                     'Assign Customer Order Number : <b><font color="#FF0000">' + data.trano + '</font></b><br/><br/>' +
+                     'Message : ' + data.message + '<br/><br/>' +
+                        htmlFile
+            }),{
+                buttons: theButtons
+
+            }
+        ],
+        buttons:[{
+            text:'Close',
+            handler:function (btn,ev)
+            {
+                windowpraco.close();
+            }
+        }],
+        listeners: {
+                'close': function (p) {
+                    Ext.Ajax.request({
+                        url: '/default/conversation/setread/id/' + data.id,
+                        method:'POST',
+                        success: function()
+                        {
+                            getConversation();
+                        }
+                    });
+                }
+            }
+
+    })
+
+//    console.log(Ext.getCmp('cancel-message'));
+
+    windowpraco.show();
+}
+
+function showPreview(rec)
+{
+    var d = rec.data;
+//    var names = rec.data.name_sender;
+    if (d.trano == "" || d.trano == null)
+    {
+        var heightPanel = 330;
+    }
+    else
+        var heightPanel = 355;
+    var dFormPreview =  new Ext.Window({
+		    id: 'msg-form-panel',
+            layout: {
+                    type: 'vbox',
+                    align: 'stretch'  // Child items are stretched to full width
+                },
+		    width: 500,
+		    height: heightPanel,
+            minWidth: 300,
+            minHeight: 250,
+            resizable: false,
+            tbar: [
+                {
+                    xtype: 'button',
+                    text: 'Show Document : <b>' + d.trano + '</b>',
+                    id: 'show_docs',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/application_go.png",
+                    handler: function () {
+                        if (d.trano == undefined)
+                            return false;
+                        Ext.Ajax.request({
+                            url: '/default/home/getdocumenturl/id/' + d.trano,
+                            method:'POST',
+                            success: function(result, request){
+                                   var returnData = Ext.util.JSON.decode(result.responseText);
+                                    if( returnData.success) {
+                                        var myPanel = Ext.getCmp('abs-budget-panel');
+                                        if (myPanel != undefined)
+                                        {
+                                            myPanel.body.load({
+                                                url: returnData.url + '/preview/true',
+                                                scripts : true
+                                            });
+                                        }
+                                        else
+                                        {
+                                            var cPanel = Ext.getCmp('content-panel');
+                                            cPanel.load({
+                                                url: '/default/conversation/showdocument',
+                                                scripts: true,
+                                                params: {url: returnData.url + '/preview/true'}
+                                            });
+                                        }
+                                        dFormPreview.close();
+                                        Ext.getCmp('d-form-panel').close();
+                                    }
+                                else
+                                    {
+                                        Ext.Msg.alert('Error!', returnData.msg);
+                                    }
+                            },
+                            failure:function( action){
+                                if(action.failureType == 'server'){
+                                  obj = Ext.util.JSON.decode(action.response.responseText);
+                                  Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                                }
+                        });
+                    }
+                }
+            ],
+            listeners: {
+                'close': function (p) {
+                    Ext.Ajax.request({
+                        url: '/default/conversation/setread/id/' + d.id,
+                        method:'POST',
+                        success: function()
+                        {
+                            getConversation();
+                        }
+                    });
+                }
+            },
+//		    title: 'Message From ' + names,
+		    stateful: false,
+	        modal: true,
+		    items: [
+                    new Ext.Panel({
+                        id: 'preview-message',
+                        height: 210,
+                        cls:'message-preview single-preview',
+                        html: Ext.Template.from('message-preview-tpl', {
+                                compiled:true,
+                                getMessage : function(v, all){
+                                    if (v !== "" && v != null)
+                                    {
+                                        if (all.id_reply !== "" && all.id_reply != null && all.id_reply > 0)
+                                            var id_reply = all.id_reply;
+                                        else
+                                            var id_reply = all.id;
+                                        Ext.Ajax.request({
+                                            url: '/default/conversation/getprevmessage/id/' + id_reply,
+                                            method:'POST',
+                                            success: function(resp){
+                                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                                if (returnData.success)
+                                                {
+                                                    var updates = '';
+                                                    Ext.each(returnData.message, function (t, index){
+                                                        updates += '<div class="message-data">';
+                                                        if(t.read == "0")
+                                                            updates += '<div class="message-unread">New!</div>';
+                                                        updates += '<span class="message-date">' + t.date + '</span>';
+                                                        if (t.prj_kode !== "" && t.prj_kode != null)
+                                                            var prj = '<br/>Project : ' + t.prj_kode;
+                                                        else
+                                                            var prj = '';
+                                                        if (t.trano !== "" && t.trano != null)
+                                                            updates += '<h3 class="message-document">Document Number :' + t.trano + prj + '</h3>';
+                                                        if (t.name_sender == "")
+                                                            t.name_sender = 'Unknown';
+                                                        updates += '<h4 class="message-sender">From : <b>' + t.name_sender + '</b></h4>';
+                                                        updates += '</div>';
+//                                                        updates += '<div class="message-body">' + Ext.util.Format.stripScripts(t.message) + '</div>';
+                                                        updates += '<div class="message-body">' + t.message + '</div>';
+
+//                                                       updates += '<br />';
+//                                                       updates += '<div class="message-body-old"><b>Previous Message From ' + t.name_sender + ', ' + t.date + '</b><br/>' + t.message + '</div>';
+                                                    });
+
+                                                    Ext.getCmp('preview-message').update(updates);
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error', returnData.msg);
+                                                }
+                                            },
+                                            failure:function( action){
+                                            if(action.failureType == 'server'){
+                                              obj = Ext.util.JSON.decode(action.response.responseText);
+                                              Ext.Msg.alert('Error!', obj.errors.reason);
+                                            }else{
+                                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                            }
+                                            }
+                                        });
+                                        return '<div class="message-body">' + Ext.util.Format.stripScripts(v) + '</div>';
+
+                                    }
+                                    else
+                                        return '';
+                                },
+                                getTrano: function(v,all) {
+                                    if (all.prj_kode !== "" && all.prj_kode != null)
+                                        var projek =  ' ,Project : ' + all.prj_kode;
+                                    else
+                                        var projek = '';
+                                    if (v !== "" && v != null)
+                                    {
+                                        return 'Document Number : ' + v + projek;
+                                    }
+                                    else
+                                        return '&nbsp;';
+                                }
+                        }).apply(d),
+                        closable:true,
+                        autoScroll:true,
+                        border:true
+                    }),
+                    {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.8,
+                                layout: 'fit',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textarea',
+                                        height: 40,
+                                        name: 'reply',
+                                        id: 'reply',
+                                        flex: 1  // Take up all *remaining* vertical space
+                                    }
+                                ]
+                               },
+                            {columnWidth:.2,
+                                layout: 'fit',
+                                style : 'margin-left: 3px;margin-top: 1px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Reply',
+                                        iconCls: 'icon-reply',
+                                        scale: 'large',
+                                        handler: function (){
+                                            var rep = Ext.getCmp('reply').getValue().toString().replace(/\'|\"/g,'');
+                                            if (rep == "" || rep == null)
+                                            {
+                                                Ext.Msg.alert('Error!', "Please insert Your comment!");
+                                                return false;
+                                            }
+                                            var params = {
+                                                message: rep,
+                                                uid_receiver: d.uid_sender,
+                                                trano: d.trano,
+                                                prj_kode: d.prj_kode,
+                                                workflow_item_id: d.workflow_item_id
+                                            };
+                                            Ext.Ajax.request({
+                                            url: '/default/conversation/setreply/id/' + d.id,
+                                            method:'POST',
+                                            success: function(respon)
+                                            {
+                                                var returnData = Ext.util.JSON.decode(respon.responseText);
+                                                if (returnData.success)
+                                                {
+//                                                    Ext.Msg.alert('Information', 'Your comment have been submitted!');
+                                                    dFormPreview.close();
+                                                }
+                                            },
+                                            params: params
+                                        });
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ],
+            buttons: [
+                 {
+                     text: 'Close',
+                     id: 'close-message-preview',
+                     handler: function(btn, ev) {
+                        dFormPreview.close();
+                     }
+                }
+            ]
+
+    });
+
+    dFormPreview.show();
+    if (d.trano == "" || d.trano == null)
+    {
+        dFormPreview.getTopToolbar().setVisible(false);
+    }
+}
+
+    var readerMsg = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+            {name: 'uid'},
+            {name: 'name'},
+            {name: 'is_start'},
+            {name: 'prj_kode'},
+            {name: 'role_name'},
+			{name: 'workflow_item_id'}
+          ]
+    );
+
+    var readerMsg2 = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'},
+         [
+			{name: 'id'},
+			{name: 'id_reply'},
+			{name: 'message'},
+			{name: 'date',type: 'date',dateFormat: 'Y-m-d H:i:s'},
+            {name: 'name_sender'},
+			{name: 'uid_sender'},
+			{name: 'uid_receiver'},
+			{name: 'read'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'workflow_item_id'},
+			{name: 'cancel_po'},
+			{name: 'id_cancel'},
+            {name: 'regco'},
+            {name: 'id_regco'},
+             {name:'cus_nama'},
+             {name:'pocustomer'},
+             {name:'totalidr'},
+             {name:'totalusd'},
+             {name:'confirmation'},
+             {name: 'assign_regco'},
+              {name: 'reject_regco'}
+          ]
+    );
+
+    var proxyMsg = new Ext.data.HttpProxy({
+     url : '/default/conversation/getmyteam/id/<?php echo $this->myId?>?>'
+    });
+
+    var storeMsg = new Ext.data.Store({
+            id: 'store-team-msg',
+            reader: readerMsg,
+            proxy: proxyMsg
+        });
+
+    var proxyMsg2 = new Ext.data.HttpProxy({
+     url : '/default/conversation/getallmyconversation'
+    });
+
+    var storeMsg2 = new Ext.data.Store({
+            id: 'store-conversation-msg',
+            reader: readerMsg2,
+            proxy: proxyMsg2
+    });
+
+    TeamGridMsg = function(viewer, config) {
+        this.viewer = viewer;
+        Ext.apply(this, config);
+
+        this.store = storeMsg;
+
+        this.columns = [
+            {
+                id: 'name',
+                header: "My Team in Workflow",
+                dataIndex: 'name',
+                sortable:true,
+                width: 250,
+                renderer: this.formatTitle
+          }
+        ];
+
+        TeamGridMsg.superclass.constructor.call(this, {
+            id: 'team-grid-msg',
+            loadMask: {msg:'Loading...'},
+
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true
+            }),
+
+            viewConfig: {
+                forceFit:true,
+                enableRowBody:true,
+                showPreview:true,
+                getRowClass : this.applyRowClass
+            }
+        });
+
+        this.on('rowclick', this.onMemberClick, this);
+    };
+
+
+    var messageGridMsg = function(viewer, config) {
+            this.viewer = viewer;
+            this.id = 'msg-grids-msg';
+            Ext.apply(this, config);
+            this.stateful= false,
+            this.store = storeMsg2;
+            this.store.setDefaultSort('date', "DESC");
+            this.bbar = new Ext.PagingToolbar({
+                                    pageSize: 20,
+                                    store: this.store,
+                                    displayInfo: true,
+                                    displayMsg: 'Displaying message {0} - {1} of {2}',
+                                    emptyMsg: "No message to display"
+                                });
+            this.columns = [
+                {
+                    id: 'message',
+                    header: "",
+                    dataIndex: 'message',
+                    width: 50,
+                    sortable:false,
+                    renderer: this.formatTitle
+                },
+                {
+                    id: 'uid_sender',
+                    header: "From",
+                    dataIndex: 'name_sender',
+                    width: 100,
+                    sortable:true
+                },
+                {
+                    id: 'date',
+                    header: "Date",
+                    dataIndex: 'date',
+                    width: 100,
+                    sortable:true,
+                    renderer: this.formatDate
+                }
+            ];
+
+            messageGridMsg.superclass.constructor.call(this, {
+                id: 'message-grid-msg',
+                loadMask: {msg:'Loading...'},
+
+                sm: new Ext.grid.RowSelectionModel({
+                    singleSelect:true
+                }),
+
+                viewConfig: {
+                    forceFit:true,
+                    enableRowBody:true,
+                    showPreview:true,
+                    getRowClass : this.applyRowClass
+                }
+            });
+
+            this.on('rowdblclick', this.ondobelclick, this);
+        };
+
+function askQuestion(trano)
+{
+
+    Ext.extend(messageGridMsg, Ext.grid.GridPanel, {
+
+            applyRowClass: function(record, rowIndex, p, ds) {
+                    var xf = Ext.util.Format;
+
+                if (record.data.read == "1")
+                    var images = 'messageold';
+                else
+                    var images = 'messagenew';
+
+                    p.body = '<div class="' + images +  '"><p>' + xf.ellipsis(xf.stripTags(record.data.message)) + '</p></div><a href="#" id="reply-' + record.data.id +'">Reply</a>';
+//                    return 'x-grid3-row-expanded';
+                return 'x-grid3-row-expanded x-grid3-row-expanded-' + images;
+            },
+
+            formatTitle: function(value, p, record) {
+//                if (record.data.prj_kode != null && record.data.trano != "" && record.data.trano != null && record.data.prj_kode != "")
+//                    return '<div class="messageicon"><b>Document Number : ' + record.data.trano + ' </b><span class="activitytype">Project : ' + record.data.prj_kode + '</span></div>';
+
+            },
+
+            formatDate : function(date) {
+                    if (!date) {
+                        return '';
+                    }
+                    var now = new Date();
+                    var d = now.clearTime(true);
+                    var notime = date.clearTime(true).getTime();
+                    if (notime == d.getTime()) {
+                        return 'Today ' + date.dateFormat('g:i a');
+                    }
+                    d = d.add('d', -6);
+                    if (d.getTime() <= notime) {
+                        return date.dateFormat('D, j/n/Y g:i a');
+                    }
+                    return date.dateFormat('j/n/Y g:i a');
+            },
+            setReply: function(rowIndex) {
+                var rec = storeMsg2.getAt(rowIndex);
+                console.log(rec);
+            }
+
+        });
+
+    Ext.extend(TeamGridMsg, Ext.grid.GridPanel, {
+
+        onMemberClick : function(grid, index, e){
+            var rec = storeMsg.getAt(index);
+            var uid = rec.data['uid'];
+            storeMsg2.proxy = new Ext.data.HttpProxy({
+                url : '/default/conversation/getmessagefromteam/id/' + uid
+            });
+            storeMsg2.reload();
+        },
+        applyRowClass: function(record, rowIndex, p, ds) {
+            if (this.showPreview) {
+                var xf = Ext.util.Format;
+                return 'x-grid4-row-expanded';
+            }
+            return 'x-grid4-row-collapsed';
+        },
+
+        formatTitle: function(value, p, record) {
+
+            p.attr =  'ext:qtitle=""';
+            p.attr += ' ext:qtip="Click to view message from this person"';
+
+            if (record.data.is_start == "1")
+                var starter = '<b>SUBMITTER</b>';
+            else
+                var starter = '';
+            return '<div class="personicon"><b>' + record.data.name + '</b><span class="rolename">' + record.data.role_name + '</span>' + starter + '</div><br><a href="#" id="new-' + record.data.id + '">Send Message</a>';
+
+        }
+    });
+
+    var message = '';
+    var gridMsg = new TeamGridMsg({
+            loadMask: true,
+            frame:true,
+            width: 280,
+            id: 'team'
+        });
+    var gridMsg2 = new messageGridMsg({
+            loadMask: true,
+            frame:true,
+            id: 'conversation'
+        });
+    gridMsg2.on('rowclick',
+            function(grid, index, evt) {
+                    var rec = grid.getStore().getAt(index);
+                    if (evt.within_el('reply-'+ rec.id))
+                    {
+                        Ext.getCmp('south').expand();
+                        Ext.getCmp('receiver_text').setValue(rec.data['name_sender']);
+                        message = rec;
+                        message.isReply = true;
+                    }
+                }
+            , this);
+    gridMsg.on('rowclick',
+            function(grid, index, evt) {
+                    var rec = grid.getStore().getAt(index);
+                    if (evt.within_el('new-'+ rec.id))
+                    {
+                        Ext.getCmp('south').expand();
+                        Ext.getCmp('receiver_text').setValue(rec.data['name']);
+                        message = rec;
+                        message.isReply = false;
+                    }
+                }
+            , this);
+    storeMsg.proxy = new Ext.data.HttpProxy({
+        url : '/default/conversation/getmyteam/id/<?php echo $this->myId?>/trano/' + trano
+    });
+    storeMsg.reload();
+    storeMsg2.proxy = new Ext.data.HttpProxy({
+        url : '/default/conversation/getmessagebytrano/trano/' + trano
+    });
+    storeMsg2.reload();
+
+
+    var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+			{
+			    region: 'west',
+			    id: 'workid',
+			    split: true,
+			    stateful: false,
+			    layout: 'fit',
+			    width: 200,
+			    minSize: 150,
+			    maxSize: 250,
+			    items: gridMsg,
+			    listeners: {
+                	   resize: function (p,w,h,rw,rh) {
+							gridMsg.setWidth(w);
+                   		}
+                   }
+			},
+			{
+			    region: 'center',
+			    id: 'detail', // see Ext.getCmp() below
+			    title: '',
+                width: 320,
+                layout: 'fit',
+                tbar: [{
+                        xtype: 'button',
+                        text: 'Show All Conversation',
+                        width:110,
+                        id: 'show_all',
+                        cls:"x-btn-text-icon" ,
+                        icon:"/images/icons/fam/icon_history.gif",
+                        handler: function () {
+                            storeMsg2.proxy = new Ext.data.HttpProxy({
+                                url : '/default/conversation/getallmyconversation'
+                            });
+                            storeMsg2.reload();
+                        }
+                    }],
+//			    layout: {
+//                    type: 'vbox',
+//                    align: 'stretch'  // Child items are stretched to full width
+//                },
+//			    margins: '0 0 0 5',
+			    items: [
+                        gridMsg2,
+
+
+                ]
+
+			},
+        {
+            region: 'south',
+//            layout: 'fit',
+            id: 'south',
+            height: 125,
+            collapsible: true,
+            collapsed: true,
+            hideCollapseTool: true,
+            floatable: false,
+            items: [
+                     {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.9,
+                                layout: 'form',
+                                labelWidth: 30,
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'To',
+                                        disabled: true,
+                                        id: 'receiver_text',
+                                        width: 200
+                                    }
+                                ]
+                               }
+                            ]
+                     },
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.8,
+                                layout: 'fit',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textarea',
+                                        height: 70,
+                                        width: 490,
+                                        id: 'reply-msg',
+                                        flex: 1  // Take up all *remaining* vertical space
+                                    }
+                                ]
+                               },
+                            {columnWidth:.2,
+                                layout: 'fit',
+                                style : 'margin-left: 3px;margin-top: 12px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Send',
+                                        id: 'send-button',
+                                        iconCls: 'icon-reply',
+                                        scale: 'large',
+                                        handler: function (){
+                                            var rep = Ext.getCmp('reply-msg').getValue().toString().replace(/\'|\"/g,'');
+                                            if (rep == "" || rep == null)
+                                            {
+                                                Ext.Msg.alert('Error!', "Please insert Your comment!");
+                                                return false;
+                                            }
+                                            if (message.isReply)
+                                            {
+                                                var params = {
+                                                    message: rep,
+                                                    id_reply: message.data['id'],
+                                                    uid_receiver: message.data['uid_sender'],
+                                                    prj_kode: message.data['prj_kode'],
+                                                    workflow_item_id: message.data['workflow_item_id']
+                                                };
+                                            }
+                                            else
+                                            {
+                                                var params = {
+                                                    message: rep,
+                                                    id_reply: 0,
+                                                    uid_receiver: message.data['uid'],
+                                                    prj_kode: message.data['prj_kode'],
+                                                    workflow_item_id: message.data['workflow_item_id']
+                                                };
+                                            }
+                                            Ext.Ajax.request({
+                                            url: '/default/conversation/setmessage/trano/' + trano,
+                                            method:'POST',
+                                            success: function(respon)
+                                            {
+                                                var returnData = Ext.util.JSON.decode(respon.responseText);
+                                                if (returnData.success)
+                                                {
+//                                                    Ext.Msg.alert('Information', 'Your comment have been submitted!');
+                                                    message = '';
+                                                    dFormPreview.close();
+                                                }
+                                            },
+                                            params: params
+                                        });
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+            ]
+
+});
+
+    var dFormPreview =  new Ext.Window({
+		    id: 'msg-conversation',
+            layout: 'fit',
+		    width: 600,
+		    height: 500,
+            resizable: false,
+            title: 'Conversation for Document ' + trano,
+		    stateful: false,
+	        modal: true,
+		    items: [
+                viewportsMsg
+
+            ],
+            buttons: [
+                 {
+                     text: 'Close',
+                     id: 'close-message-preview',
+                     handler: function(btn, ev) {
+                        dFormPreview.close();
+                     }
+                }
+            ]
+
+    });
+
+    dFormPreview.show();
+}
+
+function showConversation()
+{
+
+
+    storeMsg2.proxy = new Ext.data.HttpProxy({
+        url : '/default/conversation/getallmyconversation'
+    });
+    storeMsg2.reload();
+    storeMsg.proxy = new Ext.data.HttpProxy({
+        url : '/default/conversation/getmyteam/id/<?php echo $this->myId?>'
+    });
+    storeMsg.reload();
+
+    Ext.extend(TeamGridMsg, Ext.grid.GridPanel, {
+
+        onMemberClick : function(grid, index, e){
+            var rec = storeMsg.getAt(index);
+            var uid = rec.data['uid'];
+            storeMsg2.proxy = new Ext.data.HttpProxy({
+                url : '/default/conversation/getmessagefromteam/id/' + uid
+            });
+            storeMsg2.reload();
+        },
+        applyRowClass: function(record, rowIndex, p, ds) {
+            if (this.showPreview) {
+                var xf = Ext.util.Format;
+                return 'x-grid4-row-expanded';
+            }
+            return 'x-grid4-row-collapsed';
+        },
+
+        formatTitle: function(value, p, record) {
+            if (record.data.is_start == "1")
+                var starter = '<b>SUBMITTER</b>';
+            else
+                var starter = '';
+            return '<div class="personicon"><b>' + record.data.name + '</b><span class="rolename">' + record.data.role_name + '</span>' + starter + '</div><br><a href="#" id="new-' + record.data.id + '">Send Message</a>';
+
+        }
+    });
+
+        Ext.extend(messageGridMsg, Ext.grid.GridPanel, {
+
+            ondobelclick: function(g, rowIndex, e){
+                var rec = g.getStore().getAt(rowIndex);
+//                console.log(rec);
+
+                if (rec.data['cancel_po'])
+                {
+                    showCancelPO(rec); /*bikin fungsi ini mir buat cancel po*/
+                }
+//                else if (rec.data['regco'])
+//                {
+//                    showRegco (rec);
+//                }
+                else if (rec.data['assign_regco'])
+                {
+                    Ext.Ajax.request({
+                    url: '/default/file/list/',
+                    params: {
+                        fields: '["trano"]',
+                        query: rec.data['trano']
+                    },
+                    method:'POST',
+                    success: function(respon)
+                    {
+                        var returnData = Ext.util.JSON.decode(respon.responseText);
+                        var theFiles;
+                        if (returnData.posts.length > 0)
+                        {
+                            theFiles = returnData.posts;
+                        }
+
+                        showpraco(rec, theFiles);
+                    }
+                    });
+                }
+//                    showPreview(rec);
+                else
+                    showPreview(rec);
+            },
+            applyRowClass: function(record, rowIndex, p, ds) {
+                    var xf = Ext.util.Format;
+//                    if (record.data.aktifitas != null && record.data.aktifitas != "")
+//                        var isi = record.data.aktifitas;
+//                    else if (record.data.hambatan != null && record.data.hambatan != "")
+//                        var isi = record.data.hambatan;
+                if (record.data.read == "1")
+                    var images = 'messageold';
+                else
+                    var images = 'messagenew';
+
+                    var readMore = ' <font color="blue">&nbsp;Double click to read more...</font>';
+
+                    p.body = '<div class="' + images +  '"><p>' + xf.ellipsis(xf.stripTags(record.data.message), 100) + readMore + '</p></div>';
+//                    return 'x-grid3-row-expanded';
+                return 'x-grid3-row-expanded x-grid3-row-expanded-' + images;
+            },
+
+            formatTitle: function(value, p, record) {
+//                if (record.data.prj_kode != null && record.data.trano != "" && record.data.trano != null && record.data.prj_kode != "")
+//                    return '<div class="messageicon"><b>Document Number : ' + record.data.trano + ' </b><span class="activitytype">Project : ' + record.data.prj_kode + '</span></div>';
+
+            },
+
+            formatDate : function(date) {
+                    if (!date) {
+                        return '';
+                    }
+                    var now = new Date();
+                    var d = now.clearTime(true);
+                    var notime = date.clearTime(true).getTime();
+                    if (notime == d.getTime()) {
+                        return 'Today ' + date.dateFormat('g:i a');
+                    }
+                    d = d.add('d', -6);
+                    if (d.getTime() <= notime) {
+                        return date.dateFormat('D, j/n/Y g:i a');
+                    }
+                    return date.dateFormat('j/n/Y g:i a');
+                }
+
+        });
+    var message = '';
+    var gridMsg = new TeamGridMsg({
+            loadMask: true,
+            frame:true,
+            width: 280
+        });
+    var gridMsg2 = new messageGridMsg({
+            loadMask: true,
+            frame:true,
+            width: 320
+        });
+    gridMsg.on('rowclick',
+            function(grid, index, evt) {
+                    var rec = grid.getStore().getAt(index);
+                    if (evt.within_el('new-'+ rec.id))
+                    {
+                        Ext.getCmp('d-form-panel').setHeight(500);
+                        Ext.getCmp('south2').expand();
+                        Ext.getCmp('receiver_text').setValue(rec.data['name']);
+                        message = rec;
+                        message.isReply = false;
+                    }
+                }
+            , this);
+
+var viewportsMsg = ({
+    layout: 'border',
+    stateful: false,
+    loadMask: true,
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+			{
+			    region: 'west',
+			    id: 'workid',
+			    split: true,
+			    stateful: false,
+			    layout: 'fit',
+			    width: 200,
+			    minSize: 150,
+			    maxSize: 250,
+			    items: gridMsg,
+			    listeners: {
+                	   resize: function (p,w,h,rw,rh) {
+							gridMsg.setWidth(w);
+                   		}
+                   }
+			},
+			{
+			    region: 'center',
+			    id: 'detail', // see Ext.getCmp() below
+			    title: '',
+                width: 320,
+                layout: 'fit',
+                tbar: [{
+                        xtype: 'button',
+                        text: 'Show All Conversation',
+                        width:110,
+                        id: 'show_all',
+                        cls:"x-btn-text-icon" ,
+                        icon:"/images/icons/fam/icon_history.gif",
+                        handler: function () {
+                            storeMsg2.proxy = new Ext.data.HttpProxy({
+                                url : '/default/conversation/getallmyconversation'
+                            });
+                            storeMsg2.reload();
+                        }
+                    }],
+			    items: [
+                        gridMsg2
+                ]
+
+			},
+        {
+            region: 'south',
+            id: 'south2',
+            height: 125,
+            collapsible: true,
+            collapsed: true,
+            hideCollapseTool: true,
+            floatable: false,
+            stateful: false,
+            items: [
+                     {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.9,
+                                layout: 'form',
+                                labelWidth: 30,
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'To',
+                                        disabled: true,
+                                        id: 'receiver_text',
+                                        width: 200
+                                    }
+                                ]
+                               }
+                            ]
+                     },
+                {
+                        layout:'column',
+                        frame: true,
+                        items:[
+                               {columnWidth:.8,
+                                layout: 'fit',
+                                style : 'margin-right: 3px;',
+                                items: [
+                                    {
+                                        xtype: 'textarea',
+                                        height: 70,
+                                        width: 490,
+                                        id: 'reply-msg',
+                                        flex: 1  // Take up all *remaining* vertical space
+                                    }
+                                ]
+                               },
+                            {columnWidth:.2,
+                                layout: 'fit',
+                                style : 'margin-left: 3px;margin-top: 12px;',
+                                items: [
+                                    new Ext.Button({
+                                        text: 'Send',
+                                        id: 'send-button',
+                                        iconCls: 'icon-reply',
+                                        scale: 'large',
+                                        handler: function (){
+                                            var rep = Ext.getCmp('reply-msg').getValue().toString().replace(/\'|\"/g,'');
+                                            if (rep == "" || rep == null)
+                                            {
+                                                Ext.Msg.alert('Error!', "Please insert Your comment!");
+                                                return false;
+                                            }
+                                            else
+                                            {
+                                                var params = {
+                                                    message: rep,
+                                                    id_reply: 0,
+                                                    uid_receiver: message.data['uid'],
+                                                    prj_kode: '',
+                                                    workflow_item_id: ''
+                                                };
+                                            }
+                                            Ext.Ajax.request({
+                                            url: '/default/conversation/setmessage',
+                                            method:'POST',
+                                            success: function(respon)
+                                            {
+                                                var returnData = Ext.util.JSON.decode(respon.responseText);
+                                                if (returnData.success)
+                                                {
+                                                    message = '';
+                                                    dFormMsg.close();
+                                                }
+                                            },
+                                            params: params
+                                        });
+                                        }
+                                    })
+                                ]
+                            }
+                        ]
+                    }
+            ]
+        }
+
+    ]
+
+});
+    var dFormMsg =  new Ext.Window({
+		    id: 'd-form-panel',
+		    layout:'fit',
+		    width: 600,
+		    height: 500,
+		    title: 'Conversation',
+		    stateful: false,
+	        modal: true,
+            resizable: false,
+		    items: [
+                viewportsMsg
+            ]
+    });
+
+    dFormMsg.show();
+}
+
+
+function updateMsg()
+{
+    Ext.getCmp('details-panel').el.unmask();
+    if ( msg2 != '' && msg2 != undefined)
+        var updateText = msg2 +  msg1;
+    else
+        var updateText = msg1;
+    Ext.getCmp('details-panel').update(updateText);
+}
+
+
+function goToDocument()
+{
+
+	cPanel = Ext.getCmp('content-panel');
+    cPanel.load({
+	        url: '/default/home/viewdocument/processdocument/true',
+	        scripts : true
+	    });
+}
+
+function goToDocument2()
+{
+
+	cPanel = Ext.getCmp('content-panel');
+    cPanel.load({
+	        url: '/default/home/viewdocument/assistant/true',
+	        scripts : true
+	    });
+}
+
+function getDocs()
+{
+    Ext.getCmp('details-panel').el.mask('Loading...','loadingMask');
+	Ext.Ajax.request({
+	    url: '/default/home/documenttoprocessnew/userid/<?php echo $this->userID; ?>/count/true',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if( !returnData.success) {
+
+				} else {
+					if (returnData.count >= 0)
+					{
+                        <?php if ($this->isPA) { ?>
+                        var fontSize = '25';
+                        <?php } else { ?>
+                        msg2 = undefined;
+                        var fontSize = '30';
+                        <?php } ?>
+						msg1 = '<p class="details-info" align="center"><font color="red" ><b style="font-size: '+ fontSize + 'px;">' + returnData.count + '</b></font><br />Documents to process <input style="margin-top:5px;" type="submit" onclick="goToDocument();" value="Go to Document" ></p>';
+					}
+                    else
+                    {
+                        msg1 = '';
+                    }
+                    updateMsg();
+				}
+			}
+		,failure:function( action){
+	if(action.failureType == 'server'){
+	obj = Ext.util.JSON.decode(action.response.responseText);
+	Ext.Msg.alert('Error!', obj.errors.reason);
+	}
+	}
+	});
+}
+
+function getDocs2()
+{
+    Ext.getCmp('details-panel').el.mask('Loading...','loadingMask');
+	Ext.Ajax.request({
+	    url: '/default/home/documenttoprocessnew/userid/<?php echo $this->userID; ?>/count/true/pa/true',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if( !returnData.success) {
+
+				} else {
+					if (returnData.count > 0)
+					{
+						msg2 = '<p class="details-info" align="center"><b>Your Manager Has</b><br /><font color="red" ><b style="font-size: 24px;">' + returnData.count + '</b></font><br />Documents to process <input style="margin-top:5px;" type="submit" onclick="goToDocument2();" value="Go to Document" ></p>';
+					}
+                    else
+                    {
+                        msg2 = '';
+                    }
+                    updateMsg();
+				}
+			}
+		,failure:function( action){
+	if(action.failureType == 'server'){
+        obj = Ext.util.JSON.decode(action.response.responseText);
+        Ext.Msg.alert('Error!', obj.errors.reason);
+	}
+	}
+	});
+}
+
+function getConversation()
+{
+    Ext.getCmp('forum-panel').el.mask('Loading...','loadingMask');
+	Ext.Ajax.request({
+	    url: '/default/conversation/countmyconversation',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+					if (returnData.count >= 0)
+					{
+                        Ext.getCmp('forum-panel').el.unmask();
+					    Ext.getCmp('forum-panel').update('<a href="#" onclick="showConversation();"><p class="details-info" align="center"><font color="red" ><b style="font-size: 12px;">' + returnData.count + '</b></font> New Messages</p></a>');
+
+                        if (returnData.count > 0)
+                        {
+//                            new Ext.ux.Chip.Notification({
+//                                title: 'You have new message!',
+//                                icon: '/images/icons/fam/icon_airmail.gif',
+//                                text: '<b>From : ' + returnData.last.sender + '</b><br>&nbsp;&nbsp;' + returnData.last.message,
+//                                handler: function() {
+//                                    showConversation()
+//                                },
+//                                autoClose: 10000
+//                            });
+                        }
+                    }
+
+			}
+		,failure:function( action){
+	if(action.failureType == 'server'){
+	obj = Ext.util.JSON.decode(action.response.responseText);
+	Ext.Msg.alert('Error!', obj.errors.reason);
+	}
+	}
+	});
+}
+
+function showSubmenu(container)
+{
+    var filter = '<?php echo $this->notAllowedSubmenu; ?>';
+    var tbar = Ext.getCmp(container).getTopToolbar();
+    if (filter != '')
+    {
+        var menu = tbar.items.items[0].menu.items.items;
+        Ext.each(menu,function(itemMenu,indeks){
+            var itemId = itemMenu.id.toString();
+            var cek = filter.search(itemId);
+            if (cek >= 0)
+            {
+                Ext.getCmp(itemId).setVisible(false);
+            }
+        });
+        Ext.getCmp(container).doLayout();
+    }
+}
+
+var myMessages = {
+    run: function(){
+        getConversation();
+    },
+    interval: 1500000
+};
+
+var myTask = {
+    run: function(){
+	getDocs();
+    <?php if ($this->isPA) { ?>
+        getDocs2();
+    <?php } ?>
+},
+interval: 7200000
+};
+Ext.TaskMgr.start.defer(3000,this,[myTask]);
+Ext.TaskMgr.start.defer(3000,this,[myMessages]);
+
+</script>
+
+<div id="message-preview-tpl" style="display:none;">
+    <div class="message-data">
+        <span class="message-date">{date:date("M j, Y, g:i a")}</span>
+        <h3 class="message-document">{trano:this.getTrano}</h3>
+        <h4 class="message-sender">From : <b>{name_sender:defaultValue("Unknown")}</b></h4>
+    </div>
+    {message:this.getMessage}
+</div>
+
+<div id="message-cancel-po" style="display:none;">
+    <div class="message-data">
+        <span class="message-date">{date:date("M j, Y, g:i a")}</span>
+        <h4 class="message-sender">From : <b>{name_sender:defaultValue("Unknown")}</b></h4>
+    </div>
+    {message:this.getMessage}
+</div>

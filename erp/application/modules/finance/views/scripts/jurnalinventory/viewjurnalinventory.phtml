@@ -1,0 +1,205 @@
+<script type="text/javascript">
+
+    function editjurnalinventory(id)
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/finance/jurnalinventory/editjurnalinventory/id/' + id,
+            scripts: true
+        });
+    }
+    function deletejurnalinventory(id)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+            if (btn == 'yes')
+            {
+                Ext.Ajax.request({
+                    url: '/finance/jurnalinventory/deletejurnalinventory',
+                    params: {id: id},
+                    success: function(result, response) {
+                        if (response.success)
+                        {
+                            Ext.Msg.alert('Message', 'Success, Data has been saved');
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/jurnalinventory/menu',
+                                scripts: true
+
+                            });
+                        }
+                    },
+                    failure: function(thisForm, response) {
+                        if (response.failureType == 'server')
+                        {
+                            var resp = Ext.util.JSON.decode(response.response.responseText);
+                            Ext.Msg.alert('Error', resp.msg);
+                        }
+                    }//our params goes here
+                });
+
+            }
+
+        })
+    }
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var jurnalinventorystore = new Ext.data.Store({
+            id: 'store-jurnalinventory',
+            url: '/finance/jurnalinventory/getjurnalinventory',
+            autoLoad: true,
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'id'
+                    }, {
+                        name: 'gdg_kode_from'
+                    }, {
+                        name: 'gdg_kode_to'
+                    }, {
+                        name: 'gdg_nama_from'
+                    }, {
+                        name: 'gdg_nama_to'
+                    }, {
+                        name: 'nama'
+                    }, {
+                        name: 'coa_debit'
+                    }, {
+                        name: 'coa_credit'
+                    }]
+            })
+        })
+
+        var jurnalinventorygrid = new Ext.grid.GridPanel({
+            store: jurnalinventorystore,
+            height: 300,
+            renderTo: 'grid-jurnalinventory',
+            frame: true,
+            id: 'grid_jurnalinventory',
+            viewConfig: {
+                forceFit: true
+            },
+            columns: [new Ext.grid.RowNumberer(), {
+                    header: "Action",
+                    width: 40,
+                    dataIndex: 'id',
+                    css: 'text-align:center;',
+                    renderer: function(v, p, r) {
+                        return '<a href="#" onclick="editjurnalinventory(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>\n\
+                            <a href="#" onclick="deletejurnalinventory(\'' + r.data['id'] + '\')"><img src="/images/g_rec_del.png"></a>';
+                    },
+                    align: 'center'
+                }, {
+                    header: 'Name',
+                    dataIndex: 'nama',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Order From',
+                    dataIndex: 'gdg_nama_from',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'Deliver To',
+                    dataIndex: 'gdg_nama_to',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'COA Debit',
+                    dataIndex: 'coa_debit',
+                    align: 'center',
+                    sortable: true
+                }, {
+                    header: 'COA Credit',
+                    dataIndex: 'coa_credit',
+                    align: 'center',
+                    sortable: true
+                }], bbar: new Ext.PagingToolbar({
+                id: 'paging-jurnalinventory',
+                pageSize: 20,
+                store: jurnalinventorystore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+//            ,tbar:[{
+//                text:'Search By',
+//                xtype:'label',
+//                style:'margin-left:5px'
+//            },'-',{
+//                xtype: 'combo',
+//                width: 100,
+//                allowBlank: false,
+//                store: new Ext.data.SimpleStore({
+//                    fields:['name','nilai'],
+//                    data:[
+//                            ['Order from','gdg_kode_from'],
+//                            ['Deliver to','gdg_kode_to'],
+//                            ['Name','nama']
+//                        ]
+//                }),
+//                valueField:'nilai',
+//                displayField:'name',
+//                typeAhead: true,
+//                forceSelection: true,
+//                editable: false,
+//                mode: 'local',
+//                triggerAction: 'all',
+//                selectOnFocus: true,
+//                value:'Order from',
+//                id:'option'
+//            },{
+//                xtype:'textfield',
+//                id:'search',
+//                style:'margin-left:10px',
+//                enableKeyEvents:true,
+//                width:100,
+//                listeners:{
+//                    'keyup' : function (txttext,event)
+//                    {
+//                        var txttext = txttext.getValue();
+//                        if (txttext != "" && txttext.toString().length >= 3)
+//                        {
+//                            var option = Ext.getCmp('option').getValue();
+//                            var search = Ext.getCmp('search').getValue();
+//
+//                            jurnalinventorystore.proxy.url= '/finance/jurnalinventory/getjurnalinventory/search/' + search + '/option/' + option;
+//                            jurnalinventorystore.proxy.setUrl('/finance/jurnalinventory/getjurnalinventory/search/' + search + '/option/' + option);
+//                            jurnalinventorystore.proxy.api.read['url']= '/finance/jurnalinventory/getjurnalinventory/search/' + search + '/option/' + option;
+//                            jurnalinventorystore.load();
+//                            jurnalinventorygrid.getView().refresh();
+//                        }
+//                    }
+//                }
+//            },'-',{
+//                xtype: 'button',
+//                text : 'Refresh',
+//                id: 'refresh_button',
+//                iconCls:"silk-table-refresh" ,
+//                handler:function(btn,ev)
+//                {
+//                    Ext.getCmp('search').setValue('');
+//                    Ext.getCmp('option').setValue('Order from');
+//                    jurnalinventorystore.proxy.url= '/finance/jurnalinventory/getjurnalinventory';
+//                    jurnalinventorystore.proxy.setUrl('/finance/jurnalinventory/getjurnalinventory');
+//                    jurnalinventorystore.proxy.api.read['url']= '/finance/jurnalinventory/getjurnalinventory';
+//                    jurnalinventorystore.load();
+//                    jurnalinventorygrid.getView().refresh();
+//                }
+//            }]
+
+
+        })
+
+
+    })
+
+
+
+</script>
+
+<div id="grid-jurnalinventory"></div>

@@ -1,0 +1,1749 @@
+<script type="text/javascript">
+<?php echo $this->action('index','textfield',null); ?>
+
+showPayASF = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/finance/payment/settledasf',
+	        scripts : true
+        });
+	};
+
+var proxy = new Ext.data.HttpProxy({
+	   url : '/default/home/getposummary'
+	});
+
+var asflist = Ext.data.Record.create([{
+    name: 'workid',
+    type: 'string'
+}, {
+    name: 'trano',
+    type: 'string'
+},{
+    name: 'workname',
+    type: 'string'
+}, {
+    name: 'prj_kode',
+    type: 'string'
+},{
+    name: 'prj_nama',
+    type: 'string'
+},{
+    name: 'sit_kode',
+    type: 'string'
+},{
+    name: 'sit_nama',
+    type: 'string'
+},{
+    name: 'nama_brg',
+    type: 'string'
+},{
+    name: 'kode_brg',
+    type: 'string'
+},{
+    name: 'tgl',
+    type: 'date',
+    dateFormat: 'Y-m-d'
+},{
+    name: 'qty',
+    type: 'float'
+},{
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'harga',
+    type: 'float'
+},{
+    name: 'total',
+    type: 'float'
+},{
+    name: 'ppn',
+    type: 'float'
+},{
+    name: 'val_kode',
+    type: 'string'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'urut',
+    type: 'integer'
+},{
+    name: 'uom',
+    type: 'string'
+},{
+    name: 'coa_kode',
+    type: 'string'
+},{
+    name: 'coa_nama',
+    type: 'string'
+},{
+    name: 'arf_no',
+    type: 'string'
+}]);
+
+var storeASF = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: asflist})
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+//    idProperty: 'id',
+    root: 'posts'
+}, [
+    {name: 'id'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'},
+    {name: 'prj_nama'},
+    {name: 'sit_nama'},
+    {name: 'arf_no'},
+//    {name: 'tglpr'},
+    {name: 'pomyob'},
+    {name: 'workid'},
+    {name: 'workname'},
+    {name: 'kode_brg'},
+    {name: 'nama_brg'},
+    {name: 'qty'},
+    {name: 'price'},
+    {name: 'harga'},
+    {name: 'total'},
+    {name: 'val_kode'},
+    {name: 'totalASF'},
+    {name: 'totalPriceASF'},
+    {name: 'totalPrice'},
+    {name: 'totalIDR'},
+    {name: 'totalUSD'},
+    {name: 'ppn'},
+    {name: 'uom'}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+var store = new Ext.data.Store({
+    id: 'asf',
+    proxy: proxy,
+    reader: reader,
+    listeners: {
+//		'load':function(t,r,o)
+//		{
+//			addEditedPO();
+//		}
+    }
+});
+
+var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Work ID:</b> {workid}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p></div>'
+        )
+    });
+
+	var expander2 = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Work ID:</b> {workid}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p></div>'
+        )
+    });
+
+var userColumns =  [
+	                    new Ext.grid.RowNumberer(),
+	                    expander,
+	                    {header: "",width: 30, dataIndex: 'id',renderer: function (v,p,r) {
+	                			return '<a href="#" onclick="addToASF(' + v + ');"><img src="/images/g_rec_add.png"></a>';
+	                    }},
+	                    {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                    {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                    {header: "Qty", width: 80, sortable: true, dataIndex: 'qty',css:'text-align:right;'},
+	                    {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                    {header: "Price", width: 90, sortable: true, dataIndex: 'harga',css:'text-align:right;'},
+	                    {header: "Total", width: 110, sortable: true, dataIndex: 'total',css:'text-align:right;',
+		                    renderer: function(v,p,r) {
+		                    	var total = r.data['qty'] * r.data['harga'];
+								return r.data['val_kode'] + ' ' + CommaFormatted(total);
+	                    	}
+	                    }
+	                ];
+
+	var userColumns2 =  [
+	                     new Ext.grid.RowNumberer(),
+	                     expander2,
+	                     {header: "",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+	                 		return '<a href="#" onclick="editToASF(' + v + ');"><img src="/images/g_rec_upd.png"></a>&nbsp;<a href="#" onclick="delToASF();"><img src="/images/g_rec_del.png"></a>';
+	                     }},
+	                     {header: "Product Id", width: 65, sortable: true, dataIndex: 'kode_brg'},
+	                     {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+	                     {header: "Qty", width: 80, sortable: true, dataIndex: 'qty', renderer:function(v, p, r) {
+                                return CommaFormatted(v)
+                            }},
+	                     {header: "Uom", width: 50, sortable: true, dataIndex: 'uom'},
+	                     {header: "Price", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'harga',
+			                    renderer: function(v,p,r) {
+								return r.data['val_kode'] + ' ' + CommaFormatted(v);
+	                    	}
+	                     },
+	                     {header: "Total", width: 100, sortable: true,css:'text-align:right;', dataIndex: 'total', renderer: function (v,p,r) {
+	 							return r.data['val_kode'] + ' ' + CommaFormatted((parseFloat(r.data['harga']) * parseFloat(r.data['qty'])).toString());
+	                     }}
+
+	                 ];
+
+function clearASFForm()
+{
+	var teks = Ext.getCmp('asf-form').findByType('textfield');
+    Ext.each(teks, function (t, index){
+			t.setValue('');
+        });
+
+	Ext.getCmp('kode_brg_text').disable();
+}
+
+function clearButton()
+{
+	Ext.getCmp('cancel-to-asf').setText('Cancel Add');
+	Ext.getCmp('cancel-to-asf').disable();
+	Ext.getCmp('save-to-asf').setText('Add to Payment List(Cart)');
+ 	Ext.getCmp('save-to-asf').disable();
+}
+
+function refreshGrid()
+{
+	Ext.getCmp('asf-grid').enable();
+	Ext.getCmp('payment-grid').enable();
+    Ext.getCmp('asf-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('payment-grid').getSelectionModel().clearSelections();
+    Ext.getCmp('asf-grid').getView().refresh();
+    Ext.getCmp('payment-grid').getView().refresh();
+}
+
+function checkList()
+{
+    storeASF.clearFilter();
+    var gridasf = Ext.getCmp('asf-grid').getSelectionModel().getSelections();
+    if (gridasf[0] != undefined)
+	    var oriasf = store.getAt(store.findExact('id', gridasf[0].data['id']));
+    else
+        return false;
+
+        var col = storeASF.queryBy(function(record,id){
+
+         return record.get('workid') == oriasf.data['workid'] && record.get('kode_brg') == oriasf.data['kode_brg'];
+            });
+
+    if (col.length == 0)
+    {
+        return false;
+    }
+    else
+    {
+            Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Use Edit To Update this Item!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+            });
+            return true;
+    }
+
+}
+
+function addToASF(idPo)
+{
+    var gridasf = Ext.getCmp('asf-grid').getSelectionModel().getSelections();
+
+	ori = store.getAt(store.findExact('id', gridasf[0].data['id']));
+	if (ori != undefined)
+	{
+		Ext.getCmp('save-to-asf').setText('Add to Payment List(Cart)');
+		Ext.getCmp('asf-workid').setValue(ori.data['workid']);
+		Ext.getCmp('kode_brg_text').setValue(ori.data['kode_brg']);
+        Ext.getCmp('kode_brg_text').disable();
+		Ext.getCmp('nama_brg_text').setValue(ori.data['nama_brg']);
+//		Ext.getCmp('rpi-val').setValue(ori.data['val_kode']);
+//		Ext.getCmp('uom_text').setValue(ori.data['uom']);
+//		Ext.getCmp('price_text').setValue(CommaFormatted(ori.data['price']));
+//
+//		Ext.getCmp('rpi-qty').setValue(CommaFormatted(ori.data['qty']));
+
+		Ext.getCmp('save-to-asf').enable();
+		Ext.getCmp('asf-grid').disable();
+		Ext.getCmp('payment-grid').disable();
+		Ext.getCmp('cancel-to-asf').setText('Cancel Add');
+		Ext.getCmp('cancel-to-asf').enable();
+
+	}
+	else
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Error while fetching data...',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+  		return false;
+	}
+}
+
+function insertToASF()
+{
+            if(checkList())
+            {
+             clearASFForm();
+             clearButton();
+             refreshGrid();
+            }
+            else
+            {
+             var asf_no = Ext.getCmp('asf_no_text').getValue();
+
+            var gridasf = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+
+            if (gridasf[0] != undefined)
+            {
+                var oriasf = storeASF.getAt(storeASF.findExact('id', gridasf[0].data['id']));
+            }
+
+            if (oriasf != undefined)
+            {
+
+            if (oriasf.data['status'] == 'edit')
+            {
+                    oriasf.data['status'] = '';
+                    oriasf.data['coa_kode'] = Ext.getCmp('coa_kode_text').getValue();
+                    oriasf.data['coa_nama'] = Ext.getCmp('coa_nama_text').getValue();
+            }
+
+            oriasf = undefined;
+//            ori = undefined;
+             clearASFForm();
+             clearButton();
+             refreshGrid();
+
+            }
+            else
+            {
+
+                var qty = ori.data['qty'].toString().replace(/\$|\,/g,'');
+                var harga = ori.data['harga'].toString().replace(/\$|\,/g,'');
+                var total = parseFloat(qty*harga);
+
+                var e = new asflist({
+                    workid: ori.data['workid'],
+                    workname: ori.data['workname'],
+
+                    prj_kode: ori.data['prj_kode'],
+                    sit_kode: ori.data['sit_kode'],
+                    prj_nama: ori.data['prj_nama'],
+                    sit_nama: ori.data['sit_nama'],
+                    kode_brg: ori.data['kode_brg'],
+                    nama_brg: ori.data['nama_brg'],
+                    harga: harga,
+                    val_kode: ori.data['val_kode'],
+                    uom: ori.data['uom'],
+                    id: ori.data['id'],
+                    qty: qty,
+                    total: total,
+                    coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                    coa_nama: Ext.getCmp('coa_nama_text').getValue()
+
+
+                });
+
+                 storeASF.add(e);
+                 ori = undefined;
+                 e = undefined;
+                 clearASFForm();
+                 clearButton();
+                 refreshGrid();
+            }
+        }
+
+}
+
+function delToASF(idBoq,workid)
+{
+	Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+		if (btn == 'yes')
+		{
+            var gridasf = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+            var b = storeASF.getAt(storeASF.findExact('id', gridasf[0].data['id']));
+
+				if (b != undefined)
+				{
+					storeASF.remove(b);
+					Ext.getCmp('asf-grid').getView().refresh();
+					Ext.getCmp('payment-grid').getView().refresh();
+				}
+			clearASFForm();
+			clearButton();
+		}
+
+	});
+}
+
+function editToASF(idPo)
+{
+	Ext.getCmp('save-to-asf').setText('Update to Payment List(Cart)');
+    var gridasf = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+	var oriasf = storeASF.getAt(storeASF.findExact('id', gridasf[0].data['id']));
+
+//	ori = store.getAt(store.findExact('id', idPo));
+	Ext.getCmp('asf-grid').disable();
+	Ext.getCmp('payment-grid').disable();
+	Ext.getCmp('cancel-to-asf').setText('Cancel Edit');
+	Ext.getCmp('cancel-to-asf').enable();
+	if (oriasf != undefined)
+	{
+		oriasf.data['status'] = 'edit';
+		Ext.getCmp('asf-workid').setValue(oriasf.data['workid']);
+
+		Ext.getCmp('kode_brg_text').setValue(oriasf.data['kode_brg']);
+		Ext.getCmp('nama_brg_text').setValue(oriasf.data['nama_brg']);
+        Ext.getCmp('coa_kode_text').setValue(oriasf.data['coa_kode']);
+        Ext.getCmp('coa_nama_text').setValue(oriasf.data['coa_nama']);
+
+//        Ext.getCmp('rpi-qty').setValue(orirpi.data['qty']);
+//		Ext.getCmp('price_text').setValue(CommaFormatted(orirpi.data['harga']));
+//		Ext.getCmp('uom_text').setValue(orirpi.data['uom']);
+//		Ext.getCmp('rpi-val').setValue(orirpi.data['val_kode']);
+
+		Ext.getCmp('save-to-asf').enable();
+
+    }
+}
+
+
+function getExchangeRate()
+	{
+		Ext.Ajax.request({
+		    url: '/default/valuta/getexchangerate',
+		    method:'POST',
+		    success: function(result, request){
+			   		var returnData = Ext.util.JSON.decode(result.responseText);
+					if(returnData.success) {
+						Ext.getCmp('rateidr').setValue(returnData.rate);
+					}
+				}
+				,failure:function( action){
+			if(action.failureType == 'server'){
+		    obj = Ext.util.JSON.decode(action.response.responseText);
+		    Ext.Msg.alert('Error!', obj.errors.reason);
+			}
+			}
+		});
+	}
+
+function resetExchangeRate()
+{
+    Ext.getCmp('rateidr').setValue('0');
+}
+function getRequesterName()
+{
+    var trano = Ext.getCmp('asf_no_text').getValue();
+	Ext.Ajax.request({
+        results: 0,
+        url: '/default/home/getmastermanager/asfno/'+trano,
+        method:'POST',
+        success: function(result, request){
+           var returnData = Ext.util.JSON.decode(result.responseText);
+         Ext.getCmp('mgr_nama_text').setValue(returnData);
+
+        },
+        failure:function( action){
+            if(action.failureType == 'server'){
+                obj = Ext.util.JSON.decode(action.response.responseText);
+                Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+                }
+        });
+}
+
+function getPicName()
+{
+    var data = Ext.getCmp('pic_kode_text').getValue();
+	Ext.Ajax.request({
+        results: 0,
+        url: '/default/home/getmasterlogin/type/pic/data/'+data,
+        method:'POST',
+        success: function(result, request){
+           var returnData = Ext.util.JSON.decode(result.responseText);
+         Ext.getCmp('pic_nama_text').setValue(returnData);
+
+        },
+        failure:function( action){
+            if(action.failureType == 'server'){
+                obj = Ext.util.JSON.decode(action.response.responseText);
+                Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+                }
+        });
+}
+
+
+function getASFDetail(trano)
+	{
+		Ext.Ajax.request({
+			scope: this,
+			results: 0,
+	        url: '/default/home/getasfdetail/trano/' + trano,
+	        method:'POST',
+	        success: function(result, request){
+	        	   var returnData = Ext.util.JSON.decode(result.responseText);
+				   Ext.getCmp('asf_value').setValue(returnData.totalsettle);
+				   Ext.getCmp('mgr_kode_text').setValue(returnData.petugas);
+                   getRequesterName();
+                   Ext.getCmp('pic_kode_text').setValue(returnData.orangpic);
+                   getPicName();
+				   Ext.getCmp('val_kode').setValue(returnData.val_kode);
+//                   Ext.getCmp('asf_no').setValue(returnData.trano);
+                   Ext.getCmp('payed_value').setValue(returnData.ASFPayment);
+                   Ext.getCmp('payment_value').setValue(returnData.totalsettle);
+                   Ext.getCmp('payment_balance').setValue(returnData.payment_balance);
+
+                   Ext.getCmp('vat-radio').setValue('ppn-2',true);
+                   Ext.getCmp('gtotal_text').setValue(returnData.totalsettle);
+                   Ext.getCmp('pajak_text').disable();
+                   Ext.getCmp('pajak_text').setValue(0);
+
+                    if(returnData.val_kode != 'IDR')
+                    {
+                        getExchangeRate();
+                         Ext.getCmp('rateidr').enable();
+                    }
+                    else
+                        Ext.getCmp('rateidr').disable();
+                   Ext.getCmp('val_kode2').setValue(returnData.val_kode);
+                   Ext.getCmp('val_kode3').setValue(returnData.val_kode);
+                   Ext.getCmp('val_kode4').setValue(returnData.val_kode);
+                   Ext.getCmp('payment-submit').enable();
+
+                    var trano = Ext.getCmp('asf_no_text').getValue();
+                    if (trano == undefined || trano == '')
+                        return false;
+                    var newUrl = '/default/home/getasfddsummary/data/' + trano ;
+                    store.proxy.setUrl(newUrl);
+                    store.reload();
+
+//				   totalLimit = undefined;
+//				   if (returnData.val_kode == 'IDR')
+//				   {
+//					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalIDR));
+//					   totalLimit = parseFloat(returnData.jumlah) - parseFloat(returnData.RPIinvoice.totalIDR);
+//				   }
+//				   else
+//				   {
+//					   Ext.getCmp('po_invoice_value').setValue(CommaFormatted(returnData.RPIinvoice.totalUSD));
+//					   totalLimit = parseFloat(returnData.jumlah) - parseFloat(returnData.RPIinvoice.totalUSD);
+//				   }
+//				   Ext.getCmp('balance_value').setValue(CommaFormatted(totalLimit));
+//				   if (returnData.ppn != undefined && returnData.ppn != '' && returnData.ppn > 0)
+//				   {
+//						Ext.getCmp('vat-radio').setDisabled(true);
+//				   }
+
+				}
+			,
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}
+	      	}
+	    });
+
+	};
+
+    function showASFList()
+    {
+        var columns = [ {header:'ASF Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        var store = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root : 'posts'}
+            ,[
+			{name: 'id'},
+			{name: 'trano'},
+			{name: 'prj_kode'},
+			{name: 'sit_kode'},
+			{name: 'prj_nama'},
+			{name: 'sit_nama'}
+          ]),
+        proxy: new Ext.data.HttpProxy({
+           url : '/default/asfh/getsettledlist'
+        })
+        })
+        store.load();
+
+        yAxis=100;
+        var grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: store,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:'po_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 50,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:250,
+            width:380,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('asf_no_text').setValue(trano);
+                                 Ext.Ajax.request({
+                                        url: '/default/home/cekasf/type/settle/trano/' + trano,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                getASFDetail(trano);
+                                                aForm.close();
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+
+        Ext.override(Ext.PagingToolbar, {
+            doRefresh: function(){
+                this.clearFilter();
+                delete this.store.lastParams;
+                this.doLoad(this.cursor);
+            }
+            });
+        }
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PO
+        searchTrano = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/asfh/getsettledlist/trano/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+
+    searchPrj_kode = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/asfh/getsettledlist/prj_kode/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+    }
+    searchSit_kode = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/asfh/getsettledlist/sit_kode/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchPrj_name = function(field,e){
+
+        var docs = field.getValue();
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/asfh/getsettledlist/prj_nama/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        searchSit_name = function(field,e){
+
+        var docs = field.getValue();
+
+        Ext.getCmp('po_grid').getStore().proxy.setUrl('/default/asfh/getsettledlist/sit_nama/' + docs);
+        Ext.getCmp('po_grid').getStore().reload();
+        Ext.getCmp('po_grid').getView().refresh();
+        }
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 37,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,35,80,'prj_kode',searchPrj_kode),
+           {
+               x : 6,
+               y: 62,
+               xtype: 'label',
+               text: 'Project Name'
+           },
+           new txtboks(80,60,80,'prj_nama',searchPrj_name),
+           {
+                 x: 180,
+                 y: 37,
+            	xtype: 'label',
+                text: 'Site Code'
+           },
+           new txtboks(240,35,80,'sit_kode',searchSit_kode),
+           {
+                x: 180,
+                y: 62,
+            	xtype: 'label',
+                text: 'Site Name'
+            },
+            new txtboks(240,60,80,'sit_nama',searchSit_name)
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose ASF';
+      aForm.show();
+    }
+
+    function showPayed(trano)
+	{
+
+		var payedlist = Ext.data.Record.create([
+	        {
+			    name: 'trano'
+			},
+            {
+			    name: 'doc_trano'
+			},
+			{
+			    name: 'tgl',
+			    type: 'date',
+			    format: 'Y-m-d'
+			},
+			{
+			    name: 'total_bayar'
+			},
+			{
+			    name: 'val_kode'
+			},
+			{
+			    name: 'requester'
+			}
+
+		]);
+
+		var proxy = new Ext.data.HttpProxy({
+		    url : '/default/home/getasfpayedhistory/trano/' + trano
+		});
+
+		var storeInvoice = new Ext.data.Store({
+		    proxy: proxy,
+		    reader: new Ext.data.JsonReader({
+		    totalProperty: 'count',
+		    idProperty: 'id',
+		    root: 'posts',
+		    fields: payedlist})
+		});
+
+		var columns = [ new Ext.grid.RowNumberer(),
+                        {header:'Trano',width:130,sortable:true,dataIndex:'trano'},
+			       		{header:'ASF No.',width:130,sortable:true,dataIndex:'doc_trano'},
+		                {header:'Date',width:100,sortable:true,dataIndex:'tgl',renderer:Ext.util.Format.dateRenderer('d/m/Y')},
+		                {header:'Total',width:100,sortable:true,dataIndex:'total_bayar',renderer: function(v,p,r) {
+                            return r.data['val_kode'] + ' ' + CommaFormatted(v);
+                        }},
+                        {header:'Requester',width:170,sortable:true,dataIndex:'requester'}
+                    ];
+
+		storeInvoice.load();
+
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel',
+		    layout:'fit',
+		    width: 400,
+		    height: 300,
+		    title: 'ASF Payment History',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						layout: 'fit',
+						items: [
+								new Ext.grid.GridPanel({
+									store: storeInvoice,
+						            columns: columns,
+									id: 'asf-payment-grid',
+						            loadMask: true,
+						            view: new Ext.grid.GridView({
+							            		forceFit: true
+							            	})
+									})
+								]
+						})
+				    ],
+		    buttons: [
+
+		              {
+	 			         text: 'OK',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+			  		    ]
+		});
+
+		bForm.show();
+
+	}
+
+    function submitASF()
+	{
+		var trano = Ext.getCmp('asf_no_text').getValue();
+		if (trano == undefined || trano == '')
+			return false;
+		var newUrl = '/default/home/getasfsummary/data/' + trano ;
+	    store.proxy.setUrl(newUrl);
+	    store.reload();
+
+	    var rpiGrid = Ext.getCmp('asf-grid');
+	    rpiGrid.getStore().proxy.setUrl(newUrl);
+	    rpiGrid.getBottomToolbar().store.proxy.api.read['url'] = newUrl;
+	    rpiGrid.getBottomToolbar().store.proxy.url = newUrl;
+	    rpiGrid.getBottomToolbar().store.proxy.setUrl(newUrl);
+
+        Ext.getCmp('type_text').disable();
+        Ext.getCmp('asf_no_text').disable();
+        Ext.getCmp('payment-submit').disable();
+	}
+
+    function submitPayment()
+    {
+        var json = '';
+        var parameter = '';
+
+        store.each(function(store){
+
+            json += Ext.util.JSON.encode(store.data) + ',';
+            });
+        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+        
+        var asfValue = parseFloat(Ext.getCmp('asf_value').getValue());
+        var paymentValue = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+        var balanceValue = parseFloat(Ext.getCmp('payment_balance').getValue().toString().replace(/\$|\,/g,''));
+        var pajakValue = parseFloat(Ext.getCmp('pajak_text').getValue().toString().replace(/\$|\,/g,''));
+         var gtotalValue = parseFloat(Ext.getCmp('gtotal_text').getValue().toString().replace(/\$|\,/g,''));
+        var payType = Ext.getCmp('payment_type').getValue();
+
+        if (paymentValue == '')
+        {
+            Ext.Msg.alert('Error!', 'Please Input Payment Value!');
+            return false;
+        }
+
+        if (paymentValue > balanceValue)
+        {
+            Ext.Msg.alert('Error!', 'Payment Value is more than Balance allowed!');
+            return false;
+        }
+
+        if (payType == '')
+        {
+            Ext.Msg.alert('Error!', 'Please Input Payment Type!');
+            return false;
+        }
+
+        var doc_trano = Ext.getCmp('asf_no_text').getValue();
+        var requester = Ext.getCmp('mgr_nama_text').getValue();
+        var pic = Ext.getCmp('pic_nama_text').getValue();
+        var ket = Ext.getCmp('payment_ket').getValue();
+        var rateidr = Ext.getCmp('rateidr').getValue();
+        var val_kode = Ext.getCmp('val_kode').getValue();
+        var type = Ext.getCmp('type_text').getValue();
+        var vat_radio= Ext.getCmp('vat-radio').getValue().getGroupValue();
+
+        var tgl = new Date(Ext.getCmp('date_text').getValue());
+        var date = tgl.format('Y-m-d');
+
+        parameter = '[{"type":"' + type + '","doc_trano":"' + doc_trano + '", "requester":"' + requester + '", "pic":"' + pic + '", "ket":"' + ket + '", "total_bayar":"' + paymentValue + '", "rateidr":"' + rateidr + '", "val_kode":"' + val_kode + '", "vatradio":"' + vat_radio + '", "pajak":"' + pajakValue + '", "gtotal":"' + gtotalValue + '", "date":"' + date + '", "pola":"' + payType + '"}]';
+        var params = {posts: json, etc: parameter};
+
+        Ext.Ajax.request({
+	            url: '/finance/payment/setasf',
+	            method:'POST',
+	            success: function(result){
+                    obj = Ext.util.JSON.decode(result.responseText);
+                    if (obj.success)
+                    {
+                        Ext.Msg.minWidth = 300;                     
+	    		        Ext.Msg.alert('Success, Data has been saved'+ '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                        url: '/finance/payment/settledasf',
+                        scripts : true
+                        });
+//                        Ext.getCmp('asf-form').getForm().reset();
+//                        resetExchangeRate();
+//                        Ext.getCmp('payment-submit').disable();
+
+                    }
+                    else
+                        Ext.Msg.alert('Error', obj.msg);
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+        });
+
+        Ext.getCmp('payment-submit').disable();
+    }
+
+Ext.onReady(function() {
+	Ext.QuickTips.init();
+    var form = new Ext.FormPanel({
+        id: 'asf-form',
+        labelAlign: 'right',
+        title: 'Settle ASF',
+        width: 800,
+//        height: 450,
+		frame: true,
+        renderTo: 'user-form',
+        items:
+            [
+            {
+                layout: 'column',
+                items : [
+                        
+                {
+                    columnWidth:.5,
+                    layout: 'form',
+                    items: [
+
+                    {
+                        fieldLabel : 'Transaction',
+                        id : 'type_text',
+                        name: 'type',
+                        xtype: 'combo',
+                         width: 150,
+                         allowBlank: false,
+                         store: new Ext.data.SimpleStore({
+                                    fields:['nilai','name'],
+                                    data:[
+                                            ['BOR','BOR'],
+                                            ['BER','BER'],
+                                            ['SOR','SOR'],
+                                            ['SER','SER'],
+                                            ['SEU','SEU'],
+                                            ['SOU','SOU'],
+                                            ['PC','PC'],
+                                            ['PER','PER'],
+                                            ['PEU','PEU'],
+                                            ['POU','POU'],
+                                            ['POR','POR'],
+                                            ['RPC', 'RPC']
+
+                                        ]
+                         }),
+                         valueField:'nilai',
+                         displayField:'name',
+                         typeAhead: true,
+                         forceSelection: true,
+                         editable: false,
+                         mode: 'local',
+                         triggerAction: 'all',
+                         selectOnFocus: true,
+                         emptyText: 'Select Type'
+                },
+                {
+                        fieldLabel : 'ASF Number',
+                        id : 'asf_no_text',
+                        name: 'trano',
+                        xtype: 'trigger',
+                        triggerClass: 'teropong',
+                        allowBlank: false,
+                        editable : false,
+                        onTriggerClick:
+                            function ()
+                            {
+                                    showASFList();
+                            },
+                        scope: this,
+                        width: 130
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'ASF Detail',
+                    items: [
+//                              {
+//                                        fieldLabel: 'ASF No',
+//                                        xtype: 'textfield',
+//                                        disabled: true,
+//                                        width: 150,
+//                                        id: 'asf_no'
+//                                        },
+                            {
+                                layout:'column',
+                                items:[
+
+                                       {
+                                        columnWidth:.45,
+                                        layout: 'form',
+                                        items: [{
+                                                    fieldLabel : 'Requester',
+                                                    id : 'mgr_kode_text',
+                                                    xtype: 'textfield',
+                                                    disabled: true,
+                                                    width: 55
+                                                }
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.5,
+                                            layout: 'form',
+                                            items: [{
+                                                        id : 'mgr_nama_text',
+                                                        xtype: 'textfield',
+                                                        hideLabel: true,
+                                                        disabled: true,
+                                                        width: 150
+                                                    }]
+                                       },
+                                    {
+                                        columnWidth:.45,
+                                        layout: 'form',
+                                        items: [{
+                                                    fieldLabel : 'PIC',
+                                                    id : 'pic_kode_text',
+                                                    xtype: 'textfield',
+                                                    disabled: true,
+                                                    width: 55
+                                                }
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.5,
+                                            layout: 'form',
+                                            items: [{
+                                                        id : 'pic_nama_text',
+                                                        xtype: 'textfield',
+                                                        hideLabel: true,
+                                                        disabled: true,
+                                                        width: 150
+                                                    }
+                                                    ]
+                                           }
+                                    ]
+                            },
+
+                            {
+                                layout:'column',
+                                items:[
+
+                                       {
+                                        columnWidth:.57,
+                                        layout: 'form',
+                                        items: [
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel : 'ASF Value',
+                                                    id : 'asf_value',
+                                                    priceDelemiter:',',
+                                                    style:"text-align:right",
+                                                    width:100,
+                                                    disabled: true
+                                                })
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.12,
+                                            layout: 'form',
+                                            items: [{
+                                                        hideLabel: true,
+                                                        id : 'val_kode',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                    ]
+                                       }
+                                    ]
+                            },
+                            {
+                                layout:'column',
+                                items:[
+                                       {
+                                        columnWidth:.57,
+                                        layout: 'form',
+                                        items: [
+                                                new Ext.ux.customRendererField({
+                                                    fieldLabel : 'ASF Already Settled',
+                                                    id : 'payed_value',
+                                                    priceDelemiter:',',
+                                                    style:"text-align:right",
+                                                    width:100,
+                                                    disabled: true
+                                                })
+                                                ]
+                                       },
+                                       {
+                                            columnWidth:.12,
+                                            layout: 'form',
+                                            items: [{
+                                                        hideLabel: true,
+                                                        id : 'val_kode2',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                    ]
+                                       },
+                                       {
+                                            columnWidth:.2,
+                                            layout: 'form',
+                                            items: [{
+                                                        xtype: 'button',
+                                                        cls:"x-btn-icon" ,
+                                                        icon:"/images/icons/fam/information.png",
+                                                        handler: function ()
+                                                        {
+                                                            if (Ext.getCmp('asf_no_text').getValue() != '')
+                                                                showPayed(Ext.getCmp('asf_no_text').getValue());
+                                                        }
+                                                    }
+                                                    ]
+                                       }
+                                    ]
+                            }
+                    ]
+                },
+
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Settled Balance',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 100,
+                                                        id: 'payment_balance'
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode3',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                },
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Settle Value',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        width: 100,
+                                                        id: 'payment_value',
+                                                        enableKeyEvents: true,listeners: {
+
+                                                         'keyup' : function (t,e) {
+                                                             if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 1)
+                                                            {
+                                                                Ext.getCmp('pajak_text').disable();
+                                                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                                                var pajak = 0.1*total;
+                                                                var gtotal = total+pajak;
+                                                                Ext.getCmp('pajak_text').setValue(pajak);
+                                                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                                                            }
+                                                            else if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 3)
+                                                            {
+                                                                Ext.getCmp('pajak_text').enable();
+                                                                Ext.getCmp('pajak_text').setValue('');
+                                                                Ext.getCmp('gtotal_text').setValue('');
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.getCmp('pajak_text').disable();
+                                                                Ext.getCmp('pajak_text').setValue('');
+                                                                var gtotal = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                                                            }
+                                                        }
+                                                    }
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode4',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                }
+                ]},
+               {
+                columnWidth:.5,
+                layout: 'form',
+                items: [
+                {
+                        fieldLabel : 'Payment Type',
+                        id : 'payment_type',
+                        name: 'type',
+                        xtype: 'combo',
+                         width: 150,
+                         allowBlank: false,
+                         store: new Ext.data.SimpleStore({
+                                    fields:['nilai','name'],
+                                    data:[  ['CASH','CASH'],
+                                            ['CEK','CHEQUE'],
+                                            ['GIRO','GIRO']
+                                        ]
+                         }),
+                         valueField:'nilai',
+                         displayField:'name',
+                         typeAhead: true,
+                         forceSelection: true,
+                         editable: false,
+                         mode: 'local',
+                         triggerAction: 'all',
+                         selectOnFocus: true,
+                         emptyText: 'Select Type',
+                        listeners : {
+                           'select' : function (c,stores, index){
+                               var data = stores.data['nilai'];
+
+                               if(data == 'CASH')
+                               {
+                                   Ext.getCmp('date_text').disable();
+                               }
+                               else
+                               {
+                                   Ext.getCmp('date_text').enable();
+                               }
+                           }
+                        }
+                },
+                {
+                    fieldLabel: 'Due Date',
+                    id : 'date_text',
+                    xtype: 'datefield',
+                    width: 100
+                },
+                {
+                                layout:'column',
+                                items:[
+                                        {
+                                            columnWidth:.54,
+                                            layout: 'form',
+                                            items: [
+                                                    new Ext.ux.customRendererField({
+                                                        priceDelemiter:',',
+                                                        fieldLabel: 'Exchange Rate',
+                                                        style:"text-align:right",
+                                                        xtype: 'textfield',
+                                                        width: 100,
+                                                        id: 'rateidr',
+                                                        disabled: true,
+                                                        value: '0'
+                                                    })
+                                                ]
+                                       },
+                                        {
+                                            columnWidth:.3,
+                                            layout: 'form',
+                                            items: [
+                                                    {
+                                                        hideLabel: true,
+                                                        id : 'val_kode5',
+                                                        xtype: 'textfield',
+                                                        disabled: true,
+                                                        value: 'IDR',
+                                                        width: 40
+                                                    }
+                                                ]
+
+                                        }
+                                    ]
+                },
+                {
+                    fieldLabel: 'Settle Notes',
+                    id : 'payment_ket',
+                    xtype: 'textarea',
+                    width: 200,
+                    height: 70
+                },
+                {
+                    xtype: 'radiogroup',
+                    fieldLabel: 'VAT/PPN',
+                    id: 'vat-radio',
+                    items: [
+                        {boxLabel: 'Yes', name: 'ppn_origin', id: 'ppn-1', inputValue: 1},
+                        {boxLabel: 'No', name: 'ppn_origin', id: 'ppn-2', inputValue: 2,checked: true},
+                        {boxLabel: 'With Holding', name: 'ppn_origin', id: 'ppn-3', inputValue: 3}
+                    ],
+                    listeners:{
+                        'change' : function(t,ch) {
+                            if(Ext.getCmp('asf_no_text').getValue() == '')
+                            {
+                                    Ext.MessageBox.show({
+                                   title: 'Error',
+                                   msg: 'Please Select ASF Number First!',
+                                   buttons: Ext.MessageBox.OK,
+                                   icon: Ext.MessageBox.ERROR
+                                   });
+                                    return false;
+                            }
+
+                            if(ch.getGroupValue() == 1)
+                            {
+                                Ext.getCmp('pajak_text').disable();
+                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                var pajak = 0.1*total;
+                                var gtotal = total+pajak;
+                                Ext.getCmp('pajak_text').setValue(pajak);
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+                            else if(ch.getGroupValue() == 3)
+                            {
+                                Ext.getCmp('pajak_text').enable();
+                                Ext.getCmp('pajak_text').setValue('');
+                                Ext.getCmp('gtotal_text').setValue('');
+                            }
+                            else
+                            {
+                                Ext.getCmp('pajak_text').disable();
+                                Ext.getCmp('pajak_text').setValue('');
+                                var gtotal = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+
+                        }
+                    }
+
+                },
+
+                    new Ext.ux.customRendererField({
+                    priceDelemiter:',',
+                    fieldLabel: 'Tax',
+                    style:"text-align:right",
+                    xtype: 'textfield',
+                    width: 100,
+
+                    id: 'pajak_text',
+                    enableKeyEvents: true,listeners: {
+
+                         'keyup' : function (t,e) {
+                             if(Ext.getCmp('vat-radio').getValue().getGroupValue() == 3)
+                            {
+
+                                var total = parseFloat(Ext.getCmp('payment_value').getValue().toString().replace(/\$|\,/g,''));
+                                var pajak = parseFloat(Ext.getCmp('pajak_text').getValue().toString().replace(/\$|\,/g,''));
+                                var gtotal = total-pajak;
+
+                                Ext.getCmp('gtotal_text').setValue(gtotal);
+                            }
+
+                        }
+                    }
+
+                    }),
+                    new Ext.ux.customRendererField({
+                    priceDelemiter:',',
+                    fieldLabel: 'Grand Total',
+                    style:"text-align:right",
+                    xtype: 'textfield',
+                    width: 100,
+                    id: 'gtotal_text',
+                    disabled : true
+                    })
+               ]}
+            ]}
+
+            ],
+        buttons: [
+            {
+                text: 'Submit',
+                id: 'payment-submit',
+                iconCls: 'silk-add',
+                disabled: true,
+                handler: function() {
+                    submitPayment();
+                },
+                scope: this
+           },
+           {
+                  text: 'Reset',
+                  handler: function(btn, ev){
+                      Ext.getCmp('asf-form').getForm().reset();
+                      resetExchangeRate();
+                  },
+                  scope: this
+           },
+            {
+                   text: 'Cancel',
+                   handler: function(btn, ev){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/procurement/procurement/asf',
+                        scripts : true
+                    });
+                   },
+                   scope: this
+            }
+        ]
+    });
+
+//    userForm2 = new Ext.FormPanel({
+//	    renderTo: 'user-form2',
+//	    id: 'asf-form',
+//	    iconCls: 'silk-user',
+//	    labelAlign: 'right',
+//	    title: 'Detail Advance Request Form (ASF)',
+//	    frame: true,
+//	    width: 500,
+//	    labelAlign: 'left',
+//	    style: 'margin-top: 10px',
+//	    items: [
+//	            {
+//	            layout:'column',
+//	            items:[
+//	                   {columnWidth:.390,
+//	                    layout: 'form',
+//	                	items: [
+//	                	        {
+//	                    	        fieldLabel: 'Work ID',
+//	                    	        id: 'asf-workid',
+//	                    	        xtype:'textfield',
+//	                        	    disabled: true,
+//	                        	    width: 55
+//	                	        },
+//			        	        {fieldLabel: 'Product ID',
+//						             id:'kode_brg_text',
+//						             name:'kode_brg',
+//						             allowBlank: false,
+//						             xtype:"textfield",
+//						             disabled: true,
+//							         width: 75
+//					             }
+//
+//	                	       ]
+//	                   }
+//	                   ]
+//	            },
+//
+//	            {
+//	            	fieldLabel:'Product Name',
+//				    id:'nama_brg_text',
+//				    name: 'nama_brg',
+//				    allowBlank: false,
+//		            xtype: 'textfield',
+//			        width: 315,
+//				    disabled:true
+//			    },
+//                 {
+//                    layout:'column',
+//                    items:[
+//                           {
+//                            columnWidth:.38,
+//                            layout: 'form',
+//                            items: [{
+//                                        fieldLabel: 'Account No',
+//                                         id:'coa_kode_text',
+//                                         name:'coa_kode',
+//                                         allowBlank: false,
+//                                        editable : false,
+//                                         xtype:"trigger",
+//                                         triggerClass: 'teropong',
+//                                         width: 80,
+//                                         onTriggerClick:
+//                                              function ()
+//                                                {
+//                                                 showCoa();
+//                                                }
+//                                    }
+//                                    ]
+//                           },
+//                           {
+//                                columnWidth:.49,
+//                                layout: 'form',
+//                                items: [{
+//                                            id : 'coa_nama_text',
+//                                            xtype: 'textfield',
+//                                            hideLabel: true,
+//                                            disabled: true,
+//                                            width: 150
+//                                        }
+//                                        ]
+//                               }
+//                        ]
+//                    }
+//
+//	            ],
+//	       buttons: [{
+//				         text: 'Add to ASF List(Cart)',
+//				         id: 'save-to-asf',
+//				         iconCls: 'icon-add',
+//				         handler: function(btn, ev) {
+//                                insertToASF();
+//
+//					       },
+//				         scope: this
+//				         },
+//				         {
+//					         text: 'Cancel Add',
+//					         id: 'cancel-to-asf',
+//					         iconCls: 'icon-cancel',
+//					         handler: function(btn, ev) {
+//
+//					         if (btn.text == 'Cancel Edit')
+//					         {
+//
+//					        	 	var gridasf = Ext.getCmp('payment-grid').getSelectionModel().getSelections();
+//                                    var oriasf = storeASF.getAt(storeASF.findExact('id', gridasf[0].data['id']));
+////					        	 	var b = store.getAt(store.findExact('id', ori.data['id']));
+//				         			if (oriasf != undefined)
+//				         			{
+//
+//										oriasf.data['status'] == '';
+//
+//				         			}
+//
+//					         }
+//								clearASFForm();
+//								refreshGrid();
+//								clearButton();
+//								oriasf = undefined;
+//						        ori = undefined;
+//				         	},
+//					         scope: this
+//				         }
+//
+//	       			]
+//
+//	});
+
+	userGrid = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'ASF Detail',
+	    height: 200,
+	    width: 800,
+	    stateful: false,
+        plugins: [expander],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	        userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertpr',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+	userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+	    iconCls: 'silk-grid',
+	    frame: true,
+	    title: 'Payment List(Cart)',
+	    height: 200,
+	    width: 750,
+	    stateful: false,
+        plugins: [expander2],
+	    style: 'margin-top: 10px',
+	    initComponent : function() {
+	    	userGrid.superclass.initComponent.call(this);
+	    },
+
+	    onSave : function(btn, ev) {
+	       //this.store.save();
+	        var json = '';
+	    	this.store.each(function(store){
+	    	json += Ext.util.JSON.encode(store.data) + ',';
+	    	});
+	    	json = json.substring(0, json.length - 1);
+	    	params = {posts:[json]};
+	    	Ext.Ajax.request({
+	            url: '/procurement/procurement/insertasf',
+	            method:'POST',
+	            success: function(resp){
+	    		Ext.Msg.alert('Success', 'Data has been saved!');
+	    		isEdited = false;
+	            },
+	        	failure:function( action){
+	          	if(action.failureType == 'server'){
+	              obj = Ext.util.JSON.decode(action.response.responseText);
+	              Ext.Msg.alert('Error!', obj.errors.reason);
+	          	}else{
+	              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	          	}
+	          	},
+	            params: params
+	        });
+	    }
+	});
+
+
+//	var userGrids = new userGrid({
+//        renderTo: 'user-grid',
+//        id: 'asf-grid',
+//        store: store,
+//        columns : userColumns,
+//        loadMask: true,
+//        bbar: new Ext.PagingToolbar({
+//            id: 'paging',
+//            pageSize: 100,
+//            store: store,
+//            displayInfo: true,
+//            displayMsg: 'Displaying data {0} - {1} of {2}',
+//            emptyMsg: "No data to display"
+//        })
+//    });
+//
+//	var userGrids2 = new userGrid2({
+//        renderTo: 'user-grid2',
+//        id: 'payment-grid',
+//        store: storeASF,
+//        columns : userColumns2,
+//        loadMask: true,
+//        bbar: ['->',{
+//             xtype: 'button',
+//	         text: 'Save RPI List(Cart)',
+//	         iconCls: 'icon-save',
+//	         handler: function()
+//	         {
+//                 submitPayment();
+//				if (storeASF.getCount() == 0)
+//				{
+//					return false;
+//				}
+//	         },
+//	         scope: this
+//        	}
+//                ,
+//                {
+//                xtype: 'button',
+//	         text: 'Cancel ASF List(Cart)',
+//	         iconCls: 'icon-cancel',
+//	         handler:showPayASF,
+//	         scope: this
+//        	}
+//                ]
+//    });
+
+});
+</script>
+
+<div id="user-form"></div>
+<!--<div id="user-grid"></div>-->
+<!--<div id="user-form2" style="float:left;"></div>-->
+<!--<div id="user-grid2" style="margin-top:10px;float:left;"></div>-->
+

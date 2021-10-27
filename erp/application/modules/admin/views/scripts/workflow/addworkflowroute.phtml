@@ -1,0 +1,373 @@
+<style type="text/css">
+    #tree,#tree2,#bin {
+    	float:left;
+    	margin:20px;
+    	overflow:auto;
+    }
+
+    .bin-target {
+        border: 1px solid red;
+        width: 100ps;
+        height: 16px;
+        margin: 5px;
+        padding: 5px;
+    }
+
+    .bin-target.bin-target-hover {
+        background-color: #C0C0C0;
+    }
+
+</style>
+<script type="text/javascript">
+Ext.onReady(function(){
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/workflow/listworkflowitem'
+    }
+});
+
+// Typical JsonReader.  Notice additional meta-data params for defining the core attributes of your json-response
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'workflow_item_id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'workflow_item_id'},
+    {name: 'workflow_item_type_id'},
+    {name: 'name', allowBlank: false},
+    {name: 'description'},
+    {name: 'workflow_item_type_name'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'}
+]);
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user',
+    proxy: proxy,
+    reader: reader
+});
+
+// load the store immeditately
+store.load();
+
+var userColumns =  [
+                    new Ext.grid.RowNumberer(),
+                    {header: "Name", width: 140, sortable: true, dataIndex: 'name'},
+                    {header: "Workflow Type", width: 140, sortable: true, dataIndex: 'workflow_item_type_name'},
+                    {header: "Project Code", width: 80, sortable: true, dataIndex: 'prj_kode'},
+                    {header: "Site Code", width: 80, sortable: true, dataIndex: 'sit_kode'}
+                ];
+
+
+var userGrid = new Ext.grid.GridPanel({
+        store: store,
+        columns: userColumns,
+        id:'role_grid',
+        loadMask: true,
+        forceFit: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:250,
+        tbar:[{
+            xype:'tbtext',
+            text:'Search'
+        },{
+            id : 'option',
+            name: 'option',
+            xtype: 'combo',
+            width: 100,
+            store: new Ext.data.SimpleStore({
+                fields:['name','nilai'],
+                data:[
+                        ['Name',1],
+                        ['Type',2],
+                        ['Project Code',3]
+                    ]
+             }),
+             valueField:'nilai',
+             displayField:'name',
+             typeAhead: true,
+             forceSelection: true,
+             editable: false,
+             mode: 'local',
+             triggerAction: 'all',
+             selectOnFocus: true,
+             value:1
+        },{
+            xtype:'textfield',
+            id:'search',
+            name:'search',
+            style:'marginLeft:10px',
+            enableKeyEvents:true,
+            listeners:{
+                'keyup' : function(txttext,event){
+                    var txttext = txttext.getValue();
+                    if (txttext != "" && txttext.toString().length >= 2 ){
+                        var option = Ext.getCmp('option').getValue();
+                        var search = Ext.getCmp('search').getValue();
+                        store.proxy.setUrl('/admin/workflow/listworkflowitem/search/' + search + '/option/' + option);
+                        store.reload();
+                        userGrid.getView().refresh();
+                    }
+                }
+            }
+        }]
+});
+
+userGrid.render('user-grid');
+
+	var Tree = Ext.tree;
+    var nodeId;
+    var pNodeId;
+	var idRole;
+    var oNodeId;
+    var isDragged = false;
+    var cloneTree = null,
+        cloneTree2 = null;
+
+    var myDragZone = Ext.extend(Ext.tree.TreeDragZone, {
+        getDragData : function(e) {
+            // use tree selection model..
+            var selModel = this.tree.getSelectionModel();
+            // get event target
+            var target = Ext.dd.Registry.getHandleFromEvent(e);
+            // if no target (die)
+            if (target == null) return;
+            if (target.node.isSelected() && e.ctrlKey) {
+                selModel.unselect(target.node);
+                return;
+            }
+            var selNodes;
+            if (!selModel.getSelectedNodes) {
+                // if not multiSelectionModel.. just use the target...
+                selNodes = target.node;
+            }
+            // if no nodes selected stop now...
+            if (!selNodes || selNodes.length < 1) return;
+
+            if (typeof(selNodes.parentNode) == 'object')
+            pNodeId = selNodes.parentNode.id;
+            isDragged = true;
+            return Ext.dd.Registry.getHandleFromEvent(e);
+        }
+
+    });
+
+        
+    var tree = new Tree.TreePanel({
+        animate:true,
+        autoScroll:true,
+        enableDD:true,
+        containerScroll: true,
+        border: false,
+        width: 250,
+        height: 300,
+        stateful: false,
+        dropConfig: {appendOnly:true},
+        initEvents: function() {
+            if((this.enableDD || this.enableDrag) && !this.dragZone){
+                this.dragZone = new myDragZone(this, {
+                                    ddGroup: this.ddGroup || "TreeDD",
+                                    scroll: this.ddScroll
+                                });
+            }
+        }
+    });
+
+    var root = new Tree.AsyncTreeNode({
+        text: 'Avaiable User',
+        draggable:false, // disable root node dragging
+        id:'src'
+    });
+    tree.setRootNode(root);
+
+    root.expand(true, /*no anim*/ false);
+
+    var treeForm2 = new Ext.Panel({
+        renderTo: 'tree',
+        layout: 'fit',
+        width: 260,
+        height: 320,
+        style: 'margin-top: 10px',
+        title: 'Avaiable User',
+        items : [
+                    tree
+                 ]
+    });
+
+    var currentNode = '';
+
+    var tree2 = new Tree.TreePanel({
+        animate:true,
+        autoScroll:true,
+        containerScroll: true,
+        border: false,
+        width: 250,
+        height: 360,
+        enableDD:true,
+        stateful: false,
+        dropConfig: {appendOnly:true}
+    });
+
+
+    var root2 = new Tree.AsyncTreeNode({
+        text: 'Workflow Route',
+        draggable:false,
+        id:'src2'
+    });
+
+    tree2.setRootNode(root2);
+    tree2.on('beforeappend', function(t,p,n) {
+        if (typeof(pNodeId) != "undefined")
+        {
+            var parent = tree2.getNodeById(p.id);
+            if (typeof(parent) == 'object')
+            {
+                var pNode = parent.parentNode.id;
+                if (pNodeId == pNode)
+                {
+                    return false;
+                }
+            }
+            else
+                return false;
+        }
+    });
+    root2.expand(true, /*no anim*/ false);
+
+    var treeForm = new Ext.Panel({
+        renderTo: 'tree2',
+        layout: 'fit',
+        width: 260,
+        height: 360,
+        stateful: false,
+        style: 'margin-top: 10px',
+        title: 'Workflow Route',
+        items : [
+                    tree2
+                 ],
+        buttons: [
+            {
+                id:"save_edit",
+                xtype:"button",
+                text:"Save",
+                handler: function(){
+                tree2.getRootNode().expand(true);
+                bForm.show();
+                var s = new Ext.tree.JsonTreeSerializer(tree2).toString();
+                params = {posts:s};
+                Ext.Ajax.request({
+                    url: '/admin/workflow/savetree/workflow_item_id/' + idRole,
+                    method:'POST',
+                    success: function(result, request){
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                        if( returnData.success) {
+                            bForm.hide();
+                            Ext.Msg.alert('Success', 'Workflow Route has been saved!');
+                            treeForm.destroy();
+                            treeForm = null;
+                            treeForm2.destroy();
+                            treeForm2 = null;
+                            tree.destroy();
+                            tree2.destroy();
+                            tree = null;
+                            tree2 = null;
+                            myDragZone = null;
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/admin/workflow/addworkflowroute',
+                                scripts : true
+                            });
+                        }
+                    },
+                    failure:function( action){
+                    if(action.failureType == 'server'){
+                      obj = Ext.util.JSON.decode(action.response.responseText);
+                      Ext.Msg.alert('Error!', obj.errors.reason);
+                    }else{
+                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                    }
+                    },
+                    params: params
+                });
+                }
+            }
+        ]
+    });
+
+    userGrid.addListener(
+        'rowclick', function(g, rowIndex, e){
+            idRole = g.getStore().getAt(rowIndex).get('workflow_item_id');
+			tree.getLoader().dataUrl = '/admin/workflow/listworkflowroute/workflow_item_id/' + idRole;
+			var root = new Tree.AsyncTreeNode({
+                text: 'Avaiable User',
+                draggable:false, // disable root node dragging
+                id:'src',
+                expanded: true
+            });
+            tree.setRootNode(root);
+            tree.on('load',function(n){
+                n.expand(true);
+            });
+			tree2.getLoader().dataUrl = '/admin/workflow/listworkflowroute/workflow_item_id/' + idRole + '/routed/true';
+			var root2 = new Tree.AsyncTreeNode({
+                text: 'Workflow Route', 
+                draggable:false, 
+                id:'src2',
+                expanded: true
+            });
+            tree2.setRootNode(root2);
+            tree2.on('load',function(n){
+                n.expand(true);
+            });
+		}
+	);
+
+var bForm =  new Ext.Window({
+        id: 'waiting-form',
+        layout:'fit',
+        width: 300,
+        stateful: false,
+        modal: true,
+        resizable: false,
+        style: 'margin-top:10px;',
+        items: [
+            new Ext.ProgressBar({
+               id:'pbar'
+           })
+        ],
+        listeners: {
+            'show': function(t){
+                 Ext.getCmp('pbar').on('update', function(val){
+                        //You can handle this event at each progress interval if
+                        //needed to perform some other action
+                        Ext.getCmp('pbar').updateText('Processing Workflow Transaction....');
+                    });
+
+                Ext.getCmp('pbar').wait({
+                        interval:200,
+                        increment:15
+                });
+            }
+
+        }
+});
+});
+</script>
+
+<div id="user-grid"></div>
+<br />
+<div id="tree"></div>
+<div id="tree2"></div>
+<div id="bin"></div>
+
+        

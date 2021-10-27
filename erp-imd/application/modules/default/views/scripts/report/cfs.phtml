@@ -1,0 +1,375 @@
+<?php
+if (count($this->result) == 0)
+{
+    //echo "No Data to display...";
+    //die();
+}
+?>
+<style type="text/css">
+        .tooltip {
+            border-bottom: 1px dotted #000000; color: #000000; outline: none;
+            cursor: help; text-decoration: none;
+            position: relative;
+        }
+        .tooltip span {
+            margin-left: -999em;
+            position: absolute;
+        }
+        .tooltip:hover span {
+            border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+            box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+            font-family: Calibri, Tahoma, Geneva, sans-serif;
+            position: absolute; left: 1em; top: 2em; z-index: 99;
+            margin-left: 0;
+        }
+        .tooltip:hover img {
+            border: 0; margin: -10px 0 0 -55px;
+            float: left; position: absolute;
+        }
+        .tooltip:hover em {
+            font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+            display: block; padding: 0.2em 0 0.6em 0;
+        }
+        .info { padding: 0.8em 1em; }
+        .custom { padding: 0.5em 0.8em 0.8em 2em; }
+        * html a:hover { background: transparent;}
+        .info {background: #FFFFAA; border: 1px solid #FFAD33; }
+</style> 
+<style>
+.title {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.cache{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.parentContainer { /* The parent container */
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; /* Required to set */
+    height: 430px;/* Required to set */
+    overflow: hidden; /* Required to set */
+    font-size: 14px;
+}
+.tanggal {
+    width: 100%;
+}
+</style>
+
+<div class="title">COST ANALYSIS REPORT <br/> <?=$this->prjKode?><br/> <?=$this->periode?></div>
+<?php
+    if ($this->useCache && $this->time != '') {
+?>
+<div class="cache">
+<b>This Report is generated from cache, If there any changes to the data beetween <?=$this->time['generate']?> and <?=$this->time['expire']?> will not shown here.<br>
+Cache will expire at <?=$this->time['expire']?></b>
+</div>
+<?php
+    }
+?>
+<b>USD Exchange Rate : Rp. <?php echo $this->rateidr;?> per <?php echo $this->tgl; ?></b>
+<br><b style="color: #ff0000;">Only Customer Order & Budget (PBoQ3 current in ERP) using the exchange rate above.</b>
+
+<br>
+<br>
+<div class="tanggal" id="tanggal">
+<b style="color: #ff0000;">Cost In Progress (CIP) : Rp. <?=number_format($this->CIP,2)?></b>
+<?php
+    if ($this->periode) {
+?>
+<!-- <b style="float: right;"><?=$this->periode?></b> -->
+<?php
+    }
+?>
+</div>
+<div class="parentContainer" id="parentCont">
+<table id="budgetTable" class="budgetTable" border="2">
+    <thead>
+
+        <tr>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>No.</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Date Added<br>to CFS</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Site Code</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3"><b>Name</b></th>
+            <th scope="col" class="rounded-q1" colspan="9" style="background-color: #db9927;text-align: center;"><b>Revenue</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="background-color: #ff00ee;text-align: center;"><b>Budget</b></th>
+            <th scope="col" class="rounded-q1" colspan="3" style="background-color:#90ED38;text-align: center;">Recorded Cost</th>
+            <th scope="col" class="rounded-q1" colspan="4" style="background-color:#F2EF4B;text-align: center;">Forecast</th>
+            <th scope="col" class="rounded-q1" rowspan="3">Reimbursed Cost</th>
+            <th scope="col" class="rounded-q1" colspan="3" style="background-color: #29E8BB;text-align: center;"><b>Margin</b></th>
+            <th scope="col" class="rounded-q1" rowspan="3">Notes</th>
+        </tr>
+        
+        <tr>
+            <th scope="col" class="rounded-q1" colspan="3" style="text-align: center;"><b>Customer Order</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Progress</b></th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;"><b>Billing</b></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >WIP<span class="info" style="text-align:left">(Progress Amount - Invoiced)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Outstanding Payment<span class="info" style="text-align:left">(Invoiced - Received)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Budget<span class="info" style="text-align:left">(PBoQ3 current in ERP)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Committed Cost<span class="info" style="text-align:left">(PO approved + ARF approved + BRF approved + Piecemeal + Salary) + (DO-PO)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;">Previous Month</th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Movement<span class="info" style="text-align:left">(Current Month - Previous Month)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Year to Date<span class="info" style="text-align:left">(RPI approved + ASF approved + BSF approved + Piecemeal + Salary) + (DO-PO) - Material Return</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Accrual Cost<span class="info" style="text-align:left">(% Complete * Forecast Final Cost) - Year to Date</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Total Cost To Date<span class="info" style="text-align:left">(Year to Date + Accrual Cost)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;"><a class="tooltip" href="#" >Estimated Cost<br>to Complete<span class="info" style="text-align:left">(Forecast Final Cost - Total Cost To Date)</span></a></th>
+            <th scope="col" class="rounded-q1" rowspan="2" style="text-align: center;">Forecast Final Cost</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Current Margin</th>
+            <th scope="col" class="rounded-q1" colspan="2" style="text-align: center;">Final Margin</th>
+        </tr>
+        
+        <tr>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Original</th>  
+            <th scope="col" class="rounded-q1" style="text-align: center;">Variations</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><a class="tooltip" href="#" >Revised<span class="info" style="text-align:left">(Original + Variations)</span></a></th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">% Complete</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><a class="tooltip" href="#" >Progress Amount<span class="info" style="text-align:left">(Revised CO x %Complete)</span></a></th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Invoiced (Without PPn)</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Received (Without PPn)</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><a class="tooltip" href="#" >Current Margin<span class="info" style="text-align:left">(Progress Amount - Total Cost To Date)</span></a></th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><a class="tooltip" href="#" >Final Margin<span class="info" style="text-align:left">(Revised CO - Forecast Final Cost)</span></a></th>
+            <th scope="col" class="rounded-q1"><a class="tooltip" href="#" >Final %<span class="info" style="text-align:left">(Final Margin / Revised Budget)*100%</span></a></th>
+        </tr>
+   
+        <tr>
+            <th scope="col" class="rounded-q1" style="text-align: center;">A</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">B</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">C</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">D</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">E</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">F</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">G = E + F</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">H</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">I = H x G</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">J</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">K</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">L = I - J</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">M = J - K</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">N</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">O</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">P</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Q = R - P</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">R</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;"><a class="tooltip" href="#" >S<span class="info" style="text-align:left">IF((H x V - R)< 0,0,H x V - R)</span></a></th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">T = R + S</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">U = V - T</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">V=N</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">W</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">X = I - T</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Y = G - V</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Z = (Y/G)x100%</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">AA</th>
+        </tr>
+
+    </thead>
+
+    <div style="overflow-y:auto">
+    <tbody>
+        <?php
+            $i = 1;
+            foreach($this->result as $key => $val)
+            {
+        ?>
+            <tr>
+
+            <td style="background-color: #ffff00">&nbsp;</td>
+            <td style="background-color: #ffff00" colspan="2"><?=$key?></td>
+            <th scope="col" style="background-color: #ffff00" colspan="24">&nbsp;</th>
+            
+            </tr>
+        <?php
+                foreach($val['data'] as $key2 => $val2)
+                {
+        ?>
+            <tr>
+                <td><?=$i?></td>
+                <td><?=$val2['tglcfs']?></td>
+                <td><?=$val2['sit_kode']?></td>
+                <td><?=$val2['sit_nama']?></td>
+                <td align="right">   
+                    <a class="tooltip" href="#" ><?php echo $val2['boq2_ori']; ?>
+                        <span class="info" style="text-align:left">
+                            IDR&nbsp:&nbsp<?php echo $val2['boq2_oriIDR']; ?><br />
+                            USD&nbsp:&nbsp<?php echo $val2['boq2_oriUSD']; ?> x <?php echo $this->rateidr;?>
+                        </span>
+                    </a>
+                </td>
+              
+                <td align="right">   
+                    <a class="tooltip" href="#" ><?php echo $val2['boq2_variations']; ?>
+                        <span class="info" style="text-align:left">
+                            IDR&nbsp:&nbsp<?php echo $val2['boq2_variationsIDR']; ?><br />
+                            USD&nbsp:&nbsp<?php echo $val2['boq2_variationsUSD']; ?> x <?php echo $this->rateidr;?>
+                        </span>
+                    </a>
+                </td>
+                <td align="right">   
+                    <a class="tooltip" href="#" ><?php echo $val2['boq2_current']; ?>
+                        <span class="info" style="text-align:left">
+                            IDR&nbsp:&nbsp<?php echo $val2['boq2_currentIDR']; ?><br />
+                            USD&nbsp:&nbsp<?php echo $val2['boq2_currentUSD']; ?> x <?php echo $this->rateidr;?>
+                        </span>
+                    </a>
+                </td>
+                <td align="right"><?php if($val2['sit_kode']=='100'){?> 
+                    
+                    <a class="tooltip" href="#" ><?php echo $val2['progress']; ?>
+                        <span class="info" style="text-align:left">
+                            Year to Date Cost (R) &nbsp:&nbsp<?php echo $val2['cash_expenses']; ?><br />
+                            Budget (N) &nbsp:&nbsp<?php echo $val2['budget']; ?><br />
+                            % Complete &nbsp = (Year to Date Cost / Budget) x 100%
+                            
+                        </span>
+                    </a>
+                    
+                    <?php }else{ echo $val2['progress'];}?>%</td>
+                <td align="right"><?php echo $val2['progress_amount']; ?></td>
+                <td align="right"><a href="#" onclick="window.open('/default/report/invoicedetail/prj_kode/<?=$this->prjKode?>/sit_kode/<?= $val2['sit_kode'] ?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date))?>', 'mywin', 'toolbar=0');" ><?php echo $val2['invoiced']; ?></a></td>
+                <td align="right"><a href="#" onclick="window.open('/default/report/receivedetail/prj_kode/<?=$this->prjKode?>/sit_kode/<?= $val2['sit_kode'] ?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date)) ?>', 'mywin', 'toolbar=0');" ><?php echo $val2['received']; ?></a></td>
+                <td align="right"><?php echo $val2['wip']; ?></td>
+                <td align="right"><?php echo $val2['outstanding_payment']; ?></td>
+               
+                <td align="right"> 
+                <a class="tooltip" href="#" ><?php echo $val2['budget']; ?> 
+                        <span class="info" style="text-align:left">
+                            Budget IDR + (Budget USD - Recorded Cost USD) x <?php echo $this->rateidr;?> + Recorded Cost USD In IDR <br/>
+                            Budget IDR&nbsp:&nbsp<?php echo $val2['budgetIDR']; ?> <br />
+                            Budget USD&nbsp:&nbsp<?php echo $val2['budgetUSD']; ?> <br />
+                            Recorded Cost USD&nbsp:&nbsp<?php echo $val2['recordedCostUSD']; ?> <br />
+                            Recorded Cost USD in IDR &nbsp:&nbsp<?php echo $val2['recordedCostUSDConv']; ?> ( <?php echo $val2['recordedCostUSD']; ?> x Transaction's IDR Rate)
+                        </span>
+                    </a>
+                </td>
+
+                <td align="right">
+                    <a href="#" onclick="window.open('/default/report/committeddetail/prj_kode/<?=$this->prjKode?>/sit_kode/<?= $val2['sit_kode'] ?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date))?>', 'mywin', 'toolbar=0');" ><?php echo $val2['commitment']; ?>
+                    </a>
+                </td>
+                
+                <td align="right"><a href="#" onclick="window.open('/default/report/previousrecordeddetail/prj_kode/<?=$this->prjKode?>/sit_kode/<?= $val2['sit_kode'] ?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date))?>', 'mywin', 'toolbar=0');" ><?php echo $val2['cash_expenses_previous']; ?>
+                    </a>
+                </td>
+                <td align="right"><?php echo $val2['movement_this_month']; ?></td>
+                <td align="right"><a href="#" onclick="window.open('/default/report/recordeddetail/prj_kode/<?=$this->prjKode?>/sit_kode/<?= $val2['sit_kode'] ?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date))?>', 'mywin', 'toolbar=0');" ><?php echo $val2['cash_expenses']; ?></a>
+                </td>
+                <td align="right"><?php echo $val2['accrual']; ?></td>
+                <td align="right"><?php echo $val2['total_cost_to_date']; ?></td>
+                <td align="right"><?php echo $val2['estimated_complete']; ?></td>
+                <td align="right"><?php echo $val2['forecast_final_cost']; ?></td>
+                <td>&nbsp;</td>
+                <td align="right"><?php echo $val2['current_gross_margin']; ?></td>
+                <td align="right"><?php echo $val2['final_margin']; ?></td>
+                <td align="right"><?php echo $val2['final_persen']; ?>%</td>
+                <td><?php echo $val2['progress_ket']; ?></td>
+            </tr>
+        <?php
+                $i++;
+                }
+        ?>
+        <tr>
+            <td colspan="4">&nbsp;</td>
+            <td colspan="24">&nbsp;</td>
+        </tr>
+        <tr style="background-color: #CFDCEE">
+            <td colspan="4" class="rounded-foot-left">&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_ori']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_variations']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['boq2_current']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['progress']; ?>%</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['progress_amount']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['invoiced']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['received']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['wip']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['outstanding_payment']; ?></td>
+           
+            
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['budget'];?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['commitment']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['cash_expenses_previous']; ?></td>
+            <td align="right"><?php echo $val['total']['movement_this_month']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['cash_expenses']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['accrual']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['total_cost_to_date']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['estimated_complete']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['forecast_final_cost']; ?></td>
+            <td>&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['current_gross_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['final_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $val['total']['final_persen']; ?>%</td>
+            <td>&nbsp;</td>
+        </tr>
+        <?php
+            }
+        ?>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4">&nbsp;</td>
+            <td colspan="24">&nbsp;</td>
+        </tr>
+        <tr style="background-color: #FFE800">
+            <td colspan="4" class="rounded-foot-left"><b>Grand Total</b></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_ori']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_variations']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['boq2_current']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo ''//$this->grandTotal['progress']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['progress_amount']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['invoiced']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['received']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['wip']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['outstanding_payment']; ?></td>  
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['budget']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['commitment']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['cash_expenses_previous']; ?></td>
+            <td align="right"><?php echo $this->grandTotal['movement_this_month']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['cash_expenses']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['accrual']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['total_cost_to_date']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['estimated_complete']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['forecast_final_cost']; ?></td>
+            <td>&nbsp;</td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['current_gross_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['final_margin']; ?></td>
+            <td class="rounded-foot-left" align="right"><?php echo $this->grandTotal['final_persen']; ?>%</td>
+            <td>&nbsp;</td>
+        </tr>
+    </tfoot>
+    </div>
+</table>
+</div>
+
+<script type="text/javascript">
+
+
+var sizeT = '840px'
+
+if (screen.width >= 1200)
+    sizeT = '1000px';
+else if (screen.width >= 1000)
+    sizeT = '800px';
+
+document.getElementById("parentCont").style.width = sizeT;
+document.getElementById("tanggal").style.width = sizeT;
+
+(function() {
+    var mySt = new superTable("budgetTable", {
+        cssSkin : "sSky",
+        fixedCols : 4,
+        headerRows : 4
+    });
+})();
+
+
+</script>

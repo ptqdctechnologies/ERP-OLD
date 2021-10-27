@@ -1,0 +1,454 @@
+<script type="text/javascript">
+
+    var prj_kode = '<?=$this->prj_kode?>';
+    var sit_kode = '<?=$this->sit_kode?>';
+
+    function fileco(praco)
+    {
+        var storecofile = new Ext.data.Store ({
+            url:'/sales/report/getcofile/praco/' + praco,
+            autoLoad:true,
+            id:'store_fileco',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:"trano"
+                },{
+                    name:'prj_kode'
+                },{
+                    name:'uid'
+                },{
+                    name:'date'
+                },{
+                    name:'savename'
+                },{
+                    name:'filename'
+                }]
+            })
+        })
+
+        var gridfileco = new Ext.grid.GridPanel ({
+
+            store:storecofile,
+            height:140,
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;';
+            }}]
+
+        })
+
+        var windowviewfile = new Ext.Window ({
+
+            title:'File List',
+            id:'window-view-file',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 360,
+            height:150,
+            loadMask:true,
+            items:[gridfileco]
+
+        })
+
+        windowviewfile.show();
+
+
+    }
+
+    function fileaddco(praco)
+    {
+        var storeaddcofile = new Ext.data.Store ({
+            url:'/sales/report/getaddcofile/praco/' + praco,
+            autoLoad:true,
+            id:'store_fileaddco',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:"trano"
+                },{
+                    name:'prj_kode'
+                },{
+                    name:'uid'
+                },{
+                    name:'date'
+                },{
+                    name:'savename'
+                },{
+                    name:'filename'
+                }]
+            })
+        })
+
+        var gridfileaddco = new Ext.grid.GridPanel ({
+
+            store:storeaddcofile,
+            height:140,
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;';
+            }}]
+
+        })
+
+        var windowviewfile = new Ext.Window ({
+
+            title:'File List',
+            id:'window-view-file',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 360,
+            height:150,
+            loadMask:true,
+            items:[gridfileaddco]
+
+        })
+
+        windowviewfile.show();
+
+
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        // customer order
+
+        var storeco = new Ext.data.Store ({
+
+        url:'/sales/report/getboq2/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode,
+        autoLoad:true,
+        id:'store_co',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'trano'
+            },{
+                name:'praco'
+            },{
+                name:'tgl'
+            },{
+                name:'prj_kode'
+            },{
+                name:'prj_nama'
+            },{
+                name:'sit_kode'
+            },{
+                name:'sit_nama'
+            },{
+                name:'ket'
+            },{
+                name:'petugas'
+            },{
+                name:'cus_kode'
+            },{
+                name:"total"
+            },{
+                name:'total2'
+            },{
+                name:'user'
+            },{
+                name:'tglinput'
+            },{
+                name:'jam'
+            },{
+                name:'totalusd'
+            },{
+                name:'totalusd2'
+            },{
+                name:'pocustomer'
+            },{
+                name:'statusestimate'
+            },{
+                name:'type'
+            },{
+                name:'old'
+            }]
+        }),listeners:{
+            'load':function(record){
+                hitungtotalco();}
+            }
+        })
+
+        function hitungtotalco ()
+        {
+            var totidr = 0;
+            var totusd = 0;
+
+            storeco.each(function(items){
+
+                totidr += (parseFloat(items.data['total']));
+                totusd += (parseFloat(items.data['totalusd']));
+            });
+
+            Ext.getCmp('totalIDRco').setText('Total IDR : ' + Ext.util.Format.number(totidr, '0,0.00'));
+            Ext.getCmp('totalUSDco').setText('Total USD : ' + Ext.util.Format.number(totusd, '0,0.00'));
+        }
+
+        var gridco = new Ext.grid.GridPanel ({
+
+            store:storeco,
+            frame:true,
+            renderTo:'grid_co',
+            height:180,
+            title:'Customer Order Report List',
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),
+                {
+                    header: "File",
+                    width: 60,
+                    dataIndex: 'id',
+                    id:'file',
+                    css:'text-align:center;',
+                    renderer: function (v,p,r) {
+                            return '<a href="#" onclick="fileco(\'' + r.data['praco'] + '\')"><img src="/images/exp_acrobat.png"></a>';
+                    }
+                },{
+                    header:'Trano',
+                    dataIndex:'trano'
+                },{
+                    header:'Praco',
+                    dataIndex:'praco'
+                },{
+                    header:'Date',
+                    dataIndex:'tglinput'
+                },{
+                    header:'PO Customer',
+                    dataIndex:'pocustomer'
+                },{
+                    header:'PIC',
+                    dataIndex:'user'
+                },{
+                    header:'Value IDR',
+                    dataIndex:'total',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                },{
+                    header:'value USD',
+                    dataIndex:'totalusd',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                },{
+                    header:'Status',
+                    dataIndex:'statusestimate',
+                    renderer : function(v, params, data){
+                        var status;
+                        if (v == '1')
+                        {
+                            status = 'Estimate';
+                        }
+                        else if (v == '' || v == undefined || v == '0')
+                        {
+                            status = 'Original';
+                        }
+                        return status;}
+                },{
+                    header:'Type',
+                    dataIndex:'type'
+                }],bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style:"text-align:right",
+                items: [{
+                         xtype: 'label',
+                         id: 'totalIDRco',
+                        style:'color:red;font-weight:bold;margin-right:20px;font-size:12'
+                        },{
+                         xtype: 'label',
+                         id: 'totalUSDco',
+                        style:'color:red;font-weight:bold;font-size:12;margin-right:10px'
+                        }],
+                layout: 'fit'
+            })
+
+        })
+
+        //additional customer order
+
+        var storeaddco = new Ext.data.Store ({
+
+        url:'/sales/report/getkboq2/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode,
+        autoLoad:true,
+        id:'store_addco',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'trano'
+            },{
+                name:'praco'
+            },{
+                name:'tgl'
+            },{
+                name:'prj_kode'
+            },{
+                name:'prj_nama'
+            },{
+                name:'sit_kode'
+            },{
+                name:'sit_nama'
+            },{
+                name:'ket'
+            },{
+                name:'petugas'
+            },{
+                name:'cus_kode'
+            },{
+                name:"totaltambah"
+            },{
+                name:'user'
+            },{
+                name:'tglinput'
+            },{
+                name:'jam'
+            },{
+                name:'totaltambahusd'
+            },{
+                name:'pocustomer'
+            },{
+                name:'statusestimate'
+            },{
+                name:'type'
+            }]
+        }),listeners:{
+            'load':function(record){
+                hitungtotaladdco();
+                }
+            }
+        })
+
+        function hitungtotaladdco ()
+        {
+            var totidr = 0;
+            var totusd = 0;
+
+            storeaddco.each(function(items){
+
+                totidr += (parseFloat(items.data['totaltambah']));
+                totusd += (parseFloat(items.data['totaltambahusd']));
+            });
+
+            Ext.getCmp('totalIDRaddco').setText('Total IDR : ' + Ext.util.Format.number(totidr, '0,0.00'));
+            Ext.getCmp('totalUSDaddco').setText('Total USD : ' + Ext.util.Format.number(totusd, '0,0.00'));
+        }
+
+        var gridaddco = new Ext.grid.GridPanel ({
+
+            store:storeaddco,
+            frame:true,
+            renderTo:'grid_addco',
+            height:180,
+            title:'Additional Customer Order Report List',
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),
+                {
+                    header: "File",
+                    width: 60,
+                    dataIndex: 'id',
+                    css:'text-align:center;',
+                    renderer: function (v,p,r) {
+                            return '<a href="#" onclick="fileaddco(\'' + r.data['praco'] + '\')" ><img src="/images/exp_acrobat.png"></a>';
+                    }
+                },{
+                    header:'Trano',
+                    dataIndex:'trano'
+                },{
+                    header:'Praco',
+                    dataIndex:'praco'
+                },{
+                    header:'Date',
+                    dataIndex:'tglinput'
+                },{
+                    header:'PO Customer',
+                    dataIndex:'pocustomer'
+                },{
+                    header:'PIC',
+                    dataIndex:'user'
+                },{
+                    header:'Value IDR',
+                    dataIndex:'totaltambah',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                },{
+                    header:'value USD',
+                    dataIndex:'totaltambahusd',
+                    renderer: function(v){
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                },{
+                    header:'Status',
+                    dataIndex:'statusestimate',
+                    renderer : function(v, params, data){
+                        var status;
+                        if (v == '1')
+                        {
+                            status = 'Estimate';
+                        }
+                        else if (v == '' || v == undefined || v == '0')
+                        {
+                            status = 'Original';
+                        }
+                        return status;}
+                },{
+                    header:'Type',
+                    dataIndex:'type'
+                }],bbar: new Ext.Toolbar({
+                id: 'total-addbbar',
+                style:"text-align:right",
+                items: [{
+                         xtype: 'label',
+                         id: 'totalIDRaddco',
+                        style:'color:red;font-weight:bold;margin-right:20px;font-size:12'
+                        },{
+                         xtype: 'label',
+                         id: 'totalUSDaddco',
+                        style:'color:red;font-weight:bold;font-size:12;margin-right:10px'
+                        }],
+                layout: 'fit'
+            })
+
+        })
+
+
+    })
+
+
+
+</script>
+
+    <div id="grid_co"></div>
+    <div id="grid_addco" style="margin-top:10px;"></div>

@@ -1,0 +1,170 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+    var detail = false;
+
+    var checkValid = function(all)
+    {
+        var prj = Ext.getCmp('prj_kode_text').getValue(),
+                month = Ext.getCmp('month').getValue();
+
+        if ((prj == '' || prj == undefined) && (month == '' || month == undefined))
+        {
+            Ext.Msg.alert("Error","Please select Project or Month");
+            return false;
+        }
+
+        return true;
+    };
+
+    var exportReport = function()
+    {
+        if (checkValid())
+        {
+            var month = Ext.getCmp('month').getValue();
+            var prj = Ext.getCmp('prj_kode_text').getValue();
+            var D = Ext.calendar.Date;
+            month = D.formatDate(month,'yyyy-mm');
+            location.href='/finance/report/view-trial-balancesheet/export/true/month/' + month + "/prj_kode/" + prj + "/detail_trans/" + detail;
+        }
+
+    };
+
+    var windowForm = new Ext.Panel({
+
+        title:'Trial Balance Sheet',
+        id: 'abs-budget-panel',
+        layout: 'fit',
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        loadMask: true,
+        minWidth: 300,
+        minHeight: 200,
+        tbar:[
+                {
+                    xtype: 'label',
+                    text: 'Project'
+                },'-',
+                {
+                    xtype: 'projectselectorreport',
+                    anchor: '100%',
+                    id: 'project-select',
+                    Selectid: 'prj_kode_text',
+                    Nameid: 'prj_nama_text',
+                    ShowName: false,
+                    showAll: true
+                },
+                {
+                    xtype:'label',
+                    text:'Month & Year'
+                },'-',{
+                    xtype:'datefield',
+                    name: 'month',
+                    id: 'month',
+                    allowBlank:false,
+                    msgTarget:'side',
+                    format: 'm-Y', // or other format you'd like
+                    plugins: 'monthPickerPlugin'
+                },
+                {
+                    xtype: 'button',
+                    text: 'Reset',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/lov_refresh.gif",
+                    handler: function(){
+                        Ext.getCmp('month').setValue('');
+                        Ext.getCmp('prj_kode_text').setValue('');
+                        Ext.getCmp('prj_kode_nama').setValue('');
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width:70,
+                    id: 'show_report',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/icons/fam/control_rewind.png",
+                    handler:function(btn,ev)
+                    {
+                        if(checkValid())
+                        {
+                            detail = false;
+                            var month = Ext.getCmp('month').getValue();
+                            var prj = Ext.getCmp('prj_kode_text').getValue();
+                            var D = Ext.calendar.Date;
+                            month = D.formatDate(month,'yyyy-mm');
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/report/view-trial-balancesheet',
+                                params: {
+                                    month : month,
+                                    prj_kode : prj
+                                },
+                                scripts : true
+                            });
+                        }
+                    }
+                },'-',
+                {
+                    xtype: 'checkbox',
+                    id: 'cek-box',
+                    boxLabel: 'Grouped'
+                },
+                {
+                    xtype: 'button',
+                    text: 'Show Detail per Transaction',
+                    width:70,
+                    id: 'show_report_all_date',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/icons/fam/control_rewind.png",
+                    handler:function(btn,ev)
+                    {
+                        if(checkValid())
+                        {
+                            detail = true;
+                            var month = Ext.getCmp('month').getValue();
+                            var prj = Ext.getCmp('prj_kode_text').getValue();
+                            var D = Ext.calendar.Date,
+                                group = Ext.getCmp('cek-box').getValue();
+
+                            month = D.formatDate(month,'yyyy-mm');
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/finance/report/view-trial-balancesheet',
+                                params: {
+                                    month : month,
+                                    prj_kode : prj,
+                                    detail_trans : true,
+                                    group: group
+                                },
+                                scripts : true
+                            });
+                        }
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls:"x-btn-icon" ,
+                    icon:"/images/print.png",
+                    handler:exportReport
+                }
+            ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+})
+
+
+</script>

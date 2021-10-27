@@ -1,0 +1,365 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+<?php echo $this->action('index', 'textfield', null); ?>
+
+        function showeditwarehouse() {
+            showwarehousechoose();
+        }
+        ;
+
+        function showaddwarehouse()
+        {
+            Panel = Ext.getCmp('master_warehouse');
+            Panel.body.load({
+                url: '/logistic/logisticmasterwarehouse/addwarehouse',
+                scripts: true
+            })
+        }/* End showaddwarehouse */
+
+        var windowForm = ({
+            title: 'Master Warehouse',
+            id: 'master_warehouse',
+            layout: 'fit',
+            bodyCfg: {cls: 'x-panel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'margin:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {
+                    xtype: 'tbbutton',
+                    text: 'Select Action',
+                    iconCls: 'menu-drop',
+                    menu: {
+                        items: [
+                            {
+                                id: 'warehouse_add_button',
+                                text: 'Add Warehouse',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/action_paste.gif",
+                                handler: showaddwarehouse
+                            },
+                            {
+                                id: 'warehouse_edit_button',
+                                text: 'Edit Existing Warehouse',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/action_paste.gif",
+                                handler: showeditwarehouse
+                            }
+                        ]
+                    }
+                }
+            ]
+        }); /* End windowForm */
+
+        function showwarehousechoose(num,id)
+        {
+            var formsearchwarehouse = new Ext.form.FormPanel({
+                frame: true,
+                labelWidth: 150,
+                items: [
+                    {
+                        fieldLabel: 'Warehouse Name',
+                        id: 'gdg_nama',
+                        xtype: 'trigger',
+                        allowBlank: false,
+                        editable: false,
+                        value: num,
+                        onTriggerClick: function()
+                        {
+                            searchwarehouse.close();
+                            showwarehouselist();
+                        },
+                        scope: this,
+                        width: 150
+                    },
+                    {
+                        fieldLabel: '',
+                        id: 'gdg_kode',
+                        xtype: 'trigger',
+                        allowBlank: false,
+                        editable: false,
+                        hidden : true,
+                        value: id,
+//                        onTriggerClick: function()
+//                        {
+//                            searchwarehouse.close();
+//                            showwarehouselist();
+//                        },
+                        scope: this,
+                        width: 150
+                    }
+                ],
+                buttons: [
+                    {
+                        text: 'Edit',
+                        id: 'save',
+                        iconCls: 'silk-upd',
+                        handler: function(btn, ev)
+                        {
+                            var gdg_kode = Ext.getCmp('gdg_kode').getValue();
+                            if (gdg_kode == null || gdg_kode == "" || gdg_kode == undefined)
+                            {
+                                Ext.Msg.alert('Error', 'Please Choose Warehouse Code');
+                                return false;
+                            } else
+                            {
+                                myPanel = Ext.getCmp('master_warehouse');
+                                myPanel.body.load({
+                                    url: '/logistic/logisticmasterwarehouse/editwarehouse/gdg_kode/' + gdg_kode,
+                                    scripts: true
+                                });
+                            }
+
+                            searchwarehouse.close();
+                        }
+                    },
+                    {
+                        text: 'Cancel',
+                        id: 'cancel',
+                        handler: function(btn, ev) {
+                            searchwarehouse.close();
+                        }
+                    }
+                ]
+
+            }); /* formsearchwarehouse */
+
+
+            var searchwarehouse = new Ext.Window({
+                id: 'search_warehouse',
+                layout: 'absolute',
+                width: 350,
+                height: 100,
+                style: 'margin-top: 10px',
+                labelAlign: 'right',
+                stateful: false,
+                modal: true,
+                resizable: false,
+                items: [
+                    formsearchwarehouse
+                ]
+
+            }); /* searchwarehouse */
+
+            searchwarehouse.show();
+
+        }/* End showsearchwarehouse */
+
+
+        function showwarehouselist()
+        {
+            var warehousestore = new Ext.data.Store({
+                url: '/logistic/logisticmasterwarehouse/getwarehouse',
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total'
+                }, [
+                    {name: 'gdg_kode', type: 'String'},
+                    {name: 'gdg_nama', type: 'String'},
+                    {name: 'alamat1', type: 'String'},
+                    {name: 'ket', type: 'String'},
+                    {name: 'stsactive', type: 'String'},
+                    {name: 'sts_temporary', type: 'String'},
+                    {name: 'id', type: 'int'}
+                ])
+
+            })
+
+
+            var grid = new Ext.grid.GridPanel({
+                store: warehousestore,
+//                renderTo:'viewwarehouse',
+                height: 326,
+                width: 420,
+                listeners: {
+                    'rowdblclick': function(gridYangAktif, rowIndex, e) {
+                        isDblClick = true;
+                        txtBoxChange = 'warehouselist';
+                        var warehouse = gridYangAktif.getStore().getAt(rowIndex).get('gdg_nama');
+                        var id = gridYangAktif.getStore().getAt(rowIndex).get('gdg_kode');
+                        showwarehousechoose(warehouse,id);
+                        Ext.getCmp('warehouselist').close();
+                        window.setTimeout(function() {
+                            isDblClick = false;
+                        }, 0);
+                    }
+                },
+                columns: [
+                    {
+                        header: 'code',
+                        width: 60,
+                        dataIndex: 'gdg_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'name',
+                        width: 140,
+                        dataIndex: 'gdg_nama',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'address',
+                        width: 180,
+                        dataIndex: 'alamat1',
+                        align: 'center',
+                        sortable: true
+                    },
+                    {
+                        header: 'description',
+                        width: 180,
+                        dataIndex: 'ket',
+                        align: 'center',
+                        sortable: true
+                    },
+                    {
+                        header: 'is active',
+                        width: 180,
+                        dataIndex: 'stsactive',
+                        align: 'center',
+                        sortable: true,
+                        renderer: function(v) {
+                            return v == 1 ? 'Yes' : 'No';
+                        }
+                    },
+                    {
+                        header: 'is temporary',
+                        width: 180,
+                        dataIndex: 'sts_temporary',
+                        align: 'center',
+                        sortable: true,
+                        renderer: function(v) {
+                            return v == 1 ? 'Yes' : 'No';
+                        }
+                    },
+                ],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging2',
+                    pageSize: 10,
+                    store: warehousestore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar: [
+                    {
+                        text: 'Warehouse Name',
+                        xtype: 'label',
+                        style: 'margin-left: 5px'
+
+                    }, {
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left: 5px'
+
+                    }, {
+                        text: 'Search',
+                        iconCls: 'search-icon',
+                        handler: searchData,
+                        scope: this
+                    },
+                    '-',
+                    {
+                        text: 'refresh',
+                        iconCls: 'icon-refresh',
+                        handler: refreshData,
+                        scope: this
+                    }, '-'
+                ]
+
+            })
+
+            function searchData()
+            {
+                var search = Ext.getCmp('search').getValue();
+                warehousestore.proxy.setUrl('/logistic/logisticmasterwarehouse/getwarehouse/search/' + search);
+                warehousestore.reload();
+                grid.getView().refresh();
+            }
+
+            function refreshData()
+            {
+                warehousestore.clearFilter();
+                Ext.getCmp('search').setValue('');
+                Ext.getCmp('paging').doRefresh();
+            }
+
+
+            var warehouselist = new Ext.Window({
+                title: 'Warehouse List',
+                id: 'warehouselist',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask: true,
+                items: [
+                    grid
+                ]
+
+            })
+
+            warehouselist.show();
+
+
+        }
+
+//        function getExchangeRate()
+//        {
+//            Ext.Ajax.request({
+//                url: '/default/valuta/getexchangerate/val_kode/USD',
+//                method: 'POST',
+//                success: function(result, request) {
+//                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                    if (returnData.success) {
+//                        if(returnData.rate == 0)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR,
+//                                fn:function(){window.location='';}
+//                            });
+//                        }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//                },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//            });
+//        }
+//        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+        CenterContent = viewPort.getComponent('content-panel');
+        CenterContent.items.each(function(c) {
+            CenterContent.remove(c);
+        });
+        CenterContent.add(windowForm);
+        newPanel = Ext.getCmp('master_warehouse');
+        CenterContent.layout.setActiveItem('master_warehouse');
+        newPanel.body.load({
+            url: '/logistic/logisticmasterwarehouse/viewwarehouse',
+            scripts: true
+        })
+        showSubmenu('master_warehouse');
+
+    }) /* End OnreadyFunction */
+
+</script>

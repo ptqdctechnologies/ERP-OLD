@@ -1,0 +1,155 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var panel = new Ext.form.FormPanel({
+        renderTo: 'form',
+        title: 'Add Trano Type',
+        frame: true,
+        border: true,
+        layout: 'form',
+        height: 200,
+        width: 350,
+        items: [
+            {
+                xtype: 'textfield',
+                width: 150,
+                name: 'type',
+                fieldLabel: 'Trano Type'
+            },
+            {
+                xtype: 'textfield',
+                width: 150,
+                name: 'trano_prefix',
+                fieldLabel: 'Trano Prefix (ex. PR01, PO01)'
+            },
+            {
+                xtype: 'textarea',
+                width: 200,
+                name: 'ket',
+                fieldLabel: 'Remark'
+            }
+        ],
+        buttons: [
+            {
+                text: 'Create',
+                handler: function() {
+
+                    Ext.Ajax.request({
+                        url: '/admin/trano/create-trano-type',
+                        method:'POST',
+                        params: panel.getForm().getValues(),
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                            if (returnData.success)
+                            {
+                                grid.getStore().reload();
+                                panel.getForm().reset();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error',returnData.msg);
+                            }
+
+                        }
+                    });
+                }
+            }
+        ]
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id', mapping: 'id'},
+        {name: 'type'},
+        {name: 'ket'},
+        {name: 'trano_prefix'}
+
+    ]);
+
+    var store = new Ext.data.Store({
+        url : '/admin/trano/get-trano-type',
+        reader:reader,
+        autoLoad: true
+    });
+
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        actions:[
+            {
+                iconCls:'icon-delete',
+                qtip:'Delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    Ext.MessageBox.confirm('Confirm', 'This action will delete this Item, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                if (record)
+                                {
+                                    var id = record.data['id'];
+                                    Ext.Ajax.request({
+                                        url: '/admin/trano/delete-trano-type',
+                                        params: {
+                                            id: id
+                                        },
+                                        method:'POST',
+                                        success: function(result, request){
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                            if (returnData.success)
+                                            {
+                                                store.remove(record);
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error',returnData.msg);
+                                            }
+
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+        ]
+        ,index: 'actions'
+        ,header: ''
+    });
+
+    var columns =  [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: "Type", width: 120, sortable: true, dataIndex: 'type'},
+        {header: "Trano Prefix", width: 100, sortable: true, dataIndex: 'trano_prefix'},
+        {header: "Ket", width: 250, sortable: true, dataIndex: 'ket'}
+    ];
+
+    var grid = new Ext.grid.GridPanel({
+        plugins: [rowactions],
+        bbar: [
+            new Ext.PagingToolbar({
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        ],
+        title: 'Trano Type List',
+        width: 600,
+        height: 400,
+        columns: columns,
+        store: store,
+        renderTo: 'grid'
+    })
+});
+</script>
+
+<div id="form"></div><br/>
+<div id="grid"></div>

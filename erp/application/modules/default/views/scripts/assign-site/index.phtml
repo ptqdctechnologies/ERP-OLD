@@ -1,0 +1,140 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        root: 'posts',
+        fields: [
+            {name: "id"},
+            {name: "uid"},
+            {name: "name"},
+        ]
+    });
+
+    var store = new Ext.data.Store({
+        id: 'store',
+        reader: reader,
+        autoLoad: true,
+        proxy: new Ext.data.HttpProxy({
+            url : '/admin/user/list/exist/true'
+        })
+    });
+
+    var userGrid = new Ext.grid.GridPanel({
+        id: 'user-grid',
+        loadMask: true,
+        stateful: false,
+        columns: [
+            new Ext.grid.RowNumberer({
+                width: 30
+            }),
+            {header: "Username", dataIndex: 'name'}
+        ],
+        store: store,
+        viewConfig: {
+            forceFit: true
+        },
+        sm: new Ext.grid.RowSelectionModel({singleSelect:true}),
+        bbar: new Ext.PagingToolbar ({
+            pageSize: 50,
+            store: store,
+            displayInfo: true,
+            displayMsg: '{0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        }),
+        tbar: [
+            {
+                xtype: 'tbtext',
+                text: 'Username',
+                style: 'margin-right: 5px'
+            },
+            {
+                xtype: 'textfield',
+                width: 150,
+                id: 'user-search',
+                enableKeyEvents: true,
+                listeners: {
+                    'keyup': function(t, e){
+                    }
+
+                }
+            },
+            {
+                xtype: 'button',
+                text: 'Search',
+                iconCls: 'silk-table-refresh',
+                handler: function(){
+                    store.load({
+                        params: {
+                            search: 'name',
+                            data:Ext.getCmp('user-search').getValue()
+                        }
+                    });
+                    userGrid.getView().refresh();
+                }
+
+            }
+        ]
+    });
+
+    userGrid.getSelectionModel().on('rowselect', function(g, rowIndex, rec){
+        Ext.getCmp('detail-site').body.load({
+            url: '/assign-site/detail-site',
+            params: {
+                uid: rec.get("uid")
+            },
+            scripts: true
+        });
+    });
+
+    var detailSite = new Ext.Panel({
+        id: 'detail-site'
+    });
+
+    var windowForm = ({
+        layout: 'border',
+        stateful: false,
+        loadMask: true,
+        title: 'Assign Site to My Team',
+        id: 'abs-budget-panel',
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        items: [
+            {
+                region: 'west',
+                id: 'workid', // see Ext.getCmp() below
+                stateful: false,
+                layout: 'fit',
+                width: 300,
+                items: userGrid,
+            },
+            {
+                region: 'center',
+                id: 'detail', // see Ext.getCmp() below
+                title: '',
+                width: 500,
+                minSize: 175,
+                maxSize: 400,
+                layout: 'fit',
+                margins: '0 0 0 5',
+                items: detailSite
+            }
+
+        ]
+
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//    myPanel = Ext.getCmp('abs-budget-panel');
+//    myPanel.body.load({
+//        url: '/assign-site/view',
+//        scripts : true
+//    });
+});
+</script>

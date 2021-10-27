@@ -1,0 +1,289 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+
+        var projectstore = new Ext.data.Store ({
+
+            url:'/projectmanagement/projectclose/getviewproject',
+            autoLoad:true,
+
+            reader: new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'prj_kode',type:'String'},
+                {name:'prj_nama',type:'String'}
+//                {name:'cus_kode',type:'String'},
+//                {name:'cus_nama',type:'String'},
+//                {name:'keter',type:'String'}
+//
+            ])
+
+
+        })
+
+
+        var proxy = new Ext.data.HttpProxy({
+           url : 'what ever'
+        });
+
+
+        var sitestore = new Ext.data.Store ({
+
+            proxy:proxy,
+
+            reader: new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'sit_kode',type:'String'},
+                {name:'sit_nama',type:'String'}
+            ])
+
+
+        })
+
+        var grid = new Ext.grid.GridPanel ({
+
+            store:projectstore,
+
+            id :'view-project-grid',
+            title:'Open Project List',
+            renderTo:'viewproject',
+            height: 460,
+            width: 460,
+            frame:true,
+            listeners:{
+                'rowdblclick':function(gridYangAktif, rowIndex, e){
+                        isDblclick = true;
+
+                    var barisYgDipilih = gridYangAktif.getStore().getAt(rowIndex);
+                    Ext.getCmp('form-project-panel').getForm().loadRecord(barisYgDipilih);
+
+                    var prj_kode = barisYgDipilih.get('prj_kode');
+                    sitestore.proxy.setUrl('/projectmanagement/projectclose/getviewsite/prj_kode/' + prj_kode);
+                    sitestore.load();
+                    sitegrid.getView().refresh();
+
+
+                }
+            },
+            columns:[
+                    new Ext.grid.RowNumberer,
+                {
+                    header:'Project Code',
+                    dataIndex:'prj_kode',
+                    sortable:true,
+                    align:'center',
+                    width:128
+                },{
+                    header:'Project Name',
+                    dataIndex:'prj_nama',
+                    sortable:true,
+                    align:'center',
+                    width:280
+                }
+//                    header:'Customer Code',
+//                    dataIndex:'cus_kode',
+//                    sortable:true,
+//                    align:'center',
+//                    width:100
+//                },{
+//                    header:'Customer Name',
+//                    dataIndex:'cus_nama',
+//                    sortable:true,
+//                    align:'center',
+//                    width:140
+//                },{
+//                    header:'Description',
+//                    dataIndex:'keter',
+//                    sortable:true,
+//                    align:'center',
+//                    width:140
+//                }
+            ]
+
+
+        })
+
+        var cekgrid = new Ext.grid.CheckboxSelectionModel()
+
+        var sitegrid = new Ext.grid.GridPanel ({
+
+            store:sitestore,
+            id:'view_site_grid',
+            width:320,
+            height:200,
+            columns:[
+                {
+                    header:'Site Code',
+                    align:'center',
+                    width:60,
+                    dataIndex:'sit_kode'
+                },{
+                    header:'Site Name',
+                    width:224,
+                    align:'center',
+                    dataIndex:'sit_nama'
+                },cekgrid
+            ],
+            sm:cekgrid,
+            iconCls:'icon-grid',
+            columnLines: true
+
+        })
+
+        var projectForm = new Ext.FormPanel ({
+
+            id:'form-project-panel',
+            title:'Project',
+            renderTo:'project_form',
+            width:360,
+            frame:true,
+            labelWidth:120,
+            items:[
+                {
+                    fieldLabel:'Project Code',
+                    xtype:'textfield',
+                    name:'prj_kode',
+                    id:'prj_kode',
+                    width:60,
+                    readOnly: true,
+                    allowBlank:false
+                },{
+                    fieldLabel:'Project Name',
+                    xtype:'textfield',
+                    name:'prj_nama',
+                    width:200,
+                    readOnly: true
+                },{
+                    id:'close_project',
+                    xtype:'checkbox',
+//                    checkboxToggle:true,
+                    fieldLabel: 'Close This Project',
+                    listeners: {
+                        'check': function (checkboxIni,diCentang)
+                        {
+                            if (diCentang)
+                                Ext.getCmp('close_site_project').collapse();
+                        }
+                    }
+//                    autoHeight:true,
+//                    defaults: {width: 160},
+//                    defaultType: 'textfield',
+//                    collapsed: true,
+//                    items :[
+//                        {
+//
+//                        }
+//                    ]close_site_project
+                },{
+                    id:'close_site_project',
+                    xtype:'fieldset',
+                    checkboxToggle:true,
+                    title: 'Site Project',
+                    autoHeight:true,
+//                    defaults: {width: 160},
+//                    width:140,
+//                    defaultType: 'textfield',
+                    collapsed: true,
+                    items :[
+                        sitegrid
+                    ],
+                    listeners: {
+                        'expand': function (fieldsetIni)
+                        {
+                            Ext.getCmp('close_project').setValue(false);
+                        }
+                    }
+                }
+            ],
+            buttons:[
+                {
+                    text:'Submit',
+                    handler:function(btn,ev)
+                    {
+                        if (!Ext.getCmp('form-project-panel').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please Choose Project');
+                            return false;
+                        }
+                        var storegridsite = Ext.getCmp('view_site_grid').getSelectionModel().getSelections();
+                        //cek site yg di close
+                        if (storegridsite.length == 0 || storegridsite == undefined)
+                        {
+                            var centang = Ext.getCmp('close_project').getValue();
+                            if (!centang)
+                            {
+                                Ext.Msg.alert('Error','Please Choose Project / Site');
+                                return false;
+                            }
+                        }
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure you want to close this project?',function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                
+                                var json = '';
+                                Ext.each(storegridsite,function(store){
+                                    json += Ext.util.JSON.encode(store.data['sit_kode']) + ',';
+                                });
+                                json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                                var params = {
+                                    sit_kode: json,
+                                    prj_kode: Ext.getCmp('prj_kode').getValue(),
+                                    semuasite:Ext.getCmp('close_project').getValue()
+                                };
+                                Ext.Ajax.request({
+                                    url: '/projectmanagement/projectclose/updateproject',
+                                    method:'POST',
+                                    success:function(thisForm,response){
+                                        Ext.Msg.alert('Success','Project has been close');
+                                        Panel = Ext.getCmp('close-existing project');
+                                        Panel.body.load({
+                                            url:'/projectmanagement/projectclose/project',
+                                            scripts:true
+                                        });
+                                    },
+                                    params: params
+                                });
+                            }
+                        }
+                        );
+
+
+                    }
+                },{
+                    text:'Cancel',
+                    handler:function(btn,ev)
+                    {
+                        Panel = Ext.getCmp('close-existing project');
+                        Panel.body.load({
+                            url:'/projectmanagement/projectclose/project',
+                            scripts:true
+                        })
+                    }
+                }
+            ]
+
+
+
+        })
+
+
+
+
+
+    })
+    
+
+
+
+</script>
+
+    <div id="viewproject" style="float:left"></div>
+    <div id="project_form" style="margin-left: 20px;float:left"></div>

@@ -1,0 +1,749 @@
+<script type="text/javascript">
+
+    var id_provinsi = '';
+    var datas = new Ext.data.SimpleStore({
+        fields: ['nilai', 'status']
+        , data: [
+            ['PT', 'PT'],
+            ['CV', 'CV'],
+            ['UD', 'UD'],
+            ['Mandor', 'Mandor'],
+            ['Toko', 'Toko'],
+            ['Other', 'Other']
+
+        ]
+
+    });
+
+    var datas2 = new Ext.data.SimpleStore({
+        fields: ['nilai', 'type']
+        , data: [
+            ['Transportation', 'Transportation'],
+            ['Mandor/Subcon', 'Mandor/Subcon'],
+            ['Supplier Material Sipil', 'Supplier Material Sipil'],
+            ['Supplier Material RF', 'Supplier Material RF'],
+            ['Supplier Material ME', 'Supplier Material ME']
+        ]
+
+    });
+
+    var filelist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'filename',
+            type: 'string'
+        }, {
+            name: 'savename',
+            type: 'string'
+        }, {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'path',
+            type: 'string'
+        }]);
+
+
+
+    var storeFile = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn) {
+                if (btn == 'yes')
+                {
+                    if (theFile.data['status'] == 'new')
+                        var params = {filename: theFile.data['savename']};
+                    Ext.Ajax.request({
+                        url: '/procurement/procurement/deletefile',
+                        method: 'POST',
+                        success: function(result, request) {
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if (returnData.success)
+                            {
+                                storeFile.remove(theFile);
+                                Ext.getCmp('files-grid').getView().refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error!', returnData.msg);
+                                return false;
+                            }
+                        },
+                        failure: function(action) {
+                            if (action.failureType == 'server') {
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            } else {
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        },
+                        params: params
+                    });
+                }
+            });
+        }
+    }
+    ;
+
+    function submitButton()
+    {
+        if (!Ext.getCmp('supp-form').getForm().isValid())
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Fill Blank Field!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if (Ext.getCmp('pkp').getValue() == true && Ext.getCmp('npwp').getValue() == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please insert NPWP',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if (Ext.getCmp('pkp').getValue() == true && Ext.getCmp('pkp-date').getValue() == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please insert PKP date',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        var parameter = '';
+        var fileJson = '';
+
+        storeFile.each(function(store) {
+            fileJson += Ext.util.JSON.encode(store.data) + ',';
+        });
+        fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+        var status = Ext.getCmp('stat_supp').getValue().toString().replace(/\"|\'/g, '');
+        var nama = Ext.getCmp('nama_text').getValue().toString().replace(/\"|\'/g, '');
+        var alamat = Ext.getCmp('address_text').getValue().toString().replace(/\"|\'/g, '');
+        var alamat2 = Ext.getCmp('address2_text').getValue().toString().replace(/\"|\'/g, '');
+        var city_id = Ext.getCmp('city_text').getValue();
+        var city = Ext.getCmp('city_text').getRawValue().toString().replace(/\"|\'/g, '');
+        var province_id = Ext.getCmp('prov_text').getValue();
+        var province = Ext.getCmp('prov_text').getRawValue().toString().replace(/\"|\'/g, '');
+        var country = Ext.getCmp('country_text').getValue().toString().replace(/\"|\'/g, '');
+        var telp = Ext.getCmp('telp_text').getValue().toString().replace(/\"|\'/g, '');
+        var fax = Ext.getCmp('fax_text').getValue().toString().replace(/\"|\'/g, '');
+        var email = Ext.getCmp('email_text').getValue().toString().replace(/\"|\'/g, '');
+        var thnBerdiri = Ext.getCmp('thn_berdiri_text').getValue().toString().replace(/\"|\'/g, '');
+        var thnOperasi = Ext.getCmp('thn_operasi_text').getValue().toString().replace(/\"|\'/g, '');
+        var branchTotal = Ext.getCmp('branch_text').getValue().toString().replace(/\"|\'/g, '');
+        var scale = Ext.getCmp('scale').getValue().toString().replace(/\"|\'/g, '');
+        var branchList = Ext.getCmp('list_branch_text').getValue().toString().replace(/\"|\'/g, '');
+        var totalEmployee = Ext.getCmp('total_employee_text').getValue().toString().replace(/\"|\'/g, '');
+        var contact = Ext.getCmp('contact_text').getValue().toString().replace(/\"|\'/g, '');
+        var bankName = Ext.getCmp('bank_text').getValue().toString().replace(/\"|\'/g, '');
+        var accountName = Ext.getCmp('account_name_text').getValue().toString().replace(/\"|\'/g, '');
+        var accountNo = Ext.getCmp('account_number_text').getValue().toString().replace(/\"|\'/g, '');
+        var type = Ext.getCmp('type_supp').getValue();
+        var spec = Ext.getCmp('spec_supp').getValue();
+        var ket = Ext.getCmp('ket_text').getValue().toString().replace(/\"|\'/g, '');
+        var pkp = Ext.getCmp('pkp').getValue();
+        var npwp = Ext.getCmp('npwp').getValue();
+        var pkp_date = Ext.getCmp('pkp-date').getValue();
+        var finance = Ext.getCmp('finance_text').getValue();
+        var direktur = Ext.getCmp('direktur_text').getValue();
+
+        parameter = '[{"status":"' + status +
+                '","nama":"' + nama +
+                '", "alamat":"' + alamat +
+                '", "alamat2":"' + alamat2 +
+                '","city":"' + city +
+                '","city_id":"' + city_id +
+                '","province":"' + province +
+                '","province_id":"' + province_id +
+                '","country":"' + country +
+                '","telp":"' + telp +
+                '","fax":"' + fax +
+                '","contact":"' + contact +
+                '","bank":"' + bankName +
+                '","account_name":"' + accountName +
+                '","account_no":"' + accountNo +
+                '","type":"' + type +
+                '","spec":"' + spec +
+                '", "ket":"' + ket +
+                '", "email":"' + email +
+                '", "thn_berdiri":"' + thnBerdiri +
+                '", "thn_operasi":"' + thnOperasi +
+                '", "branch_total":"' + branchTotal +
+                '", "scale":"' + scale +
+                '", "branch_list":"' + branchList +
+                '", "total_employee":"' + totalEmployee +
+                '","pkp":"' + pkp +
+                '","npwp":"' + npwp +
+                '","pkp_date":"' + pkp_date +
+                '","finance":"' + finance +
+                '","direktur":"' + direktur + '" }]';
+        params = {etc: parameter, file: fileJson};
+        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        myPanel.body.load({
+            url: '/logistic/logistic/appsupp', //the url
+            scripts: true,
+            params: params //our params goes here
+        });
+    }
+
+    Ext.onReady(function() {
+        Ext.QuickTips.init();
+        var form = new Ext.FormPanel({
+            id: 'supp-form',
+            labelAlign: 'right',
+            title: 'Input Supplier',
+            width: 400,
+            fileUpload: true,
+            autoHeight: true,
+//        height: 470,
+            frame: true,
+            renderTo: 'user-form',
+            items:
+                    [
+                        {
+                            fieldLabel: 'Status Supplier',
+                            id: 'stat_supp',
+                            name: 'stat_supp',
+                            xtype: 'combo',
+                            store: datas,
+                            valueField: 'status',
+                            displayField: 'nilai',
+                            typeAhead: true,
+                            mode: 'local',
+                            triggerAction: 'all',
+                            allowBlank: false,
+                            value: 'PT',
+                            selectOnFocus: true,
+                            forceSelection: false,
+                            width: 80
+                        },
+                        {
+                            fieldLabel: 'Name',
+                            xtype: 'textfield',
+                            width: 150,
+                            allowBlank: false,
+                            id: 'nama_text'
+                        },
+                        {
+                            fieldLabel: 'Address',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'address_text'
+                        },
+                        {
+                            fieldLabel: 'Address 2',
+                            xtype: 'textfield',
+                            width: 250,
+                            id: 'address2_text'
+                        },
+//                {
+//                        fieldLabel: 'City',
+//                        xtype: 'textfield',
+//                        width: 100,
+//                        allowBlank: false,
+//                        id: 'city_text'
+//                },
+                        {
+                            xtype: 'combo',
+                            id: 'prov_text',
+                            fieldLabel: 'Province',
+                            anchor: '80%',
+                            store: new Ext.data.JsonStore({
+                                url: '/logistic/logistic/get-propinsi',
+                                root: 'posts',
+                                fields: [
+                                    {name: "id"}, {name: "nama"}
+                                ],
+                                totalProperty: 'total'
+                            }),
+                            pageSize: 20,
+                            listeners: {
+                                select: {fn:
+                                            function(c, row, index)
+                                            {
+                                                var id_propinsi = row.get("id");
+                                                id_provinsi = row.get("id");
+                                                Ext.getCmp('city_text').clearValue();
+                                                Ext.getCmp('city_text').store.load({
+                                                    params: {
+                                                        id_propinsi: id_propinsi
+                                                    }
+                                                });
+
+                                            }
+                                }
+                            },
+                            valueField: 'id',
+                            displayField: 'nama',
+                            typeAhead: true,
+                            triggerAction: 'all',
+                            selectOnFocus: true,
+                            forceSelection: false,
+                            editable: false,
+                            allowBlank: false
+                        },
+                        {
+                            xtype: 'combo',
+                            id: 'city_text',
+                            fieldLabel: 'City',
+                            anchor: '80%',
+                            store: new Ext.data.JsonStore({
+                                url: '/logistic/logistic/get-kabkota',
+                                root: 'posts',
+                                fields: [
+                                    {name: "id"}, {name: "nama"}
+                                ],
+                                totalProperty: 'total',
+                                listeners: {
+                                    beforeload: function(store) {
+                                        store.baseParams.id_propinsi = id_provinsi;
+                                    }
+                                }
+                            }),
+                            pageSize: 20,
+                            valueField: 'id',
+                            displayField: 'nama',
+                            typeAhead: true,
+                            mode: 'local',
+                            triggerAction: 'all',
+                            selectOnFocus: true,
+                            forceSelection: false,
+                            editable: false,
+                            allowBlank: false,
+                            listeners: {
+                                load: function() {
+                                    resizeGridHeight('agncGridID', 200, 300);
+                                }
+                            },
+                        },
+                        {
+                            fieldLabel: 'Country',
+                            xtype: 'textfield',
+                            width: 100,
+                            allowBlank: false,
+                            id: 'country_text'
+                        },
+                        {
+                            fieldLabel: 'Telp',
+                            xtype: 'textfield',
+                            width: 100,
+                            allowBlank: false,
+                            id: 'telp_text'
+                        },
+                        {
+                            fieldLabel: 'Fax',
+                            xtype: 'textfield',
+                            width: 100,
+                            id: 'fax_text'
+                        },
+                        {
+                            fieldLabel: 'Email Address',
+                            xtype: 'textfield',
+                            width: 100,
+                            id: 'email_text'
+                        },
+                        {
+                            fieldLabel: 'Year Of Establishment',
+                            xtype: 'textfield',
+                            width: 100,
+                            id: 'thn_berdiri_text'
+                        },
+                        {
+                            fieldLabel: 'Year Of Operation',
+                            xtype: 'textfield',
+                            width: 100,
+                            id: 'thn_operasi_text'
+                        },
+                        {
+                            xtype: 'fieldset',
+                            id: 'fieldset-size',
+                            title: 'Size Of Company',
+                            itemId: 'fieldset-item-size',
+                            items: [
+                                {
+                                    fieldLabel: 'How Many Branch',
+                                    id: 'branch_text',
+                                    name: 'tujuan',
+                                    xtype: 'textfield',
+                                    width: 100
+
+                                },
+                                {
+                                    fieldLabel: 'Scale',
+                                    id: 'scale',
+                                    xtype: 'combo',
+                                    width: 150,
+                                    store: new Ext.data.SimpleStore({
+                                        fields: ['nilai', 'type']
+                                        , data: [
+                                            ['National', 'National'],
+                                            ['International', 'International']
+
+                                        ]
+
+                                    }),
+                                    valueField: 'type',
+                                    displayField: 'nilai',
+                                    typeAhead: true,
+                                    forceSelection: true,
+                                    editable: false,
+                                    value: 'National',
+                                    mode: 'local',
+                                    triggerAction: 'all',
+                                    selectOnFocus: true
+                                },
+                                {
+                                    fieldLabel: 'List of Branch Adresses',
+                                    id: 'list_branch_text',
+                                    xtype: 'textarea',
+                                    width: 250,
+                                    height: 80
+                                },
+                                {
+                                    fieldLabel: 'Total Number Of Employees',
+                                    id: 'total_employee_text',
+                                    xtype: 'textfield',
+                                    width: 100
+                                }
+                            ]
+                        },
+                        {
+                            fieldLabel: 'Contact Person',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'contact_text'
+                        }, {
+                            fieldLabel: 'Finance',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'finance_text'
+                        }, {
+                            fieldLabel: 'Director',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'direktur_text'
+                        },
+                        {
+                            fieldLabel: 'Bank Name',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'bank_text'
+                        },
+                        {
+                            fieldLabel: 'Bank Account Name',
+                            xtype: 'textfield',
+                            width: 250,
+                            allowBlank: false,
+                            id: 'account_name_text'
+                        },
+                        {
+                            fieldLabel: 'Bank Account Number',
+                            xtype: 'textfield',
+                            width: 100,
+                            allowBlank: false,
+                            id: 'account_number_text'
+                        },
+                        {
+                            fieldLabel: 'Type Supplier',
+                            id: 'type_supp',
+                            name: 'type_supp',
+                            xtype: 'combo',
+                            store: new Ext.data.Store({
+                                proxy: new Ext.data.HttpProxy({
+                                    url: '/suplier/listjenis'
+                                }),
+                                reader: new Ext.data.JsonReader({
+                                    totalProperty: 'count',
+                                    root: 'posts'
+                                }, [{
+                                        name: 'jenissupliernama'
+                                    }])
+                            }),
+                            valueField: 'jenissupliernama',
+                            displayField: 'jenissupliernama',
+                            typeAhead: true,
+                            forceSelection: true,
+                            editable: false,
+                            mode: 'remote',
+                            triggerAction: 'all',
+                            allowBlank: false,
+                            //value: 'Transportation',
+                            selectOnFocus: true,
+                            width: 150
+                        },
+                        {
+                            fieldLabel: 'Specialist Supplier',
+                            id: 'spec_supp',
+                            name: 'spec_supp',
+                            xtype: 'combo',
+                            store: new Ext.data.Store({
+                                proxy: new Ext.data.HttpProxy({
+                                    url: '/suplier/listspec'
+                                }),
+                                reader: new Ext.data.JsonReader({
+                                    totalProperty: 'count',
+                                    root: 'posts'
+                                }, [{
+                                        name: 'subjenissupliernama'
+                                    }])
+                            }),
+                            valueField: 'subjenissupliernama',
+                            displayField: 'subjenissupliernama',
+                            typeAhead: true,
+                            forceSelection: true,
+                            editable: false,
+                            mode: 'remote',
+                            triggerAction: 'all',
+                            allowBlank: false,
+                            //value: 'Transportation',
+                            selectOnFocus: true,
+                            width: 150
+                        },
+                        {
+                            fieldLabel: 'Remark',
+                            xtype: 'textfield',
+                            width: 150,
+                            id: 'ket_text'
+                        }, {
+                            xtype: 'fieldset',
+                            id: 'fieldset-npwp',
+                            title: 'Supplier PKP',
+                            itemId: 'fieldset-pkp',
+                            items: [{
+                                    xtype: 'checkbox',
+                                    id: 'pkp',
+                                    fieldLabel: 'PKP ',
+                                    listeners: {
+                                        'check': function(cekbox, check)
+                                        {
+                                            if (check)
+                                            {
+                                                Ext.getCmp('npwp').enable();
+                                                Ext.getCmp('pkp-date').enable();
+                                            } else
+                                            {
+                                                Ext.getCmp('npwp').setValue('');
+                                                Ext.getCmp('npwp').disable();
+                                                Ext.getCmp('pkp-date').setValue('');
+                                                Ext.getCmp('pkp-date').disable();
+                                            }
+                                        }
+                                    }
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'NPWP ',
+                                    id: 'npwp',
+                                    disabled: true
+                                }, {
+                                    xtype: 'datefield',
+                                    fieldLabel: 'Date ',
+                                    id: 'pkp-date',
+                                    editable: false,
+                                    disabled: true,
+                                    format: 'd-m-Y'
+                                }]
+
+                        }
+
+                    ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    id: 'submit-button',
+                    iconCls: 'silk-add',
+                    handler: function() {
+                        submitButton();
+                    },
+                    scope: this
+                },
+                {
+                    text: 'Reset',
+                    handler: function(btn, ev) {
+                        Ext.getCmp('supp-form').getForm().reset();
+
+                    },
+                    scope: this
+                },
+                {
+                    text: 'Cancel',
+                    handler: function(btn, ev) {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/ligistic/logistic/supplier',
+                            scripts: true
+                        });
+                    },
+                    scope: this
+                }
+            ]
+        });
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name", width: 130, dataIndex: 'filename'},
+            {header: '', width: 40, sortable: true, css: 'text-align:center;', renderer: function(v, p, r) {
+                    return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+                }}
+        ];
+
+        var fileUploads = new Ext.FormPanel({
+            renderTo: 'form_file',
+            fileUpload: true,
+            autoHeight: true,
+            frame: true,
+            style: 'margin-top: 10px',
+            width: 700,
+//     bodyStyle: 'padding: 10px 10px 10px 10px;',
+//     labelWidth: 50,
+            defaults: {
+                anchor: '95%',
+                allowBlank: false,
+                msgTarget: 'side'
+            },
+            items: [
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .46,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fileuploadfield',
+                                    id: 'po-file',
+                                    emptyText: 'Select a File',
+                                    fieldLabel: 'Attach File',
+                                    allowBlank: false,
+                                    name: 'file-path',
+                                    buttonText: '',
+                                    buttonCfg: {
+                                        iconCls: 'upload-icon'
+                                    }
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Upload',
+                                    style: 'float: right',
+                                    handler: function() {
+                                        if (fileUploads.getForm().isValid()) {
+                                            form_action = 1;
+                                            fileUploads.getForm().submit({
+                                                url: '/procurement/procurement/uploadfile/type/supp',
+                                                waitMsg: 'Uploading file...',
+                                                success: function(form, action) {
+                                                    var returnData = action.result;
+                                                    if (returnData.success) {
+                                                        var c = new filelist({
+                                                            id: parseFloat(storeFile.getCount() + 1),
+                                                            filename: returnData.filename,
+                                                            savename: returnData.savename,
+                                                            path: returnData.path,
+                                                            status: 'new'
+                                                        });
+                                                        storeFile.add(c);
+                                                        Ext.getCmp('files-grid').getView().refresh();
+                                                        Ext.getCmp('po-file').setValue('');
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error', returnData.msg);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .5,
+                            layout: 'form',
+                            items: [
+                                new Ext.grid.GridPanel({
+                                    id: 'files-grid',
+                                    iconCls: 'silk-grid',
+                                    height: 100,
+                                    style: 'margin-left: 5px',
+                                    store: storeFile,
+                                    trackMouseOver: true,
+                                    view: new Ext.grid.GridView({
+                                        forceFit: true
+                                    }),
+                                    columns: fileColumns
+                                })
+                            ]
+                        }
+                    ]
+                }
+
+            ],
+            buttons: []
+        });
+
+<?php
+if ($this->json != '') {
+    ?>
+            var jsonFile = <?php echo $this->file ?>;
+
+            storeFile.loadData(jsonFile);
+            Ext.getCmp('files-grid').getView().refresh();
+
+            var data = <?php echo $this->json ?>;
+
+            Ext.getCmp('stat_supp').setValue(data[0].status);
+            Ext.getCmp('nama_text').setValue(data[0].nama);
+            Ext.getCmp('address_text').setValue(data[0].alamat);
+            Ext.getCmp('address2_text').setValue(data[0].alamat2);
+            Ext.getCmp('city_text').setValue(data[0].city);
+            Ext.getCmp('country_text').setValue(data[0].country);
+            Ext.getCmp('telp_text').setValue(data[0].telp);
+            Ext.getCmp('fax_text').setValue(data[0].fax);
+            Ext.getCmp('contact_text').setValue(data[0].contact);
+            Ext.getCmp('bank_text').setValue(data[0].bank);
+            Ext.getCmp('account_name_text').setValue(data[0].account_name);
+            Ext.getCmp('account_number_text').setValue(data[0].account_no);
+            Ext.getCmp('type_supp').setValue(data[0].type);
+            Ext.getCmp('ket_text').setValue(data[0].ket);
+
+            Ext.getCmp('email_text').setValue(data[0].email);
+            Ext.getCmp('thn_berdiri_text').setValue(data[0].thn_berdiri);
+            Ext.getCmp('thn_operasi_text').setValue(data[0].thn_operasi);
+            Ext.getCmp('branch_text').setValue(data[0].branch_total);
+            Ext.getCmp('scale').setValue(data[0].scale);
+            Ext.getCmp('list_branch_text').setValue(data[0].branch_list);
+            Ext.getCmp('total_employee_text').setValue(data[0].total_employee);
+
+    <?php
+}
+?>
+
+    });
+</script>
+<div id="form_file"></div>
+<div id="user-form"></div>

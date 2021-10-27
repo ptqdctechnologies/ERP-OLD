@@ -1,0 +1,185 @@
+<script type="text/javascript">
+
+   Ext.onReady(function(){
+
+       Ext.QuickTips.init();
+
+       function showlistsspecsupp()
+       {
+            var specsuppstore = new Ext.data.Store ({
+
+                autoLoad:true,
+                url:'/logistic/logisticspecsupplier/getspecsupp',
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id'
+                    },{
+                        name:'subjenisupplier'
+                    },{
+                        name:'subjenissupliernama'
+                    }]
+                })
+
+
+            })
+
+            var specsuppgrid = new Ext.grid.GridPanel ({
+
+                store:specsuppstore,
+                height:300,
+                width:488,
+                columns:[{
+                    header:'ID',
+                    dataIndex:'id',
+                    width:40
+                },{
+                    header:'Supplier Specialist',
+                    dataIndex:'subjenisupplier',
+                    sortable:true,
+                    width:120
+                },{
+                    header:'Supplier Specialist Name',
+                    dataIndex:'subjenissupliernama',
+                    sortable:true,
+                    width:340
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-specsupp',
+                    pageSize: 20,
+                    store: specsuppstore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+
+                        var specsupp = gridaktif.getStore().getAt(rowIndex);
+
+                        Ext.getCmp('supp-spec-id').setValue(specsupp.get('id'));
+                        Ext.getCmp('supp-spec').setValue(specsupp.get('subjenisupplier'));
+                        Ext.getCmp('supp-spec-name').setValue(specsupp.get('subjenissupliernama'));
+
+                        specsuppwindow.close();
+                    }
+                }
+
+
+
+            })
+
+           var specsuppwindow = new Ext.Window ({
+
+                title:'Supplier Specialist List',
+                id:'supp-spec-list',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask:true,
+                items:[specsuppgrid]
+
+           })
+
+           specsuppwindow.show();
+       }
+
+       var edittypesupp = new Ext.form.FormPanel ({
+
+            title:'Edit Existing Specialist Supplier',
+            id:'edit-spec-supplier',
+            renderTo:'edit_spec_supp',
+            iconCls: 'silk-user',
+            frame: true,
+            width:370,
+            labelWidth:150,
+            items:[{
+                xtype:'hidden',
+                id:'supp-spec-id'
+            },{
+                xtype:'trigger',
+                fieldLabel:'Supplier Specialist ',
+                id:'supp-spec',
+                msgTarget:'side',
+                width:180,
+                allowBlank:false,
+                triggerClass: 'teropong',
+                onTriggerClick:function()
+                {
+                    showlistsspecsupp();
+                }
+            },{
+                xtype:'textfield',
+                fieldLabel:'Supplier Specialist Name ',
+                id:'supp-spec-name',
+                msgTarget:'side',
+                width:180,
+                allowBlank:false
+            }],
+           buttons:[{
+               text:'Update',
+               handler:function(btn,ev)
+               {
+                    if(!Ext.getCmp('edit-spec-supplier').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please fill in all required fields');
+                        return false;
+                    }
+
+                    var id = Ext.getCmp('supp-spec-id').getValue();
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('edit-spec-supplier').getForm().submit({
+
+                        method:'POST',
+                        url:'/logistic/logisticspecsupplier/doupdatespecsupp/id/' + id,
+                        success:function(thisForm,response)
+                        {
+                            Ext.getBody().unmask();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/logistic/logisticspecsupplier/specsupplier',
+                                scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+               }
+           },{
+               text:'Cancel',
+               handler:function(btn,ev)
+               {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/logistic/logisticspecsupplier/specsupplier',
+                        scripts : true
+                    });
+               }
+           }]
+
+       })
+
+
+
+   })
+
+
+</script>
+
+    <div id="edit_spec_supp"></div>
+

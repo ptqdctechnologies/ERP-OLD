@@ -1,0 +1,280 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    var RPI_Header = null;
+    var summary = new Ext.ux.grid.GridSummary();
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        }
+    });
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method:'POST',
+            success: function(result, request){
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if(returnData.success) {
+                    Ext.getCmp('rateidr').setValue(returnData.rate);
+                }
+            }
+            ,failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+
+    var loadPO = function(trano){
+        Ext.Ajax.request({
+            url: '/procurement/purchaseorder/get-detail',
+            method:'POST',
+            params: {
+                trano: trano
+            },
+            success: function(result, request){
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if(returnData.success) {
+//                    formpanel.findById('total_po').setValue(Ext.util.Format.number(returnData.data.total,'0,0.00'));
+                    Ext.getCmp('total_po').setValue(Ext.util.Format.number(returnData.data.total,'0,0.00'));
+                    Ext.getCmp('val_kode').setValue(returnData.data.val_kode);
+                    Ext.getCmp('val_kode2').setValue(returnData.data.val_kode);
+                    Ext.getCmp('prj_kode').setValue(returnData.data.prj_kode);
+                    Ext.getCmp('sit_kode').setValue(returnData.data.sit_kode);
+                    Ext.getCmp('prj_nama').setValue(returnData.data.prj_nama);
+                    Ext.getCmp('sit_nama').setValue(returnData.data.sit_nama);
+                }
+                else
+                {
+                    Ext.Msg.alert("Error",returnData.msg);
+                    return false;
+                }
+            },
+            failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    };
+
+    var uploadFile = new Ext.ux.uploadFile({
+        renderTo: 'upload-file',
+        title: 'Upload Document for this PPN REM',
+        width: 500,
+        frame: true
+    });
+
+    var formpanel = new Ext.form.FormPanel ({
+
+        title:'Edit PPN Reimbursement Form',
+        renderTo:'form-add',
+        frame:true,
+        autoWidth: true,
+        labelWidth: 100,
+        defaults: {
+            anchor: '95%',
+            labelWidth: 150
+        },
+        items:[
+            {
+                xtype: 'fieldset',
+                title: 'Please Fill this Form below',
+                items: [
+                    {
+                        xtype: 'textfield',
+                        readOnly: true,
+                        id: 'trano',
+                        fieldLabel: 'PPN REM Trano'
+                    },
+                    {
+                        xtype: 'textfield',
+                        readOnly: true,
+                        id: 'po_no',
+                        fieldLabel: 'PO Trano'
+                    },
+                    {
+                        xtype: 'compositefield',
+                        fieldLabel: 'Total PO Value',
+                        msgTarget : 'under',
+                        anchor    : '-20',
+                        defaults: {
+                            flex: 1
+                        },
+                        items: [
+                            {
+                                xtype: 'textfield',
+                                width: 150,
+                                id: 'total_po',
+                                readOnly: true,
+                                style: "text-align: right"
+                            },
+                            {
+                                xtype: 'textfield',
+                                width: 40,
+                                id: 'val_kode',
+                                readOnly: true
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'compositefield',
+                        fieldLabel:'Project',
+                        msgTarget : 'under',
+                        anchor    : '-20',
+                        defaults: {
+                            flex: 1
+                        },
+                        items: [
+                            {
+                                xtype: 'textfield',
+                                width: 100,
+                                id: 'prj_kode',
+                                readOnly: true
+                            },
+                            {
+                                xtype: 'textfield',
+                                width: 250,
+                                id: 'prj_nama',
+                                readOnly: true
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'compositefield',
+                        fieldLabel:'Site',
+                        msgTarget : 'under',
+                        anchor    : '-20',
+                        defaults: {
+                            flex: 1
+                        },
+                        items: [
+                            {
+                                xtype: 'textfield',
+                                width: 100,
+                                id: 'sit_kode',
+                                readOnly: true
+                            },
+                            {
+                                xtype: 'textfield',
+                                width: 250,
+                                id: 'sit_nama',
+                                readOnly: true
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'compositefield',
+                        fieldLabel:'PPN Reimbursement Value',
+                        msgTarget : 'under',
+                        anchor    : '-20',
+                        defaults: {
+                            flex: 1
+                        },
+                        items: [
+                            new Ext.ux.customRendererField({
+                                xtype:'textfield',
+                                id:'total',
+                                width: 150,
+                                vtype:'numeric',
+                                style:'text-align:right',
+                                priceDelemiter:',',
+                                allowBlank: false
+                            }),
+                            {
+                                xtype: 'textfield',
+                                width: 40,
+                                id: 'val_kode2',
+                                readOnly: true
+                            }
+                        ]
+                    },
+                    {
+                        xtype: 'textfield',
+                        id: 'faktur_pajak',
+                        width: 250,
+                        fieldLabel: 'Faktur Pajak No.',
+                        allowBlank: false
+                    },
+                    {
+                        xtype: 'textarea',
+                        id: 'ket',
+                        width: 250,
+                        fieldLabel: 'Remark / Description',
+                        allowBlank: false
+                    },
+                    new Ext.ux.customRendererField({
+                        xtype:'textfield',
+                        fieldLabel:'Rate IDR ',
+                        id:'rateidr',
+                        vtype:'numeric',
+                        style:'text-align:right',
+                        priceDelemiter:','
+                    })
+                ]
+            }
+        ],
+        buttons: [
+            {
+                text: 'Submit PPN REM',
+                handler: function(){
+
+                    var data = formpanel.getForm().getValues();
+                    data.total = data.total.toString().replace(/\$|\,/g,'');
+                    data.total_po = data.total_po.toString().replace(/\$|\,/g,'');
+                    data.rateidr = data.rateidr.toString().replace(/\$|\,/g,'');
+                    var params = Ext.util.JSON.encode(data);
+
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/finance/ppn/app-ppn-rem/from/edit',
+                        scripts : true,
+                        params: {
+                            data: params,
+                            file: uploadFile.getJSONFromStore()
+                        }
+                    });
+                }
+            }
+        ]
+    });
+
+    <?php if ($this->data) { ?>
+
+    var total_settle = 0;
+
+    Ext.getCmp('trano').setValue('<?=$this->data['trano']?>');
+    Ext.getCmp('po_no').setValue('<?=$this->data['po_no']?>');
+    Ext.getCmp('total').setValue('<?=$this->data['total']?>');
+    total_settle = <?=($this->data['total_settle'] == '') ? 0 : $this->data['total_settle']?>;
+    loadPO('<?=$this->data['po_no']?>');
+    Ext.getCmp('faktur_pajak').setValue('<?=$this->data['faktur_pajak']?>');
+    Ext.getCmp('ket').setValue('<?=$this->data['ket']?>');
+
+    <?php if ($this->data['rateidr'] == '' || $this->data['rateidr'] == 0) {?>
+    getExchangeRate();
+    <?php } else { ?>
+    Ext.getCmp('rateidr').setValue('<?=$this->data['rateidr']?>');
+    <?php }?>
+
+    var jsonFile = <?=$this->file?>;
+    uploadFile.store.loadData(jsonFile);
+
+    <?php }?>
+
+});
+
+</script>
+<div id="upload-file"></div><br/>
+<div id="form-add"></div><br/>

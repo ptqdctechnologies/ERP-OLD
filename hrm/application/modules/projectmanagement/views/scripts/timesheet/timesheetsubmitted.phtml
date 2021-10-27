@@ -1,0 +1,122 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id'},
+        {name: 'date', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'date_update', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'start', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'end', type: 'date', dateFormat: 'Y-m-d H:i:s'},
+        {name: 'prj_kode', type: 'string'},
+        {name: 'trano', type: 'string'},
+        {name: 'sit_kode', type: 'string'},
+        {name: 'prj_nama', type: 'string'},
+        {name: 'sit_nama', type: 'string'},
+        {name: 'notes', type: 'string'},
+        {name: 'behalfof', type: 'string'},
+        {name: 'hour', type: 'integer'},
+        {name: 'status', type: 'string'},
+        {name: 'workflow_item_id', type: 'string'}
+
+    ]);
+
+    var store = new Ext.data.Store({
+        id: 'draft_list',
+        url: '/projectmanagement/timesheet/getsubmittimesheet',
+        reader: reader
+    });
+
+    store.load();
+
+    var rowactions = new Ext.ux.grid.RowActions({
+    	actions:[
+            {
+                iconCls:'silk-magnifier',
+                qtip:'Show Workflow',
+                id: 'show-workflow',
+                callback: function (grid,record,action,row,col)
+                {
+                    showWorkflow(record.data['prj_kode'],record.data['workflow_item_id']);
+                }
+            }
+        ]
+    	,index: 'actions'
+    	,header: ''
+    	});
+
+    var userColumns = [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: "Trano", width: 110, sortable: true, dataIndex: 'trano'},
+        {header: "Project", width: 70, sortable: true, dataIndex: 'prj_kode',renderer: function(v, p, r){
+            p.attr ='ext:qtip="' + r.data['prj_nama'] + '"';
+            return v;
+        }},
+        {header: "Site", width: 50, sortable: true, dataIndex: 'sit_kode',renderer: function(v, p, r){
+            p.attr ='ext:qtip="' + r.data['sit_nama'] + '"';
+            return v;
+        }},
+        {header: "Date Created", width: 80, sortable: true, dataIndex: 'date',renderer: Ext.util.Format.dateRenderer('d M Y')},
+        {header: "Start Date", width: 120, sortable: true, dataIndex: 'start',renderer: Ext.util.Format.dateRenderer('d M Y H:i:s')},
+        {header: "End Date", width: 120, sortable: true, dataIndex: 'end',renderer: Ext.util.Format.dateRenderer('d M Y H:i:s')},
+        {header: "Hours", width: 70, sortable: true, dataIndex: 'hour',align: 'right',renderer: function(value, p, row){
+                return value + ' Hours';
+        }},
+        {header: "Notes", width: 190, sortable: true, dataIndex: 'notes',renderer: function(v, p, r){
+            p.attr ='ext:qtip="' + v + '"';
+            return v.toString().substr(0,25) + " ...";
+        }},
+        {header: "On Behalf Of", width: 120, sortable: true, dataIndex: 'behalfof'},
+        {header: "Approval Status", width: 200, sortable: true, dataIndex: 'status'}
+    ];
+
+    new Ext.Panel ({
+        id: 'app-center',
+        renderTo: 'submit',
+        title: 'My Submitted Timesheet',
+        stateful: false,
+        frame: true,
+        viewConfig: {
+            forceFit: false
+        },
+        items: [
+            new Ext.grid.GridPanel({
+                id: 'submit-timesheet',
+                stateful: false,
+                height: 400,
+                store: store,
+                columns: userColumns,
+                plugins: [
+                    rowactions,
+                    new Ext.ux.grid.Search({
+                        iconCls:'silk-magnifier',
+                        width: 150,
+                        store: store,
+                        minChars:4,
+                        position: 'top',
+                        autoFocus:true,
+                        mode:'remote'
+        //                disableIndexes:['name','status']
+                    })
+                ],
+                tbar: [],
+                bbar: new Ext.PagingToolbar({
+                    id: 'pagingShowSubmit',
+                    pageSize: 100,
+                    store: store,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            })
+        ]
+
+
+    });
+});
+</script>
+
+        <div id="submit"></div>

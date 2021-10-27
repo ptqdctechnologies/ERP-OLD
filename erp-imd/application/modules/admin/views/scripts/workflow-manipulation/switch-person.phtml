@@ -1,0 +1,270 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        var showLog = function(html)
+        {
+            html = (html==undefined) ? '' : html;
+            var win = new Ext.Window({
+                title: "Operation Logs",
+                height: 400,
+                width: 300,
+                modal: true,
+                items: [
+                    {
+                        autoWidth: true,
+                        bodyStyle: 'padding:5px;',
+                        id:'cancel-message',
+                        height: 330,
+                        autoScroll: true,
+                        html: html
+                    }
+                ],
+                buttons: [
+                    {
+                        text: 'OK',
+                        handler: function()
+                        {
+                            win.close();
+                        }
+                    }
+                ]
+            });
+
+            win.show();
+        }
+
+        var proxy = new Ext.data.HttpProxy({
+            url: '/admin/workflow/listworkflowitem'
+        });
+
+        var reader = new Ext.data.JsonReader({
+            totalProperty: 'count',
+            successProperty: 'success',
+            idProperty: 'workflow_item_id',
+            messageProperty: 'message',
+            root: 'posts'  // <-- New "messageProperty" meta-data
+        }, [
+            {name: 'workflow_item_id'},
+            {name: 'workflow_item_type_id'},
+            {name: 'name'},
+            {name: 'description'},
+            {name: 'workflow_item_type_name'},
+            {name: 'prj_kode'},
+            {name: 'sit_kode'}
+        ]);
+
+        var store = new Ext.data.Store({
+            id: 'user',
+            proxy: proxy,
+            reader: reader,
+            autoLoad: true
+        });
+
+        var sm = new Ext.grid.CheckboxSelectionModel();
+        var userColumns =  [
+            new Ext.grid.RowNumberer(),
+            sm,
+            {header: "Name", width: 140, sortable: true, dataIndex: 'name'},
+            {header: "Workflow Type", width: 140, sortable: true, dataIndex: 'workflow_item_type_name'},
+            {header: "Project Code", width: 80, sortable: true, dataIndex: 'prj_kode'}
+        ];
+
+        var grids = new Ext.grid.GridPanel({
+            store: store,
+            columns : userColumns,
+            height: 300,
+            sm: sm,
+            hidden: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            listeners: {
+            }
+        });
+
+        var form = new Ext.form.FormPanel({
+            title: 'Switch Person From Workflow',
+            width: 500,
+            autoHeight: true,
+            frame: true,
+            defaults: {
+                labelWidth: 120
+            },
+            renderTo: 'form-workflow',
+            items:[
+                {
+                    fieldLabel: 'Workflow Type',
+                    name: 'workflow_item_type_id',
+                    id: 'workflow_item_type_id',
+                    editable: false,
+                    xtype: 'combo',
+                    triggerAction: 'all',
+                    mode: 'remote',
+                    displayField: 'name',
+                    valueField: 'workflow_item_type_id',
+                    store: new Ext.data.JsonStore({
+                        autoLoad: true,
+                        url: '/admin/workflow/listworkflowitemtype',
+                        root: 'posts',
+                        fields:[
+                            { name: "name"},{ name: "workflow_item_type_id"}
+                        ]
+                    }),
+                    listeners: {
+                        select: function(t,rec) {
+                            if (!grids.isVisible())
+                            {
+                                store.setBaseParam('search',Ext.getCmp('workflow_item_type_id').getRawValue());
+                                store.setBaseParam('option',2);
+                                store.reload();
+                                grids.getSelectionModel().clearSelections();
+                            }
+                        }
+                    }
+                },
+                {
+                    fieldLabel: 'Target Person',
+                    xtype: 'userselector',
+                    id: 'users',
+                    ShowName: false,
+                    UserSelectid: 'uid',
+                    width: 200
+                },
+                {
+                    fieldLabel: 'Replace Person',
+                    xtype: 'userselector',
+                    id: 'users_replace',
+                    ShowName: false,
+                    UserSelectid: 'uid_replace',
+                    width: 200
+                },
+                {
+                    fieldLabel: 'Replace Person Role',
+                    id: 'users_replace_role',
+                    xtype: 'roleselector',
+                    Selectid: 'users_replace_role_name'
+                },
+                {
+                    xtype:'combo',
+                    fieldLabel: 'Affected Projects',
+                    id:'option-project',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['name'],
+                        data:[
+                            ['All'],
+                            ['Choose Project']
+                        ]
+                    }),
+                    valueField:'name',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'All',
+                    listeners: {
+                        select: function(t,rec){
+                            if (rec.data['name'] != 'All')
+                            {
+                                grids.show();
+                                store.setBaseParam('search',Ext.getCmp('workflow_item_type_id').getRawValue());
+                                store.setBaseParam('option',2);
+                                store.reload();
+                                grids.getSelectionModel().clearSelections();
+                            }
+                            else
+                            {
+                                grids.hide();
+                            }
+                        }
+                    }
+                },
+                grids
+            ],
+            buttons: [
+                {
+                    text: 'Process',
+                    handler: function()
+                    {
+                        var stores = grids.getSelectionModel().getSelections(),
+                            uid = Ext.getCmp('users').getUid(),
+                            uidR = Ext.getCmp('users_replace').getUid(),
+                            username = Ext.getCmp('users').getUserName(),
+                            usernameR = Ext.getCmp('users_replace').getUserName(),
+                            choose = Ext.getCmp('option-project').getValue(),
+                            wType = Ext.getCmp('workflow_item_type_id').getValue(),
+                            roleReplace = Ext.getCmp('users_replace_role').getRoleId(),
+                            wTypeName = Ext.getCmp('workflow_item_type_id').getRawValue();
+
+                        var json = '';
+                        if (choose != 'All')
+                        {
+                            if (stores == undefined || stores == '')
+                            {
+                                Ext.Msg.alert('Error', "Workflow is not Selected");
+                                return false;
+                            }
+
+                            Ext.each(stores,function(store){
+                                json += Ext.util.JSON.encode(store.data) + ',';
+                            });
+                            json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                        }
+
+                        Ext.Msg.confirm('Confirmation','Are You sure to switch <b>'+ username + '</b> to <b>' + usernameR + '</b> for workflow : ' + wTypeName + ' ?<br><b>NOTICE : If Replacement Person doesnt have Role on Project Destination, System will create new Role.</b>',function(btn){
+                            if (btn == 'yes'){
+                                showProgressBar();
+                                Ext.Ajax.request({
+                                    url: '/admin/workflow-manipulation/do-switch-person',
+                                    params: {
+                                        json: json,
+                                        uid: uid,
+                                        uid_replace: uidR,
+                                        id_role_replace: roleReplace,
+                                        workflow_type_id: wType
+                                    },
+                                    method:'POST',
+                                    success: function(resp){
+                                        var result = Ext.util.JSON.decode(resp.responseText);
+                                        closeProgressBar();
+                                        if (result.success == true)
+                                        {
+                                            grids.getSelectionModel().clearSelections();
+                                            form.getForm().reset();
+                                            showLog(result.log);
+                                        }
+                                        else
+                                        {
+                                            if(result.log != undefined)
+                                                showLog(result.log);
+                                            else
+                                                Ext.Msg.alert("Error","Theres Error while processing on Your request.");
+                                        }
+                                    },
+                                    failure:function( action){
+                                        closeProgressBar();
+                                        if(action.failureType == 'server'){
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+    });
+</script>
+<div id="form-workflow"></div>

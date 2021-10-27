@@ -1,0 +1,123 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        
+        var satuanstore = new Ext.data.Store ({
+
+            url:'/logistic/logisticsatuan/getsatuan',
+            autoLoad:true,
+
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+                },[
+                {name:'sat_kode',type:'String'},
+                {name:'sat_nama',type:'String'},
+                {name:'ket',type:'String'}
+
+            ])
+
+
+        })
+
+        searchData = function()
+        {
+            var docs = Ext.getCmp('document-text').getValue();
+            satuanstore.proxy.setUrl('/logistic/logisticsatuan/getsatuan/search/' + docs);
+            satuanstore.reload();
+
+            grid.getView().refresh();
+        }
+
+        refreshData = function()
+        {
+            satuanstore.clearFilter();
+            Ext.getCmp('document-text').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+
+
+        var grid = new Ext.grid.GridPanel({
+
+            store:satuanstore,
+
+            viewConfig:{
+                forceFit:true
+                },
+
+
+            title: 'View Satuan',
+            renderTo:'grid',
+            height: 314,
+            width: 600,
+            columns:[
+                {
+                    header:'UOM Code',
+                    dataIndex:'sat_kode',
+                    width:80,
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'UOM Name',
+                    dataIndex:'sat_nama',
+                    width:120,
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'UOM Description',
+                    dataIndex:'ket',
+                    width:160,
+                    align:'center',
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar({
+            id: 'paging',
+            pageSize: 10,
+            store: satuanstore,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+            }),
+            tbar: [
+				{
+					text: 'UOM Name',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					xtype: 'textfield',
+					id: 'document-text'
+				},
+				{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchData,
+				    scope: this
+				},
+                '-',
+                {
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+				},
+                '-',
+                {
+					text: '',
+					xtype:'label',
+				    style: 'margin-right: 5px',
+                    id:'label-last-upd'
+				}
+               ]
+
+
+        })
+
+    })
+
+
+</script>
+
+    <div id="grid"></div>

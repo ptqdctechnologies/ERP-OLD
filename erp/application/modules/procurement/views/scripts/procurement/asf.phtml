@@ -1,0 +1,1520 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+        function showAsf(asfNum)
+        {
+            var bForm = new Ext.Window ({
+           	 id: 'b-form-panel-trano_button',
+  		    layout:'fit',
+  		    width: 300,
+  		    height: 100,
+  		    style: 'margin-top: 10px',
+  		    labelAlign: 'right',
+  		    stateful: false,
+            modal : true,
+  		    items : [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'ASF Number',
+								    id : 'asf_no_text',
+								    xtype: 'trigger',
+					                allowBlank: false,
+					                editable : false,
+                                    
+					                value: asfNum,
+								    onTriggerClick:
+					                    function ()
+					                    {
+					        				bForm.close();
+											showAsfList();
+					                    },
+					            	scope: this,
+					            	width: 150
+						    	}]
+						})
+ 		  		    ],
+ 	 		  		 buttons: [
+ 	 			              {
+ 	 		 			         text: 'Edit',
+ 	 		 			         id: 'save-to-pr',
+ 	 		 			         iconCls: 'silk-upd',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			        var asfnum = Ext.getCmp('asf_no_text').getValue();
+ 	 			 			        if (asfnum != undefined && asfnum != "")
+ 	 			 			        {
+                                       Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/ASF/trano/' + asfnum,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                myPanel.body.load({
+                                                    url: '/procurement/procurement/editasf/trano/' + asfnum,
+                                                    scripts : true
+                                                  });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+ 	 			 			        bForm.close();
+                                    }
+                                    else
+                                   {
+                                        Ext.Msg.alert('Error!', 'Please select transaction number!');
+                                   }
+                                }
+ 	 			              },
+ 	 			              {
+ 	 		 			         text: 'Cancel',
+ 	 		 			         id: 'cancel',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			         bForm.close();
+ 	 				              }
+
+ 	 			              }
+
+
+ 	 				  		    ]
+ 	 			});
+
+ 	 			bForm.show();
+ 	 		}
+
+ 		function showAsfList()
+ 		{
+ 			var columns = [ {header:'Trano',width:110,sortable:true,dataIndex:'trano'},
+  			               {header:'ARF number',width:100,sortable:true,dataIndex:'arf_no'},
+ 		                    {header:'Project ID',width:85,sortable:true,dataIndex:'prj_kode'},
+ 		                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+ 		                    {header:'Site Code',width:45,sortable:true,dataIndex:'sit_kode'},
+ 		                    {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+ 		                ];
+
+ 		    urlJson = '/asfh/list/type/P';
+ 		    data =  [
+ 		            {name: 'trano', mapping: 'trano'},
+ 		            {name: 'arf_no', mapping: 'arf_no'},
+ 		            {name: 'prj_kode', mapping: 'prj_kode'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},
+ 		            {name: 'sit_kode', mapping: 'sit_kode'},
+ 		            {name: 'sit_nama', mapping: 'sit_nama'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},];
+ 		    primaryKey = 'trano';
+ 		    Pk = primaryKey;
+ 		    widthGrid = 380;
+ 		    heightGrid = 250;
+
+ 		    var stores = new Ext.data.Store({
+ 		        proxy:new Ext.data.HttpProxy({
+ 		        url: urlJson
+ 		         }),
+ 		        reader: new Ext.data.JsonReader({
+ 		        root: 'posts',
+ 		        totalProperty: 'count'
+ 		    },data)
+ 		        });
+
+  		   yAxis=100;
+		    grids = function()
+		    {
+		        grids.superclass.constructor.call(this, {
+		        store: stores,
+		        columns: columns,
+		        x:0,
+		        y:yAxis,
+		        id:primaryKey+'_grid',
+		        loadMask: true,
+		        bbar:[ new Ext.PagingToolbar({
+		            pageSize: 100,
+		            store: stores,
+		            displayInfo: true,
+		            displayMsg: 'Displaying data {0} - {1} of {2}',
+		            emptyMsg: "No data to display"
+		        })],
+		        height:heightGrid,
+		        width:widthGrid,
+		        listeners: {
+		            'rowdblclick': function(g, rowIndex, e){
+		                            closeForm = false;
+		                            isDblClick = true;
+		                            objectName = 'trano';
+		                            txtBoxChange = 'trano_text';
+		                            closeForm = true;
+		                            formId = 'a-form-panel-trano_button';
+		                            prox = 'trano_proxy';
+		                            gri = 'trano_grid';
+		                            var trano = g.getStore().getAt(rowIndex).get(objectName);
+		                            showAsf(trano);
+	                                Ext.getCmp('asf_no_text').setValue(trano);
+	                                aForm.close();
+									window.setTimeout(function(){
+	                                        isDblClick = false;
+	                                }, 0);
+	                        }
+	                }
+	        });
+	        }
+	        stores.load();
+	        Ext.extend(grids, Ext.grid.GridPanel);
+	        Ext.extend(txtboks,Ext.form.TextField);//PR
+	        searchTrano = function(field,e){
+	            newUrl = '/asfh/listByParams/type/P/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchArfno = function(field,e){
+	            newUrl = '/asfh/listByParams/type/P/name/arf_no/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchPrj_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/type/P/groupby/true/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+	        searchSit_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/type/P/site/true/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+
+	        var aForm =  new Ext.Window({
+	        id: 'a-form-panel-trano_button',
+	        layout: 'absolute',
+	        minWidth: 300,
+	        minHeight: 200,
+	        stateful:false,
+	        width: 400,
+	        height: 400,
+	        items : [
+	            {
+	            x: 6,
+	            y: 12,
+	            xtype: 'label',
+	            text: 'ASF Number'
+	            },
+	           new txtboks(80,10,80,'trans_no',searchTrano),
+	           {
+		            x: 165,
+		            y: 12,
+		            xtype: 'label',
+		            text: 'ARF Number'
+		            },
+		           new txtboks(240,10,80,'pr_no',searchArfno),
+	           {
+	               x : 6,
+	               y: 52,
+	               xtype: 'label',
+	               text: 'Project Code'
+	               },
+	              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+	           {
+	                 x: 165,
+	                 y: 52,
+	            	xtype: 'label',
+	                text: 'Site Code'
+	                  },
+	                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+	             {
+	            x: 384,
+	            y: 12,
+	            xtype: 'label',
+	            text: ''
+	            }
+	            ,new grids('pr_list')
+	        ]
+
+	      });
+	      aForm.title = 'Choose No Trans';
+	      aForm.show();
+
+ 		}
+
+    function showAsfOverhead(asfNum)
+        {
+            var bForm = new Ext.Window ({
+           	 id: 'b-form-panel-trano_button',
+  		    layout:'fit',
+  		    width: 340,
+  		    height: 100,
+  		    style: 'margin-top: 10px',
+  		    labelAlign: 'right',
+  		    stateful: false,
+            modal : true,
+  		    items : [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth: 150,
+						items: [{
+								    fieldLabel : 'ASF Number (Overhead)',
+								    id : 'asf_no_text',
+								    xtype: 'trigger',
+					                allowBlank: false,
+					                editable : false,
+
+					                value: asfNum,
+								    onTriggerClick:
+					                    function ()
+					                    {
+					        				bForm.close();
+											showAsfOverheadList();
+					                    },
+					            	scope: this,
+					            	width: 150
+						    	}]
+						})
+ 		  		    ],
+ 	 		  		 buttons: [
+ 	 			              {
+ 	 		 			         text: 'Edit',
+ 	 		 			         id: 'save-to-pr',
+ 	 		 			         iconCls: 'silk-upd',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			        var asfnum = Ext.getCmp('asf_no_text').getValue();
+ 	 			 			        if (asfnum != undefined && asfnum != "")
+ 	 			 			        {
+                                       Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/ASF/trano/' + asfnum,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                myPanel.body.load({
+                                                    url: '/procurement/procurement/editasfbudget/trano/' + asfnum,
+                                                    scripts : true
+                                                  });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+ 	 			 			        bForm.close();
+                                    }
+                                    else
+                                   {
+                                        Ext.Msg.alert('Error!', 'Please select transaction number!');
+                                   }
+                                }
+ 	 			              },
+ 	 			              {
+ 	 		 			         text: 'Cancel',
+ 	 		 			         id: 'cancel',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			         bForm.close();
+ 	 				              }
+
+ 	 			              }
+
+
+ 	 				  		    ]
+ 	 			});
+
+ 	 			bForm.show();
+ 	 		}
+
+ 		function showAsfOverheadList()
+ 		{
+ 			var columns = [ {header:'Trano',width:110,sortable:true,dataIndex:'trano'},
+  			               {header:'ARF number',width:100,sortable:true,dataIndex:'arf_no'},
+ 		                    {header:'Project ID',width:85,sortable:true,dataIndex:'prj_kode'},
+ 		                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+ 		                    {header:'Site Code',width:45,sortable:true,dataIndex:'sit_kode'},
+ 		                    {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+ 		                ];
+
+ 		    urlJson = '/asfh/list/type/O';
+ 		    data =  [
+ 		            {name: 'trano', mapping: 'trano'},
+ 		            {name: 'arf_no', mapping: 'arf_no'},
+ 		            {name: 'prj_kode', mapping: 'prj_kode'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},
+ 		            {name: 'sit_kode', mapping: 'sit_kode'},
+ 		            {name: 'sit_nama', mapping: 'sit_nama'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},];
+ 		    primaryKey = 'trano';
+ 		    Pk = primaryKey;
+ 		    widthGrid = 380;
+ 		    heightGrid = 250;
+
+ 		    var stores = new Ext.data.Store({
+ 		        proxy:new Ext.data.HttpProxy({
+ 		        url: urlJson
+ 		         }),
+ 		        reader: new Ext.data.JsonReader({
+ 		        root: 'posts',
+ 		        totalProperty: 'count'
+ 		    },data)
+ 		        });
+
+  		   yAxis=100;
+		    grids = function()
+		    {
+		        grids.superclass.constructor.call(this, {
+		        store: stores,
+		        columns: columns,
+		        x:0,
+		        y:yAxis,
+		        id:primaryKey+'_grid',
+		        loadMask: true,
+		        bbar:[ new Ext.PagingToolbar({
+		            pageSize: 100,
+		            store: stores,
+		            displayInfo: true,
+		            displayMsg: 'Displaying data {0} - {1} of {2}',
+		            emptyMsg: "No data to display"
+		        })],
+		        height:heightGrid,
+		        width:widthGrid,
+		        listeners: {
+		            'rowdblclick': function(g, rowIndex, e){
+		                            closeForm = false;
+		                            isDblClick = true;
+		                            objectName = 'trano';
+		                            txtBoxChange = 'trano_text';
+		                            closeForm = true;
+		                            formId = 'a-form-panel-trano_button';
+		                            prox = 'trano_proxy';
+		                            gri = 'trano_grid';
+		                            var trano = g.getStore().getAt(rowIndex).get(objectName);
+		                            showAsfOverhead(trano);
+	                                Ext.getCmp('asf_no_text').setValue(trano);
+	                                aForm.close();
+									window.setTimeout(function(){
+	                                        isDblClick = false;
+	                                }, 0);
+	                        }
+	                }
+	        });
+	        }
+	        stores.load();
+	        Ext.extend(grids, Ext.grid.GridPanel);
+	        Ext.extend(txtboks,Ext.form.TextField);//PR
+	        searchTrano = function(field,e){
+	            newUrl = '/asfh/listByParams/type/O/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchArfno = function(field,e){
+	            newUrl = '/asfh/listByParams/type/O/name/arf_no/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchPrj_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/groupby/true/type/O/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+	        searchSit_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/site/true/type/O/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+
+	        var aForm =  new Ext.Window({
+	        id: 'a-form-panel-trano_button',
+	        layout: 'absolute',
+	        minWidth: 300,
+	        minHeight: 200,
+	        stateful:false,
+	        width: 400,
+	        height: 400,
+	        items : [
+	            {
+	            x: 6,
+	            y: 12,
+	            xtype: 'label',
+	            text: 'ASF Number'
+	            },
+	           new txtboks(80,10,80,'trans_no',searchTrano),
+	           {
+		            x: 165,
+		            y: 12,
+		            xtype: 'label',
+		            text: 'ARF Number'
+		            },
+		           new txtboks(240,10,80,'pr_no',searchArfno),
+	           {
+	               x : 6,
+	               y: 52,
+	               xtype: 'label',
+	               text: 'Project Code'
+	               },
+	              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+	           {
+	                 x: 165,
+	                 y: 52,
+	            	xtype: 'label',
+	                text: 'Site Code'
+	                  },
+	                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+	             {
+	            x: 384,
+	            y: 12,
+	            xtype: 'label',
+	            text: ''
+	            }
+	            ,new grids('pr_list')
+	        ]
+
+	      });
+	      aForm.title = 'Choose No Trans';
+	      aForm.show();
+
+ 		}
+
+    function showAsfSales(asfNum)
+        {
+            var bForm = new Ext.Window ({
+           	 id: 'b-form-panel-trano_button',
+  		    layout:'fit',
+  		    width: 340,
+  		    height: 100,
+  		    style: 'margin-top: 10px',
+  		    labelAlign: 'right',
+  		    stateful: false,
+            modal : true,
+  		    items : [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth: 150,
+						items: [{
+								    fieldLabel : 'ASF Number (Sales)',
+								    id : 'asf_no_text',
+								    xtype: 'trigger',
+					                allowBlank: false,
+					                editable : false,
+
+					                value: asfNum,
+								    onTriggerClick:
+					                    function ()
+					                    {
+					        				bForm.close();
+											showAsfSalesList();
+					                    },
+					            	scope: this,
+					            	width: 150
+						    	}]
+						})
+ 		  		    ],
+ 	 		  		 buttons: [
+ 	 			              {
+ 	 		 			         text: 'Edit',
+ 	 		 			         id: 'save-to-pr',
+ 	 		 			         iconCls: 'silk-upd',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			        var asfnum = Ext.getCmp('asf_no_text').getValue();
+ 	 			 			        if (asfnum != undefined && asfnum != "")
+ 	 			 			        {
+                                       Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/ASF/trano/' + asfnum,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                myPanel.body.load({
+                                                    url: '/procurement/procurement/editasfsales/trano/' + asfnum,
+                                                    scripts : true
+                                                  });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+ 	 			 			        bForm.close();
+                                    }
+                                    else
+                                   {
+                                        Ext.Msg.alert('Error!', 'Please select transaction number!');
+                                   }
+                                }
+ 	 			              },
+ 	 			              {
+ 	 		 			         text: 'Cancel',
+ 	 		 			         id: 'cancel',
+ 	 		 			         handler: function(btn, ev) {
+ 	 			 			         bForm.close();
+ 	 				              }
+
+ 	 			              }
+
+
+ 	 				  		    ]
+ 	 			});
+
+ 	 			bForm.show();
+ 	 		}
+
+ 		function showAsfSalesList()
+ 		{
+ 			var columns = [ {header:'Trano',width:110,sortable:true,dataIndex:'trano'},
+  			               {header:'ARF number',width:100,sortable:true,dataIndex:'arf_no'},
+ 		                    {header:'Project ID',width:85,sortable:true,dataIndex:'prj_kode'},
+ 		                    {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+ 		                    {header:'Site Code',width:45,sortable:true,dataIndex:'sit_kode'},
+ 		                    {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+ 		                ];
+
+ 		    urlJson = '/asfh/list/type/S';
+ 		    data =  [
+ 		            {name: 'trano', mapping: 'trano'},
+ 		            {name: 'arf_no', mapping: 'arf_no'},
+ 		            {name: 'prj_kode', mapping: 'prj_kode'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},
+ 		            {name: 'sit_kode', mapping: 'sit_kode'},
+ 		            {name: 'sit_nama', mapping: 'sit_nama'},
+ 		            {name: 'prj_nama', mapping: 'prj_nama'},];
+ 		    primaryKey = 'trano';
+ 		    Pk = primaryKey;
+ 		    widthGrid = 380;
+ 		    heightGrid = 250;
+
+ 		    var stores = new Ext.data.Store({
+ 		        proxy:new Ext.data.HttpProxy({
+ 		        url: urlJson
+ 		         }),
+ 		        reader: new Ext.data.JsonReader({
+ 		        root: 'posts',
+ 		        totalProperty: 'count'
+ 		    },data)
+ 		        });
+
+  		   yAxis=100;
+		    grids = function()
+		    {
+		        grids.superclass.constructor.call(this, {
+		        store: stores,
+		        columns: columns,
+		        x:0,
+		        y:yAxis,
+		        id:primaryKey+'_grid',
+		        loadMask: true,
+		        bbar:[ new Ext.PagingToolbar({
+		            pageSize: 100,
+		            store: stores,
+		            displayInfo: true,
+		            displayMsg: 'Displaying data {0} - {1} of {2}',
+		            emptyMsg: "No data to display"
+		        })],
+		        height:heightGrid,
+		        width:widthGrid,
+		        listeners: {
+		            'rowdblclick': function(g, rowIndex, e){
+		                            closeForm = false;
+		                            isDblClick = true;
+		                            objectName = 'trano';
+		                            txtBoxChange = 'trano_text';
+		                            closeForm = true;
+		                            formId = 'a-form-panel-trano_button';
+		                            prox = 'trano_proxy';
+		                            gri = 'trano_grid';
+		                            var trano = g.getStore().getAt(rowIndex).get(objectName);
+		                            showAsfSales(trano);
+	                                Ext.getCmp('asf_no_text').setValue(trano);
+	                                aForm.close();
+									window.setTimeout(function(){
+	                                        isDblClick = false;
+	                                }, 0);
+	                        }
+	                }
+	        });
+	        }
+	        stores.load();
+	        Ext.extend(grids, Ext.grid.GridPanel);
+	        Ext.extend(txtboks,Ext.form.TextField);//PR
+	        searchTrano = function(field,e){
+	            newUrl = '/asfh/listByParams/type/S/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchArfno = function(field,e){
+	            newUrl = '/asfh/listByParams/type/S/name/arf_no/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	        };
+	        searchPrj_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/groupby/true/type/S/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+	        searchSit_kode = function(field,e){
+	            newUrl = '/asfh/listByParams/site/true/type/S/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+	            gri = Pk+'_grid';
+	            proxies = Ext.getCmp(gri).getStore();
+	            proxies.proxy = new Ext.data.HttpProxy( {
+	                url: newUrl
+	                 });
+	            Ext.getCmp(gri).getStore().reload();
+	    };
+
+	        var aForm =  new Ext.Window({
+	        id: 'a-form-panel-trano_button',
+	        layout: 'absolute',
+	        minWidth: 300,
+	        minHeight: 200,
+	        stateful:false,
+	        width: 400,
+	        height: 400,
+	        items : [
+	            {
+	            x: 6,
+	            y: 12,
+	            xtype: 'label',
+	            text: 'ASF Number'
+	            },
+	           new txtboks(80,10,80,'trans_no',searchTrano),
+	           {
+		            x: 165,
+		            y: 12,
+		            xtype: 'label',
+		            text: 'ARF Number'
+		            },
+		           new txtboks(240,10,80,'pr_no',searchArfno),
+	           {
+	               x : 6,
+	               y: 52,
+	               xtype: 'label',
+	               text: 'Project Code'
+	               },
+	              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+	           {
+	                 x: 165,
+	                 y: 52,
+	            	xtype: 'label',
+	                text: 'Site Code'
+	                  },
+	                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+	             {
+	            x: 384,
+	            y: 12,
+	            xtype: 'label',
+	            text: ''
+	            }
+	            ,new grids('pr_list')
+	        ]
+
+	      });
+	      aForm.title = 'Choose No Trans';
+	      aForm.show();
+
+ 		}
+
+    function showSettlementChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 320,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth:130,
+						items: [{
+								    fieldLabel : 'Settlement Number',
+								    id : 'payment_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showSettlementList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var payno = Ext.getCmp('payment_no_text').getValue();
+		 			        if (payno != undefined)
+		 			        {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/payment/editsettledasf/trano/' + payno,
+                                    scripts : true
+                                  });
+
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showSettlementList()
+    {
+        var columns = [ {header:'Settlement Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Document Number',width:100,sortable:true,dataIndex:'doc_trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                    ];
+
+        urlJson = '/finance/payment/settledasflist';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'doc_trano', mapping: 'doc_trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'},];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showSettlementChoose(trano);
+                                Ext.getCmp('payment_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/finance/payment/settledasflistbyparam/name/trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchDocNo = function(field,e){
+            newUrl = '/finance/payment/settledasflistbyparam/name/doc_trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/finance/payment/settledasflistbyparam/name/prj_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/finance/payment/settledasflistbyparam/name/sit_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'No Document'
+                  },
+                 new txtboks(240,10,80,'doc_trano',searchDocNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    function showCancelSettlementChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 320,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth:130,
+						items: [{
+								    fieldLabel : 'Settlement Number',
+								    id : 'payment_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showCancelSettlementList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var payno = Ext.getCmp('payment_no_text').getValue();
+		 			        if (payno != undefined)
+		 			        {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/finance/payment/editsettledcancelasf/trano/' + payno,
+                                    scripts : true
+                                  });
+
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showCancelSettlementList()
+    {
+        var columns = [ {header:'Settlement Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Document Number',width:100,sortable:true,dataIndex:'doc_trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                    ];
+
+        urlJson = '/finance/payment/settledasfcancellist';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'doc_trano', mapping: 'doc_trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'},];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showCancelSettlementChoose(trano);
+                                Ext.getCmp('payment_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/finance/payment/settledasfcancellistbyparam/name/trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchDocNo = function(field,e){
+            newUrl = '/finance/payment/settledasfcancellistbyparam/name/doc_trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/finance/payment/settledasfcancellistbyparam/name/prj_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/finance/payment/settledasfcancellistbyparam/name/sit_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'No Document'
+                  },
+                 new txtboks(240,10,80,'doc_trano',searchDocNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+
+    showAddASF = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/procurement/procurement/addasf',
+	        scripts : true
+        });
+	};
+
+    showAddASFBudget = function (){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/procurement/procurement/addasfbudget',
+            scripts: true
+        });
+    };
+
+    showAddASFSales = function (){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/procurement/procurement/addasfsales',
+            scripts: true
+        });
+    };
+
+	showEditASF = function(){
+	    showAsf();
+       
+	};
+
+    showEditASFOverhead = function(){
+	    showAsfOverhead();
+
+	};
+
+    showEditASFSales = function(){
+	    showAsfSales();
+	};
+
+	showAppASF = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/ASF',
+	        scripts : true
+        });
+	};
+
+    showAllARF = function (){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/procurement/procurement/allarf',
+            scripts: true
+        });
+    };
+
+     showSettledASF = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/finance/payment/settledasf',
+	        scripts : true
+        });
+	};
+
+    showEditSettlementASF = function(){
+         showSettlementChoose();
+        };
+
+    showSettledCancelASF = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/finance/payment/settledcancelasf',
+	        scripts : true
+        });
+	};
+
+    showEditSettlementCancelASF = function(){
+         showCancelSettlementChoose();
+        };
+
+
+    showAddASFPulsa = function(){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/procurement/asf-pulsa/add',
+            scripts : true
+        });
+    };
+    var windowForm =  ({
+
+    title: 'Advance Settlement Form Transaction',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+			
+			    items: [
+                //        {
+                  //          id:'asf_pool_button',
+                    //        text:'Pool ARF',
+                      //      cls:'x-btn-text-icon',
+                        //    icon:"/images/list.png",
+                          //  handler:showAllARF
+                       // },
+						{
+						    id: 'asf_add_button',
+						    text: 'Create ASF',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddASF
+						}
+						,
+                        {
+                            id:'asf_add_overhead_button',
+                            text:'Create New ASF (Overhead)',
+                            cls:'x-btn-text-icon',
+                            icon:"/images/icons/fam/action_paste.gif",
+				            handler:showAddASFBudget
+                            },
+                        {
+                            id:'asf_add_sales_button',
+                            text:'Create New ASF (Sales)',
+                            cls:'x-btn-text-icon',
+                            icon:"/images/icons/fam/action_paste.gif",
+				            handler:showAddASFSales
+                            },
+                        {
+						    id: 'asf_edit_button',
+						    text: 'Edit Existing ASF',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditASF
+						},
+                        {
+						    id: 'asf_edit_overhead_button',
+						    text: 'Edit Existing ASF (Overhead)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditASFOverhead
+						},
+                        {
+						    id: 'asf_edit_sales_button',
+						    text: 'Edit Existing ASF (Sales)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditASFSales
+						},
+                        '-',
+                        {
+                            id: 'asf_pulsa_button',
+                            text: 'Create New ASF Pulsa/Voucher',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:showAddASFPulsa
+                        },
+                        '-',
+//                        {
+//						    id: 'asf_app_button',
+//						    text: 'Verify & Approval',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/page_script.gif",
+//						    handler:showAppASF
+//						},{
+//						    id: 'asf_settled_button',
+//						    text: 'Close Settlement',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/money.png",
+//						    handler:showSettledASF
+//						},{
+//                            id: 'asf_edit_settled_button',
+//                            text: 'Edit Close Settlement',
+//                            cls:"x-btn-text-icon" ,
+//                            icon:"/images/money.png",
+//                            handler:showEditSettlementASF
+//                        },{
+//						    id: 'asf_settledcancel_button',
+//						    text: 'Return Settlement',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/money.png",
+//						    handler:showSettledCancelASF
+//						},{
+//                            id: 'asf_edit_settledcancel_button',
+//                            text: 'Edit Return Settlement',
+//                            cls:"x-btn-text-icon" ,
+//                            icon:"/images/money.png",
+//                            handler:showEditSettlementCancelASF
+//                        }
+
+						]
+				}
+			}
+         ]
+    });
+    
+//    function getExchangeRate()
+//    {
+//        Ext.Ajax.request({
+//            url: '/default/valuta/getexchangerate/val_kode/USD',
+//            method: 'POST',
+//            success: function(result, request) {
+//                var returnData = Ext.util.JSON.decode(result.responseText);
+//                if (returnData.success) {
+//                    if(returnData.rate == 0)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR,
+//                            fn:function(){window.location='';}
+//                        });
+//                    }
+//                    
+//                    Ext.getCmp('rateidr').setValue(returnData.rate);
+//                }
+//            }
+//            , failure: function(action) {
+//                if (action.failureType == 'server') {
+//                    obj = Ext.util.JSON.decode(action.response.responseText);
+//                    Ext.Msg.alert('Error!', obj.errors.reason);
+//                }
+//            }
+//        });
+//    }
+//    getExchangeRate();
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+myPanel = Ext.getCmp('abs-budget-panel');
+//panel default di blank in dulu
+//myPanel.body.load({
+ //   url: '/procurement/procurement/allarf',
+  //  scripts: true
+//});
+        showSubmenu('abs-budget-panel');
+});
+</script>

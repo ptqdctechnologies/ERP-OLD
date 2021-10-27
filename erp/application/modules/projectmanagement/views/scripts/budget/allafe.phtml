@@ -1,0 +1,168 @@
+<script type="text/javascript">
+
+    function goToPO (trano){
+    	    myPanel = Ext.getCmp('abs-budget-panel');
+    	    myPanel.body.load({
+    	        url: '/procurement/procurement/addpo/trano/' + trano,
+    	        scripts : true
+            });
+    	};
+Ext.onReady(function(){
+
+    var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Project Name:</b> {prj_nama}</p><br>',
+            '<p><b>Site Name:</b> {sit_nama}</p><br>',
+            '<p><b>Total PR value:</b> {val_kode} {total_pr}</p><br>',
+            '<p><b>Total PO value:</b> {val_kode} {total_po}</p></div>'
+        )
+    });
+
+    var poolList = Ext.data.Record.create ([
+        {name: 'id'},
+        {name: 'item_id'},
+        {name: 'prj_kode'},
+
+    ]);
+
+    var urlJson = '/projectmanagement/budget/listapprovedafe';
+    
+     var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+        reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },poolList)
+        });
+	
+	stores.load();
+    searchDocument = function(){
+
+ newUrl = '/projectmanagement/budget/listapprovedafebyparams/data/' + Ext.getCmp('document-text').getValue();
+     
+        proxies = Ext.getCmp('all-afe-grids').getStore();
+        proxies.proxy = new Ext.data.HttpProxy( {
+            url: newUrl
+             });
+       
+    	Ext.getCmp('all-afe-grids').getStore().reload();
+    	Ext.getCmp('all-afe-grids').getView().refresh();
+    };
+
+    refreshGrid = function(){
+
+        Ext.getCmp('document-text').setValue('');
+        newUrl = '/projectmanagement/budget/listapprovedafe';
+
+        proxies = Ext.getCmp('all-afe-grids').getStore();
+        proxies.proxy = new Ext.data.HttpProxy( {
+            url: newUrl
+             });
+        Ext.getCmp('all-afe-grids').getStore().reload();
+    	Ext.getCmp('all-afe-grids').getView().refresh();
+//        Ext.getCmp('paging').doRefresh();
+    }
+
+
+	var grid = new Ext.grid.GridPanel({
+        store: stores,
+        id: 'all-afe-grids',
+        stateful: false,
+        loadMask: true,
+        title: 'List Approved AFE',
+        columns: [
+            new Ext.grid.RowNumberer(),
+//            expander,
+//            {header: "",width: 30, dataIndex: 'trano',css:'text-align:center;',renderer: function (v,p,r) {
+//                    return '<a href="#" onclick="goToPO(\'' + v + '\');"><img src="/images/g_rec_add.png"></a>';
+//            }},
+            {header: "Trano", width: 100, sortable: true, dataIndex: 'item_id'},
+            {header: "Project Code", width: 80, sortable: true, dataIndex: 'prj_kode'},
+
+       ],
+        frame:true,
+        height: 400,
+        width: 300,
+//        plugins: expander,
+        layout: 'fit',
+        renderTo: 'grids',
+        loadMask: true,
+        bbar: new Ext.PagingToolbar({
+            id: 'paging',
+            pageSize: 50,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        }),
+        tbar: [
+				{
+					text: 'Trano',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					xtype: 'textfield',
+					id: 'document-text',
+                    width: 100
+				},
+				{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchDocument,
+				    scope: this
+				},
+                '-',
+                {
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshGrid,
+				    scope: this
+				},
+                '->',
+                {
+					text: '',
+					xtype:'label',
+				    style: 'margin-right: 5px',
+                    id:'label-last-upd'
+				}
+               ]
+    });
+
+//    Ext.override(Ext.PagingToolbar, {
+//    doRefresh: function(){
+//        store.clearFilter();
+//        Ext.getCmp('document-text').setValue('');
+//        delete this.store.lastParams;
+//        this.doLoad(this.cursor);
+//    }
+//    });
+
+//
+//    Ext.TaskMgr.start({
+//    run: function(){
+//        var menuTree = Ext.getCmp('tree-panel');
+//        if (Ext.getCmp('all-pr-grids') != undefined)
+//        {
+//            store.clearFilter();
+//            Ext.getCmp('document-text').setValue('');
+////            store.removeAll();
+//            store.load();
+//            Ext.getCmp('all-pr-grids').getView().refresh();
+//        }
+//        else
+//        {
+//            console.log('stop');
+//            Ext.TaskMgr.stop(this);
+//        }
+//    },
+//    interval: 35000
+//    });
+
+});
+
+</script>
+
+<div id="grids"></div>

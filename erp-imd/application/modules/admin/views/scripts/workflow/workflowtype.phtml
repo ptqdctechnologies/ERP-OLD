@@ -1,0 +1,247 @@
+<script type="text/javascript">
+var App = new Ext.App({});
+
+// Create HttpProxy instance.  Notice new configuration parameter "api" here instead of load.  However, you can still use
+// the "url" paramater -- All CRUD requests will be directed to your single url instead.
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/workflow/listworkflowitemtype/type/all',
+        create : '/admin/workflow/addworkflowitemtype',
+        update: '/admin/workflow/updateworkflowitemtype',
+        destroy: '/admin/workflow/deleteworkflowitemtype'
+    }
+});
+
+// Typical JsonReader.  Notice additional meta-data params for defining the core attributes of your json-response
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'workflow_item_type_id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'workflow_item_type_id'},
+    {name: 'name', allowBlank: false},
+    {name: 'generic'}
+]);
+
+// The new DataWriter component.
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: true
+});
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user',
+    proxy: proxy,
+    reader: reader,
+    writer: writer,  // <-- plug a DataWriter into the store just as you would a Reader
+    autoSave: true // <-- false would delay executing create, update, destroy requests until specifically told to do so with some [save] buton.
+});
+
+// load the store immeditately
+store.load();
+
+
+// A new generic text field
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns =  [
+    new Ext.grid.RowNumberer(),
+    {header: "Name", width: 140, sortable: true, dataIndex: 'name'},
+    {header: "Generic", width: 40, sortable: true, dataIndex: 'generic',renderer : function(v, params, data){
+        var status;
+        if (v == '1')
+        {
+            status = '<img src="/images/icons/fam/accept.png" />';
+        }
+        else if (v == '' || v == undefined || v == '0')
+        {
+            status = '<img src="/images/icons/fam/action_stop.gif" />';
+        }
+        return status;
+    }}
+];
+
+
+userForm = Ext.extend(Ext.form.FormPanel, {
+    renderTo: 'user-form',
+    iconCls: 'silk-user',
+    frame: true,
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Add Workflow Type -- All Fields are Required',
+    width: 400,
+    defaults: {
+        anchor: '100%'
+    }
+,
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    },
+//
+    buildForm : function() {
+        return [
+            {fieldLabel: 'Name',name: 'name', xtype: 'textfield'},    
+            {
+                xtype: 'checkbox'
+                ,id:'generic'
+                ,name : 'generic'
+                ,fieldLabel: 'Is Generic ?'
+                ,trueText: '1'
+                ,falseText: '0'
+            }
+        ];
+    },
+//
+//    /**
+//     * buildUI
+//     * @private
+//     */
+    buildUI: function(){
+        return [{
+            text: 'Update',
+            iconCls: 'icon-save',
+            handler: this.onUpdate,
+            scope: this
+        }, {
+            text: 'Create',
+            iconCls: 'silk-user-add',
+            handler: this.onCreate,
+            scope: this
+        }, {
+            text: 'Reset',
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            scope: this
+        }];
+    },
+    loadRecord : function(rec) {
+        this.record = rec;
+        this.getForm().loadRecord(rec);
+    },
+    onUpdate : function(btn, ev) {
+        if (this.record == null) {
+            return;
+        }
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid.");
+            return false;
+        }
+        this.getForm().updateRecord(this.record);
+        this.getForm().reset();
+    },
+    onCreate : function(btn, ev) {
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid");
+            return false;
+        }
+        this.fireEvent('create', this, this.getForm().getValues());
+        this.getForm().reset();
+    },
+    onReset : function(btn, ev) {
+        this.fireEvent('update', this, this.getForm().getValues());
+        this.getForm().reset();
+    }
+});
+
+/**
+ * App.user.Grid
+ * A typical EditorGridPanel extension.
+ */
+userGrid = Ext.extend(Ext.grid.EditorGridPanel, {
+    renderTo: 'user-grid',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 500,
+    width: 400,
+    style: 'margin-top: 10px',
+
+    initComponent : function() {
+
+        // typical viewConfig
+        this.viewConfig = {
+            forceFit: true
+        };
+        // relay the Store's CRUD events into this grid so these events can be conveniently listened-to in our application-code.
+        this.relayEvents(this.store, ['destroy','save','update']);
+
+        // build toolbars and buttons.
+        this.tbar = this.buildTopToolbar();
+
+        // super
+        userGrid.superclass.initComponent.call(this);
+    },
+
+    /**
+     * buildTopToolbar
+     */
+    buildTopToolbar : function() {
+        return [{
+            text: 'Delete',
+            iconCls: 'silk-delete',
+            handler: this.onDelete,
+            scope: this
+        }, '-'];
+    },
+
+    /**
+     * onSave
+     */
+    onSave : function(btn, ev) {
+        this.store.save();
+    },
+    
+    /**
+     * onDelete
+     */
+    onDelete : function(btn, ev) {
+        var index = this.getSelectionModel().getSelectedCell();
+        if (!index) {
+            return false;
+        }
+        var rec = this.store.getAt(index[0]);
+        this.store.remove(rec);
+    }
+});
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    // create user.Form instance (@see UserForm.js)
+    var userForms = new userForm({
+        renderTo: 'user-form',
+        listeners: {
+            create : function(fpanel, data) {   // <-- custom "create" event defined in App.user.Form class
+                var rec = new userGrids.store.recordType(data);
+                userGrids.store.insert(0, rec);
+            }
+        }
+    });
+    var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        store: store,
+        columns : userColumns,
+        listeners: {
+            rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                userForms.loadRecord(rec);
+            },
+            destroy : function() {
+                userForms.getForm().reset();
+            }
+        }
+    });
+    
+});
+</script>
+
+ <div id="user-form"></div>
+ <div id="user-grid"></div>

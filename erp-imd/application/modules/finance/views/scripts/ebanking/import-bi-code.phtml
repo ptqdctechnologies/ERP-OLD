@@ -1,0 +1,299 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+
+    var grid, data, uploadFile;
+
+    Ext.Ajax.on('requestcomplete', function(connection, response, options) {
+// Check if this is a form upload
+        var form = Ext.getDom(options.form);
+        if (form && (options.isUpload || /multipart\/form-data/i.test(form.getAttribute("enctype")))) {
+// Check if the server returned an error
+// (here I assume that the server returns an error by setting the body id of the returned HTML page to "error")
+
+            var doc = response.responseXML;
+            if (doc && doc.body && /413 Request Entity Too Large/i.test(doc.body.innerHTML)) {
+// Call failure and callback
+                Ext.callback(options.failure, options.scope, [response, options]);
+                Ext.callback(options.callback, options.scope, [options, false, response]);
+// Stop original code from calling success and callback
+                delete options.success;
+                delete options.failure;
+            }
+        }
+    });
+
+    var formpanel = new Ext.form.FormPanel ({
+
+        title:'Upload Domestic BI Code Permata',
+        renderTo:'upload-request',
+        frame:true,
+        fileUpload: true,
+        width:600,
+        bodyStyle: 'padding: 10px 10px 0 10px;',
+        labelWidth: 100,
+        defaults: {
+            anchor: '95%'
+        },
+        items:[{
+            xtype: 'fileuploadfield',
+            id: 'form-file',
+            emptyText: 'Select a File',
+            fieldLabel: 'File Excel ',
+            name: 'file-path',
+            buttonText: '',
+            buttonCfg: {
+                iconCls: 'upload-icon'
+            },
+            allowBlank: false
+        }],
+        buttons:[
+            {
+            text:'Upload',
+            handler:function(btn,ev)
+            {
+                formpanel.getForm().submit({
+
+                    url: '/finance/ebanking/do-import-bi-code',
+                    waitMsg: 'Uploading your file...',
+                    success: function(fp, o)
+                    {
+                        if (o.result.success == false)
+                        {
+                            Ext.Msg.alert('Error', o.result.msg);
+                            return false;
+                        }
+
+                        var invalid = false;
+
+                        var reader = new Ext.data.JsonReader({
+                            idProperty: 'id',
+                            root: 'invalid_data',
+                            fields: [
+                                {name: 'clearing_code'},
+                                {name: 'rtgs_code'},
+                                {name: 'bank_name'},
+                                {name: 'bank_branch'},
+                                {name: 'bank_city'},
+                                {name: 'location_code'},
+                                {name: 'location_bank'},
+                                {name: 'row'},
+                            ]
+                        });
+
+                        var store = new Ext.data.Store({
+                            id: 'item-store',
+                            reader: reader
+                        });
+
+                        if(grid != undefined)
+                        {
+                            grid.destroy();
+                        }
+
+                        data = o.result.data;
+                        if (o.result.invalid == true)
+                        {
+                            invalid = true;
+                            store.loadData(o.result);
+                        }
+
+                        grid = new Ext.grid.GridPanel({
+                            id: 'request-grid',
+                            store: store,
+                            autoWidth: true,
+                            height: 400,
+                            frame: true,
+                            renderTo:'fi-grid',
+                            title: 'Error Data',
+                            buttons: [{
+                                text: 'Submit',
+                                iconCls: 'icon-save',
+                                handler: function(){
+
+                                    var submitAll = function()
+                                    {
+                                        Ext.MessageBox.confirm('Confirm', 'This action will import Domestic BI Code for Bank Permata, If there\'s duplicate on Clearing Code the old one will be <b>Replaced</b>, Proceed?',
+                                            function(btn)
+                                            {
+                                                if (btn == 'yes')
+                                                {
+                                                    var json= Ext.util.JSON.encode(data);
+
+//                                                store.each(function(stores){
+//                                                    var encode = Ext.util.JSON.encode(stores.data);
+//                                                    if (encode != undefined)
+//                                                        json += encode + ',';
+//                                                });
+//
+//                                                json = '[' + json.substring(0, json.length - 1) + ']';
+
+                                                    params = {
+                                                        json:json
+                                                    };
+
+                                                    Ext.getBody().mask('Please wait....');
+                                                    Ext.Ajax.request ({
+                                                        url:'/finance/ebanking/save-bi-code',
+                                                        method:'POST',
+                                                        params:params,
+                                                        success:function(result){
+                                                            obj = Ext.util.JSON.decode(result.responseText);
+
+                                                            Ext.getBody().unmask();
+                                                            if (obj.success)
+                                                            {
+                                                                Ext.Msg.alert ('Message','Success, Data has been saved');
+
+                                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                myPanel.body.load({
+                                                                    url: '/finance/ebanking/import-bi-code',
+                                                                    scripts : true
+                                                                });
+                                                            }
+                                                            else
+                                                            {
+
+                                                                Ext.Msg.alert ('Error',obj.msg);
+                                                            }
+                                                        },
+                                                        failure:function( action){
+                                                            Ext.getBody().unmask();
+                                                            if(action.failureType == 'server'){
+                                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                                Ext.Msg.alert('Error!', obj.errors.reason);
+                                                            }else{
+                                                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            }
+                                        );
+                                    }
+
+                                    if (grid.getStore().getCount() != 0)
+                                    {
+                                        Ext.MessageBox.confirm('Confirm', "There is Error found on your File, please reconsider to repair it first. The error will not be saved into Database.",
+                                            function(btn)
+                                            {
+                                                if (btn == 'yes')
+                                                {
+                                                    submitAll();
+                                                }
+                                            }
+                                        );
+                                    }
+                                    else
+                                        submitAll();
+
+
+                                },
+                                scope: this
+                            },{
+                                text: 'Cancel',
+                                iconCls: 'icon-cancel',
+                                handler: function(){
+                                    Ext.getCmp('form-file').enable();
+                                    Ext.getCmp('request-grid').getStore().removeAll();
+                                    Ext.getCmp('request-grid').disable();
+                                }
+                            }],
+                            columns: [
+//                                new Ext.grid.RowNumberer(),
+                                {
+                                    header: 'Row in File',
+                                    dataIndex: 'row',
+                                    width: 100,
+                                },
+                                {
+                                    header: 'Clearing Code',
+                                    dataIndex: 'clearing_code',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'RTGS Code',
+                                    dataIndex: 'rtgs_code',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'Bank Name',
+                                    dataIndex: 'bank_name',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'Branch Name',
+                                    dataIndex: 'bank_branch',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'Bank City',
+                                    dataIndex: 'bank_city',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'Location of Receiving Bank Code',
+                                    dataIndex: 'location_code',
+                                    width: 100,
+                                    sortable: true
+                                },
+                                {
+                                    header: 'Location of Receiving Bank',
+                                    dataIndex: 'location_bank',
+                                    width: 100,
+                                    sortable: true
+                                }
+                            ]
+                        });
+                    },
+                    failure: function (fp, r){
+
+                        if (r.result != undefined)
+                        {
+                            if (!r.result.success)
+                                Ext.Msg.alert("Error", r.result.msg);
+                        }
+                        else
+                        {
+                            Ext.Msg.alert("Error from Server",r.response.responseXML.body.innerHTML);
+                        }
+                    }
+
+                })
+            }
+        },{
+            text:'Cancel',
+            handler:function(btn,ev)
+            {
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/finance/ebanking/import-bi-code',
+                    scripts : true
+                })
+            }
+        }]
+
+
+    })
+
+
+
+
+
+})
+
+
+</script>
+
+<div id="upload-request"></div>
+<br />
+<div id="upload-file"></div>
+<br />
+<div id="fi-grid"></div>

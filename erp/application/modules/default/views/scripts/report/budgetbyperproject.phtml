@@ -1,0 +1,435 @@
+<div id="ipcc-loading-mask" style=""></div>
+  <div id="ipcc-loading">
+      <div class="ipcc-loading-indicator">
+        <span id="ipcc-loading-logo">QDC iPCC</span>
+        <br>
+        <span id="ipcc-loading-logo-text"><img src="/images/qdc.gif" /></span>
+        <br>
+        <img src="/images/loading.gif" width="150"/>
+        <br>
+        <span id="ipcc-loading-msg">Loading Extjs library...</span>
+      </div>
+  </div>
+<?php echo $this->printHeader(); ?>
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/ColumnHeaderGroup.css" />
+<script type="text/javascript" src="/js/layout/ux/ColumnHeaderGroup.js"></script>
+
+
+<?php echo $this->webHeader(); ?>
+
+<script type="text/javascript">
+
+var Pk = '';
+var gridTypes = '';
+
+SampleGrid = function(gridType,yAxis,param){
+    //View column header from grid/columnHeaader
+    var yAxis = yAxis;
+    if (gridType == 'project_list')
+    {
+        <?php echo $this->action('columnHeader','grid',null,array("type" => "project_list")); ?>
+
+        urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "project_list")); ?>';
+        data =  [<?php echo $this->action('mappingField','grid',null,array("type" => "project_list")); ?>];
+        primaryKey = '<?php echo $this->action('getPrimaryKey','grid',null,array("type" => "project")); ?>';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+    }
+    else if (gridType == 'site_list')
+    {
+        <?php echo $this->action('columnHeader','grid',null,array("type" => "site_list")); ?>
+        if ( Ext.getCmp('project_code_poh').getValue() == '')
+            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "site_list")); ?>';}
+        else
+            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "site_list_param",'noParam' => '1','columnName'=>'prj_kode')); ?>' + Ext.getCmp('project_code_poh').getValue();}
+        data =  [<?php echo $this->action('mappingField','grid',null,array("type" => "site_list")); ?>];
+        primaryKey = '<?php echo $this->action('getPrimaryKey','grid',null,array("type" => "site")); ?>';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+    }
+    else if (gridType == 'budget_all')
+    {
+        var columnAtas = [{header:'No',rowspan:2},
+                        {header:'Project Code',rowspan:2},
+                        {header:'Site Code',rowspan:2},
+                        {header:'Site Name',rowspan:2},
+                        {header:'PO Customer\'s (BoQ2)',colspan:2}
+        ];
+//        ,
+//                        {header:'Budget Project (BoQ3)',width:100,sortable:true,colspan:4},
+//                        {header:'Actual Cost (BoQ4)',width:100,sortable:true,colspan:2},
+//                        {header:'Gross Margin',width:100,sortable:true,colspan:6}];
+        var columnBawah = [
+                        {},{},{},{},{header:'PO Customer\'s (BoQ2)'}];
+//                        {header:'Budget Project (BoQ3)',width:100,sortable:true},
+//                        {header:'Actual Cost (BoQ4)',width:100,sortable:true},
+//                        {header:'Gross Margin',width:100,sortable:true}];
+        var columns = [{header:'A1',sortable:true,dataIndex:'boq3_ori'},
+        {header:'A2',sortable:true,dataIndex:'boq3_ori'},
+    {header:'A3',sortable:true,dataIndex:'boq3_ori'},
+{header:'A4',sortable:true,dataIndex:'boq3_ori'},
+{header:'A5',sortable:true,dataIndex:'boq3_ori'},{header:'A6',sortable:true,dataIndex:'boq3_ori'}
+];
+        urlJson = '/report/budget/prj_kode/Q000086/sit_kode/500';
+        data = [{name: 'boq3_ori', mapping: 'boq3_ori'}];
+        primaryKey ='';
+        widthGrid = 800;
+        heightGrid = 250;
+    }
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+var group = new Ext.ux.grid.ColumnHeaderGroup({
+        rows: [columnAtas,columnBawah]
+    });
+
+
+if (yAxis == undefined)
+    yAxis=100;
+    SampleGrid.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        plugins: group,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        }),
+        '->',{
+            xtype: 'tbtext',
+            text: 'Loading ...'
+
+        }],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+                    'rowdblclick': function(g, rowIndex, e){
+                            closeForm = false;
+                            isDblClick = true;
+                            if (gridType == 'project_list')
+                            {
+                                objectName = 'Prj_Kode';
+                                txtBoxChange = 'project_code_poh';
+                                closeForm = true;
+                                formId = 'a-form-panel-pjr_kode_button';
+                                var prjNama = g.getStore().getAt(rowIndex).get('Prj_Nama');
+                                var prjKode = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('project_name_poh').setValue(prjNama);
+                                newUrl = '/procurement/listByParams/name/prj_kode/data/' + prjKode;
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+//                                proxies = Ext.getCmp(gri).getStore();
+//                                proxies.proxy = new Ext.data.HttpProxy({
+//                                    url: newUrl
+//                                     });
+//                                Ext.getCmp(gri).getStore().reload();
+                                var record = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('project_code_poh').setValue(record);
+                            }
+                            else if (gridType == 'site_list')
+                            {
+                                objectName = 'sit_kode';
+                                txtBoxChange = 'site_code_poh';
+                                closeForm = true;
+                                formId = 'a-form-panel-site_kode_button';
+                                var prjNama = g.getStore().getAt(rowIndex).get('sit_nama');
+                                var prjKode = g.getStore().getAt(rowIndex).get('prj_kode');
+                                var sitKode = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('site_name_poh').setValue(prjNama);
+                                newUrl = '/procurement/listByParams/name/sit_kode/joinToPod/true/data/' + sitKode + '/Prj_Kode/' + prjKode;
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+//                                proxies = Ext.getCmp(gri).getStore();
+//                                proxies.proxy = new Ext.data.HttpProxy({
+//                                    url: newUrl
+//                                     });
+//                                Ext.getCmp(gri).getStore().reload();
+                                var record = g.getStore().getAt(rowIndex).get(objectName);
+                                Ext.getCmp('site_code_poh').setValue(record);
+                            }
+                            if (closeForm)
+                                {
+                                    Ext.getCmp(formId).close();
+                                }
+                            //Ext.getCmp('project_code').setValue(record[0].get('Prj_Kode'));
+                            //Ext.Msg.alert('you clicked', 'id of row: ' + record.json);
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    stores.load();
+
+}
+Ext.extend(SampleGrid, Ext.grid.GridPanel);
+
+<?php echo $this->action('index','textfield',null); ?>
+
+
+searchPrjKode = function(field,e){
+    newUrl = '/project/listByParams/name/Prj_Kode/data/' + field.getValue();    prox = Pk+'_proxy';
+    gri = Pk+'_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+searchPrjName = function(field,e){
+    newUrl = '/project/listByParams/name/Prj_Nama/data/' + field.getValue();    prox = Pk+'_proxy';
+    gri = Pk+'_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+searchPOBySite = function(field,e){
+    prjKode = Ext.getCmp('project_code_poh').getValue();
+    if (prjKode != '')
+        {
+            newUrl = '/procurement/listByParams/name/sit_kode/joinToPod/true/data/' + field.getValue() + '/Prj_Kode/' + prjKode;
+            prox = 'trano_proxy';
+            gri = 'trano_grid';
+
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        }
+}
+
+searchPOByProject = function(field,e){
+    newUrl = '/procurement/listByParams/name/Prj_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+    gri = 'trano_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+
+searchSiteName = function(field,e){
+    newUrl = '/site/listByParams/name/sit_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+    gri = Pk+'_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+searchSiteKode = function(field,e){
+    newUrl = '/site/listByParams/name/sit_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+    gri = Pk+'_grid';
+    proxies = Ext.getCmp(gri).getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp(gri).getStore().reload();
+
+}
+
+var projectPopUphandler = function(button,event) {
+
+    idForm = button.id.toString();
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-' + idForm,
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Code:'
+        },
+         new txtboks(80,10,80,'project_code',searchPrjKode),
+         {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Name:'
+        },
+        new txtboks(240,10,80,'project_name',searchPrjName),
+         new SampleGrid('project_list')
+    ]
+
+  });
+  aForm.title = 'Pop Up Window';
+  aForm.show();
+ };
+
+var sitePopUpHandler = function(button,event) {
+
+    idForm = button.id.toString();
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-' + idForm,
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Site Code:'
+        },
+         new txtboks(80,10,80,'site_code',searchSiteKode),
+         {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Site Name:'
+        },
+        new txtboks(240,10,80,'site_name',searchSiteName),
+         new SampleGrid('site_list')
+    ]
+
+  });
+  aForm.title = 'Pop Up Window';
+  aForm.show();
+ };
+
+
+var budgetForm = new Ext.form.FormPanel({
+    baseCls: 'x-plain2',
+    layout:'absolute',
+    //url:'http://qdc-erp.local/procurement/save',
+    border: true,
+    items: [
+        {
+        x: 0,
+        y: 0,
+        xtype: 'label',
+        text: 'Project Code:'
+    },
+         new Ext.form.TextField({
+            id:"project_code_poh",
+            x:80,
+            y:0,
+            width:150
+         }),{
+    	// The button is not a Field subclass, so it must be
+    	// wrapped in a panel for proper positioning to work
+    	xtype: 'panel',
+    	x: 232,
+    	y: 0,
+    	items: {
+	    	xtype: 'button',
+                id: 'pjr_kode_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/g_rec_src.png",
+                handler:projectPopUphandler
+    	}
+    },new Ext.form.TextField({
+            id:"project_name_poh",
+            x:265,
+            y:0,
+            width:150,
+            readOnly: true,
+            fieldClass: "x-item-disabled"
+         }),
+         {
+        x: 0,
+        y: 40,
+        xtype: 'label',
+        text: 'Site Code:'
+    },new txtboks(80,40,150,'site_code_poh',searchPOBySite),
+    {
+    	xtype: 'panel',
+    	x: 232,
+    	y: 40,
+    	items: {
+	    	xtype: 'button',
+                id: 'site_kode_button',
+                cls:"x-btn-icon" ,
+                icon:"/images/g_rec_src.png",
+                handler:sitePopUpHandler
+    	}
+    },new Ext.form.TextField({
+            id:"site_name_poh",
+            x:265,
+            y:40,
+            width:150,
+            readOnly: true,
+            fieldClass: "x-item-disabled"
+         }),
+         new SampleGrid('budget_all')
+      ]
+});
+
+var windowForm =  ({
+
+    title: 'Budget Per Project',
+    id: 'abs-form-po-panel',
+    layout: 'fit',
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    items: {
+    	title: 'Purchase Order',
+    	cls: 'email-form2',
+	    layout: 'fit',
+	    frame: true,
+	    bodyStyle: 'padding:10px 5px 5px;',
+	    items:budgetForm
+
+            }
+});
+    </script>
+<script type="text/javascript">document.getElementById('ipcc-loading-msg').innerHTML = 'Loading framework objects...';</script>
+
+<?php echo $this->specialHeader('budgetbyperproject'); ?>
+
+
+<script type="text/javascript">
+            if (!Ext.isEmpty(Ext.get('ipcc-loading'))) {
+        Ext.get('ipcc-loading').remove();
+      }
+</script>
+
+
+<div style="display:none;">
+
+ <div id="start-div">
+            <div style="float:left; margin-right:5px;" ><img src="/images/qdc.gif" /></div>
+            <div style="margin-left:100px;">
+                <h2>Welcome!</h2>
+                <p>This is QDC iPCC on web, current state : Development.asdfasdfasdf</p>
+            </div>
+        </div>
+    <!-- Form layouts -->
+        <div id="abs-form-budget-details">
+            <h2>Budget Per Project</h2>
+            <p></p>
+
+        </div>
+</div>

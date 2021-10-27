@@ -1,0 +1,199 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function showmaterial ()
+        {
+            var storematerial = new Ext.data.Store ({
+
+                id:'store-material',
+                url:'/admin/document/getmaterial',
+                autoLoad:true,
+                    reader:new Ext.data.JsonReader ({
+                        root:'data',
+                        totalProperty:'total',
+                        fields:[{
+                            name:'kode_brg'
+                        },{
+                            name:'nama_brg'
+                        },{
+                            name:'id'
+                        }]
+                    })
+
+            })
+
+            var gridmaterial = new Ext.grid.GridPanel ({
+
+                store:storematerial,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[new Ext.grid.RowNumberer(),{
+                    header:'Material Code',
+                    dataIndex:'kode_brg',
+                    sortable:true,
+                    width:60,
+                    align:'center'
+                },{
+                    header:'Material Name',
+                    dataIndex:'nama_brg',
+                    sortable:true,
+                    width:180,
+                    align:'center'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-material',
+                    pageSize: 100,
+                    store: storematerial,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option-material',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['kode_brg','Material Code'],
+                                ['nama_brg','Material Name']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'kode_brg'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search-material',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup': function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option-material').getValue();
+                                var search = Ext.getCmp('search-material').getValue();
+
+                                storematerial.proxy.url= '/admin/document/getmaterial/search/' + search + '/option/' + option;
+                                storematerial.proxy.setUrl('/admin/document/getmaterial/search/' + search + '/option/' + option);
+                                storematerial.proxy.api.read['url']= '/admin/document/getmaterial/search/' + search + '/option/' + option;
+                                storematerial.load();
+                                gridmaterial.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+
+                        var material = gridaktif.getStore().getAt(rowIndex);
+
+                        var kode_brg = material.get('kode_brg');
+                        var nama_brg = material.get('nama_brg');
+
+                        Ext.getCmp('kode_brg').setValue(kode_brg);
+                        Ext.getCmp('nama_brg').setValue(nama_brg);
+
+                        windowmaterial.close();
+                    }
+                }
+
+            })
+
+            var windowmaterial = new Ext.Window ({
+
+                title:'Choose Material',
+                id:'choose-material',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask:true,
+                items:[gridmaterial]
+
+            })
+
+            windowmaterial.show();
+        }
+
+        var panel = new Ext.form.FormPanel ({
+
+            title:'Insert Kode Pulsa',
+            renderTo:'kode_pulsa',
+            frame:true,
+            id:'form-insert-pulsa',
+            width:300,
+            items:[{
+                xtype:'trigger',
+                fieldLabel:'Material Code',
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                width:180,
+                id:'kode_brg',
+                onTriggerClick:function(){
+                    showmaterial();
+                }
+            },{
+                xtype:'textarea',
+                fieldLabel:'Material Name',
+                width:180,
+                id:'nama_brg'
+            }],
+            buttons:[{
+                text:'Submit',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('form-insert-pulsa').getForm().submit({
+                        method:'POST',
+                        url:'/admin/document/doinsertpulsa',
+                        success:function(thisForm,response){
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                            url: '/admin/document/viewpulsa',
+                            scripts : true
+                            });
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            }]
+            
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="kode_pulsa"></div>

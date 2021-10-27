@@ -1,0 +1,380 @@
+<script>
+    Ext.onReady(function(){
+
+        var pwindow = Ext.extend(Ext.Window,
+            {
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 400,
+//                height: 400,
+                autoHeight: true,
+                title: '',
+                initComponent : function() {
+                    pwindow.superclass.initComponent.call(this);
+                }
+            }
+        );
+
+        var treePanel = new Ext.tree.TreePanel({
+            id: 'tree-panel',
+            title: 'Navigation',
+            height: 300,
+            autoWidth: true,
+            frame: false,
+            autoScroll: true,
+            rootVisible: false,
+            lines: false,
+            singleExpand: true,
+            useArrows: true,
+            bodyStyle: 'background-color: #ffffff',
+            loader: new Ext.tree.TreeLoader({
+                dataUrl:'/menu/getmenu2'
+            }),
+            load: function() {
+                this.el.mask('loading...', 'loadingMask');
+            },
+            root: new Ext.tree.AsyncTreeNode({
+                expanded: true,
+                id: 'menu'
+            }),
+            tbar: [
+                {
+                    text: 'New Folder',
+                    id: 'new-folder',
+                    iconCls: 'silk-add',
+                    handler: function(){
+                        var n = treePanel.getSelectionModel().getSelectedNode();
+
+                        if (n == null || n == undefined)
+                            return false;
+
+                        if (n.leaf == null)
+                        {
+                            var formadd = new Ext.form.FormPanel({
+                                autoHeight: true,
+                                autoWidth: true,
+                                frame: true,
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Menu Caption',
+                                        width: 200,
+                                        allowBlank: false,
+                                        name: 'text'
+
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Menu Id',
+                                        width: 200,
+                                        allowBlank: false,
+                                        name: 'menu_id'
+                                    },
+                                    {
+                                        xtype: 'combo',
+                                        name: 'type',
+                                        store: new Ext.data.SimpleStore({
+                                            fields:['type','name'],
+                                            data:[
+                                                ['REPORT','REPORT'],
+                                                ['TRANSACTION','TRANSACTION']
+                                            ]
+                                        }),
+                                        valueField:'type',
+                                        displayField:'name',
+                                        typeAhead: true,
+                                        mode: 'local',
+                                        triggerAction: 'all',
+                                        selectOnFocus:true,
+                                        forceSelection:false,
+                                        editable: false,
+                                        width: 200,
+                                        fieldLabel: 'Type'
+                                    }
+                                ]
+                            });
+                            var w = new pwindow({
+                                title: 'Add New Folder',
+                                items: formadd,
+                                buttons: [
+                                    {
+                                        text: 'Submit',
+                                        handler: function(){
+
+                                            var val = formadd.getForm().getValues();
+
+                                            val.id_parent = n.id;
+                                            val.module_name = comboModule.getValue();
+
+                                            Ext.Ajax.request({
+                                                url:'/admin/menu/folder-add',
+                                                method:'POST',
+                                                params: val,
+                                                success:function (result)
+                                                {
+
+                                                    var returnData = Ext.util.JSON.decode(result.responseText);
+                                                    if(returnData.success) {
+                                                        treePanel.getLoader().load(treePanel.root);
+                                                        w.close();
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error',returnData.msg);
+                                                        return false;
+                                                    }
+                                                },
+                                                failure:function(action)
+                                                {
+                                                    if(action.failureType == 'server'){
+                                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                                    }else{
+                                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    },
+                                    {
+                                        text: 'Close',
+                                        handler: function(){
+                                            w.close();
+                                        }
+                                    }
+                                ]
+                            });
+                            w.show();
+                        }
+                    },
+                    scope: this
+                },
+                {
+                    text: 'New Menu',
+                    id: 'new-menu',
+                    iconCls: 'silk-add',
+                    handler: function(){
+                        var n = treePanel.getSelectionModel().getSelectedNode();
+
+                        if (n == null || n == undefined)
+                            return false;
+
+                        if (n.leaf !== true)
+                        {
+                            var formadd = new Ext.form.FormPanel({
+                                autoHeight: true,
+                                autoWidth: true,
+                                frame: true,
+                                items: [
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Menu Caption',
+                                        width: 200,
+                                        allowBlank: false,
+                                        name: 'text'
+
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Menu Id',
+                                        width: 200,
+                                        allowBlank: false,
+                                        name: 'menu_id'
+                                    },
+                                    {
+                                        xtype: 'textfield',
+                                        fieldLabel: 'Link',
+                                        width: 200,
+                                        allowBlank: false,
+                                        name: 'link'
+                                    },
+                                    {
+                                        xtype: 'combo',
+                                        name: 'type',
+                                        store: new Ext.data.SimpleStore({
+                                            fields:['type','name'],
+                                            data:[
+                                                ['REPORT','REPORT'],
+                                                ['TRANSACTION','TRANSACTION']
+                                            ]
+                                        }),
+                                        valueField:'type',
+                                        displayField:'name',
+                                        typeAhead: true,
+                                        mode: 'local',
+                                        triggerAction: 'all',
+                                        selectOnFocus:true,
+                                        forceSelection:false,
+                                        editable: false,
+                                        width: 200,
+                                        fieldLabel: 'Type'
+                                    }
+                                ]
+                            });
+                            var w = new pwindow({
+                                title: 'Add New Menu',
+                                items: formadd,
+                                buttons: [
+                                    {
+                                        text: 'Submit',
+                                        handler: function(){
+
+                                            var val = formadd.getForm().getValues();
+
+                                            val.id_parent = n.id;
+                                            val.module_name = comboModule.getValue();
+
+                                            Ext.Ajax.request({
+                                                url:'/admin/menu/menu-add',
+                                                method:'POST',
+                                                params: val,
+                                                success:function (result)
+                                                {
+
+                                                    var returnData = Ext.util.JSON.decode(result.responseText);
+                                                    if(returnData.success) {
+                                                        treePanel.getLoader().load(treePanel.root);
+                                                        w.close();
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error',returnData.msg);
+                                                        return false;
+                                                    }
+                                                },
+                                                failure:function(action)
+                                                {
+                                                    if(action.failureType == 'server'){
+                                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                                    }else{
+                                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    },
+                                    {
+                                        text: 'Close',
+                                        handler: function(){
+                                            w.close();
+                                        }
+                                    }
+                                ]
+                            });
+                            w.show();
+                        }
+                    },
+                    scope: this
+                },
+                {
+                    text: 'Delete',
+                    id: 'delete-node',
+                    iconCls: 'silk-del',
+                    handler: function(){
+                        var n = treePanel.getSelectionModel().getSelectedNode(),
+                            type = '';
+
+                        if (n.leaf == null)
+                            type = 'Folder';
+                        else
+                            type = 'Menu';
+                        Ext.Msg.confirm('Delete Menu','Delete this ' + type + ' ?',function(btn){
+                            if (btn == 'yes')
+                            {
+                                Ext.Ajax.request({
+                                    url:'/admin/menu/menu-delete',
+                                    method:'POST',
+                                    params: {
+                                        id: n.id
+                                    },
+                                    success:function (result)
+                                    {
+
+                                        var returnData = Ext.util.JSON.decode(result.responseText);
+                                        if(returnData.success) {
+                                            treePanel.getLoader().load(treePanel.root);
+                                            w.close();
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error',returnData.msg);
+                                            return false;
+                                        }
+                                    },
+                                    failure:function(action)
+                                    {
+                                        if(action.failureType == 'server'){
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+                                });
+                            }
+                        })
+
+                    },
+                    scope: this
+                }
+            ],
+            listeners: {
+                'click': function(n){
+
+                }
+            }
+        });
+
+        var comboModule = new Ext.form.ComboBox({
+            store: new Ext.data.Store({
+                proxy: new Ext.data.HttpProxy({
+                    url: '/default/menu/get-module'
+                }),
+                reader: new Ext.data.JsonReader({
+                    root: 'data'
+                }, [
+                    {name: 'module_name'},{name: 'text'}
+                ])
+            })
+            ,valueField:'module_name'
+            ,displayField:'text'
+            ,hideLabel: true
+            ,typeAhead: true
+            ,editable: false
+            ,mode: 'remote'
+            ,triggerAction: 'all'
+            ,selectOnFocus:true
+            ,forceSelection:false
+            ,width: 200
+            ,listeners: {
+                'select': function (combo,selected) {
+                    treePanel.getLoader().dataUrl ='/menu/getmenu2/modulename/' + combo.getValue();
+                    treePanel.getLoader().load(treePanel.root);
+                }
+            }
+        });
+
+        var panel = new Ext.form.FormPanel({
+            width: 400,
+            height: 420,
+            title: 'Menu Manager',
+            frame: true,
+            renderTo: 'panel',
+            items: [
+                {
+                    xtype: 'fieldset',
+                    title: 'Module',
+                    items: [
+                        comboModule
+                    ]
+                },
+                treePanel
+            ]
+        })
+
+    });
+</script>
+
+<div id="panel"></div>

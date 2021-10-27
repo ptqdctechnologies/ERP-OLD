@@ -1,0 +1,825 @@
+<script type="text/javascript">
+
+    var deletedfile = '';
+    var uid = '';
+
+    var proxy = new Ext.data.HttpProxy({
+           url : 'what ever'
+        });
+
+    var filelist = Ext.data.Record.create([ {
+            name: 'id',
+            type: 'integer'
+        },{
+            name: 'filename',
+            type: 'string'
+        },{
+            name: 'savename',
+            type: 'string'
+        },{
+            name: 'status',
+            type: 'string'
+        },{
+            name: 'path',
+            type: 'string'
+    }]);
+
+    var storeFile = new Ext.data.Store({
+        proxy:proxy,
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function showPM ()
+        {
+            var pmstore = new Ext.data.Store ({
+                autoLoad:true,
+                url:'/default/manager/list',
+                reader:new Ext.data.JsonReader ({
+                    root:'posts',
+                    totalProperty:'count',
+                    fields:[{
+                        name:'uid'
+                    },{
+                        name:'nama'
+                    }]
+                })
+            })
+
+            var pmgrid = new Ext.grid.GridPanel ({
+                store:pmstore,
+                viewConfig:{
+                    forceFit:true
+                },
+                height:300,
+                columns:[{
+                    header:'username',
+                    dataIndex:'uid'
+                },{
+                    header:'Name',
+                    dataIndex:'nama'
+                }],
+                listeners:
+                {
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var regisco = gridaktif.getStore().getAt(rowIndex);
+
+                        uid = regisco.get('uid');
+
+                        Ext.getCmp('assign-to').setValue(regisco.get('nama'));
+
+                        pmwindow.close();
+                    }
+                }
+            })
+
+            var pmwindow = new Ext.Window ({
+
+                title:'Choose Projet Manager',
+                id:'window-pm',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[pmgrid]
+
+            })
+
+            pmwindow.show();
+        }
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn){
+                if (btn== 'yes')
+                {
+                    deletedfile += Ext.util.JSON.encode(theFile.data) + ',';
+                    storeFile.remove(theFile);
+                    Ext.getCmp('files-grid').getView().refresh();
+
+//                    if (theFile.data['status'] == 'new')
+//                        var params = {filename:theFile.data['savename']};
+//                        Ext.Ajax.request({
+//                            url: '/procurement/procurement/deletefile',
+//                            method:'POST',
+//                            success: function(result, request){
+//                                var returnData = Ext.util.JSON.decode(result.responseText);
+//                                if (returnData.success)
+//                                {
+//                                    storeFile.remove(theFile);
+//                                    Ext.getCmp('files-grid').getView().refresh();
+//                                }
+//                                else
+//                                {
+//                                    Ext.Msg.alert('Error!', returnData.msg);
+//                                    return false;
+//                                }
+//                            },
+//                            failure:function( action){
+//                            if(action.failureType == 'server'){
+//                              obj = Ext.util.JSON.decode(action.response.responseText);
+//                              Ext.Msg.alert('Error!', obj.errors.reason);
+//                            }else{
+//                              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+//                            }
+//                            },
+//                            params: params
+//                        });
+                }
+            });
+        }
+    };
+
+    function showCustomerList()
+    {
+    var columns = [
+                    {header:'Customer Code',width:100,sortable:true,dataIndex:'cus_kode'},
+                    {header:'Customer Name',width:150,sortable:true,dataIndex:'cus_nama'},
+                ];
+
+    data =  [
+
+            {name: 'cus_kode', mapping: 'cus_kode'},
+            {name: 'cus_nama', mapping: 'cus_nama'}
+            ];
+
+
+    urlJson = '/default/customer/list';
+
+    primaryKey = 'uid';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'cus_kode';
+				            txtBoxChange = 'cus_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-cus_kode_button';
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("cus_nama");
+                            Ext.getCmp('cus_kode_text').setValue(record);
+
+
+
+                            if (Ext.getCmp('cus_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('cus_nama_text').setValue(record2);
+                            }
+
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchCusKode = function(field,e){
+        newUrl = '/default/customer/listbyparams/name/cus_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchCusName = function(field,e){
+        newUrl = '/default/customer/listbyparams/name/cus_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-cus_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Customer Code:'
+            },
+             new txtboks(90,10,80,'customer_code',searchCusKode),
+             {
+            x: 180,
+            y: 12,
+            xtype: 'label',
+            text: 'Customer Name:'
+            },
+            new txtboks(260,10,80,'customer_name',searchCusName),
+             new grids('customer_list')
+        ]
+
+      });
+      aForm.title = 'Choose Customer';
+      aForm.show();
+    }
+
+    function showRegisterList ()
+    {
+        var regisstore = new Ext.data.Store ({
+            autoLoad:true,
+            url:'/projectmanagement/budget/getregisco',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'trano'
+                },{
+                    name:'cus_kode'
+                },{
+                    name:'cus_nama'
+                },{
+                    name:'pocustomer'
+                },{
+                    name:'total'
+                },{
+                    name:'totalusd'
+                },{
+                    name:'ket'
+                },{
+                    name:'confirmation'
+                },{
+                    name:'tgl'
+                },{
+                    name:'uid'
+                },{
+                    name:'assignto'
+                },{
+                    name:'message'
+                },{
+                    name:'stsproses'
+                },{
+                    name:'username'
+                }]
+            })
+        })
+
+//        regisstore.on('on', function);
+
+        var regisgrid = new Ext.grid.GridPanel ({
+
+            store:regisstore,
+            viewConfig:{
+                forceFit:true
+            },
+            height:300,
+            columns:[{
+                header:'Trano',
+                dataIndex:'trano',
+                align:'center',
+                sortable:true
+            },{
+                header:'Input Date',
+                dataIndex:'tgl',
+                align:'center',
+                sortable:true
+            },{
+                header:'Customer',
+                dataIndex:'cus_nama',
+                align:'center',
+                sortable:true
+            },{
+                header:'PO Customer',
+                dataIndex:'pocustomer',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-coa',
+                pageSize: 20,
+                store: regisstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['Trano','trano'],
+                            ['Input Date','tgl'],
+                            ['Customer','cus_nama'],
+                            ['PO Customer','pocustomer']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'trano',
+                id:'option'
+            },{
+                xtype:'textfield',
+                id:'search',
+                style:'margin-left:10px',
+                enableKeyEvents:true,
+                width:100,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            regisstore.proxy.setUrl('/projectmanagement/budget/getregisco/search/' + search + '/option/' + option);
+                            regisstore.reload();
+                            regisgrid.getView().refresh();
+                        }
+                    }
+                }
+            }],
+            listeners:{
+                'rowdblclick':function(gridaktif,rowIndex,e)
+                {
+                    isDbClick = true;
+                    var regis = gridaktif.getStore().getAt(rowIndex);
+                    var trano = regis.get('trano');
+//                        var coa_name = coa.get('coa_nama');
+                    Ext.getCmp('regis-trano').setValue(trano);
+                    Ext.getCmp('cus_kode_text').setValue(regis.get('cus_kode'));
+                    Ext.getCmp('cus_nama_text').setValue(regis.get('cus_nama'));
+                    Ext.getCmp('po_cus_text').setValue(regis.get('pocustomer'));
+                    Ext.getCmp('total_idr').setValue(regis.get('total'));
+                    Ext.getCmp('total_usd').setValue(regis.get('totalusd'));
+                    Ext.getCmp('ket_text').setValue(regis.get('ket'));
+                    Ext.getCmp('source_text').setValue(regis.get('confirmation'));
+                    Ext.getCmp('assign-to').setValue(regis.get('username'));
+                    Ext.getCmp('message').setValue(regis.get('message'));
+                    uid = regis.get('assignto');
+
+                    storeFile.proxy.setUrl('/projectmanagement/budget/getregisfile/trano/' + trano);
+                    storeFile.reload();
+                    Ext.getCmp('files-grid').getView().refresh();
+//                        Ext.getCmp('coa-name').setValue(coa_name);
+
+                    regiswindow.close();
+
+                }
+            }
+
+
+
+
+        })
+
+        var regiswindow = new Ext.Window ({
+
+            title:'Register CO List',
+            id:'regco-list-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[regisgrid]
+
+        })
+
+        regiswindow.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name",width: 130, dataIndex: 'filename'},
+            {header:'Action',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+                return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+            }}
+        ];
+
+        var gridattach = new Ext.grid.GridPanel ({
+            id:'files-grid',
+            iconCls: 'silk-grid',
+            height: 100,
+            store: storeFile,
+            trackMouseOver: true,
+            width:490,
+            view : new Ext.grid.GridView({
+                forceFit: true
+            }),
+            columns: fileColumns
+        })
+
+        var fileUploads = new Ext.FormPanel({
+
+            title:'File Attachment',
+            renderTo:'panel_attachment',
+            fileUpload: true,
+            width:500,
+            frame:true,
+            allowBlank: false,
+             msgTarget: 'side',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.7,
+                    layout:'form',
+                    items:[{
+                        xtype: 'fileuploadfield',
+                        id: 'regis-file',
+                        emptyText: 'Select a File',
+                        fieldLabel: 'Attach File',
+                        allowBlank: false,
+                        name: 'file-path',
+                        buttonText: '',
+                        buttonCfg: {
+                            iconCls: 'upload-icon'
+                        },
+                        width:200,
+                        anchor:'98%'
+                    }]
+                },{
+                    columnWidth:0.2,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Upload',
+                        handler:function()
+                        {
+                            var regisno = Ext.getCmp("regis-trano").getValue();
+
+                            if (regisno == "")
+                            {
+                                Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Select your register costumer order number',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+
+
+                            if(fileUploads.getForm().isValid()){
+                                form_action=1;
+                                fileUploads.getForm().submit({
+                                    url: '/procurement/procurement/uploadfile/type/PRACO',
+                                    waitMsg: 'Uploading file...',
+                                    success: function(form,action){
+                                        var returnData = action.result;
+                                        if( returnData.success) {
+                                            var c = new filelist({
+                                                id:parseFloat(storeFile.getCount() + 1),
+                                                filename: returnData.filename,
+                                                savename: returnData.savename,
+                                                path: returnData.path,
+                                                status: 'new'
+                                          });
+                                          storeFile.add(c);
+                                          Ext.getCmp('files-grid').getView().refresh();
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', returnData.msg);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }]
+                }]
+            },gridattach]
+
+        })
+
+        var panelform = new Ext.form.FormPanel ({
+
+            title:'Edit Existing Customer PO',
+            id:'form-panel',
+            renderTo:'panel_form',
+            iconCls: 'silk-user',
+            frame:true,
+            width:500,
+            defaults:{
+                labelStyle:'width:140;'
+            },
+            items:[{
+                xtype:'trigger',
+                fieldLabel:'Register Number ',
+                triggerClass:'teropong',
+                id:'regis-trano',
+                editable:false,
+                onTriggerClick:function()
+                {
+                    showRegisterList ();
+                }
+            },{
+                layout:'column',
+                labelWidth:138,
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'trigger',
+                        fieldLabel:'Customer ',
+                        anchor:'98%',
+                        id : 'cus_kode_text',
+                        triggerClass:'teropong',
+                        editable:false,
+                        onTriggerClick:function()
+                        {
+                            showCustomerList();
+                        }
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        hideLabel:true,
+                        id : 'cus_nama_text',
+                        readOnly:true
+                    }]
+                }]
+            },{
+                xtype:'textfield',
+                fieldLabel:'PO Customer',
+                id:'po_cus_text'
+            },new Ext.ux.customRendererField({
+                priceDelemiter:',',
+                fieldLabel: 'Value IDR',
+                id: 'total_idr',
+                allowBlank : false,
+                style:"text-align:right"
+            }),new Ext.ux.customRendererField({
+                priceDelemiter:',',
+                fieldLabel: 'Value USD',
+                id: 'total_usd',
+                allowBlank : false,
+                style:"text-align:right"
+            }),{
+                xtype:'textarea',
+                fieldLabel:'Description',
+                width:260,
+                id:'ket_text'
+            },{
+                fieldLabel : 'Confirmation From',
+                id:'source_text',
+                name:'source',
+                xtype:'combo',
+                store: new Ext.data.SimpleStore({
+                     fields:['nilai', 'type']
+                         ,data:[
+                        ['Fax','Fax'],
+                        ['Hardcopy','Hardcopy'],
+                        ['Email','Email']
+                    ]
+                 }),
+                valueField:'type',
+                displayField:'nilai',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                value: 'Email',
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                emptyText: 'Select Type',
+                width: 100
+            },{
+                xtype:'trigger',
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                fieldLabel:'Project Manager',
+                width:200,
+                allowBlank:false,
+                id:'assign-to',
+                onTriggerClick:function()
+                {
+                    showPM();
+                }
+            },{
+                xtype:'textarea',
+                width:200,
+                height:80,
+                fieldLabel:'Message',
+                id:'message'
+            }],
+            buttons:[{
+                text:'Update',
+                iconCls: 'silk-user-add',
+                handler:function(btn,ev)
+                {
+                    submitPraco();
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('form-panel').getForm().reset();
+                    storeFile.removeAll();
+                }
+            },{
+                text:'Cancel',
+                handler:function(btn,ev)
+                {
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/praco',
+                        scripts : true
+                    });
+                }
+            }]
+
+        })
+
+    })
+
+    function submitPraco()
+    {
+        var regisno = Ext.getCmp("regis-trano").getValue();
+
+        if (regisno == "")
+        {
+            Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Select your register costumer order number',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if (!Ext.getCmp('form-panel').getForm().isValid())
+        {
+             Ext.MessageBox.show({
+                   title: 'Error',
+                   msg: 'Please Fill Blank Field!',
+                   buttons: Ext.MessageBox.OK,
+                   icon: Ext.MessageBox.ERROR
+               });
+             return false;
+         }
+
+
+        var parameter = '';
+        var fileJson = '';
+
+        storeFile.each(function(store){
+        fileJson += Ext.util.JSON.encode(store.data) + ',';
+        });
+        fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+        deletedfile = '[' + deletedfile.substring(0, deletedfile.length - 1) + ']';
+
+        var trano = Ext.getCmp('regis-trano').getValue();
+        var cusKode = Ext.getCmp('cus_kode_text').getValue();
+        var cusNama = Ext.getCmp('cus_nama_text').getValue();
+        var totalIDR = Ext.getCmp('total_idr').getValue().toString().replace(/\$|\,/g,'');
+        var totalUSD = Ext.getCmp('total_usd').getValue().toString().replace(/\$|\,/g,'');
+        var poCus = Ext.getCmp('po_cus_text').getValue();
+        var ket = Ext.getCmp('ket_text').getValue();
+        var source = Ext.getCmp('source_text').getValue();
+        var pm = Ext.getCmp('assign-to').getValue();
+        var message = Ext.getCmp('message').getValue();
+
+        Ext.Ajax.request ({
+            url:'/projectmanagement/budget/getcekpocustomer/pocustomer/' + poCus + '/trano/' + trano,
+            method:'POST',
+    //        params:params,
+            success:function(result){
+                obj = Ext.util.JSON.decode(result.responseText);
+
+                if (obj.success)
+                {
+                    parameter = '[{"trano":"'+ trano +'","cus_kode":"' + cusKode + '","cus_nama":"' + cusNama + '", "total_idr":"' + totalIDR + '", "total_usd":"' + totalUSD + '", "ket":"' + ket + '", "source":"' + source + '", "po_cus":"' + poCus + '","pm":"' + pm + '","message":"' + message + '","uidpm":"' + uid + '"}]';
+                    params = {etc:parameter, file:fileJson,deletefile:deletedfile};
+                    myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+            
+                    myPanel.body.load({
+                        url: '/projectmanagement/budget/apppraco/from/edit',
+                        scripts : true,
+                        params: params //our params goes here
+                    });
+                }else
+                {
+                    Ext.Msg.alert('Error', obj.msg);
+                    return false;
+                }
+            },
+            failure:function( action){
+                if(action.failureType == 'server'){
+                  obj = Ext.util.JSON.decode(action.response.responseText);
+                  Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                  Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+            }
+        })
+
+
+    }
+
+
+    <?php if ($this->trano != '') { ?>
+        Ext.getCmp('regis-trano').setValue('<?=$this->data['trano']?>');
+        Ext.getCmp('cus_kode_text').setValue('<?=$this->data['cus_kode']?>');
+        Ext.getCmp('cus_nama_text').setValue('<?=$this->data['cus_nama']?>');
+        Ext.getCmp('po_cus_text').setValue('<?=$this->data['pocustomer']?>');
+        Ext.getCmp('total_idr').setValue('<?=$this->data['total']?>');
+        Ext.getCmp('total_usd').setValue('<?=$this->data['totalusd']?>');
+        Ext.getCmp('ket_text').setValue('<?=$this->data['ket']?>');
+        Ext.getCmp('source_text').setValue('<?=$this->data['confirmation']?>');
+        Ext.getCmp('assign-to').setValue('<?=$this->data['username']?>');
+        Ext.getCmp('message').setValue('<?=$this->data['message']?>');
+        uid = '<?=$this->data['uid']?>';
+
+        storeFile.proxy.setUrl('/projectmanagement/budget/getregisfile/trano/<?=$this->data['trano']?>');
+        storeFile.reload();
+        Ext.getCmp('files-grid').getView().refresh();
+    <?php } ?>
+
+
+</script>
+
+    <div id="panel_attachment"></div>
+    <div id="panel_form" style="margin-top:10px;"></div>

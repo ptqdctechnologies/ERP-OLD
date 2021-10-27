@@ -1,0 +1,2647 @@
+<script type="text/javascript"><!--
+var t = 0;
+
+<?php echo $this->action('index','textfield'); ?>
+
+<?php echo $this->action('popupgrid','grid'); ?>
+showAddAFE = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/projectmanagement/afe/addafe',
+        scripts : true
+    });
+};
+
+function showUpload()
+{
+    var bForm = new Ext.Window ({
+    id: 'upload -form',
+    width: 350,
+    autoHeight: true,
+    modal: true,
+    resizable: false,
+    title: 'Choose File for Upload',
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    stateful: false,
+    items : [
+                new Ext.FormPanel({
+                    fileUpload: true,
+                    id: 'form-upload',
+                    frame: true,
+                    items: [
+                        {
+                            xtype: 'fileuploadfield',
+                            id: 'po-file',
+                            emptyText: 'Select a File',
+                            fieldLabel: 'Attach File',
+                            allowBlank: false,
+                            name: 'file-path',
+                            buttonText: '',
+                            buttonCfg: {
+                                iconCls: 'upload-icon'
+                            }
+                        }
+                    ]
+                })
+            ],
+             buttons: [
+                 {
+                    text: 'Upload',
+                     handler: function()
+                     {
+                         var fileUploads = Ext.getCmp('form-upload');
+                         if(fileUploads.getForm().isValid()){
+                             form_action=1;
+                             fileUploads.getForm().submit({
+                                 url: '/procurement/procurement/uploadfile/type/PR',
+                                 waitMsg: 'Uploading file...',
+                                 success: function(form,action){
+                                     var returnData = action.result;
+                                     if( returnData.success) {
+                                         var c = new filelist({
+                                             id:parseFloat(storeFile.getCount() + 1),
+                                             filename: returnData.filename,
+                                             savename: returnData.savename,
+                                             path: returnData.path,
+                                             status: 'new'
+                                       });
+                                       storeFile.add(c);
+                                       Ext.getCmp('files-grid').getView().refresh();
+                                         Ext.getCmp('po-file').setValue('');
+                                         bForm.close();
+                                     }
+                                     else
+                                     {
+                                         Ext.Msg.alert('Error', returnData.msg);
+                                     }
+                                 }
+                             });
+                         }
+                     }
+                 },
+                  {
+                     text: 'Close',
+                     id: 'ok-next',
+                     handler: function(btn, ev) {
+                        bForm.close();
+                      }
+
+                  }
+             ]
+    });
+    bForm.show();
+}
+
+var filelist = Ext.data.Record.create([ {
+    name: 'id',
+    type: 'integer'
+},{
+    name: 'filename',
+    type: 'string'
+},{
+    name: 'savename',
+    type: 'string'
+},{
+    name: 'status',
+    type: 'string'
+},{
+    name: 'path',
+    type: 'string'
+}]);
+
+
+
+var storeFile = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: filelist})
+});
+
+function deleteFile()
+{
+    var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+	theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+    if (theFile != undefined)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn){
+            if (btn== 'yes')
+            {
+                if (theFile.data['status'] == 'new')
+                    var params = {filename:theFile.data['savename']};
+                    Ext.Ajax.request({
+                        url: '/procurement/procurement/deletefile',
+                        method:'POST',
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+                            if (returnData.success)
+                            {
+                                storeFile.remove(theFile);
+                                Ext.getCmp('files-grid').getView().refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error!', returnData.msg);
+                                return false;
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.response.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                        },
+                        params: params
+                    });
+            }
+	    });
+    }
+};
+
+var fileColumns = [
+        new Ext.grid.RowNumberer(),
+        {header: "File Name",width: 130, dataIndex: 'filename'},
+        {header:'',width:40,sortable:true,css:'text-align:center;', renderer: function (v,p,r){
+            return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+        }}
+    ];
+
+var fileUploads = new Ext.Panel({
+    autoHeight: true,
+    hidden: true,
+    frame: true,
+    layout: 'form',
+    id: 'forms',
+    items:[
+        {
+                xtype: 'textfield',
+                id:'add_rev_text',
+                style:"text-align:right",
+                fieldLabel: 'Revenue Value',
+                width: 200,
+                listeners: {
+                        'blur': function(t) {
+                            if (!isNaN(t.getValue()))
+                            {
+                                t.setValue(CommaFormatted(t.getValue()));
+                            }
+                        },
+                        'focus': function(t) {
+                            if (t.getValue().search(",")>0)
+                               t.setValue(t.getValue().toString().replace(/\$|\,/g,''));
+                        }
+            }
+         },
+        new Ext.grid.GridPanel ({
+            id:'files-grid',
+            iconCls: 'silk-grid',
+            height: 100,
+            style: 'margin-left: 5px',
+            store: storeFile,
+            trackMouseOver: true,
+            view : new Ext.grid.GridView({
+                forceFit: true
+            }),
+            tbar: [
+                {
+                    iconCls: 'icon-arrow-up',
+                    text: 'Upload File',
+                    handler: function(){
+                        showUpload();
+                    }
+                }
+            ],
+            columns: fileColumns
+        })
+
+    ]
+});
+
+
+//custom summary renderer example
+function totals(t, params, data){
+
+	 return CommaFormatted(t);
+
+}
+
+Ext.ux.grid.GridSummary.Calculations = {
+	    'jumlah': function(v, record, colName, data, rowIdx){
+            return data[colName] + Ext.num(parseFloat(v.toString().replace(/\$|\,/g,'')), 0);
+	    }
+};
+
+var summary = new Ext.ux.grid.GridSummary();
+
+
+ var addlist = Ext.data.Record.create([
+         {name: 'id', type: 'integer'},
+         {name: 'prj_kode', type: 'string'},
+         {name: 'prj_nama', type: 'string'},
+         {name: 'sit_kode', type: 'string'},
+         {name: 'sit_nama', type: 'string'},
+         {name: 'workid', type: 'string'},
+         {name: 'workname', type: 'string'},
+         {name: 'kode_brg', type: 'string'},
+         {name: 'nama_brg', type: 'string'},
+         {name: 'cfs_kode', type: 'string'},
+         {name: 'cfs_nama', type: 'string'},
+         {name: 'qty', type: 'float'},
+         {name: 'price', type: 'float'},
+         {name: 'totalPrice', type: 'float'},
+         {name: 'val_kode', type: 'string'},
+         {name: 'type', type: 'string'},
+         {name: 'status', type: 'string'},
+         {name: 'uom', type: 'string'},
+         {name: 'qtyori', type: 'float'},
+         {name: 'priceori', type: 'float'},
+         {name: 'totalRequests', type: 'float'},
+         {name: 'totalOCA', type: 'float'},
+         {name: 'pocustomer', type: 'string'},
+         {name: 'totalpocustomer', type: 'string'},
+         {name: 'add_rev', type: 'string'}
+ ]);
+
+var savelist = Ext.data.Record.create([
+         {name: 'id', type: 'integer'},
+         {name: 'prj_kode', type: 'string'},
+         {name: 'prj_nama', type: 'string'},
+         {name: 'sit_kode', type: 'string'},
+         {name: 'sit_nama', type: 'string'},
+         {name: 'workid', type: 'string'},
+         {name: 'workname', type: 'string'},
+         {name: 'kode_brg', type: 'string'},
+         {name: 'nama_brg', type: 'string'},
+         {name: 'cfs_kode', type: 'string'},
+         {name: 'cfs_nama', type: 'string'},
+         {name: 'qty', type: 'float'},
+         {name: 'price', type: 'float'},
+         {name: 'totalPrice', type: 'float'},
+         {name: 'val_kode', type: 'string'},
+         {name: 'type', type: 'string'},
+         {name: 'status', type: 'string'},
+         {name: 'uom', type: 'string'},
+         {name: 'qtyori', type: 'float'},
+         {name: 'priceori', type: 'float'},
+         //{name: 'totalPR', type: 'float'},
+         //{name: 'totalPurchase', type: 'float'},
+         //{name: 'totalPricePurchase', type: 'float'},
+         {name: 'totalRequests', type: 'float'},
+         {name: 'totalOCA', type: 'float'},
+         {name: 'pocustomer', type: 'string'},
+         {name: 'totalpocustomer', type: 'string'},
+         {name: 'add_rev', type: 'string'}
+ ]);
+
+
+var boq3list = Ext.data.Record.create([
+         {name: 'id', type: 'integer'},
+         {name: 'prj_kode', type: 'string'},
+         {name: 'prj_nama', type: 'string'},
+         {name: 'sit_kode', type: 'string'},
+         {name: 'sit_nama', type: 'string'},
+         {name: 'workid', type: 'string'},
+         {name: 'workname', type: 'string'},
+         {name: 'kode_brg', type: 'string'},
+         {name: 'nama_brg', type: 'string'},
+         {name: 'cfs_kode', type: 'string'},
+         {name: 'cfs_nama', type: 'string'},
+         {name: 'qty', type: 'float'},
+         {name: 'price', type: 'float'},
+         {name: 'val_kode', type: 'string'},
+         //{name: 'totalPurchase', type: 'float'},
+         //{name: 'totalPricePurchase', type: 'float'},
+         //{name: 'totalPR', type: 'float'},
+         //{name: 'totalPricePR', type: 'float'},
+         {name: 'totalRequests', type: 'float'},
+         {name: 'totalOCA', type: 'float'},
+         {name: 'uom', type: 'string'},
+         {name: 'pocustomer', type: 'string'},
+         {name: 'totalpocustomer', type: 'string'},
+         {name: 'totalAFE', type: 'float'},
+         {name: 'tranoAFE', type: 'string'}
+    ]);
+
+var proxy = new Ext.data.HttpProxy({
+   url : '/default/home/getboq3summaryforafe'
+});
+
+var storeBOQ3 = new Ext.data.Store({
+     proxy: proxy,
+    reader: new Ext.data.JsonReader({
+        totalProperty: 'count',
+        idProperty: 'id',
+        root: 'posts',
+        fields: boq3list})
+    
+});
+var storeAdd = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: addlist})
+});
+var storeSaving = new Ext.data.Store({
+    reader: new Ext.data.JsonReader({fields: savelist})
+});
+
+/*function getExchangeRate()
+{
+	Ext.Ajax.request({
+	    url: '/default/valuta/getexchangerate',
+	    method:'POST',
+	    success: function(result, request){
+		   		var returnData = Ext.util.JSON.decode(result.responseText);
+				if(returnData.success) {
+					Ext.getCmp('curr_text').setValue(CommaFormatted(returnData.rate));
+				}
+			}
+			,failure:function( action){
+		if(action.failureType == 'server'){
+	    obj = Ext.util.JSON.decode(action.response.responseText);
+	    Ext.Msg.alert('Error!', obj.errors.reason);
+		}
+		}
+	});
+}*/
+
+var expander = new Ext.ux.grid.RowExpander({
+        tpl : new Ext.Template(
+            '<div style="margin-left:50px;"><p><b>Project Name:</b> {prj_nama}</p><br>',
+            '<p><b>Site Name:</b> {sit_nama}</p><br>',
+            '<p><b>Work Name:</b> {workname}</p></div>'
+        )
+    });
+
+ var userColumns = [
+     new Ext.grid.RowNumberer(),
+     expander,
+    {header: "Add",width: 45, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+        if (r.data['tranoAFE'] =='')
+        {
+        return '<a href="#" onclick="addToAFE();"><img src="/images/g_rec_add.png" alt="Additional AFE"></a>';
+        }
+        else
+        {
+            p.attr = 'ext:qtip="It has an ongoing AFE : '+r.data['tranoAFE']+'"';
+            return '<img src="/images/icons/fam/page_tag_red.gif">';
+        }
+        
+    }},
+    {header: "Save",width: 45, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+        if (r.data['tranoAFE'] =='')
+        {
+        return '<a href="#" onclick="addToAFESaving();"><img src="/images/money.png" alt="Saving Bugdet AFE"></a>';
+        }
+        else
+        {
+            p.attr = 'ext:qtip="It has an ongoing AFE : '+r.data['tranoAFE']+'"';
+            return '<img src="/images/icons/fam/page_tag_red.gif">';
+        }
+        
+    }},
+    {header:'Workid',width:45,sortable:true,dataIndex:'workid'},     
+    {header:'Product Id',width:65,sortable:true,dataIndex:'kode_brg'},
+    {header:'Product Name',width:150,sortable:true,dataIndex:'nama_brg'},
+    {header:'Qty',width:70,sortable:true,dataIndex:'qty',renderer:change,align:'right'},
+    {header:'Uom',width:70,sortable:true,dataIndex:'uom'},
+    {header:'Price',width:70,sortable:true,dataIndex:'price',renderer:change,align:'right'},
+    {header:'Currency',width:70,sortable:true,dataIndex:'val_kode'}
+     
+ ]
+
+ var userColumns2 = [
+     new Ext.grid.RowNumberer(),
+     {header: "Edit",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+  		return '<a href="#" onclick="editToAFE(\'additional\');"><img src="/images/g_rec_upd.png"></a>';
+     }},
+     {header: "Delete",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+  		return '<a href="#" onclick="delToAFE();"><img src="/images/g_rec_del.png"></a>';
+     }},
+     {header:'Workid',width:45,sortable:true,dataIndex:'workid'},     
+     {header:'Product Id',width:65,sortable:true,dataIndex:'kode_brg'},
+     {header:'Product Name',width:150,sortable:true,dataIndex:'nama_brg'},
+     {header:'Qty',width:70,sortable:true,dataIndex:'qty',renderer:change,align:'right'},
+     {header:'Uom',width:70,sortable:true,dataIndex:'uom'},
+     {header:'Price',width:70,sortable:true,dataIndex:'price',renderer:change,align:'right'},
+     {header:'Currency',width:70,sortable:true,dataIndex:'val_kode'}
+
+ ]
+
+var userColumns3 = [
+     new Ext.grid.RowNumberer(),
+     {header: "Edit",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+  		return '<a href="#" onclick="editToAFE(\'saving\');"><img src="/images/g_rec_upd.png"></a>';
+     }},
+     {header: "Delete",width: 60, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+  		return '<a href="#" onclick="delToAFE();"><img src="/images/g_rec_del.png"></a>';
+     }},
+     {header:'Workid',width:45,sortable:true,dataIndex:'workid'},
+     {header:'Product Id',width:65,sortable:true,dataIndex:'kode_brg'},
+     {header:'Product Name',width:150,sortable:true,dataIndex:'nama_brg'},
+     {header:'Qty',width:70,sortable:true,dataIndex:'qty',renderer:change,align:'right'},
+     {header:'Uom',width:70,sortable:true,dataIndex:'uom'},
+     {header:'Price',width:70,sortable:true,dataIndex:'price',renderer:change,align:'right'},
+     {header:'Currency',width:70,sortable:true,dataIndex:'val_kode'}
+
+ ]
+
+function change(val)
+{
+    return Ext.util.Format.number(val, '?0,000.00?');
+}
+
+function getNewID()
+{
+    var maxRecordBOQ3 = storeBOQ3.getCount();
+
+    var maxRecordAdd = storeAdd.getCount();
+
+    var maxRecordSaving = storeSaving.getCount();
+
+    var newID = maxRecordBOQ3 + maxRecordAdd + maxRecordSaving + 1;
+
+    return newID;
+}
+
+function showMenu()
+{
+    
+
+}
+
+function getAFERecord(workid,kode_brg,isEdit)
+{
+	//Clear filter
+	storeAddclearFilter();
+	storeAdd.filterBy(function(record,id){
+		if (!isEdit)
+		{
+			if (record.get('workid') == workid.toString() && record.get('kode_brg') == kode_brg.toString())
+			{
+				return record.get('workid');
+			}
+		}
+		else
+		{
+			if (record.get('workid') == workid.toString() && (record.get('status') != '' || record.get('status') != undefined))
+			{
+				return record.get('workid');
+			}
+		}
+	});
+	if (storeAdd.getCount() > 0)
+	{
+		var rec = storeAdd.getAt(0);
+	}
+
+	storeAdd.clearFilter();
+	return rec;
+}
+
+function resetButton()
+{
+
+}
+
+function clearAFEForm()
+{
+    var teks = Ext.getCmp('afe-form').findByType('textfield');
+    Ext.each(teks, function (t, index){
+			t.setValue('');
+        });
+    if (document.getElementById('qty') != undefined)
+        document.getElementById('qty').innerHTML = '0';
+    if (document.getElementById('price') != undefined)
+        document.getElementById('price').innerHTML = '0';
+    if (document.getElementById('total') != undefined)
+        document.getElementById('total').innerHTML = '0';
+    if (document.getElementById('qty-pr') != undefined)
+        document.getElementById('qty-pr').innerHTML = '0';
+    if (document.getElementById('total-purchase') != undefined)
+        document.getElementById('total-purchase').innerHTML = '0';
+    if (document.getElementById('balance-qty') != undefined)
+        document.getElementById('balance-qty').innerHTML = '0';
+    if (document.getElementById('balance-total') != undefined)
+        document.getElementById('balance-total').innerHTML = '0';
+    if (document.getElementById('saving-afe') != undefined)
+        document.getElementById('saving-afe').innerHTML = '0';
+    //Ext.getCmp('fieldset-boq-fill').setVisible(false);
+    //Ext.getCmp('fieldset-boq').setVisible(true);
+}
+
+function clearEditStatus()
+{
+    storeAdd.each(function(store){
+            if (store.data['status'] == 'edit')
+            {
+                var e = storeAdd.getAt(storeAdd.findExact('id', store.data['id']));
+                e.data['status'] = '';
+            }
+    });
+    storeSaving.each(function(store){
+            if (store.data['status'] == 'edit')
+            {
+                var e = storeSaving.getAt(storeSaving.findExact('id', store.data['id']));
+                e.data['status'] = '';
+            }
+    });
+    storeBOQ3.each(function(store){
+            if (store.data['status'] == 'edit')
+            {
+                var e = storeBOQ3.getAt(storeBOQ3.findExact('id', store.data['id']));
+                e.data['status'] = '';
+            }
+    });
+}
+
+function hitungTotal()
+{
+    if (Ext.getCmp('qty-afe').getValue() != '' && Ext.getCmp('price-afe').getValue() != '')
+    {
+        var a = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        var b = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+        Ext.getCmp('total-afe').setValue(CommaFormatted(a*b));
+    }
+}
+
+function cekForm()
+{
+    if(Ext.getCmp('afe-form').type == 'additional')
+    {
+        //var netAct  = Ext.getCmp('cfs_kode_text2').getValue();
+        //var cfs  = Ext.getCmp('cfs_code_text').getValue();
+        var newQty = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        var newPrice = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+        
+        /*if ( cfs == '' || (String(cfs).search(/^\s*\d+\s*$/) == -1))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Select / Input CFS Code (Numeric Only)!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if ( Ext.getCmp('workid_text').getValue()=='')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Input Work ID !',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        
+        if ( Ext.getCmp('kode_brg_text').getValue()=='')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Input Project ID !',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }*/
+
+        var cek1 = Ext.getCmp('additional-grid').getSelectionModel().getSelections();
+        
+        if (cek1[0] != undefined && cek1[0].data['status'] == 'edit')
+        {
+            
+            var price =0;
+            var qty =0;
+            
+            var rec = storeBOQ3.getAt(storeBOQ3.findExact('id',cek1[0].data['id']));
+            var oriQty = parseFloat(rec.data['qty'].toString().replace(/\$|\,/g,''));
+            var oriPrice = parseFloat(rec.data['price'].toString().replace(/\$|\,/g,''));
+            var oriTotal = oriQty * oriPrice;
+            var newTotal = newQty * newPrice;
+         
+            if (oriTotal >= newTotal)
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'AFE total must be greater than BOQ3 ',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+        }
+        else
+        {
+            var cek = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+                       
+            rec = cek[0];
+            var oldQty = parseFloat(rec.data['qty']);
+            var oldPrice = parseFloat(rec.data['price']);
+        }
+
+        var piece = rec.data['uom'];
+        var valuta = rec.data['val_kode'];
+       
+
+        if ((newQty < oldQty) && (newQty*newPrice < oldQty*oldPrice))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Additional Quantity must be greater than ' + CommaFormatted(oldQty) + ' ' + piece,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        if ((newPrice < oldPrice) && (newQty*newPrice < oldQty*oldPrice))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Additional Price must be greater than ' + CommaFormatted(oldPrice) + ' ' + valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        
+        if (newQty*newPrice == oldQty*oldPrice)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Additional Total must be greater than ' + CommaFormatted(oldPrice*oldQty) + ' ' + valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        return true;
+    }
+    else if(Ext.getCmp('afe-form').type == 'saving')
+    {
+        //var netAct  = Ext.getCmp('cfs_kode_text2').getValue();
+        var netAct  = Ext.getCmp('cfs_code_text').getValue();
+        var newQty = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        var newPrice = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+        
+        if ( netAct == '' || (String(netAct).search(/^\s*\d+\s*$/) == -1))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Input CFS Code (Numeric Only)!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        var cek2 = Ext.getCmp('saving-grid').getSelectionModel().getSelections();
+        if (cek2[0] != undefined && cek2[0].data['status'] == 'edit')
+        {
+
+            var rec = storeBOQ3.getAt(storeBOQ3.findExact('id',cek2[0].data['id']));
+            var oriQty = parseFloat(rec.data['qty'].toString().replace(/\$|\,/g,''));
+            var oriPrice = parseFloat(rec.data['price'].toString().replace(/\$|\,/g,'')); 
+            var oriTotal = oriQty * oriPrice;
+            var newTotal = newQty * newPrice;
+         
+            if (oriTotal <= newTotal)
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'AFE total must be less than BOQ3 ',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+        }
+        else
+        {
+
+            var cek3 = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+
+            rec = cek3[0];
+            var oldQty = parseFloat(rec.data['qty'].toString().replace(/\$|\,/g,''));
+            var oldPrice = parseFloat(rec.data['price'].toString().replace(/\$|\,/g,''));
+        }
+
+        //var piece = rec.data['uom'];
+        var valuta = rec.data['val_kode'];
+        var totalRequest = parseFloat(rec.data['totalRequests'].toString().replace(/\$|\,/g,''));
+        
+        //var qtyPR = parseFloat(rec.data['totalPR'].toString().replace(/\$|\,/g,''));
+        //var totalPricePurchase = (rec.data['totalPricePurchase'].toString().replace(/\$|\,/g,''))
+        
+        //var newTotalPrice = parseFloat(Ext.getCmp('total-afe').getValue().toString().replace(/\$|\,/g,''));
+                    
+        /*if ((newQty > oldQty) && (newQty*newPrice > oldQty*oldPrice))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Quantity must be less than ' + CommaFormatted(oldQty) + ' ' + piece,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        if ((newPrice > oldPrice) && (newQty*newPrice > oldQty*oldPrice))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Price must be less than ' + CommaFormatted(oldPrice) + ' ' + valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }*/
+        if (newQty*newPrice >= oldQty*oldPrice)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Total must be less than ' + CommaFormatted(oldPrice*oldQty) + ' ' + valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        
+        /*if (!isMscWorkid(rec.data['workid']))
+        {
+            if (newQty < qtyPR)
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Saving Qty must be greater or equal than Qty In PR+ARF',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+        }
+        if (newTotalPrice < totalPricePurchase)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Total Price must be greater or equal than Total Price In (PO + (ARF-ASF Cancel)) ',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }*/
+
+        if(newQty*newPrice < totalRequest)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Total must be greater than or equal '+CommaFormatted(totalRequest)+' '+valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        
+        var boq3 = document.getElementById('boq3').innerHTML;
+        boq3 = parseFloat(boq3.toString().replace(/\$|\,/g, ''));
+             
+        if(newQty*newPrice > boq3)
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Saving Total must be less than '+CommaFormatted(boq3)+' '+valuta,
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            
+            return false;
+        }
+
+
+        return true;
+    }
+    /*else
+    {
+        //var netAct  = Ext.getCmp('cfs_kode_text').getValue();
+        var netAct  = Ext.getCmp('cfs_code_text').getValue();
+        if ( netAct == '' || (String(netAct).search(/^\s*\d+\s*$/) == -1))
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Input CFS Code (Numeric Only)!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+                
+        return true;
+    }*/
+}
+
+function cekItemAddtional()
+{
+    storeAdd.each(function(stores){
+		if(stores.data['id'] != undefined)
+		{
+//			if (!isMscWorkid(stores.data['workid']))
+//			{
+				var col = storeBOQ3.queryBy(function(record,id){
+
+					 return record.get('workid') == stores.data['workid']  && record.get('kode_brg') == stores.data['kode_brg'];
+
+				});
+
+				if (col.length != 0)
+				{
+                    return false
+                }
+            
+
+            }
+    })
+}
+
+//function addToAFE(isNew)
+function addToAFE()
+{
+    
+    document.getElementById('sidebox').style.display = '';
+    //if (isNew == '' || isNew == undefined)
+    //    isNew = false;
+
+    //if (!isNew)
+    //{
+        var rec = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+        /*if (rec[0] != undefined)
+        {
+            var qty = parseFloat(rec[0].data['qty']);
+        }
+        else
+        {
+            Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'Error while fetching data...',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }*/
+
+        var col = storeSaving.queryBy(function(record,id){
+
+            return record.get('workid') == rec[0].data['workid']  && record.get('kode_brg') == rec[0].data['kode_brg'];
+
+        });
+        
+        var col2 = storeAdd.queryBy(function(record2,id2){
+
+            return record2.get('workid') == rec[0].data['workid']  && record2.get('kode_brg') == rec[0].data['kode_brg'];
+
+        });
+
+        if (col.length != 0 || col2.length !=0)
+        {
+            Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'You have selected this item.',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+        
+        Ext.getCmp('save-afe').setText('Add to Additional AFE Cart');
+        //Ext.getCmp('fieldset-boq-fill').setVisible(false);
+        //Ext.getCmp('fieldset-boq').setVisible(true);
+        //Ext.getCmp('boq-workid').setValue(rec[0].data['workid']);
+        //Ext.getCmp('boq-workname').setValue(rec[0].data['workname']);
+        //Ext.getCmp('kode_brg_text2').setValue(rec[0].data['kode_brg']);
+        //Ext.getCmp('nama_brg_text2').setValue(rec[0].data['nama_brg']);
+        //Ext.getCmp('cfs_kode_text2').setValue(rec[0].data['cfs_kode']);
+        //Ext.getCmp('cfs_nama_text2').setValue(rec[0].data['cfs_nama']);
+        Ext.getCmp('workid_text').setValue(rec[0].data['workid']);
+        Ext.getCmp('workname_text').setValue(rec[0].data['workname']);
+        Ext.getCmp('kode_brg_text').setValue(rec[0].data['kode_brg']);
+        Ext.getCmp('nama_brg_text').setValue(rec[0].data['nama_brg']);
+        Ext.getCmp('cfs_code_text').setValue(rec[0].data['cfs_kode']);
+        Ext.getCmp('cfs_name_text').setValue(rec[0].data['cfs_nama']);
+        Ext.getCmp('uom_text').setValue(rec[0].data['uom']);
+        Ext.getCmp('val_kode_text3').setValue(rec[0].data['val_kode']);
+        Ext.getCmp('val_kode_text4').setValue(rec[0].data['val_kode']);
+        Ext.getCmp('price-afe').setValue(rec[0].data['price']);
+        Ext.getCmp('qty-afe').setValue(rec[0].data['qty']);
+        Ext.getCmp('afe-form').type = 'additional';
+
+        var valuta = rec[0].data['val_kode'];
+        //var piece = rec[0].data['uom'];
+        var oriqty = rec[0].data['qty'].toString().replace(/\$|\,/g,'');
+        var oriprice = rec[0].data['price'].toString().replace(/\$|\,/g,'');
+        //var oritotal = parseFloat(oriqty) * parseFloat(oriprice);
+
+        //document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Ori Qty :</td><td align="right"><b id="qty">' + CommaFormatted(oriqty) + ' ' + piece + '</b></td></tr><tr><td>BOQ3 ori Price :</td><td align="right"><b id="price">' + CommaFormatted(oriprice) + ' ' + valuta +  '</b></td></tr><tr><td>BOQ3 ori Total :</td><td align="right"><b id="total">' + CommaFormatted(oritotal.toFixed(2)) + ' ' + valuta + '</b></td></tr></table>';
+        var total = parseFloat(oriqty*oriprice - rec[0].data['totalOCA']);
+        var totalRequest = parseFloat(rec[0].data['totalRequests']);
+        var balance = parseFloat(total - totalRequest);
+        document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Total After OCA</td><td>:</td><td align="right"><b id="boq3">' + CommaFormatted(total.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>(PR + ARF) - (M.Return + Canceled ASF)</td><td>:</td><td align="right"><b id="inpr">' + CommaFormatted(totalRequest.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>Balance</td><td>:</td><td align="right"><b id="balance" style="color:#FF3F7D">' + CommaFormatted(balance.toFixed(4)) + ' ' + valuta + '</b></td></tr></table>';
+        hitungTotal();
+    /*}
+    else
+    {
+
+        document.getElementById('sidebox').style.display = 'none';
+        //Ext.getCmp('fieldset-boq-fill').setVisible(true);
+        //Ext.getCmp('fieldset-boq').setVisible(false);
+        Ext.getCmp('afe-form').type = '';
+        Ext.getCmp('val_kode_text3').setValue(Ext.getCmp('val_kode_text').getValue());
+        Ext.getCmp('val_kode_text4').setValue(Ext.getCmp('val_kode_text').getValue());
+        hitungTotal();
+    }*/
+   
+    Ext.getCmp('additional-grid').disable();
+    Ext.getCmp('saving-grid').disable();
+    Ext.getCmp('boq-detail-grid').disable();
+    //Ext.getCmp('cancel-afe').setText('Cancel Add');
+    Ext.getCmp('cancel-afe').enable();
+
+
+}
+
+function addToAFESaving()
+{
+    document.getElementById('sidebox').style.display = '';
+    var rec = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+	//if (rec[0] != undefined)
+	//{
+    var col = storeSaving.queryBy(function(record,id){
+
+        return record.get('workid') == rec[0].data['workid']  && record.get('kode_brg') == rec[0].data['kode_brg'];
+
+    });
+        
+    var col2 = storeAdd.queryBy(function(record2,id2){
+
+        return record2.get('workid') == rec[0].data['workid']  && record2.get('kode_brg') == rec[0].data['kode_brg'];
+
+    });
+
+    if (col.length != 0 || col2.length !=0)
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'You have selected this item.',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+
+
+    var qty = parseFloat(rec[0].data['qty'].toString().replace(/\$|\,/g,''));
+        //var qtyPR = parseFloat(rec[0].data['totalPR'].toString().replace(/\$|\,/g,''));
+    var price = parseFloat(rec[0].data['price'].toString().replace(/\$|\,/g,''));
+        //var piece = rec[0].data['uom'];
+    var valuta = rec[0].data['val_kode'];
+//        var purchaseQty = parseFloat(rec[0].data['totalPurchase']);
+        //var purchaseTotalPrice = parseFloat(rec[0].data['totalPricePurchase'].toString().replace(/\$|\,/g,''));
+//        var balanceQty = qty - qtyPR;
+        //var totPrice = (qty * price);
+//        var balanceTotalPrice = totPrice - purchaseTotalPrice;
+        //Ext.getCmp('fieldset-boq-fill').setVisible(false);
+        //Ext.getCmp('fieldset-boq').setVisible(true);
+        //Ext.getCmp('boq-workid').setValue(rec[0].data['workid']);
+        //Ext.getCmp('boq-workname').setValue(rec[0].data['workname']);
+        //Ext.getCmp('kode_brg_text2').setValue(rec[0].data['kode_brg']);
+        //Ext.getCmp('nama_brg_text2').setValue(rec[0].data['nama_brg']);
+        //Ext.getCmp('cfs_kode_text2').setValue(rec[0].data['cfs_kode']);
+        //Ext.getCmp('cfs_nama_text2').setValue(rec[0].data['cfs_nama']);
+    Ext.getCmp('workid_text').setValue(rec[0].data['workid']);
+    Ext.getCmp('workname_text').setValue(rec[0].data['workname']);
+    Ext.getCmp('kode_brg_text').setValue(rec[0].data['kode_brg']);
+    Ext.getCmp('nama_brg_text').setValue(rec[0].data['nama_brg']);
+    Ext.getCmp('cfs_code_text').setValue(rec[0].data['cfs_kode']);
+    Ext.getCmp('cfs_name_text').setValue(rec[0].data['cfs_nama']);
+    Ext.getCmp('uom_text').setValue(rec[0].data['uom']);
+    Ext.getCmp('val_kode_text3').setValue(rec[0].data['val_kode']);
+    Ext.getCmp('val_kode_text4').setValue(rec[0].data['val_kode']);
+    Ext.getCmp('price-afe').setValue(rec[0].data['price']);
+    Ext.getCmp('qty-afe').setValue(rec[0].data['qty']);
+    Ext.getCmp('afe-form').type = 'saving';
+    Ext.getCmp('save-afe').setText('Add to Saving AFE Cart');
+
+        //if (!isMscWorkid(rec[0].data['workid']))
+            //document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 ori Qty :</td><td align="right"><b id="qty">' + CommaFormatted(qty) + ' ' + piece + '</b></td><td></td><td>BOQ3 ori Total Price :</td><td align="right"><b id="total">' + CommaFormatted(totPrice) + ' ' + valuta + '</b></td></tr><tr><td>In PR+ARF+Piecemeal Qty :</td><td align="right"><b id="qty-pr">' + CommaFormatted(qtyPR) + ' ' + piece +  '</b></td><td></td><td>In Cost (PO + (ARF-ASF Cancel)) Total Price :</td><td align="right"><b id="total-purchase">' + CommaFormatted(purchaseTotalPrice) + ' ' + valuta + '</b></td></tr><tr><td>Saving :</td><td align="right"><b id="saving-afe" style="color:#FF3F7D">0' + ' ' + valuta + '</b></td></tr></table>';
+        //else
+            //document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 ori Total Price :</td><td align="right"><b id="total">' + CommaFormatted(totPrice) + ' ' + valuta + '</b></td></tr><tr><td>In (PO + (ARF-ASF Cancel)) Total Price :</td><td align="right"><b id="total-purchase">' + CommaFormatted(purchaseTotalPrice) + ' ' + valuta + '</b></td></tr><tr><td>Saving :</td><td align="right"><b id="saving-afe" style="color:#FF3F7D">0' + ' ' + valuta + '</b></td></tr></table>';
+        
+    var total = parseFloat(qty*price - rec[0].data['totalOCA']);
+    var totalRequest = parseFloat(rec[0].data['totalRequests']);
+    var balance = parseFloat(total - totalRequest);
+    document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Total After OCA</td><td>:</td><td align="right"><b id="boq3">' + CommaFormatted(total.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>(PR + ARF) - (M.Return + Canceled ASF)</td><td>:</td><td align="right"><b id="inpr">' + CommaFormatted(totalRequest.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>Balance</td><td>:</td><td align="right"><b id="balance" style="color:#FF3F7D">' + CommaFormatted(balance.toFixed(4)) + ' ' + valuta + '</b></td></tr></table>';
+        
+    hitungTotal();
+    Ext.getCmp('additional-grid').disable();
+    Ext.getCmp('saving-grid').disable();
+    Ext.getCmp('boq-detail-grid').disable();
+        //Ext.getCmp('cancel-afe').setText('Cancel Add');
+    Ext.getCmp('cancel-afe').enable();
+	/*}
+	else
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Error while fetching data...',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+  		return false;
+	}*/
+}
+
+function insertAFEtoList()
+{
+    var barang = Ext.getCmp('kode_brg_text').getValue();
+    var workid = Ext.getCmp('workid_text').getValue();
+    var cfs = Ext.getCmp('cfs_code_text').getValue();
+
+    if ( workid=='')
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Input Work ID !',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+        
+    if ( barang=='')
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Input Product ID !',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+        
+    if ( cfs == '' || (String(cfs).search(/^\s*\d+\s*$/) == -1))
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Select / Input CFS Code (Numeric Only)!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+
+    if(cekForm())
+    {
+
+        var cek1 = Ext.getCmp('additional-grid').getSelectionModel().getSelections();
+        if (cek1[0] != undefined)
+        {
+       
+            var oriadd = storeAdd.getAt(storeAdd.findExact('id',cek1[0].data['id']));
+        }
+    
+        var cek2 = Ext.getCmp('saving-grid').getSelectionModel().getSelections();
+        if (cek2[0] != undefined)
+            var orisave = storeSaving.getAt(storeSaving.findExact('id',cek2[0].data['id']));
+
+        var cek = storeBOQ3.getAt(storeBOQ3.findExact('status', 'edit'));
+        var newQty = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        var newPrice = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+        var newTotal = parseFloat(Ext.getCmp('total-afe').getValue().toString().replace(/\$|\,/g,''));
+        //var cfsKode = Ext.getCmp('cfs_kode_text2').getValue();
+        var cfsKode = Ext.getCmp('cfs_code_text').getValue();
+
+
+        if (oriadd != undefined && oriadd.data['status'] == 'edit' && oriadd.data['type'] == 'additional')
+        {
+            oriadd.data['qty'] = newQty;
+            oriadd.data['price'] = newPrice;
+            oriadd.data['totalPrice'] = newTotal;
+            oriadd.data['status'] = '';
+            oriadd.data['cfs_kode'] = cfsKode;
+//            cek.data['totalAFE'] = parseFloat(cek.data['totalAFE']) + newQty;
+        }
+        else if (orisave != undefined && orisave.data['status'] == 'edit' && orisave.data['type'] == 'saving')
+        {
+            orisave.data['qty'] = newQty;
+            orisave.data['price'] = newPrice;
+            orisave.data['totalPrice'] = newTotal;
+            orisave.data['status'] = '';
+            orisave.data['cfs_kode'] = cfsKode;
+//            cek.data['totalAFE'] = parseFloat(cek.data['totalAFE']) + newQty;
+        }
+        else if (oriadd != undefined && oriadd.data['status'] == 'edit' && oriadd.data['type'] == 'new')
+        {
+            oriadd.data['workid'] = Ext.getCmp('workid_text').getValue();
+            oriadd.data['workname'] = Ext.getCmp('workname_text').getValue();
+            oriadd.data['kode_brg'] = Ext.getCmp('kode_brg_text').getValue();
+            oriadd.data['nama_brg'] = Ext.getCmp('nama_brg_text').getValue();
+            //oriadd.data['cfs_kode'] = Ext.getCmp('cfs_kode_text').getValue();
+            //oriadd.data['cfs_nama'] = Ext.getCmp('cfs_nama_text').getValue();
+            oriadd.data['cfs_kode'] = Ext.getCmp('cfs_code_text').getValue();
+            oriadd.data['cfs_nama'] = Ext.getCmp('cfs_name_text').getValue();
+            oriadd.data['qty'] = newQty;
+            oriadd.data['price'] = newPrice;
+            oriadd.data['totalPrice'] = newTotal;
+            oriadd.data['status'] = '';
+//            cek.data['totalAFE'] = parseFloat(cek.data['totalAFE']) + newQty;
+        }
+        else
+        {
+            Ext.getCmp('save-afe').setText('Add to AFE List');
+            var recboq = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+
+            if (recboq[0] != undefined)
+            {
+                var boq = storeBOQ3.getAt(storeBOQ3.findExact('id', recboq[0].data['id']));
+                var afed = storeAdd.getAt(storeAdd.findExact('id', recboq[0].data['id']));
+
+                if(Ext.getCmp('afe-form').type == 'additional')
+                {
+                    var d = new addlist({
+                        workid: recboq[0].data['workid'],
+                        workname: recboq[0].data['workname'],
+                        prj_kode: recboq[0].data['prj_kode'],
+                        sit_kode: recboq[0].data['sit_kode'],
+                        prj_nama: recboq[0].data['prj_nama'],
+                        sit_nama: recboq[0].data['sit_nama'],
+                        kode_brg: recboq[0].data['kode_brg'],
+                        nama_brg: recboq[0].data['nama_brg'],
+                        //cfs_kode: Ext.getCmp('cfs_kode_text2').getValue(),
+                        cfs_kode: Ext.getCmp('cfs_code_text').getValue(),
+                        cfs_nama: recboq[0].data['cfs_nama'],
+                        qty:  newQty,
+                        price:  newPrice,
+                        totalPrice: newTotal,
+                        uom: recboq[0].data['uom'],
+                        val_kode: Ext.getCmp('val_kode_text').getValue(),//recboq[0].data['val_kode'],
+                        ket: Ext.getCmp('ket').getValue(),
+                        type: 'additional',
+                        qtyori: recboq[0].data['qty'],
+                        priceori: recboq[0].data['price'],
+                        pocustomer: recboq[0].data['pocustomer'],
+                        totalpocustomer: recboq[0].data['totalpocustomer'],
+                        totalRequests: recboq[0].data['totalRequests'],
+                        totalOCA: recboq[0].data['totalOCA'],
+                        add_rev : Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,''),
+                        id: boq.data['id']
+                    });
+                    storeAdd.add(d);
+                    boq = undefined;
+//            boq.data['totalAFE'] = parseFloat(boq.data['totalAFE']) + newQty;                        
+                }
+                else if(Ext.getCmp('afe-form').type == 'saving')
+                {
+                    var d = new savelist({
+                        workid: recboq[0].data['workid'],
+                        workname: recboq[0].data['workname'],
+                        prj_kode: recboq[0].data['prj_kode'],
+                        sit_kode: recboq[0].data['sit_kode'],
+                        prj_nama: recboq[0].data['prj_nama'],
+                        sit_nama: recboq[0].data['sit_nama'],
+                        kode_brg: recboq[0].data['kode_brg'],
+                        nama_brg: recboq[0].data['nama_brg'],
+                        //cfs_kode: Ext.getCmp('cfs_kode_text2').getValue(),
+                        cfs_kode: Ext.getCmp('cfs_code_text').getValue(),
+                        cfs_nama: recboq[0].data['cfs_nama'],
+                        qty:  newQty,
+                        price:  newPrice,
+                        totalPrice: newTotal,
+                        uom: recboq[0].data['uom'],
+                        val_kode: Ext.getCmp('val_kode_text').getValue(),//recboq[0].data['val_kode'],
+                        ket: Ext.getCmp('ket').getValue(),
+                        type:'saving',
+                        qtyori : recboq[0].data['qty'],
+                        priceori: recboq[0].data['price'],
+                        //totalPR: recboq[0].data['totalPR'],
+                        //totalPurchase: recboq[0].data['totalPurchase'],
+                        //totalPricePurchase: recboq[0].data['totalPricePurchase'],
+                        totalRequests : recboq[0].data['totalRequests'],
+                        totalOCA : recboq[0].data['totalOCA'],
+                        pocustomer: recboq[0].data['pocustomer'],
+                        totalpocustomer: recboq[0].data['totalpocustomer'],
+                        add_rev : Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,''),
+                        id: boq.data['id']
+                    });
+                    
+                    storeSaving.add(d);
+                    boq = undefined;
+                }
+                else if(Ext.getCmp('afe-form').type == '')
+                {
+                    var kode_brg = Ext.getCmp('kode_brg_text').getValue();
+                    var workid = Ext.getCmp('workid_text').getValue();
+                    var val_kode = Ext.getCmp('val_kode_text').getValue();
+                    var prj_kode= Ext.getCmp('prj_kode_text').getValue();
+                    var sit_kode= Ext.getCmp('sit_kode_text').getValue();
+                    var workname= Ext.getCmp('workname_text').getValue();
+                    var prj_nama = Ext.getCmp('prj_nama_text').getValue();
+                    var sit_nama= Ext.getCmp('sit_nama_text').getValue();
+                    var nama_brg= Ext.getCmp('nama_brg_text').getValue();
+                    //var cfs_kode= Ext.getCmp('cfs_kode_text').getValue();
+                    //var cfs_nama= Ext.getCmp('cfs_nama_text').getValue();
+                    var cfs_kode= Ext.getCmp('cfs_code_text').getValue();
+                    var cfs_nama= Ext.getCmp('cfs_name_text').getValue();
+                    var uom= Ext.getCmp('uom_text').getValue();
+                    var ket= Ext.getCmp('ket').getValue();
+                    var pocustomer= Ext.getCmp('cus_po_no').getValue();
+                    var totalpocustomer= Ext.getCmp('cus_po_val').getValue().toString().replace(/\$|\,/g,'');
+                    var add_rev = Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,'');
+                    
+            
+                    var params = {prj_kode:prj_kode, sit_kode:sit_kode, workid:workid, kode_brg:kode_brg, val_kode: val_kode};
+                    Ext.Ajax.request({
+                        url: '/default/home/getboq3summaryforafebyone',
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                          
+                            if (returnData['posts'].length > 0)
+                            {
+                                Ext.Msg.alert("Error","Product ID & Work ID Already Exists in BOQ3 Detail !");
+                            }
+                            else
+                            {
+                        
+                                var e = new addlist({
+                                workid: workid,
+                                workname: workname,
+                                prj_kode: prj_kode,
+                                sit_kode: sit_kode,
+                                prj_nama: prj_nama,
+                                sit_nama: sit_nama,
+                                kode_brg: kode_brg,
+                                nama_brg: nama_brg,
+                                cfs_kode: cfs_kode,
+                                cfs_nama: cfs_nama,
+                                qty:  newQty,
+                                price:  newPrice,
+                                totalPrice: newTotal,
+                                uom:uom,
+                                val_kode: val_kode,
+                                ket: ket,
+                                pocustomer:pocustomer,
+                                totalpocustomer:totalpocustomer,
+                                add_rev :add_rev,
+                                type: 'new',
+                                id: getNewID()
+                                });
+                    
+                                storeAdd.add(e);
+                    
+                            }
+                        },
+                        params: params
+                    });
+                    /*var kodBarang = Ext.getCmp('kode_brg_text').getValue(),
+                    workId = Ext.getCmp('workid_text').getValue();
+
+                    storeBOQ3.filterBy(function(record,id){
+                        if (record.get('workid') == workId.toString() && record.get('kode_brg') == kodBarang.toString())
+                        {
+                            return true;
+                        }
+                    });
+
+                    if (storeBOQ3.getCount() > 0)
+                    {
+                        Ext.Msg.alert("Error","Product ID & Work ID Exists! Please use Additional Button for this transaction.");
+                        storeBOQ3.clearFilter();
+                        return false;
+                    }
+                    storeBOQ3.clearFilter();
+                    var d = new addlist({
+                        workid: Ext.getCmp('workid_text').getValue(),
+                        workname: Ext.getCmp('workname_text').getValue(),
+                        prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                        sit_kode: Ext.getCmp('sit_kode_text').getValue(),
+                        prj_nama: Ext.getCmp('prj_nama_text').getValue(),
+                        sit_nama: Ext.getCmp('sit_nama_text').getValue(),
+                        kode_brg: Ext.getCmp('kode_brg_text').getValue(),
+                        nama_brg: Ext.getCmp('nama_brg_text').getValue().toString().replace(/\'|\",/g,''),
+                        cfs_kode: Ext.getCmp('cfs_kode_text').getValue(),
+                        cfs_nama: Ext.getCmp('cfs_nama_text').getValue(),
+                        qty:  newQty,
+                        price:  newPrice,
+                        totalPrice: newTotal,
+                        uom: Ext.getCmp('uom_text').getValue(),
+                        val_kode: Ext.getCmp('val_kode_text').getValue(),
+                        ket: Ext.getCmp('ket').getValue(),
+                        pocustomer: Ext.getCmp('cus_po_no').getValue(),
+                        totalpocustomer: Ext.getCmp('cus_po_val').getValue().toString().replace(/\$|\,/g,''),
+                        add_rev : Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,''),
+                        type: 'new',
+                        id: getNewID()
+                    });
+                    storeAdd.add(d);*/
+                }
+            
+
+                d = undefined;
+            }
+            else    
+            {
+
+                if(Ext.getCmp('afe-form').type == '')
+                {
+                    var kode_brg = Ext.getCmp('kode_brg_text').getValue();
+                    var workid = Ext.getCmp('workid_text').getValue();
+                    var val_kode = Ext.getCmp('val_kode_text').getValue();
+                    var prj_kode= Ext.getCmp('prj_kode_text').getValue();
+                    var sit_kode= Ext.getCmp('sit_kode_text').getValue();
+                    var workname= Ext.getCmp('workname_text').getValue();
+                    var prj_nama = Ext.getCmp('prj_nama_text').getValue();
+                    var sit_nama= Ext.getCmp('sit_nama_text').getValue();
+                    var nama_brg= Ext.getCmp('nama_brg_text').getValue();
+                    //var cfs_kode= Ext.getCmp('cfs_kode_text').getValue();
+                    //var cfs_nama= Ext.getCmp('cfs_nama_text').getValue();
+                    var cfs_kode= Ext.getCmp('cfs_code_text').getValue();
+                    var cfs_nama= Ext.getCmp('cfs_name_text').getValue();
+                    var uom= Ext.getCmp('uom_text').getValue();
+                    var ket= Ext.getCmp('ket').getValue();
+                    var pocustomer= Ext.getCmp('cus_po_no').getValue();
+                    var totalpocustomer= Ext.getCmp('cus_po_val').getValue().toString().replace(/\$|\,/g,'');
+                    var add_rev = Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,'');
+                    
+            
+                    var params = {prj_kode:prj_kode, sit_kode:sit_kode, workid:workid, kode_brg:kode_brg, val_kode: val_kode};
+                    Ext.Ajax.request({
+                        url: '/default/home/getboq3summaryforafebyone',
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                          
+                            if (returnData['posts'].length > 0)
+                            {
+                                Ext.Msg.alert("Error","Product ID & Work ID Exists in BOQ3 Detail !");
+                            }
+                            else
+                            {
+                        
+                                var e = new addlist({
+                                workid: workid,
+                                workname: workname,
+                                prj_kode: prj_kode,
+                                sit_kode: sit_kode,
+                                prj_nama: prj_nama,
+                                sit_nama: sit_nama,
+                                kode_brg: kode_brg,
+                                nama_brg: nama_brg,
+                                cfs_kode: cfs_kode,
+                                cfs_nama: cfs_nama,
+                                qty:  newQty,
+                                price:  newPrice,
+                                totalPrice: newTotal,
+                                uom:uom,
+                                val_kode: val_kode,
+                                ket: ket,
+                                pocustomer:pocustomer,
+                                totalpocustomer:totalpocustomer,
+                                add_rev :add_rev,
+                                type: 'new',
+                                id: getNewID()
+                                });
+                    
+                                storeAdd.add(e);
+                                e = undefined;
+                    
+                            }
+                        },
+                        params: params
+                    });
+                    /*var kodBarang = Ext.getCmp('kode_brg_text').getValue(),
+                    workId = Ext.getCmp('workid_text').getValue();
+
+                    storeBOQ3.filterBy(function(record,id){
+                        if (record.get('workid') == workId.toString() && record.get('kode_brg') == kodBarang.toString())
+                        {
+                            return true;
+                        }
+                    });
+
+                    if (storeBOQ3.getCount() > 0)
+                    {
+                        Ext.Msg.alert("Error","Product ID & Work ID Exists! Please use Additional Button for this transaction.");
+                        storeBOQ3.clearFilter();
+                        return false;
+                    }
+                    storeBOQ3.clearFilter();
+                    var e = new addlist({
+                        workid: Ext.getCmp('workid_text').getValue(),
+                        workname: Ext.getCmp('workname_text').getValue(),
+                        prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                        sit_kode: Ext.getCmp('sit_kode_text').getValue(),
+                        prj_nama: Ext.getCmp('prj_nama_text').getValue(),
+                        sit_nama: Ext.getCmp('sit_nama_text').getValue(),
+                        kode_brg: Ext.getCmp('kode_brg_text').getValue(),
+                        nama_brg: Ext.getCmp('nama_brg_text').getValue(),
+                        cfs_kode: Ext.getCmp('cfs_kode_text').getValue(),
+                        cfs_nama: Ext.getCmp('cfs_nama_text').getValue(),
+                        qty:  newQty,
+                        price:  newPrice,
+                        totalPrice: newTotal,
+                        uom: Ext.getCmp('uom_text').getValue(),
+                        val_kode: Ext.getCmp('val_kode_text').getValue(),
+                        ket: Ext.getCmp('ket').getValue(),
+                        pocustomer: Ext.getCmp('cus_po_no').getValue(),
+                        totalpocustomer: Ext.getCmp('cus_po_val').getValue(),
+                        add_rev : Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,''),
+                        type: 'new',
+                        id: getNewID()
+                    });
+                    
+                    storeAdd.add(e);*/
+                }
+                //e = undefined;
+            }
+
+        }
+    
+        Ext.getCmp('boq-detail-grid').enable();
+        Ext.getCmp('additional-grid').enable();
+        Ext.getCmp('saving-grid').enable();
+        Ext.getCmp('boq-detail-grid').getView().refresh();
+        Ext.getCmp('additional-grid').getView().refresh();
+        Ext.getCmp('saving-grid').getView().refresh();
+        clearAFEForm();
+        resetButton();
+    }
+}
+
+
+function delToAFE()
+{
+	Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn){
+		if (btn== 'yes')
+		{
+			var recboq = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+			var recadd = Ext.getCmp('additional-grid').getSelectionModel().getSelections();
+            var recsave = Ext.getCmp('saving-grid').getSelectionModel().getSelections();
+
+            if (recadd != undefined)
+            
+				storeAdd.remove(recadd[0]);
+            if (recsave != undefined)
+
+                storeSaving.remove(recsave[0]);
+
+			clearAFEForm();
+			resetButton();
+		}
+	});
+}
+
+function editToAFE(gridType)
+{
+	
+
+    if(gridType == 'additional')
+    {
+        Ext.getCmp('save-afe').setText('Update to Additional AFE Cart');
+        var gridadd = Ext.getCmp('additional-grid').getSelectionModel().getSelections();
+        var recadd = storeAdd.getAt(storeAdd.findExact('id', gridadd[0].data['id']));  
+        console.log(gridadd[0].data['id']);
+    }
+
+    else
+    {
+        Ext.getCmp('save-afe').setText('Update to Saving AFE Cart');
+        var gridsave = Ext.getCmp('saving-grid').getSelectionModel().getSelections();
+        var recsave = storeSaving.getAt(storeSaving.findExact('id', gridsave[0].data['id']));
+        console.log(gridsave[0].data['id']);
+    }
+    
+    /*    Ext.getCmp('additional-grid').disable();
+        Ext.getCmp('saving-grid').disable();
+        Ext.getCmp('boq-detail-grid').disable();
+        //Ext.getCmp('cancel-afe').setText('Cancel Edit');
+        Ext.getCmp('cancel-afe').enable();
+
+    if (recadd != undefined && recadd.data['type'] == 'additional')
+    {
+
+        document.getElementById('sidebox').style.display = '';
+        recadd.data['status'] = 'edit';
+        Ext.getCmp('fieldset-boq-fill').setVisible(false);
+        Ext.getCmp('fieldset-boq').setVisible(true);
+        Ext.getCmp('boq-workid').setValue(recadd.data['workid']);
+        Ext.getCmp('boq-workname').setValue(recadd.data['workname']);
+        Ext.getCmp('kode_brg_text2').setValue(recadd.data['kode_brg']);
+        Ext.getCmp('nama_brg_text2').setValue(recadd.data['nama_brg']);
+        Ext.getCmp('cfs_kode_text2').setValue(recadd.data['cfs_kode']);
+        Ext.getCmp('cfs_nama_text2').setValue(recadd.data['cfs_nama']);
+        Ext.getCmp('uom_text').setValue(recadd.data['uom']);
+        Ext.getCmp('val_kode_text3').setValue(recadd.data['val_kode']);
+        Ext.getCmp('val_kode_text4').setValue(recadd.data['val_kode']);
+        Ext.getCmp('price-afe').setValue(recadd.data['price']);
+        Ext.getCmp('qty-afe').setValue(recadd.data['qty']);
+        Ext.getCmp('afe-form').type = 'additional';
+
+        var valuta = recadd.data['val_kode'];
+        var piece = recadd.data['uom'];
+        //var oriqty = recadd.data['qtyori'].toString().replace(/\$|\,/g,'');
+        //var oriprice = recadd.data['priceori'].toString().replace(/\$|\,/g,'');
+        //var oritotal = parseFloat(oriqty) * parseFloat(oriprice)
+        var qty = recadd.data['qtyori'].toString().replace(/\$|\,/g,'');
+        var price = recadd.data['priceori'].toString().replace(/\$|\,/g,'');
+        
+        //document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Ori Qty :</td><td align="right"><b id="qty">' + CommaFormatted(oriqty) + ' ' + piece + '</b></td></tr><tr><td>BOQ3 ori Price :</td><td align="right"><b id="price">' + CommaFormatted(oriprice) + ' ' + valuta +  '</b></td></tr><tr><td>BOQ3 ori Total :</td><td align="right"><b id="total">' + CommaFormatted(oritotal) + ' ' + valuta + '</b></td></tr></table>';
+        var total = parseFloat(qty) * parseFloat(price);
+        var totalRequest = parseFloat(recadd.data['totalRequests']);
+        var balance = parseFloat(total - totalRequest);
+        document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Total</td><td>:</td><td align="right"><b id="boq3">' + CommaFormatted(total.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>(PR + ARF + OCA) - (M.Return + Canceled ASF)</td><td>:</td><td align="right"><b id="inpr">' + CommaFormatted(totalRequest.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>Balance</td><td>:</td><td align="right"><b id="balance" style="color:#FF3F7D">' + CommaFormatted(balance.toFixed(4)) + ' ' + valuta + '</b></td></tr></table>';
+        
+        hitungTotal();
+    }
+    else if (recsave != undefined && recsave.data['type'] == 'saving')
+    {
+
+         document.getElementById('sidebox').style.display = '';
+        recsave.data['status'] = 'edit';
+        //var qtyBoq3 = parseFloat(recsave.data['qtyori']);
+        //var qtyPR = parseFloat(recsave.data['totalPR']);
+        //var priceBoq3 = parseFloat(recsave.data['priceori']);
+        //var newQty = parseFloat(recsave.data['qty']);
+        //var newPrice = parseFloat(recsave.data['price']);
+        //var piece = recsave.data['uom'];
+        var valuta = recsave.data['val_kode'];
+//        var purchaseQty = parseFloat(rec[0].data['totalPurchase']);
+        //var purchaseTotalPrice = parseFloat(recsave.data['totalPricePurchase']);
+//        var balanceQty = qtyBoq3 - qtyPR;
+        //var totPrice = (qtyBoq3 * priceBoq3);
+//        var balanceTotalPrice = totPrice - purchaseTotalPrice;
+        //var newTotal = (newQty*newPrice);
+        //var saving = totPrice - newTotal;
+        Ext.getCmp('fieldset-boq-fill').setVisible(false);
+        Ext.getCmp('fieldset-boq').setVisible(true);
+        Ext.getCmp('boq-workid').setValue(recsave.data['workid']);
+        Ext.getCmp('boq-workname').setValue(recsave.data['workname']);
+        Ext.getCmp('kode_brg_text2').setValue(recsave.data['kode_brg']);
+        Ext.getCmp('nama_brg_text2').setValue(recsave.data['nama_brg']);
+        Ext.getCmp('cfs_kode_text2').setValue(recsave.data['cfs_kode']);
+        Ext.getCmp('cfs_nama_text2').setValue(recsave.data['cfs_nama']);
+        Ext.getCmp('uom_text').setValue(recsave.data['uom']);
+        Ext.getCmp('val_kode_text3').setValue(recsave.data['val_kode']);
+        Ext.getCmp('val_kode_text4').setValue(recsave.data['val_kode']);
+        Ext.getCmp('price-afe').setValue(recsave.data['price']);
+        Ext.getCmp('qty-afe').setValue(recsave.data['qty']);
+        Ext.getCmp('afe-form').type = 'saving';
+
+        //if (!isMscWorkid(recsave.data['workid']))
+        //    document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 ori Qty :</td><td align="right"><b id="qty">' + CommaFormatted(qtyBoq3) + ' ' + piece + '</b></td><td></td><td>BOQ3 ori Total Price :</td><td align="right"><b id="total">' + CommaFormatted(totPrice) + ' ' + valuta + '</b></td></tr><tr><td>In PR+ARF+piecemeal Qty :</td><td align="right"><b id="qty-pr">' + CommaFormatted(qtyPR) + ' ' + piece +  '</b></td><td></td><td>In (PO + (ARF-ASF Cancel)) Total Price :</td><td align="right"><b id="total-purchase">' + CommaFormatted(purchaseTotalPrice) + ' ' + valuta + '</b></td></tr><tr><td>Saving :</td><td align="right"><b id="saving-afe" style="color:#FF3F7D">'+CommaFormatted(saving) + ' ' + valuta + '</b></td></tr></table>';
+        //else
+        //    document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 ori Total Price :</td><td align="right"><b id="total">' + CommaFormatted(totPrice) + ' ' + valuta + '</b></td></tr><tr><td>In (PO + (ARF-ASF Cancel)) Total Price :</td><td align="right"><b id="total-purchase">' + CommaFormatted(purchaseTotalPrice) + ' ' + valuta + '</b></td></tr><tr><td>Saving :</td><td align="right"><b id="saving-afe" style="color:#FF3F7D">'+CommaFormatted(saving) + ' ' + valuta + '</b></td></tr></table>';
+        var qty = parseFloat(recsave.data['qtyori']);
+        var price = parseFloat(recsave.data['priceori']);
+        var total = parseFloat(qty) * parseFloat(price);
+        var totalRequest = parseFloat(recsave.data['totalRequests']);
+        var balance = parseFloat(total - totalRequest);
+        document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>BOQ3 Total</td><td>:</td><td align="right"><b id="boq3">' + CommaFormatted(total.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>(PR + ARF + OCA) - (M.Return + Canceled ASF)</td><td>:</td><td align="right"><b id="inpr">' + CommaFormatted(totalRequest.toFixed(4)) + ' ' + valuta + '</b></td></tr><tr><td>Balance</td><td>:</td><td align="right"><b id="balance" style="color:#FF3F7D">' + CommaFormatted(balance.toFixed(4)) + ' ' + valuta + '</b></td></tr></table>';
+
+        hitungTotal();
+
+    }
+    else if (recadd != undefined && recadd.data['type'] == 'new')
+    {
+
+        recadd.data['status'] = 'edit';
+        document.getElementById('sidebox').style.display = 'none';
+        Ext.getCmp('fieldset-boq-fill').setVisible(true);
+        Ext.getCmp('fieldset-boq').setVisible(false);
+        Ext.getCmp('afe-form').type = '';
+        Ext.getCmp('workid_text').setValue(recadd.data['workid']);
+        Ext.getCmp('workname_text').setValue(recadd.data['workname']);
+        Ext.getCmp('kode_brg_text').setValue(recadd.data['kode_brg']);
+        Ext.getCmp('nama_brg_text').setValue(recadd.data['nama_brg']);
+        Ext.getCmp('cfs_kode_text').setValue(recadd.data['cfs_kode']);
+        Ext.getCmp('cfs_nama_text').setValue(recadd.data['cfs_nama']);
+        Ext.getCmp('val_kode_text3').setValue(recadd.data['val_kode']);
+        Ext.getCmp('val_kode_text4').setValue(recadd.data['val_kode']);
+        Ext.getCmp('price-afe').setValue(recadd.data['price']);
+        Ext.getCmp('qty-afe').setValue(recadd.data['qty']);
+        hitungTotal();
+    }*/
+	
+}
+
+function reloadBOQ3()
+{
+    
+    Ext.getCmp('additional-grid').enable();
+    Ext.getCmp('saving-grid').enable();
+    Ext.getCmp('boq-detail-grid').enable();
+    
+    
+    var prjKode = Ext.getCmp('prj_kode_text').getValue();
+    var sitKode = Ext.getCmp('sit_kode_text').getValue();
+    var valKode = Ext.getCmp('val_kode_text').getValue();
+    if (prjKode == '' || sitKode == '')
+    {
+    	Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Select Project/Site Code!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+        return false;
+    }
+    if (valKode == '')
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Select Valuta Code!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+
+    //var newUrl = '/default/home/getboq3summaryforafe/paging/true/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/val_kode/' + valKode;
+    var newUrl = '/projectmanagement/afe/getboq3forafe/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/val_kode/' + valKode;
+    storeBOQ3.proxy.setUrl(newUrl);
+    storeBOQ3.reload();
+    var boq3Grid = Ext.getCmp('boq-detail-grid');
+
+    boq3Grid.getStore().proxy.setUrl(newUrl);
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.api.read['url'] = newUrl;
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.url = newUrl;
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.setUrl(newUrl);
+
+}
+
+function submitBOQ3()
+{
+    Ext.getCmp('boq-detail-grid').getStore().removeAll();
+    storeAdd.removeAll();
+    storeSaving.removeAll();
+    Ext.getCmp('afe-form').getForm().reset();
+    
+    Ext.getCmp('additional-grid').enable();
+    Ext.getCmp('saving-grid').enable();
+    Ext.getCmp('boq-detail-grid').enable();
+    
+    
+    var prjKode = Ext.getCmp('prj_kode_text').getValue();
+    var sitKode = Ext.getCmp('sit_kode_text').getValue();
+    var valKode = Ext.getCmp('val_kode_text').getValue();
+    if (prjKode == '' || sitKode == '')
+    {
+    	Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Select Project & Site Code!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+        return false;
+    }
+    if (valKode == '')
+    {
+        Ext.MessageBox.show({
+            title: 'Error',
+            msg: 'Please Select Currency Code!',
+            buttons: Ext.MessageBox.OK,
+            icon: Ext.MessageBox.ERROR
+        });
+        return false;
+    }
+
+    //var newUrl = '/default/home/getboq3summaryforafe/paging/true/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/val_kode/' + valKode;
+    var newUrl = '/projectmanagement/afe/getboq3forafe/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/val_kode/' + valKode;
+    storeBOQ3.proxy.setUrl(newUrl);
+    storeBOQ3.reload();
+    var boq3Grid = Ext.getCmp('boq-detail-grid');
+
+    boq3Grid.getStore().proxy.setUrl(newUrl);
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.api.read['url'] = newUrl;
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.url = newUrl;
+    boq3Grid.getBottomToolbar().items.items[0].store.proxy.setUrl(newUrl);
+}
+
+
+function cekSaving()
+{
+    if(Ext.getCmp('afe-form').type == 'saving')
+    {
+        var cek2 = Ext.getCmp('saving-grid').getSelectionModel().getSelections();
+        if (cek2[0] != undefined)
+        var orisave = storeSaving.getAt(storeSaving.findExact('id',cek2[0].data['id']));
+
+        var rec = Ext.getCmp('boq-detail-grid').getSelectionModel().getSelections();
+        if(orisave != undefined && orisave.data['status'] == 'edit')
+        {
+            var piece = orisave.data['uom'];
+            var valuta = orisave.data['val_kode'];
+            var qtyBoq3 = parseFloat(orisave.data['qtyori']);
+            var priceBoq3 = parseFloat(orisave.data['priceori']);
+            var newPrice = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+            var newQty = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        }
+        else if (rec != undefined)
+        {
+            var piece = rec[0].data['uom'];
+            var valuta = rec[0].data['val_kode'];
+            var qtyBoq3 = parseFloat(rec[0].data['qty']);
+            var priceBoq3 = parseFloat(rec[0].data['price']);
+            var newPrice = parseFloat(Ext.getCmp('price-afe').getValue().toString().replace(/\$|\,/g,''));
+            var newQty = parseFloat(Ext.getCmp('qty-afe').getValue().toString().replace(/\$|\,/g,''));
+        }
+
+         if (!isNaN(newPrice) && !isNaN(newQty))
+            {
+
+                var totPrice = (qtyBoq3 * priceBoq3);
+
+                var newtotPrice = newQty * newPrice;
+                var saving = totPrice - newtotPrice;
+
+                document.getElementById('saving-afe').innerHTML = CommaFormatted(saving)+''+valuta;
+            }
+    }
+}
+
+
+function init()
+{
+    document.getElementById('sidebox').style.display = 'none';
+}
+
+var textField =  new Ext.form.TextField();
+
+userForm = new Ext.extend(Ext.form.FormPanel,{
+
+    iconCls: 'silk-user',
+    title: 'Add New AFE (Approval For Expenditure)',
+    frame: true,
+    width: 480,
+    labelAlign: 'left',
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    }
+    ,
+    
+    buildForm : function() {
+        return [{
+                    layout:'column',
+                    items:[{
+                                columnWidth:.40,
+                                layout: 'form',
+                                items:
+                                    [
+                                        {
+                                            fieldLabel: 'Project Code',
+                                            id:'prj_kode_text',
+                                            name:'prj_kode',
+                                            allowBlank: false,
+                                            editable: false,
+                                            xtype:"trigger",
+                                            triggerClass: 'teropong',
+                                            width: 80,
+                                            onTriggerClick:function (){projectPopUphandler();}
+                                        },
+
+                                        {
+                                            fieldLabel: 'Site Code',
+                                            id:'sit_kode_text',
+                                            name:'sit_kode',
+                                            allowBlank: false,
+                                            editable: false,
+                                            xtype:"trigger",
+                                            triggerClass: 'teropong',
+                                            width: 80,
+                                            onTriggerClick:function ()
+                                            {
+                                                if (Ext.getCmp('prj_kode_text').getValue() != '')
+					            sitePopUphandler();
+					    }
+                                        },
+                                
+                                        {
+                                            fieldLabel: 'Currency Code',
+                                            id:'val_kode_text',
+                                            name:'val_kode',
+                                            allowBlank: false,
+                                            editable: false,
+                                            xtype:"trigger",
+                                            triggerClass: 'teropong',
+                                            width: 80,
+                                            onTriggerClick:function ()
+                                            {
+					        valutaPopUphandler();
+					    }
+                                        }
+                                    ]
+                            },
+                            {
+                                columnWidth:.50,
+                                style: 'text-align:left',
+                                layout: 'form',
+                                items: [
+                                            {
+                                                id:'prj_nama_text',
+                                                name: 'prj_nama',
+						hideLabel: true,
+						allowBlank: false,
+						xtype: 'textfield',
+                                                disabled:true
+                                            },
+                                            {
+						id:'sit_nama_text',
+						name: 'sit_nama',
+						hideLabel: true,
+						allowBlank: false,
+						disabled: true,
+						xtype: 'textfield'
+					    },
+                                            {
+						id:'val_nama_text',
+						name: 'val_nama',
+						hideLabel: true,
+						allowBlank: false,
+						disabled: true,
+						xtype: 'textfield'
+					    }
+
+                                        ]
+                            }
+                        ]
+                },
+                new Ext.ux.customRendererField({
+                    priceDelemiter:',',
+                    fieldLabel : 'IDR Rate',
+                    id:'curr_text',
+                    name:'currency',
+                    disabled:true,
+                    allowBlank: false,
+                    style:"text-align:right",
+                    width: 100
+                }),
+                {
+                    xtype: 'checkbox',
+                    id: 'cek-revenue',
+                    fieldLabel: 'Add Revenue',
+                    listeners: {
+                    'check': function(t,isCheck){
+                        if (isCheck)
+                        {
+                            fileUploads.setVisible(true);
+                            Ext.Msg.alert('Information','This Additional Revenue will be automatically added to CO / BOQ2 after final approval.');
+                        }
+                        else
+                        {
+                            fileUploads.setVisible(false);
+                            storeFile.removeAll();
+                            Ext.getCmp('add_rev_text').setValue('');
+                        }
+                    }
+                    }
+                },
+            
+                fileUploads,
+
+                {
+                    id:'cus_po_no',
+                    fieldLabel: 'Customer PO No',
+                    xtype: 'textfield',
+                    disabled : true,
+                    width: 100
+                },
+                {
+                    id:'cus_po_val',
+                    fieldLabel: 'Customer PO Value',
+                    xtype: 'textfield',
+                    style:"text-align:right",
+                    disabled : true,
+                    width: 100
+                },
+                {
+                    id:'reason_text',
+                    fieldLabel: 'Reason for AFE',
+                    xtype: 'textfield',
+                    width: 250
+                }
+     ];
+    },
+      
+    buildUI: function(){
+        return [
+        {
+            text: 'Submit BOQ3',
+            icon:"/images/g_rec_src.png",
+            handler: function(){
+                submitBOQ3();
+            }
+
+        },
+        /*{
+            text: 'Reset',
+            handler: function(btn, ev){
+        	this.getForm().reset();
+                storeAdd.removeAll();
+                init();
+            },
+            scope: this
+        },*/
+        {
+           text: 'Cancel',
+           handler: function(btn, ev){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/projectmanagement/afe/addafe',
+                scripts : true
+            });
+           },
+           scope: this
+        }];
+    }
+    
+ });
+
+userForm2 = new Ext.extend(Ext.form.FormPanel,{
+
+    renderTo: 'user-form2',
+    id: 'afe-form',
+    type: '',
+    iconCls: 'silk-user',
+    labelAlign: 'right',
+    title: 'AFE (Approval For Expenditure) Detail',
+    frame: true,
+    width: 430,
+    labelAlign: 'left',
+    style: 'margin-top: 10px',
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm2.superclass.initComponent.call(this);
+    }
+    ,
+    buildForm : function() {
+        return [
+                {
+                    xtype: 'fieldset',
+                    id: 'fieldset-boq',
+                    title: 'BOQ3 Detail',
+                    itemId: 'fieldset-item-boq',
+                    items: [
+                            {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.46,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                    fieldLabel: 'Work ID',
+                                                    id: 'workid_text',
+                                                    xtype:'textfield',
+                                                    disabled: true,
+                                                    width: 70
+                                                }*/
+                                                {
+                                                    fieldLabel: 'Work ID',
+                                                    id: 'workid_text',
+                                                    xtype:'trigger',
+                                                    triggerClass: 'teropong',
+                                                    width: 70,
+                                                    editable:false,
+                                                    onTriggerClick:
+                                                    function ()
+                                                    {
+                                                        workPopUphandler();
+                                                }
+                                                }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.54,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                    hideLabel: true,
+                                                    id:'boq-workname',
+                                                    name: 'workname',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }*/
+                                                {
+                                                    hideLabel: true,
+                                                    id:'workname_text',
+                                                    name: 'workname',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }
+                                            ]
+                                   }
+                                ]
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.46,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                 fieldLabel: 'Product ID',
+                                                 id: 'kode_brg_text',
+                                                 xtype:"textfield",
+                                                 disabled:true,
+                                                 width: 70
+                                                }*/
+                                                {
+                                                    fieldLabel: 'Product ID',
+                                                    id: 'kode_brg_text',
+                                                    xtype:'trigger',
+                                                    triggerClass: 'teropong',
+                                                    width: 70,
+                                                    editable:false,
+                                                    onTriggerClick:
+                                                    function ()
+                                                    {
+                                                        productPopUphandler();
+                                                }
+                                                }
+                                               
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.54,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                    hideLabel: true,
+                                                    id:'nama_brg_text2',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }*/
+                                                   
+                                                {
+                                                    hideLabel: true,
+                                                    id:'nama_brg_text',
+                                                    xtype: 'textfield',
+                                                    width: 200,
+                                                    disabled:true
+                                                }
+                                                
+                                            ]
+                                   }
+                                ]
+                        },
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                        columnWidth:.46,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                 fieldLabel: 'CFS Kode',
+                                                 id:'cfs_kode_text2',
+                                                 xtype:"textfield",
+//                                                 disabled:true,
+                                                 width: 70
+                                                }*/
+                                                {
+                                                    fieldLabel: 'CFS Code',
+                                                    id: 'cfs_code_text',
+                                                    xtype:'trigger',
+                                                    triggerClass: 'teropong',
+                                                    width: 70,
+                                                    onTriggerClick:
+                                                    function ()
+                                                    {
+                                                        cfsPopUphandler();
+                                                }
+                                                }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.54,
+                                        layout: 'form',
+                                        items: [
+                                                /*{
+                                                    hideLabel: true,
+                                                    id:'cfs_nama_text2',
+                                                    xtype: 'textfield',
+                                                    width: 200
+//                                                    disabled:true
+                                                }*/
+                                                {
+                                                    hideLabel: true,
+                                                    id:'cfs_name_text',
+                                                    xtype: 'textfield',
+                                                    width: 200
+
+                                                }
+                                            ]
+                                   }
+                                ]
+                        }
+                    ]
+                },
+                /*{
+                    xtype: 'fieldset',
+                    id: 'fieldset-boq-fill',
+                    title: 'BOQ3 Detail',
+                    itemId: 'fieldset-item-boq-fill',
+                    hidden: true,
+                    items: [
+                            {
+                                fieldLabel: 'Work ID',
+                                id: 'workid_text',
+                                xtype:'trigger',
+                                triggerClass: 'teropong',
+                                width: 80,
+                                onTriggerClick:
+                                      function ()
+                                        {
+                                          workPopUphandler();
+                                        }                         
+                            },
+                            {
+                                fieldLabel: 'Work Name',
+                                id:'workname_text',
+                                name: 'workname',
+                                xtype: 'textfield',
+                                width: 200,
+                                disabled:true
+                            },
+
+                            {
+                                xtype: 'itemselector',
+                                fieldLabel: 'Product ID',
+                                id: 'item-select',
+                                Selectid: 'kode_brg_text',
+                                Nameid: 'nama_brg_text',
+                                ShowName: true,
+                                SelectWidth: 70,
+                                prjKodeField: 'prj_kode_text'
+                            },
+//                            {
+//                                fieldLabel: 'Product Name',
+//                                id:'nama_brg_text',
+//                                xtype: 'textfield',
+//                                width: 200,
+//                                disabled:true
+//                            },
+                            {
+                                 fieldLabel: 'CFS Kode',
+                                 id:'cfs_kode_text',
+                                 xtype:"textfield",
+                                 width: 70
+                            },
+                            {
+                                fieldLabel: 'CFS Name',
+                                id:'cfs_nama_text',
+                                xtype: 'textfield',
+                                width: 100
+                            }
+                    ]
+                },*/
+                {
+                    layout:'column',
+                    items:[
+                           {
+                                columnWidth:.460,
+                                layout: 'form',
+                                items: [
+                                        new Ext.ux.customRendererField({
+                                            priceDelemiter:',',
+                                            fieldLabel: 'Qty',
+                                            id: 'qty-afe',
+                                            allowBlank : false,
+                                            width: 80,
+                                            style:"text-align:right",
+                                            enableKeyEvents: true,
+                                            listeners:
+                                            {
+                                                'keyup' : function (t,e) {
+
+                                                    //var tombol = Ext.EventObject.getKey(e);
+                                                    //if (!isNaN(t.getValue()))
+                                                    //{
+                                                        hitungTotal();
+                                                        //cekSaving();
+                                                        
+                                                    //}
+                                                }
+                                            }
+
+                                        })
+                                    ]
+                           },
+                           {
+                                columnWidth:.5,
+                                layout: 'form',
+                                items: [
+                                        {
+                                            hideLabel: true,
+                                            id: 'uom_text',
+                                            xtype:'textfield',
+                                            disabled: true,
+                                            width: 40
+                                        }
+                                    ]
+                           }
+                        ]
+                },
+                {
+                    layout:'column',
+                    items:[
+                           {
+                                columnWidth:.460,
+                                layout: 'form',
+                                items: [
+                                        new Ext.ux.customRendererField({
+                                            priceDelemiter:',',
+                                            fieldLabel: 'Price',
+                                            id: 'price-afe',
+                                            allowBlank : false,
+                                            width: 80,
+                                            style:"text-align:right",
+                                            enableKeyEvents: true,
+                                            listeners:
+                                            {
+                                                'keyup' : function (t,e) {
+
+                                                    //if (!isNaN(t.getValue()))
+                                                    //{
+                                                        hitungTotal();
+                                                        //cekSaving();
+
+                                                    //}
+                                                }
+                                            }
+
+                                        })
+                                    ]
+                           },
+                           {
+                                columnWidth:.5,
+                                layout: 'form',
+                                items: [
+                                        {
+                                            hideLabel: true,
+                                            id: 'val_kode_text3',
+                                            xtype:'textfield',
+                                            disabled: true,
+                                            width: 40
+                                        }
+                                    ]
+                           }
+                        ]
+                },
+                {
+                    layout:'column',
+                    items:[
+                           {
+                                columnWidth:.460,
+                                layout: 'form',
+                                items: [
+                                        new Ext.ux.customRendererField({
+                                            priceDelemiter:',',
+                                            fieldLabel: 'Total',
+                                            id: 'total-afe',
+                                            allowBlank : false,
+                                            disabled : true,
+                                            width: 80,
+                                            style:"text-align:right"
+                                            })
+                                    ]
+                           },
+                           {
+                                columnWidth:.5,
+                                layout: 'form',
+                                items: [
+                                        {
+                                            hideLabel: true,
+                                            id: 'val_kode_text4',
+                                            xtype:'textfield',
+                                            disabled: true,
+                                            width: 40
+                                        }
+                                    ]
+                           }
+                        ]
+                },
+                {
+                    fieldLabel: 'Notes',
+                    id: 'ket',
+                    xtype:'textfield',
+                    width: 250
+                }
+
+
+
+     ];
+     },
+      buildUI: function(){
+        return [
+        {
+             text: 'Add to AFE List',
+             id: 'save-afe',
+             iconCls: 'icon-add',
+             handler: function(){
+                insertAFEtoList()
+             }
+
+        },{
+             text: 'Cancel',
+             id: 'cancel-afe',
+             iconCls: 'icon-cancel',
+             handler: function(btn,ev){
+                    clearAFEForm();
+                    Ext.getCmp('boq-detail-grid').enable();
+                    Ext.getCmp('additional-grid').enable();
+                    Ext.getCmp('saving-grid').enable();
+                    Ext.getCmp('boq-detail-grid').getView().refresh();
+                    Ext.getCmp('additional-grid').getView().refresh();
+                    Ext.getCmp('saving-grid').getView().refresh();
+                    Ext.getCmp('save-afe').setText('Add to AFE List');
+//                    Ext.getCmp('save-afe').disable();
+//                    Ext.getCmp('cancel-afe').disable();
+             }, scope: this
+       }
+   ];
+    }
+ });
+
+
+boq3Grid = Ext.extend(Ext.grid.GridPanel, {
+    id:'boq-detail-grid',
+    title:'BOQ3 Detail',
+    iconCls: 'silk-grid',
+    plugins: expander,
+    frame: true,
+    height: 250,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+
+    initComponent : function() {
+        boq3Grid.superclass.initComponent.call(this);
+    }
+
+});
+
+addGrid = Ext.extend(Ext.grid.GridPanel, {
+
+    iconCls: 'silk-grid',
+    id: 'additional-grid',
+    frame: true,
+    height: 250,
+    title: 'Additional AFE Cart',
+    style: 'margin-top: 10px',
+    initComponent : function() {
+        addGrid.superclass.initComponent.call(this);
+    }
+});
+
+saveGrid = Ext.extend(Ext.grid.GridPanel, {
+
+    iconCls: 'silk-grid',
+    id: 'saving-grid',
+    frame: true,
+    height: 250,
+    title: 'Saving AFE Cart',
+    style: 'margin-top: 10px',
+    initComponent : function() {
+        saveGrid.superclass.initComponent.call(this);
+    }
+});
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+
+var userForms = new userForm({
+    renderTo : 'user-form'
+});
+
+var boq3Grids = new boq3Grid({
+    renderTo: 'user-grid',
+    store: storeBOQ3,
+    columns : userColumns,
+    width: 700,
+    loadMask: true,
+    stateful: false,
+    bbar: [new Ext.PagingToolbar({
+    id: 'paging',
+    pageSize: 100,
+    store: storeBOQ3,
+    displayInfo: true,
+    displayMsg: 'Displaying data {0} - {1} of {2}',
+    emptyMsg: "No data to display"
+    }),
+    '->',
+    {
+            xtype: 'button',
+            text: 'Add New BOQ3 Item',
+            iconCls: 'silk-add',
+            handler: function(){
+                addToAFE(true);
+            }
+
+    }]
+});
+
+var userForms2 = new userForm2({
+    renderTo: 'user-form2'
+});
+    
+var saveGrids = new saveGrid({
+    renderTo: 'user-grid3',
+    store: storeSaving,
+    columns : userColumns3,
+    width: 700,
+    height : 300,
+    bbar: new Ext.PagingToolbar({
+    id: 'paging-cancelGrid',
+    pageSize: 100,
+    store: storeSaving,
+    displayInfo: true,
+    displayMsg: 'Displaying data {0} - {1} of {2}',
+    emptyMsg: "No data to display"
+    })
+});
+
+var addGrids = new addGrid({
+    renderTo:'user-grid2',
+    store: storeAdd,
+    columns:userColumns2,
+    width:700,
+    height : 300,
+    loadMask: true,
+    stateful: false,
+    plugins: [summary],
+    view : new Ext.grid.GridView({
+        	forceFit: false,
+        	listeners : {
+		    	refresh : function(grid){
+					if (t != undefined){
+
+
+				}}
+			}
+        }),
+
+    bbar: ['->',{
+             xtype: 'button',
+	         text: 'Save AFE List(Cart)',
+	         iconCls: 'icon-save',
+	         handler: function()
+	         {
+                var json = '';
+                var json2 = '';
+                var parameter = '';
+                var fileJson = '';
+
+                 if (storeAdd.getAt(0)!= undefined)
+                    var p = storeAdd.getAt(0);
+//               if (storeCancel.getAt(0) != undefined)
+                 else
+                    var p = storeSaving.getAt(0);
+
+                 if (p == undefined || p == '')
+                 {
+                      Ext.MessageBox.show({
+	    		           title: 'Error',
+	    		           msg: 'List is Empty!',
+	    		           buttons: Ext.MessageBox.OK,
+	    		           icon: Ext.MessageBox.ERROR
+	    		       });
+                     return false;
+                 }
+
+
+                Ext.getCmp('additional-grid').getStore().each(function(store){
+
+                json += Ext.util.JSON.encode(store.data) + ',';
+                });
+            	json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                Ext.getCmp('saving-grid').getStore().each(function(store){
+
+                json2 += Ext.util.JSON.encode(store.data) + ',';
+                });
+            	json2 = '[' + json2.substring(0, json2.length - 1) + ']'; //JSON format fix
+
+                storeFile.each(function(store){
+                 fileJson += Ext.util.JSON.encode(store.data) + ',';
+                 });
+                 fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+
+                var afed = storeAdd.getAt(0);
+
+                 var prjKode = Ext.getCmp('prj_kode_text').getValue();
+                 var prjNama = Ext.getCmp('prj_nama_text').getValue();
+                 var sitKode = Ext.getCmp('sit_kode_text').getValue();
+                 var sitNama = Ext.getCmp('sit_nama_text').getValue();
+                 var valKode = Ext.getCmp('val_kode_text').getValue();
+                 var ket = Ext.getCmp('reason_text').getValue();
+                 var addRev = Ext.getCmp('add_rev_text').getValue().toString().replace(/\$|\,/g,'');
+                 var rate = Ext.getCmp('curr_text').getValue().toString().replace(/\$|\,/g,'');
+                 var pocustomer = Ext.getCmp('cus_po_no').getValue().toString().replace(/\$|\,/g,'');
+                 var totalpocustomer = Ext.getCmp('cus_po_val').getValue().toString().replace(/\$|\,/g,'');
+
+                //Destroy the store..
+                storeBOQ3.destroy();
+                storeAdd.destroy();
+                storeSaving.destroy();
+
+                storeBOQ3 = null;
+                storeAdd = null;
+                storeSaving = null; 
+
+                parameter = '[{"prj_kode":"' + prjKode + '","prj_nama":"' + prjNama + '", "sit_kode":"' + sitKode + '", "sit_nama":"' + sitNama + '","ket":"' + ket + '","val_kode":"' + valKode + '","add_rev":"' + addRev + '","pocustomer":"' + pocustomer + '","totalpocustomer":"' + totalpocustomer + '","rateidr":"' + rate + '"}]';
+            	params = {posts:json, etc:parameter, posts2:json2, file:fileJson};
+            	myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+        	    myPanel.body.load({
+        	        url: '/projectmanagement/afe/appafe', //the url
+        	        scripts : true,
+        	        params: params //our params goes here
+                });
+	         },
+	         scope: this
+        	},
+            {
+                xtype: 'button',
+	            text: 'Cancel AFE List(Cart)',
+	            iconCls: 'icon-cancel',
+	            handler:showAddAFE
+	         ,
+	         scope: this
+        	}
+      ]
+    });
+
+
+    init();
+    <?php
+     if ($this->json != '' || $this->json2 != '')
+    {
+    ?>
+		var json = <?php echo $this->json ?>;
+        var json2= <?php echo $this->json2 ?>;
+        if (json.length > 0)
+        {
+            storeAdd.loadData(json);
+        }
+        if(json2.length > 0)
+        {
+            storeSaving.loadData(json2);
+        }
+
+        var etc = <?php echo $this->etc; ?>;
+
+        Ext.getCmp('prj_kode_text').setValue(etc[0]['prj_kode']);
+        Ext.getCmp('prj_nama_text').setValue(etc[0]['prj_kode']);
+        Ext.getCmp('sit_kode_text').setValue(etc[0]['sit_kode']);
+        Ext.getCmp('sit_nama_text').setValue(etc[0]['sit_nama']);
+        Ext.getCmp('add_rev_text').setValue(etc[0]['add_rev']);
+        Ext.getCmp('cus_po_no').setValue(etc[0]['pocustomer']);
+        Ext.getCmp('cus_po_val').setValue(etc[0]['totalpocustomer']);
+        Ext.getCmp('val_kode_text').setValue(etc[0]['val_kode']);
+        Ext.getCmp('reason_text').setValue(etc[0]['ket']);
+        reloadBOQ3();
+
+
+
+	<?php
+    }
+    ?>
+});
+
+
+
+</script>
+
+<div id="user-form"></div>
+<div id="user-grid"></div>
+<div id="separator">
+<div id="user-form2" style="float:left"></div>
+<div id="sidebox" class="sidebox" style="float:left;width:45em;">
+        <div class="boxhead"><h2>Available Qty</h2></div>
+        <div class="boxbody" id="a-qty"></div>
+</div>
+</div>
+<div id="user-grid3" style="margin-top:10px;float:left;"></div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

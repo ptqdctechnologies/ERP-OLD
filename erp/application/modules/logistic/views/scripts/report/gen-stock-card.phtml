@@ -1,0 +1,338 @@
+<script type="text/javascript">
+
+//    function gotoDetail(trano)
+//    {
+//        myPanel = Ext.getCmp('abs-budget-panel');
+//        myPanel.body.load({
+//            url: '/report/podetail/trano/' + trano,
+//            scripts: true
+//
+//        });
+//    }
+//
+//
+//    (function() {
+//        var mySt = new superTable("budgetTable", {
+//            cssSkin: "sSky",
+//            fixedCols: 2,
+//            headerRows: 1
+//        });
+//    })();
+    
+    var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/logistic/report/getdatastockcard/periode/<?php echo $this->perkode ?>/gdg_kode/<?php echo $this->gdg_kode ?>/kode_brg/<?php echo $this->kode_brg ?>/type/<?php echo $this->viewtype ?>',
+	});
+
+        var reader = new Ext.data.JsonReader({
+        //idProperty: 'po_no',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'id', type: 'integer'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'sat_kode', type: 'string'},
+            {name: 'gdg_nama', type: 'string'},
+            {name: 'saldo_awal',type:'float'},
+            {name: 'saldo_masuk',type:'float'},
+            {name: 'saldo_keluar',type:'float'},
+            {name: 'saldo_akhir',type:'float'}
+         ]
+    );
+//        Ext.grid.GroupSummary.Calculations['totalBalanceIDR'] = function(v, record, field){
+//  	        return v + (record.data.totalPO_IDR - record.data.totalRPI_IDR);
+//  	    };
+//    	  Ext.grid.GroupSummary.Calculations['totalBalanceUSD'] = function(v, record, field){
+//  	        return v + (record.data.totalPO_USD - record.data.totalRPI_USD);
+//  	    };
+//
+        var summary = new Ext.grid.GroupSummary();
+
+var store = new Ext.ux.MultiGroupingStore({
+        proxy: proxy
+       ,reader: reader
+       ,sortInfo: {field: 'kode_brg', direction: 'ASC'}
+       ,groupField: ['kode_brg','gdg_nama']
+     });
+
+
+	  store.on('load', function(s,r,o) {
+//	  	totalPO_IDR = Ext.util.Format.number(r[0].data['gtotalPO_IDR'], '?0,000.00?');
+//	  	totalRPI_IDR = Ext.util.Format.number(r[0].data['gtotalRPI_IDR'], '?0,000.00?');
+//	  	totalRPI_USD = Ext.util.Format.number(r[0].data['gtotalRPI_USD'], '?0,000.00?');
+//	  	totalPO_USD = Ext.util.Format.number(r[0].data['gtotalPO_USD'], '?0,000.00?');
+//	  	totalBalance_IDR = Ext.util.Format.number(r[0].data['gtotalBalance_IDR'], '?0,000.00?');
+//	  	totalBalance_USD = Ext.util.Format.number(r[0].data['gtotalBalance_USD'], '?0,000.00?');
+
+//		document.getElementById(Ext.getCmp('po').items.items[0].id).innerHTML = '<b>Grand Total PO (IDR) = ' + totalPO_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('po').items.items[2].id).innerHTML = '<b>Grand Total PO (USD) = ' + totalPO_USD + '</b>';
+//		document.getElementById(Ext.getCmp('rpi').items.items[0].id).innerHTML = '<b>Grand Total RPI (IDR) = ' + totalRPI_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('rpi').items.items[2].id).innerHTML = '<b>Grand Total RPI (USD) = ' + totalRPI_USD + '</b>';
+//		document.getElementById(Ext.getCmp('balance').items.items[0].id).innerHTML = '<b>Grand Total Balance (IDR) = ' + totalBalance_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('balance').items.items[2].id).innerHTML = '<b>Grand Total Balance (USD) = ' + totalBalance_USD + '</b>';
+	});
+	  store.load();
+
+    var groupView = new Ext.ux.MultiGroupingView({
+        hideGroupedColumn :true
+       ,startCollapsed: true
+       ,emptyGroupText: 'All Group Fields Empty'
+       ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+		,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Record" : "Records"]})'
+       ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+       });
+
+
+    var grid = new Ext.ux.MultiGroupingPanel({
+        stateful: false,
+        id: 'multi-grid',
+        store: store,
+        columns: [
+            {
+                id: 'kode_brg',
+                header: 'Product ID',
+                width: 100,
+                sortable: true,
+                dataIndex: 'kode_brg',
+                hideable: false
+            },{
+                id: 'gdg_nama',
+                header: 'Warehouse',
+                width: 100,
+                sortable: true,
+                dataIndex: 'gdg_nama',
+                hideable: false
+            },
+            {
+                header: 'Product Name',
+                width: 150,
+                sortable: true,
+                dataIndex: 'nama_brg'
+            },
+            {
+                header: 'Date',
+                width: 100,
+                sortable: true,
+                dataIndex: 'tgl',
+                renderer: Ext.util.Format.dateRenderer('d/m/Y')
+            },
+            {
+                header: 'UOM',
+                width: 60,
+                sortable: true,
+                dataIndex: 'sat_kode'
+            },
+            {
+                header: 'Opening Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'saldo_awal',
+                align: 'right',
+                renderer: function(v){
+                    return Ext.util.Format.number(v, '0.000');
+                }
+            },
+            {
+                header: 'In Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'saldo_masuk',
+                align: 'right',
+                renderer: function(v){
+                    return Ext.util.Format.number(v, '0.000');
+                }        
+            },
+            {
+                header: 'Out Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'saldo_keluar',
+                align: 'right',
+                renderer: function(v){
+                    return Ext.util.Format.number(v, '0.000');
+                }    
+            },
+            {
+                header: 'Closing Balance',
+                width: 100,
+                sortable: true,
+                dataIndex: 'saldo_akhir',
+                align: 'right',
+                renderer: function(v){
+                    return Ext.util.Format.number(v, '0.000');
+                }          
+            }
+        ],
+
+        view : groupView,
+        plugins: summary,
+		loadMask: true,
+        bbar:[
+
+              ],
+        frame: true,
+        width: 800,
+        height: 450,
+        trackMouseOver: false,
+        title: '',
+        iconCls: 'icon-grid',
+        renderTo: 'stock-card'
+    }
+    );
+    grid.loadMask.el.mask();
+    var tb1 = new Ext.Toolbar({
+        id: 'po',
+		renderTo : grid.bbar,
+		items: [
+				]
+		});
+
+    var tb3 = new Ext.Toolbar({
+        id: 'rpi',
+		renderTo : grid.bbar,
+		items: [
+
+			]
+
+        });
+    var tb4 = new Ext.Toolbar({
+        id: 'balance',
+		renderTo : grid.bbar,
+		items: [
+
+			]
+
+        });
+
+    var tb2 = new Ext.PagingToolbar({
+
+	        id: 'paging',
+        	renderTo: grid.bbar,
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+    function change(val)
+    {
+        return '<div style="text-align:right;">' + Ext.util.Format.number(val, '?0,000?') + '</div>';
+    }
+
+    ///
+
+</script>
+
+
+<?php
+//if (count($this->result) == 0) {
+//    echo "No Data to display...";
+//    die();
+//}
+?>
+<?php
+//if (!$this->flagSaldo)  {
+//    echo "Harap Tentukan Saldo Awal";
+//    die();
+//}
+//
+?>
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        border: none;
+        width: 1000px;
+        height: 750;
+        overflow:  inherit;
+        font-size: 12px;
+        white-space: normal;
+    }
+    .parentContainer2{
+        font-size: 12px;
+    }
+    .tdstyle{
+        padding-left: 10px;
+    }
+    .title{
+        font-size: 16px;
+    }
+    .stockTable {
+        width: 100%;
+        font-size: 10px;
+        font-weight: normal;
+    }
+
+    
+</style>
+
+
+<div align="left"><img src="/images/qdc.gif" alt= "logo qdc" /></div>
+<br />
+<br />
+<div class="title" align="center"><b>General Stock <?php echo $this->title ?> Report</b></div>
+<!-- nama gudang <div class="title" align="center"><b></b></div>-->
+<br />
+
+<!--<h3>MATERIAL FROM SUPPLIER REPORT</h3>-->
+<table class="parentContainer2">
+
+    <tr>
+        <td>Date Printed</td> 
+        <td>:</>
+        <td class="tdstyle"><?php echo date("Y-m-d") ?></td>       
+
+    </tr>   
+<!--    <tr>
+        <td>Product Code</td> 
+        <td>:</>
+        <td class="tdstyle"><? echo $this->productid ?></td>       
+
+    </tr>   
+    <tr>
+        <td>Product Name</td>     
+        <td>:</>
+        <td class="tdstyle"><? echo $this->productname ?></td>                       
+    </tr>-->
+<!--    <tr>
+        <td>Balance</td>     
+        <td>:</>
+        <td class="tdstyle"><? //echo number_format($this->saldoawal, 2)           ?></td>                       
+    </tr>-->
+</table>
+
+<br />
+
+<!--<div class="datagrid"><table>
+        <thead>
+            <tr>
+                <th class="no">header</th>
+                <th class="product">header</th>
+                <th class="productname">tes</th>
+                <th colspan="3">header</th>
+            </tr>
+            <tr>
+                <th>header</th>
+                <th>header</th>
+                <th>header</th>
+                <th class="bal">header</th>
+                <th class="bal">header</th>
+                <th class="bal">header</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>data</td>
+                <td>data</td>
+                <td>data</td>
+                <td>data</td>
+            </tr>
+           
+        </tbody>
+    </table></div>-->
+<div id='stock-card'></div>

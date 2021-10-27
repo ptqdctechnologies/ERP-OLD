@@ -1,0 +1,396 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        <?php echo $this->action('index','textfield',null); ?>
+
+    function showSatuanChoose (num,new_project)
+    {
+        if (new_project == undefined)
+            new_project = false;
+        var searchSatuan = new Ext.Window({
+
+            id: 'searchSatuan',
+		    layout:'absolute',
+		    width: 350,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+            items:[
+                    new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth : 150,
+//                        labelPad : 7,
+						items: [{
+								    fieldLabel : 'UOM Kode',
+								    id : 'sat_kode',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: num,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				searchSatuan.close();
+											showSatuanList(new_project);
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+	                ],
+            buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var satkode = Ext.getCmp('sat_kode').getValue();
+                            if (satkode == null || satkode == "")
+                            {
+                                Ext.Msg.alert('Error','Please choose UOM kode');
+                                return false;
+                            }
+		 			        if (satkode != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/logistic/logisticsatuan/editsatuan/satkode/' + satkode,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        searchSatuan.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         searchSatuan.close();
+			              }
+
+		              }
+	                ]
+        })
+
+        searchSatuan.show();
+
+    }
+
+
+    function showSatuanList(new_project)
+    {
+        if (new_project == undefined)
+            new_project = false;
+
+        var satuanstore = new Ext.data.Store ({
+
+            url:'/logistic/logisticsatuan/getsatuan',
+            baseParams: {
+                new_project: new_project
+            },
+            autoLoad:true,
+
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+                },[
+                {name:'sat_kode',type:'String'},
+                {name:'sat_nama',type:'String'},
+                {name:'ket',type:'String'}
+
+            ])
+
+
+        })
+
+        searchData = function()
+        {
+            var docs = Ext.getCmp('document-text').getValue();
+            satuanstore.proxy.setUrl('/logistic/logisticsatuan/getsatuan/search/' + docs + '/new_project/' + new_project);
+            satuanstore.reload();
+
+            grid.getView().refresh();
+        }
+
+        refreshData = function()
+        {
+            satuanstore.clearFilter();
+            Ext.getCmp('document-text').setValue('');
+            Ext.getCmp('pagingShowSatuan').doRefresh();
+        }
+
+        var grid = new Ext.grid.GridPanel({
+
+            store:satuanstore,
+
+            viewConfig:{
+                forceFit:true
+                },
+            layout: 'fit',
+            width:400,
+            height: 290,
+            listeners: {
+                'rowdblclick': function(gridYangAktif, rowIndex, e){
+                                isDblClick = true;
+                                txtBoxChange = 'satuanlist';
+                                var satuan = gridYangAktif.getStore().getAt(rowIndex).get('sat_kode');
+                                showSatuanChoose(satuan);
+                                //Ext.getCmp('sat_name').setValue(trano);
+                                Ext.getCmp('satuanlist').close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                },
+            columns:[
+                {
+                    header:'UOM Code',
+                    dataIndex:'sat_kode',
+                    width:80,
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'UOM Name',
+                    dataIndex:'sat_nama',
+                    width:120,
+                    align:'center',
+                    sortable:true
+                },{
+                    header:'UOM Description',
+                    dataIndex:'ket',
+                    width:160,
+                    align:'center',
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar({
+            id: 'pagingShowSatuan',
+            pageSize: 10,
+            store: satuanstore,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+            }),
+            tbar: [
+				{
+					text: 'UOM Name',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+				},
+				{
+					xtype: 'textfield',
+					id: 'document-text'
+				},
+				{
+				    text: 'Search',
+				    iconCls: 'search-icon',
+				    handler: searchData,
+				    scope: this
+				},
+                '-',
+                {
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+				},
+                '-',
+                {
+					text: '',
+					xtype:'label',
+				    style: 'margin-right: 5px',
+                    id:'label-last-upd'
+				}
+               ]
+
+
+        })
+        var satuanlist = new Ext.Window ({
+            id: 'satuanlist',
+            layout: 'absolute',
+            minWidth: 300,
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 420,
+            height: 320,
+            loadMask:true,
+            items:[
+                    grid
+            ]
+        })
+
+        satuanlist.title = 'Choose UOM';
+        satuanlist.show();
+    }
+
+
+
+    showAddBarang = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/logistic/logisticsatuan/addsatuan',
+	        scripts : true
+        });
+	};
+
+	showEditSatuan= function(){
+			showSatuanChoose();
+	};
+
+    showAddBarangNewProject = function(){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/logistic/logisticsatuan/addsatuan',
+            params: {
+                new_project: true
+            },
+            scripts : true
+        });
+    };
+
+    showEditSatuanNewProject= function(){
+        showSatuanChoose('',true);
+    };
+
+
+    showAllBarangNewProject = function(){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/logistic/logisticsatuan/allsatuan',
+            params: {
+                new_project: true
+            },
+            scripts : true
+        });
+    };
+
+    showAllBarang = function(){
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/logistic/logisticsatuan/allsatuan',
+            scripts : true
+        });
+    };
+
+
+    var windowForm =  ({
+
+    title: 'Master Unit Of Measurement',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+                        {
+                            id: 'satuan_all_button',
+                            text: 'Show All UOM',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:showAllBarang
+                        },
+//						{
+//						    id: 'satuan_add_button',
+//						    text: 'Add UOM',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/action_paste.gif",
+//						    handler:showAddBarang
+//						},
+//                        {
+//						    id: 'satuan_edit_button',
+//						    text: 'Edit Existing UOM',
+//						    cls:"x-btn-text-icon" ,
+//						    icon:"/images/icons/fam/page_edit.gif",
+//						    handler:showEditSatuan
+//						},
+                        '-',
+                        {
+                            id: 'satuan_all_button_new',
+                            text: 'Show All UOM (New Project)',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:showAllBarangNewProject
+                        },
+                        {
+                            id: 'satuan_add_button_new',
+                            text: 'Add UOM (New Project)',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/action_paste.gif",
+                            handler:showAddBarangNewProject
+                        },
+                        {
+                            id: 'satuan_edit_button_new',
+                            text: 'Edit Existing UOM (New Project)',
+                            cls:"x-btn-text-icon" ,
+                            icon:"/images/icons/fam/page_edit.gif",
+                            handler:showEditSatuanNewProject
+                        }
+                    ]
+				}
+			}
+         ]
+    });
+    
+//    function getExchangeRate()
+//        {
+//            Ext.Ajax.request({
+//                url: '/default/valuta/getexchangerate/val_kode/USD',
+//                method: 'POST',
+//                success: function(result, request) {
+//                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                    if (returnData.success) {
+//                        if(returnData.rate == 0)
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR,
+//                                fn:function(){window.location='';}
+//                            });
+//                        }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//                },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//            });
+//        }
+//        getExchangeRate();
+
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+});
+</script>
+

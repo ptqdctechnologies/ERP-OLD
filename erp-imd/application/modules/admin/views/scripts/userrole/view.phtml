@@ -1,0 +1,711 @@
+<script type="text/javascript">
+var App = new Ext.App({});
+
+// Create HttpProxy instance.  Notice new configuration parameter "api" here instead of load.  However, you can still use
+// the "url" paramater -- All CRUD requests will be directed to your single url instead.
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/userrole/listuser'
+    }
+});
+
+var proxy2 = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/userrole/listuserrole',
+        create : '/admin/userrole/adduserrole',
+        update: '/admin/userrole/updateuserrole',
+        destroy: '/admin/userrole/deleteuserrole'
+    }
+});
+
+// Typical JsonReader.  Notice additional meta-data params for defining the core attributes of your json-response
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'id'},
+    {name: 'name'},
+    {name: 'uid'},
+    {name: 'id_privilege'}
+]);
+
+var reader2 = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'id'},
+    {name: 'id_role'},
+    {name: 'display_name'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'}
+]);
+
+// The new DataWriter component.
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: true
+});
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user-store',
+    proxy: proxy,
+    reader: reader
+});
+
+var store2 = new Ext.data.Store({
+    id: 'user-store2',
+    proxy: proxy2,
+    reader: reader2,
+    writer: writer,  // <-- plug a DataWriter into the store just as you would a Reader
+    autoSave: true // <-- false would delay executing create, update, destroy requests until specifically told to do so with some [save] buton.
+});
+
+// load the store immeditately
+store.load();
+store2.load();
+
+
+// A new generic text field
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns =  [
+    new Ext.grid.RowNumberer(),
+    {header: "Full Name", width: 140, sortable: true, dataIndex: 'name'},
+    {header: "UID", width: 140, sortable: true, dataIndex: 'uid'},
+    {header: "Privilege", width: 80, sortable: true, dataIndex: 'id_privilege',renderer : function(v, params, data){
+    	var status;
+    	if (v == 500)
+    	{
+    		status = 'Admin';
+    	}
+    	else if (v == '' || v == undefined)
+    	{
+    		status = 'User';
+    	}
+    	return status;
+    }}
+];
+
+var userColumns2 =  [
+                    new Ext.grid.RowNumberer(),
+                    {header: "Role Name", width: 140, sortable: true, dataIndex: 'display_name'},
+                    {header: "Project Code", width: 140, sortable: true, dataIndex: 'prj_kode'},
+                    {header: "Site Code", width: 140, sortable: true, dataIndex: 'sit_kode'}
+                ];
+
+//** Number **//
+Ext.apply(Ext.form.VTypes, {
+	'numeric': function(){
+		
+			/*****************************************************************
+			DESCRIPTION: Validates that a string contains only valid numbers.
+			PARAMETERS:
+			   strValue - String to be tested for validity
+			RETURNS:
+			   True if valid, otherwise false.
+			******************************************************************/
+			  var objRegExp  =  /(^-?\d\d*\.\d*$)|(^-?\d\d*$)|(^-?\.\d\d*$)/;
+			  return function(strValue){
+				  //check for numeric characters
+				  return objRegExp.test(strValue);
+			  };
+	}(),
+	'numericText': 'Only numbers are allowed'
+});
+
+var projectPopUphandler = function() {
+
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-pjr_kode_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Code:'
+        },
+         new txtboks(80,10,80,'project_code',searchPrjKode),
+         {
+        x: 170,
+        y: 12,
+        xtype: 'label',
+        text: 'Project Name:'
+        },
+        new txtboks(240,10,80,'project_name',searchPrjName),
+         new SampleGrid('project_list')
+    ]
+
+  });
+  aForm.title = 'Choose Project';
+  aForm.show();
+ };
+
+ var sitePopUpHandler = function(button,event) {
+	    var aForm =  new Ext.Window({
+	    id: 'a-form-panel-site_kode_button',
+	    layout: 'absolute',
+	    minWidth: 300,
+	    minHeight: 200,
+	    width: 400,
+	    height: 400,
+	    items : [
+	        {
+	        x: 10,
+	        y: 12,
+	        xtype: 'label',
+	        text: 'Site Code:'
+	        },
+	         new txtboks(80,10,80,'site_code',searchSiteKode),
+	         {
+	        x: 170,
+	        y: 12,
+	        xtype: 'label',
+	        text: 'Site Name:'
+	        },
+	        new txtboks(240,10,80,'site_name',searchSiteName),
+	         new SampleGrid('site_list')
+	    ]
+
+	  });
+	  aForm.title = 'Pop Up Window';
+	  aForm.show();
+	 };
+ 
+ <?php echo $this->action('index','textfield',null); ?> 
+searchPrjKode = function(field,e){
+     newUrl = '/default/project/listByParams/all/true/name/Prj_Kode/data/' + field.getValue();    prox = Pk+'_proxy';
+     gri = Pk+'_grid';
+     proxies = Ext.getCmp(gri).getStore();
+     proxies.proxy = new Ext.data.HttpProxy({
+         url: newUrl
+          });
+     Ext.getCmp(gri).getStore().reload();
+
+ }
+ searchPrjName = function(field,e){
+     newUrl = '/default/project/listByParams/all/true/name/Prj_Nama/data/' + field.getValue();    prox = Pk+'_proxy';
+     gri = Pk+'_grid';
+     proxies = Ext.getCmp(gri).getStore();
+     proxies.proxy = new Ext.data.HttpProxy({
+         url: newUrl
+          });
+     Ext.getCmp(gri).getStore().reload();
+
+ }
+
+
+ searchSiteName = function(field,e){
+     newUrl = '/default/site/listbyproject/all/true/sit_nama/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+     gri = Pk+'_grid';
+     proxies = Ext.getCmp(gri).getStore();
+     proxies.proxy = new Ext.data.HttpProxy({
+         url: newUrl
+          });
+     Ext.getCmp(gri).getStore().reload();
+
+ }
+ searchSiteKode = function(field,e){
+     newUrl = '/default/site/listbyproject/all/true/sit_kode/' + field.getValue() + '/prj_kode/' + Ext.getCmp('prj_kode_text').getValue();    prox = Pk+'_proxy';
+     gri = Pk+'_grid';
+     proxies = Ext.getCmp(gri).getStore();
+     proxies.proxy = new Ext.data.HttpProxy({
+         url: newUrl
+          });
+     Ext.getCmp(gri).getStore().reload();
+
+ }
+
+ SampleGrid = function(gridType,yAxis,param){
+	    //View column header from grid/columnHeaader
+	    var yAxis = yAxis;
+	    if (gridType == 'project_list')
+	    {
+	        <?php echo $this->action('columnHeader','grid',null,array("type" => "project_list")); ?>
+
+	        urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "project_list")); ?>';
+	        data =  [<?php echo $this->action('mappingField','grid',null,array("type" => "project_list")); ?>];
+	        primaryKey = '<?php echo $this->action('getPrimaryKey','grid',null,array("type" => "project")); ?>';
+	        Pk = primaryKey;
+	        widthGrid = 380;
+	        heightGrid = 250;
+	    }
+	    else if (gridType == 'site_list')
+	    {
+	        <?php echo $this->action('columnHeader','grid',null,array("type" => "site_list")); ?>
+	        if ( Ext.getCmp('prj_kode_text').getValue() == '')
+	            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "site_list")); ?>';}
+	        else
+	            {urlJson = '<?php echo $this->action('getUrlJson','grid',null,array("type" => "site_list_param",'noParam' => '1','columnName'=>'prj_kode')); ?>' + Ext.getCmp('prj_kode_text').getValue();}
+	        data =  [<?php echo $this->action('mappingField','grid',null,array("type" => "site_list")); ?>];
+	        primaryKey = '<?php echo $this->action('getPrimaryKey','grid',null,array("type" => "site")); ?>';
+	        Pk = primaryKey;
+	        widthGrid = 380;
+	        heightGrid = 250;
+	    }
+	    var stores = new Ext.data.Store({
+	        proxy:new Ext.data.HttpProxy({
+	        url: urlJson
+	         }),
+	            reader: new Ext.data.JsonReader({
+	        root: 'posts',
+	        totalProperty: 'count'
+	    },data)
+	        });
+
+	if (yAxis == undefined)
+	    yAxis=100;
+	    SampleGrid.superclass.constructor.call(this, {
+	        store: stores,
+	        columns: columns,
+	        x:0,
+	        y:yAxis,
+	        id:primaryKey+'_grid',
+	        loadMask: true,
+	        bbar:[ new Ext.PagingToolbar({
+	            pageSize: 100,
+	            store: stores,
+	            displayInfo: true,
+	            displayMsg: 'Displaying data {0} - {1} of {2}',
+	            emptyMsg: "No data to display"
+	        })],
+	        height:heightGrid,
+	        width:widthGrid,
+	        listeners: {
+	                    'rowdblclick': function(g, rowIndex, e){
+	                            closeForm = false;
+	                            isDblClick = true;
+	                            if (gridType == 'project_list')
+	                            {
+	                                objectName = 'Prj_Kode';
+	                                txtBoxChange = 'prj_kode_text';
+	                                closeForm = true;
+	                                formId = 'a-form-panel-pjr_kode_button';
+	                                var prjKode = g.getStore().getAt(rowIndex).get(objectName);
+	                               newUrl = '/procurement/procurement/listByParams/name/prj_kode/data/' + prjKode;
+	                                prox = 'trano_proxy';
+	                                gri = 'trano_grid';
+	                                var record = g.getStore().getAt(rowIndex).get(objectName);
+	                                Ext.getCmp('prj_kode_text').setValue(record);
+	                            }
+	                            else if (gridType == 'site_list')
+	                            {
+	                                objectName = 'sit_kode';
+	                                txtBoxChange = 'sit_kode_text';
+	                                closeForm = true;
+	                                formId = 'a-form-panel-site_kode_button';
+	                                var prjNama = g.getStore().getAt(rowIndex).get('sit_nama');
+	                                var prjKode = g.getStore().getAt(rowIndex).get('prj_kode');
+	                                var sitKode = g.getStore().getAt(rowIndex).get(objectName);
+	                                newUrl = '/procurement/procurement/listByParams/name/sit_kode/joinToPod/true/data/' + sitKode + '/Prj_Kode/' + prjKode;
+	                                prox = 'trano_proxy';
+	                                gri = 'trano_grid';
+	                                var record = g.getStore().getAt(rowIndex).get(objectName);
+	                                Ext.getCmp('sit_kode_text').setValue(record);
+	                            }
+	                            if (closeForm)
+	                                {
+	                                    Ext.getCmp(formId).close();
+	                                }
+	                            window.setTimeout(function(){
+	                                    isDblClick = false;
+	                            }, 0);
+	                    }
+	            }
+	    });
+	    stores.load();
+
+	}
+	Ext.extend(SampleGrid, Ext.grid.GridPanel);
+
+    searchUserName = function(){
+        var userName = Ext.getCmp('username-text').getValue();
+    	store.proxy.setApi('read','/admin/userrole/listuser/name/' + userName);
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+
+    refreshGridUser = function(){
+    	store.proxy.setApi('read','/admin/userrole/listuser');
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+
+    
+	
+userForm = Ext.extend(Ext.form.FormPanel, {
+    iconCls: 'silk-user',
+    frame: true,
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    title: 'Add User Role -- All Fields are Required',
+    width: 400,
+    defaults: {
+        anchor: '100%'
+    }
+,
+    initComponent : function() {
+        this.items = this.buildForm();
+        this.buttons = this.buildUI();
+        this.addEvents({
+            create : true
+        });
+        userForm.superclass.initComponent.call(this);
+    },
+//
+    buildForm : function() {
+        return [
+			{fieldLabel: 'User Full Name',id:'userfullname-text',name: 'fullname', xtype: 'textfield',readOnly: true
+							},    
+//			{xtype:'trigger', name:'prj_kode',id: 'prj_kode_text',fieldLabel: 'Project Code', triggerClass: 'search-button',
+//				onTriggerClick: function( ){
+//				projectPopUphandler();
+//				},
+//				allowBlank: true
+////				,listeners: {
+////				    render: function(c) {
+////				      Ext.QuickTips.register({
+////				        target: c.getEl(),
+////				        text: 'Fill this field ONLY for enable Role on all site below this project'
+////				      });
+////				    }
+////				  }
+//			},
+//			{xtype:'trigger', name:'sit_kode',id: 'sit_kode_text',fieldLabel: 'Site Code',  triggerClass: 'search-button',
+//				allowBlank: true,
+//				onTriggerClick: function( ){
+//				sitePopUpHandler();
+//				}
+//			},
+
+            {
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode',
+                fieldLabel:'Project Code',
+                allowBlank:false,
+                showAll: true,
+                callback: function(prj){
+                    Ext.getCmp('site-select').clearAllValue();
+                }
+            },
+            {
+                xtype: 'siteselector',
+                anchor: '100%',
+                independent: false,
+                id: 'site-select',
+                SiteSelectid: 'sit_kode',
+                ProjectSelectid: 'prj_kode',
+                fieldLabel:'Site Code',
+                allowBlank:false,
+                showAll: true
+            },
+            {fieldLabel: 'Role Type',
+             hiddenName : 'id_role',
+             id: 'combo-role',
+             xtype: 'combo',
+             triggerAction: 'all',
+             forceSelection:true,
+             pageSize:10,
+             typeAhead: true,
+             mode: 'remote',
+             displayField: 'display_name',
+             valueField: 'id_role',
+             store: new Ext.data.JsonStore({
+                 autoLoad: true,
+                 url: '/admin/userrole/listroletype',
+                 root: 'posts',
+                  fields:[
+                      { name: "display_name"},{ name: "id_role"}
+                  ]
+             })
+             }
+        ];
+    },
+//
+//    /**
+//     * buildUI
+//     * @private
+//     */
+    buildUI: function(){
+        return [{
+            text: 'Save',
+            iconCls: 'icon-save',
+            handler: this.onUpdate,
+            scope: this
+        }, {
+            text: 'Create',
+            iconCls: 'silk-user-add',
+            handler: this.onCreate,
+            scope: this
+        }, {
+            text: 'Reset',
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            scope: this
+        }];
+    },
+    loadRecord : function(rec) {
+        this.record = rec;
+        Ext.getCmp('prj_kode').setValue(rec.get("prj_kode"));
+        Ext.getCmp('sit_kode').setValue(rec.get("sit_kode"));
+
+        this.getForm().loadRecord(rec);
+    },
+    onUpdate : function(btn, ev) {
+        if (this.record == null) {
+            return;
+        }
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid.");
+            return false;
+        }
+        var values = this.getForm().getValues();
+        if (values.id_role == '' || values.id_role == undefined)
+        {
+            Ext.Msg.alert('Error','Role is empty');
+            return false;
+        }
+        if (values.prj_kode == '' || values.prj_kode == undefined)
+        {
+            Ext.Msg.alert('Error','Project is empty');
+            return false;
+        }
+
+        var params = Ext.util.JSON.encode({
+            prj_kode: values.prj_kode,
+            sit_kode: values.sit_kode,
+            id_role: this.record.get("id_role"),
+            id: this.record.get("id"),
+            display_name: this.record.get("display_name")
+        });
+
+        Ext.Ajax.request({
+            url:'/admin/userrole/updateuserrole',
+            method:'POST',
+            params: {
+                posts: params
+            },
+            success:function(result){
+                obj = Ext.util.JSON.decode(result.responseText);
+
+                if (obj.success)
+                {
+                    Ext.Msg.alert('Success', obj.message);
+
+                }
+                else
+                {
+                    Ext.Msg.alert('Error', obj.message);
+                }
+                Ext.getCmp('user-grids2').getStore().reload();
+            },
+            failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+            }
+
+        });
+
+//        this.getForm().updateRecord(this.record);
+    },
+    onCreate : function(btn, ev) {
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid");
+            return false;
+        }
+        var values = this.getForm().getValues();
+        if (values.id_role == '' || values.id_role == undefined)
+        {
+            Ext.Msg.alert('Error','Role is empty');
+            return false;
+        }
+        if (values.prj_kode == '' || values.prj_kode == undefined)
+        {
+            Ext.Msg.alert('Error','Project is empty');
+            return false;
+        }
+        this.fireEvent('create', this, this.getForm().getValues());
+        this.getForm().reset();
+    },
+    onReset : function(btn, ev) {
+        this.fireEvent('update', this, this.getForm().getValues());
+        this.getForm().reset();
+    }
+});
+
+/**
+ * App.user.Grid
+ * A typical EditorGridPanel extension.
+ */
+userGrid = Ext.extend(Ext.grid.EditorGridPanel, {
+	id:'user-grids',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 450,
+    width: 300,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+	
+    initComponent : function() {
+		this.viewConfig = {
+            forceFit: true
+        };
+        
+        this.tbar = this.buildTopToolbar();
+        userGrid.superclass.initComponent.call(this);
+    },
+
+    /**
+     * buildTopToolbar
+     */
+    buildTopToolbar : function() {
+        return [
+                {
+					text: 'User Name',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+                },
+                {
+					xtype: 'textfield',
+					id: 'username-text'
+                },
+                {
+                    text: 'Search',
+                    iconCls: 'silk-table-refresh',
+                    handler: searchUserName,
+                    scope: this
+                },
+                '-',
+                {
+                    text: 'Refresh',
+                    iconCls: 'silk-table-refresh',
+                    handler: refreshGridUser,
+                    scope: this
+                }
+                ];
+    }
+
+});
+
+userGrid2 = Ext.extend(Ext.grid.EditorGridPanel, {
+	id:'user-grids2',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 250,
+    width: 400,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+	
+    initComponent : function() {
+        this.viewConfig = {
+            forceFit: true
+        };
+        this.relayEvents(this.store, ['destroy', 'save', 'update']);
+        this.tbar = this.buildTopToolbar();
+        userGrid2.superclass.initComponent.call(this);
+    },
+
+    /**
+     * buildTopToolbar
+     */
+    buildTopToolbar : function() {
+        return [{
+		            text: 'Delete',
+		            iconCls: 'silk-delete',
+		            handler: this.onDelete,
+		            scope: this
+		        }
+                ];
+    },
+
+    onDelete : function(btn, ev) {
+        var index = this.getSelectionModel().getSelectedCell();
+        if (!index) {
+            return false;
+        }
+        var rec = this.store.getAt(index[0]);
+        this.store.remove(rec);
+
+        Ext.getCmp('combo-role').reset();
+    }
+});
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+    var userForms = new userForm({
+        renderTo: 'user-form',
+        listeners: {
+            create : function(fpanel, data) {
+                var rec = new userGrids2.store.recordType(data);
+                userGrids2.store.insert(0, rec);
+            }
+        }
+    });
+
+
+
+	
+    var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        store: store,
+        columns : userColumns,
+        width: 400,
+        listeners: {
+        	rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                Ext.getCmp('userfullname-text').setValue(rec.data.name);
+                store2.proxy.setApi('read','/admin/userrole/listuserrole/id/' + rec.id);
+                store2.proxy.setApi('create','/admin/userrole/adduserrole/id/' + rec.id);
+                store2.proxy.setApi('update','/admin/userrole/updateuserrole/id/' + rec.id);
+                store2.proxy.setApi('destroy','/admin/userrole/deleteuserrole/id/' + rec.id);
+                Ext.getCmp('user-grids2').getStore().reload();
+                Ext.getCmp('combo-role').reset();
+                Ext.getCmp('site-select').clearAllValue();
+                Ext.getCmp('project-select').reset();
+            }
+        }
+    });
+
+    var userGrids2 = new userGrid2({
+        renderTo: 'user-grid2',
+        store: store2,
+        columns : userColumns2,
+        listeners: {
+            rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                userForms.loadRecord(rec);
+            },
+            destroy : function() {
+                userForms.getForm().reset();
+            }
+        }
+    });
+
+
+});
+</script>
+
+ <div id="user-grid" style="float:left"></div>
+
+ <div style="float:left;margin-left:10px;">
+ <div id="user-form"></div>
+ <div id="user-grid2"></div>
+ </div>
+ 

@@ -1,0 +1,297 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var perKode = '<?=$this->perkode?>',
+            perTahun = '<?=$this->year?>',
+            perBulan = '<?=$this->month?>';
+
+        var store = new Ext.data.Store({
+            url : '/logistic/inventory/getitemsforclosing',
+            baseParams: {
+                perkode: perKode,
+                tahun: perTahun,
+                bulan: perBulan
+            }
+            ,reader: new Ext.data.JsonReader({
+                    totalProperty: 'count',
+                    root : 'data'},
+                [
+                    {name: 'id'},
+                    {name: 'kode_brg', type: 'string'},
+                    {name: 'nama_brg', type: 'string'},
+                    {name: 'qtyIn', type: 'float'},
+                    {name: 'qtyOut', type: 'float'},
+                    {name: 'saldoQty', type: 'float'},
+                    {name: 'newItem'}
+                ]
+            )
+        });
+
+    <?php
+    if ($this->perkode != '') {
+    ?>
+        store.load();
+    <?php
+    }
+    ?>
+        var grid = new Ext.grid.GridPanel({
+            stateful: false,
+            store: store,
+            frame: true,
+            columns: [
+                new Ext.ux.grid.RowNumberer({
+                    width: 30
+                }),
+                {
+                    header: 'Product ID',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'kode_brg'
+                },
+                {
+                    header: 'Name',
+                    width: 200,
+                    sortable: true,
+                    dataIndex: 'nama_brg'
+                },
+                {
+                    header: 'Beginning Qty',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'saldoQty',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        return Ext.util.Format.number(v,'?0,000.0000');
+                    }
+                },
+                {
+                    header: 'Qty In',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qtyIn',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        return Ext.util.Format.number(v,'?0,000.0000');
+                    }
+                },
+                {
+                    header: 'Qty Out',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'qtyOut',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        return Ext.util.Format.number(v,'?0,000.0000');
+                    }
+                },
+                {
+                    header: 'Balance Qty',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: '',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        var val = 0;
+                        if (r.data['newItem'] == true)
+                        {
+                            return Ext.util.Format.number((parseFloat(r.data['qtyIn']) - parseFloat(r.data['qtyOut'])),'?0,000.0000');
+                        }
+                        else
+                        {
+                            val = (parseFloat(r.data['saldoQty']) + parseFloat(r.data['qtyIn'])) - parseFloat(r.data['qtyOut']);
+                            return Ext.util.Format.number(val,'?0,000.0000');
+                        }
+                    }
+                }
+
+            ],
+            viewConfig : {
+                forceFit: true
+            },
+            loadMask: true,
+            height: 450,
+            bbar: [
+                new Ext.PagingToolbar({
+                    pageSize: 100,
+                    store: store,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            ]
+
+        });
+
+        var periodepanel = new Ext.form.FormPanel ({
+            title:'Closing Inventory',
+            id:'periode-closing',
+            renderTo:'periode',
+            frame:true,
+//            width:240,
+            items:[
+
+                new Ext.form.FieldSet({
+                    title: 'Current Periode',
+                    items: [
+                        {
+                            xtype:'textfield',
+                            fieldLabel:'Periode Code',
+                            width:104,
+                            id:'perkode',
+                            name: 'perkode',
+                            readOnly: true,
+                            value: '<?=$this->perkode?>',
+                        },{
+                            xtype:'textfield',
+                            fieldLabel:'year',
+                            width:104,
+                            value: '<?=$this->year?>',
+                            readOnly: true,
+                            id:'year'
+                        },{
+                            id:'month',
+                            xtype:'textfield',
+                            fieldLabel:'Month',
+                            width:104,
+                            value: '<?=$this->month?>',
+                            readOnly: true
+                        },{
+                            xtype:'textfield',
+                            fieldLabel: 'Start Date',
+                            id: 'startdt',
+                            value: '<?=$this->tgl_awal?>',
+                            width:104,
+                            readOnly: true
+                        },{
+                            xtype:'textfield',
+                            fieldLabel: 'End Date',
+                            id: 'enddt',
+                            value: '<?=$this->tgl_akhir?>',
+                            width:104,
+                            readOnly: true
+                        }
+                    ]
+                }),
+                new Ext.Panel({
+                    title: 'Items For Closing',
+                    style: 'padding-right:15px',
+//                    tbar:
+//                        [
+//                            new Ext.Toolbar({
+//                                items:
+//                                    [
+//                                        {
+//                                            xtype: 'tbtext',
+//                                            text: 'Search By'
+//                                        },
+//                                        {
+//                                            xtype: 'combo'
+//                                            ,hideLabel: true
+//                                            ,id: 'combo-search'
+//                                            ,name:'search'
+//                                            ,store: new Ext.data.SimpleStore({
+//                                            fields:['type','name']
+//                                            ,data:[
+//                                                ['kode_brg', 'Product ID'],
+//                                                ['nama_brg','Product Name']
+//                                            ]
+//                                        })
+//                                            ,valueField:'type'
+//                                            ,displayField:'name'
+//                                            ,typeAhead: true
+//                                            ,mode: 'local'
+//                                            ,triggerAction: 'all'
+//                                            ,value: 'nama_brg'
+//                                            ,emptyText:'Select..'
+//                                            ,selectOnFocus:true
+//                                            ,anchor:'95%'
+//                                            ,width:100
+//
+//                                        },
+//                                        {
+//                                            xtype: 'textfield',
+//                                            width: 120,
+//                                            id: 'search_text'
+//                                        },
+//                                        {
+//                                            xtype: 'button',
+//                                            text: 'Show',
+//                                            width:70,
+//                                            id: 'show_budget',
+//                                            cls:"x-btn-text-icon" ,
+//                                            icon:"/images/icons/fam/control_rewind.png",
+//                                            handler:function(){
+//                                                store.load({
+//                                                    params: {
+//                                                        type: Ext.getCmp('combo-search').getValue(),
+//                                                        search: Ext.getCmp('search_text').getValue()
+//                                                    }
+//                                                });
+//                                                grid.getView().refresh();
+//                                            }
+//                                        }
+//                                    ]
+//                            })
+//                        ],
+                    items: [
+                        grid
+                    ]
+                })
+            ],
+            buttons:[{
+                text:'Close this Periode',
+                handler:function (btn,ev)
+                {
+                    if (Ext.getCmp('perkode').getValue() == '')
+                    {
+                        Ext.Msg.alert('Error','Current Periode not exist or has been closed!');
+                        return false;
+                    }
+                    Ext.getBody().mask('Please wait while system closing periode... Do not REFRESH THIS PAGE!');
+                    Ext.Ajax.request({
+                        url:'/logistic/inventory/doclosing',
+                        method:'POST',
+                        params:{
+                            perkode: '<?=$this->perkode?>'
+                        },
+                        success:function(result){
+                            obj = Ext.util.JSON.decode(result.responseText);
+                            Ext.getBody().unmask();
+                            if (obj.success)
+                            {
+                                Ext.Msg.alert ('Message','Success, Periode has been closed!');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/logistic/inventory/closingmenu',
+                                    scripts : true
+                                });
+                            }else
+                            {
+                                Ext.Msg.alert('Error', obj.msg);
+                            }
+                        },
+                        failure:function( action){
+                            Ext.getBody().unmask();
+                            if(action.failureType == 'server'){
+                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                Ext.Msg.alert('Error!', obj.errors.reason);
+                            }else{
+                                Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Reset',
+                style:'marginRight:10px',
+                handler:function (btn,ev)
+                {
+                    Ext.getCmp('periode-closing').getForm().reset();
+                }
+            }]
+        })
+    });
+</script>
+<div id="periode"></div>

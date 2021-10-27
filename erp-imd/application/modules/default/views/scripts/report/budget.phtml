@@ -1,0 +1,656 @@
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+?>
+
+<style>
+.cache{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.parentContainer { /* The parent container */
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; /* Required to set */
+    height: <?php if (count($this->result) > 10) :?>630px;<?php else: ?>420px;<?php endif;?> /* Required to set */
+    overflow: hidden; /* Required to set */
+	font-size: 14px;
+}
+
+ .tooltip {
+    border-bottom: 1px dotted #000000; color: #000000; outline: none;
+    cursor: help; text-decoration: none;
+    position: relative;
+}
+.tooltip span {
+    margin-left: -999em;
+    position: absolute;
+}
+.tooltip:hover span {
+    border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+    font-family: Calibri, Tahoma, Geneva, sans-serif;
+    position: absolute; left: 1em; top: 2em; z-index: 99;
+    margin-left: 0;
+}
+.tooltip:hover img {
+    border: 0; margin: -10px 0 0 -55px;
+    float: left; position: absolute;
+}
+.tooltip:hover em {
+    font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+    display: block; padding: 0.2em 0 0.6em 0;
+}
+.info { padding: 0.8em 1em;background: #FFFFAA; border: 1px solid #FFAD33; }
+.custom { padding: 0.5em 0.8em 0.8em 2em; }
+* html a:hover { background: transparent;}
+
+
+</style>
+
+<?php
+/* 
+Created @ Mar 26, 2010 9:54:18 AM
+ */
+        if ($this->time != '') {
+?>
+<div class="cache">
+<b>This Report is generated from cache, If there any changes to the data beetween <?=$this->time['generate']?> and <?=$this->time['expire']?> will not shown here.<br>
+Cache will expire at <?=$this->time['expire']?></b>
+</div>
+<?php } ?>
+<b>USD Exchange Rate : Rp. <?php echo number_format(floatval($this->rateidr),2);?>, Last updated : <?php echo $this->tgl; ?></b>
+<?php if (!$this->rate): ?><br><b>This report is not using updated exchange rate above.</b><?php endif ?>
+
+<br /><br />
+<!--$totalASFHargaIDR + $totalMDOHargaIDR + $totalPieceMeal + $totalRPIHargaIDR + $totalPOHargaIDRsite-->
+<b> Note :<br />Actual Cost = ASF + Piece Meal + RPI + PO (to Site) </b>
+<?php 
+
+if ($this->detail)
+{
+	$header = 'colspan="2"';
+	$header1 = 'rowspan="3"';
+	$header2 = 'colspan="4"';
+	$header3 = 'colspan="4"';
+	$header4 = 'colspan="2"';
+	$header5 = 'colspan="2"';
+	
+	$sub = 'colspan="2"';
+}
+else
+{
+	$header1 = '';
+	$header2 = 'colspan="2"';
+	$header3 = 'colspan="2"';
+	$header4 = 'colspan="3"';
+	$header5 = 'colspan="1"';
+}
+
+?>
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead>
+    	<tr>
+            <th <?php echo $header1; ?>><b>No.</b></th>
+            <?php if (!$this->isCFS) { ?>
+            <th scope="col" class="rounded-q1" <?php echo $header1; ?>><b>Site Code</b></th>
+            <th scope="col" class="rounded-q2" <?php echo $header1; ?>><b>Site Name</b></th>
+            <?php } else { ?>
+            <th scope="col" class="rounded-q1" <?php echo $header1; ?>><b>CFS Code</b></th>
+            <th scope="col" class="rounded-q2" <?php echo $header1; ?>><b>CFS Name</b></th>
+            <?php } ?>
+            <th scope="col" class="rounded-q3" <?php echo $header2; ?>><b>Customer's Order(BoQ2)</b></th>
+            <th scope="col" class="rounded-q3" <?php echo $header3; ?>><b>Project Budget (BoQ3)</b></th>
+            <th scope="col" class="rounded-q3" <?php echo $header5; ?>><b>Actual Cost (BoQ4)</b></th>
+            <?php if($this->isCFS) { ?> <th scope="col" class="rounded-q2" <?php echo $header; ?>><b>Accrual Cost</b></th> <?php } ?>
+            <th scope="col" class="rounded-q4" <?php echo $header4; ?>><b>Gross Margin</b></th>
+        </tr>
+		<tr>
+		<?php 
+			if (!$this->detail)
+			{	
+		?>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		<?php } ?>	
+			<th scope="col" class="rounded-q1" <?php echo $header; ?>>Origin</th>
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>Current</th>
+			<th scope="col" class="rounded-q3" <?php echo $header; ?>>Origin</th>
+
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>Current</th>
+
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>Current</th>
+            <?php if($this->isCFS) { ?> <th scope="col" class="rounded-q2" <?php echo $header; ?>>&nbsp;</th> <?php } ?>
+			<th scope="col" class="rounded-q3" >Origin (%)</th>
+
+			<th scope="col" class="rounded-q3">Current (%)</th>
+
+		</tr>
+		<tr>
+		<?php 
+			if (!$this->detail)
+			{	
+		?>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		<?php } ?>	
+			<th scope="col" class="rounded-q1" <?php echo $header; ?>>A</th>
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>B</th>
+			<th scope="col" class="rounded-q3" <?php echo $header; ?>>C</th>
+
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>D</th>
+
+			<th scope="col" class="rounded-q2" <?php echo $header; ?>>E</th>
+
+            <?php if($this->isCFS) { ?> <th scope="col" class="rounded-q2" <?php echo $header; ?>>Final Cost - Payment Cost</th> <?php } ?>
+			<th scope="col" class="rounded-q3" <?php echo $persen; ?>>F = ((A - C)/A)</th>
+
+			<th scope="col" class="rounded-q3" <?php echo $persen; ?>>G = ((B - D)/B)</th>
+
+		</tr>
+
+<?php 
+if ($this->detail)
+{
+?>
+<tr>
+<th>&nbsp;</th>
+<th>&nbsp;</th>
+<th>&nbsp;</th>
+<th scope="col" class="rounded-q1">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th scope="col" class="rounded-q2">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th scope="col" class="rounded-q2">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th scope="col" class="rounded-q2">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th scope="col" class="rounded-q2">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th scope="col" class="rounded-q2">IDR</th>
+<th scope="col" class="rounded-q2">USD</th>
+<th>&nbsp;</th>
+<th>&nbsp;</th>
+</tr>
+<?php } ?>
+
+    </thead>
+        
+    <div style="overflow-y:auto">
+    <tbody>
+    	<?php
+    			$totalBoq2_ori=0;
+    			$totalBoq2_current=0;
+    			$totalBoq3_ori=0;
+    			$totalBoq3_current=0;
+    			$totalBoq4_current=0;
+                $totalAccrual_current=0;
+    			$totalFinal = 0;
+	                
+                $nomer = $this->current;
+                $jum = 0;
+                
+                $rate_idr = !$this->rate ? "Transaction's rate" : number_format($this->rateidr,2);
+                
+                if (count($this->resultAll) > 0)
+                {
+                	foreach($this->resultAll as $key => $val)
+                	{
+                		if (!$this->rate)
+	                	{
+	                		$totalBoq2_oriAll += ($val['boq2_oriIDR'] + $val['boq2_oriUSD']);
+		                	$totalBoq2_currentAll += ($val['boq2_currentIDR'] + $val['boq2_currentUSD']);
+		                	$totalBoq3_oriAll += ($val['boq3_oriIDR'] + $val['boq3_oriUSD']);
+		                	$totalBoq3_currentAll += ($val['boq3_currentIDR'] + $val['boq3_currentUSD']);
+		                	$totalBoq4_currentAll += ($val['boq4_currentIDR'] + $val['boq4_currentUSD']);
+                                        $totalAccrual_currentAll += ($val['accrual_currentIDR'] + $val['accrual_currentUSD']);
+	                	}
+	                	else
+	                	{
+	                		$totalBoq2_oriAll += ($val['boq2_oriHargaIDR'] + ($val['boq2_oriHargaUSD'] * $this->rateidr));
+		                	$totalBoq2_currentAll += ($val['boq2_currentHargaIDR'] + ($val['boq2_currentHargaUSD'] * $this->rateidr));
+		                	$totalBoq3_oriAll += ($val['boq3_oriHargaIDR'] + ($val['boq3_oriHargaUSD'] * $this->rateidr));
+		                	$totalBoq3_currentAll += ($val['boq3_currentHargaIDR'] + ($val['boq3_currentHargaUSD'] * $this->rateidr));
+		                	$totalBoq4_currentAll += ($val['boq4_currentHargaIDR'] + ($val['boq4_currentHargaUSD'] * $this->rateidr));
+                                        $totalAccrual_currentAll += ($val['accrual_currentHargaIDR'] + ($val['accrual_currentHargaUSD'] * $this->rateidr));
+	                	}
+                                
+                	}
+                }
+                
+	            for($i=0;$i<count($this->result);$i++)
+	            {	               
+	            if (!$this->rate)
+	                {
+	                	if (!$this->detail)
+	                	{
+		                	$boq2_ori = ($this->result[$i]['boq2_ori'] );
+		                	$boq2_current = ($this->result[$i]['boq2_current'] );
+		                	$boq3_current = ($this->result[$i]['boq3_current'] );
+		                	$boq3_ori = ($this->result[$i]['boq3_ori'] );
+		                	$mip_current = ($this->result[$i]['mip_current']);
+		                	$boq4_current = ($this->result[$i]['boq4_current']);
+		                	$finalCost = ($this->result[$i]['finalCost']);
+	                	}
+	                	else
+	                	{
+	                		$boq2_ori = ($this->result[$i]['boq2_oriIDR'] + $this->result[$i]['boq2_oriUSD']);
+		                	$boq2_current = ($this->result[$i]['boq2_currentIDR'] + $this->result[$i]['boq2_currentUSD']);
+		                	$boq3_current = ($this->result[$i]['boq3_currentIDR'] + $this->result[$i]['boq3_currentUSD']);
+		                	$boq3_ori = ($this->result[$i]['boq3_oriIDR'] + $this->result[$i]['boq3_oriUSD']);
+		                	$mip_current = ($this->result[$i]['mip_currentIDR'] + $this->result[$i]['mip_currentUSD']);
+		                	$boq4_current = ($this->result[$i]['boq4_currentIDR'] + $this->result[$i]['boq4_currentUSD']);
+                                        $accrual_current = ($this->result[$i]['accrual_currentIDR'] + $this->result[$i]['accrual_currentUSD']);
+	                	}
+	                	
+	                	
+	                }
+	                else
+	                {
+	                	$boq2_ori = ($this->result[$i]['boq2_oriHargaIDR'] + ($this->result[$i]['boq2_oriHargaUSD'] * $this->rateidr));
+	                	$boq2_current = ($this->result[$i]['boq2_currentHargaIDR'] + ($this->result[$i]['boq2_currentHargaUSD'] * $this->rateidr));
+	                	$boq3_current = ($this->result[$i]['boq3_currentHargaIDR'] + ($this->result[$i]['boq3_currentHargaUSD'] * $this->rateidr));
+	                	$boq3_ori = ($this->result[$i]['boq3_oriHargaIDR'] + ($this->result[$i]['boq3_oriHargaUSD'] * $this->rateidr));
+	                	$mip_current = ($this->result[$i]['mip_currentHargaIDR'] + ($this->result[$i]['mip_currenHargatUSD'] * $this->rateidr));
+	                	$boq4_current = ($this->result[$i]['boq4_currentHargaIDR'] + ($this->result[$i]['boq4_currentHargaUSD'] * $this->rateidr));
+                                $accrual_current = ($this->result[$i]['accrual_currentHargaIDR'] + ($this->result[$i]['accrual_currentHargaUSD'] * $this->rateidr));
+	               		$finalCost = ($this->result[$i]['finalCost']);
+	                }
+	                
+	                
+			                $totalBoq2_ori += $boq2_ori;
+                                        $totalBoq2_ori_IDR += $this->result[$i]['boq2_oriHargaIDR'];
+                                        $totalBoq2_ori_USD += $this->result[$i]['boq2_oriHargaUSD'];
+                                        
+                                        
+		                	$totalBoq2_current += $boq2_current;
+                                        $totalBoq2_current_IDR +=$this->result[$i]['boq2_currentHargaIDR'];
+                                        $totalBoq2_current_USD +=$this->result[$i]['boq2_currentHargaUSD'];
+                                        
+		                	$totalBoq3_ori += $boq3_ori;
+                                        $totalBoq3_ori_IDR += $this->result[$i]['boq3_oriHargaIDR'];
+                                        $totalBoq3_ori_USD += $this->result[$i]['boq3_oriHargaUSD'];
+                                        
+		                	$totalBoq3_current += $boq3_current;
+                                        $totalBoq3_current_IDR += $this->result[$i]['boq3_currentHargaIDR'];
+                                        $totalBoq3_current_USD += $this->result[$i]['boq3_currentHargaUSD'];
+
+		                	$totalBoq4_current += $boq4_current;
+                                        $totalBoq4_current_IDR += $this->result[$i]['boq4_currentHargaIDR'];
+                                        $totalBoq4_current_USD += $this->result[$i]['boq4_currentHargaUSD'];
+                                        
+                                        
+                                        $totalAccrual_current += $accrual_current;
+                                        $totalAccrual_current_IDR += $this->result[$i]['accrual_currentHargaIDR'];
+                                        $totalAccrual_current_USD += $this->result[$i]['accrual_currentHargaUSD'];
+                                        
+		                	$totalFinal += $finalCost;
+
+	            	if (($boq3_ori > 0 && $boq3_ori !='') && ($boq2_ori > 0 && $boq2_ori != ''))
+	                {
+	                        $dPersen = number_format((($boq3_ori/$boq2_ori) * 100),2,'.','') . '%';
+	                        $iNumber = number_format($boq2_ori - $boq3_ori,2);
+	                        $jPersen = number_format((($boq2_ori -$boq3_ori) / $boq2_ori) * 100,2,'.','') . '%';
+	
+	                }
+	                else
+	                {
+	                    $dPersen = '';
+	                    $iNumber = '';
+	                    $jPersen = '';
+	                }
+	                
+	                if (($boq3_current > 0 && $boq3_current !='') && ($boq2_current > 0 && $boq2_current != ''))
+	                {    $fPersen =  number_format((($boq3_current / $boq2_current) * 100),2,'.',''). '%'; }
+	                else
+	                {    $fPersen = '';}
+	                if (($boq2_current > 0 && $boq2_current!='') && ($boq3_current > 0 && $boq3_current != ''))
+	                {
+	                    $kNumber =  number_format($boq2_current - $boq3_current,2);
+	                    $lPersen =  number_format(((($boq2_current - $boq3_current) / $boq2_current) * 100),2,'.','') . '%';
+	                }
+	                else
+	                {
+	                    $kNumber = '';
+	                    $lPersen = '';
+	                }
+	                if (($boq3_current > 0 && $boq3_current !='') && ($boq4_current > 0 && $boq4_current != ''))
+	                {
+	                    $hPersen = number_format((($boq4_current / $boq3_current) * 100),2,'.','') . '%';
+	                    $hValue = $boq4_current / $boq3_current;
+	
+	                }
+	                else
+	                {
+	                    $hPersen = '';
+	                    $hValue = '';
+	                }
+
+	            	if (($boq2_current > 0 && $boq2_current !='') && ($boq3_current > 0 && $boq3_current != '') )
+	                {
+	                    $mNumber =  number_format($finalCost,2);
+	                    $nPersen = number_format((($finalCost / $boq2_current) * 100),2,',','') . '%';
+	                }
+	                else
+	                {
+	                    $mNumber = '';
+	                    $nPersen  = '';
+	                }
+	                
+	                if (!$this->rate)
+	                {
+	                	if(!$this->detail)
+	                	{
+        ?>
+				        <tr>
+				            <td><?php echo $nomer; ?></td>
+                            <?php if ($this->formula == 'OLD' || $this->formula == '') { ?>
+				            <td><?php echo $this->result[$i]['sit_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['sit_nama']; ?></td>
+                            <?php } else { ?>
+				            <td><?php echo $this->result[$i]['cfs_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['cfs_nama']; ?></td>
+                            <?php } ?>
+                            <?php if (!$this->isCFS) { ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_ori'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_current'],2); ?></td>
+                            <?php } else { ?>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <?php } ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_ori'],2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_current'],2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq4_current'],2); ?></td>
+
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format($this->result[$i]['accrual_current'],2); ?></td><?php } ?>
+
+				            <td align="right"><?php echo $jPersen; ?></td>
+				            
+				            <td align="right"><?php echo $lPersen; ?></td>
+
+				        </tr>
+        <?php
+	                	}
+	                	else
+	                	{
+        ?>
+        				<tr>
+				            <td><?php echo $nomer; ?></td>
+                            <?php if ($this->formula == 'OLD' || $this->formula == '') { ?>
+				            <td><?php echo $this->result[$i]['sit_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['sit_nama']; ?></td>
+                            <?php } else { ?>
+				            <td><?php echo $this->result[$i]['cfs_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['cfs_nama']; ?></td>
+                            <?php } ?>
+                            <?php if (!$this->isCFS) { ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_oriIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_oriHargaUSD'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_currentIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_currentHargaUSD'],2); ?></td>
+                            <?php } else { ?>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <?php } ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_oriIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_oriHargaUSD'],2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_currentIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_currentHargaUSD'],2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq4_currentIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq4_currentHargaUSD'],2); ?></td>
+
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format($this->result[$i]['accrual_currentIDR'],2); ?></td><?php } ?>
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format($this->result[$i]['accrual_currentHargaUSD'],2); ?></td><?php } ?>
+
+				            <td><?php echo $jPersen; ?></td>
+				            
+				            <td><?php echo $lPersen; ?></td>
+
+				        </tr>
+	    <?php    
+	                	}
+	                }
+	                else
+	                {
+	                	if(!$this->detail)
+	                	{
+	    ?>
+	    
+	    				 <tr>
+				            <td><?php echo $nomer; ?></td>
+                            <?php if ($this->formula == 'OLD' || $this->formula == '') { ?>
+				            <td><?php echo $this->result[$i]['sit_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['sit_nama']; ?></td>
+                            <?php } else { ?>
+				            <td><?php echo $this->result[$i]['cfs_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['cfs_nama']; ?></td>
+                            <?php } ?>
+                             <?php if (!$this->isCFS) { ?>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq2_oriHargaIDR'] + ($this->result[$i]['boq2_oriHargaUSD']* $this->rateidr)),2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq2_currentHargaIDR']+ ($this->result[$i]['boq2_currentHargaUSD']* $this->rateidr)),2); ?></td>
+                             <?php } else { ?>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <?php } ?>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq3_oriHargaIDR']+ ($this->result[$i]['boq3_oriHargaUSD']* $this->rateidr)),2); ?></td>
+
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq3_currentHargaIDR']+ ($this->result[$i]['boq3_currentHargaUSD']* $this->rateidr)),2); ?></td>
+
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq4_currentHargaIDR']+ ($this->result[$i]['boq4_currentHargaUSD']* $this->rateidr)),2); ?></td>
+
+
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format(($this->result[$i]['accrual_currentHargaIDR']+ ($this->result[$i]['accrual_currentHargaUSD']* $this->rateidr)),2); ?></td><?php } ?>
+
+				            <td><?php echo $jPersen; ?></td>
+				            
+				            <td><?php echo $lPersen; ?></td>
+				            
+
+				        </tr>
+	                	
+        <?php
+	                	}
+	                	else
+	                	{
+	    ?>            		
+	    				<tr>
+				            <td><?php echo $nomer; ?></td>
+                            <?php if ($this->formula == 'OLD' || $this->formula == '') { ?>
+				            <td><?php echo $this->result[$i]['sit_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['sit_nama']; ?></td>
+                            <?php } else { ?>
+				            <td><?php echo $this->result[$i]['cfs_kode']; ?></td>
+				            <td><?php echo $this->result[$i]['cfs_nama']; ?></td>
+                            <?php } ?>
+                            <?php if (!$this->isCFS) { ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_oriHargaIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq2_oriHargaUSD']),2); ?></td>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq2_currentHargaIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq2_currentHargaUSD']),2); ?></td>
+                             <?php } else { ?>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <td align="right">&nbsp;</td>
+                            <?php } ?>
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_oriHargaIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq3_oriHargaUSD']),2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq3_currentHargaIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq3_currentHargaUSD']),2); ?></td>
+
+				            <td align="right"><?php echo number_format($this->result[$i]['boq4_currentHargaIDR'],2); ?></td>
+				            <td align="right"><?php echo number_format(($this->result[$i]['boq4_currentHargaUSD']),2); ?></td>
+
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format($this->result[$i]['accrual_currentHargaIDR'],2); ?></td><?php } ?>
+				            <?php if($this->isCFS) { ?><td align="right"><?php echo number_format(($this->result[$i]['accrual_currentHargaUSD']),2); ?></td><?php } ?>
+
+				            <td align="right"><?php echo $jPersen; ?></td>
+				            
+				            <td align="right"><?php echo $lPersen; ?></td>
+
+				        </tr>
+	    <?php
+	                	}
+	                } 
+	                $nomer++;
+                    $jum++;
+	            }
+	            
+	            if ($totalBoq2_ori > 0 && $totalBoq3_ori)
+	            	$oriPersen = (($totalBoq2_ori - $totalBoq3_ori) / $totalBoq2_ori) * 100;
+	            if ($totalBoq2_current > 0 && $totalBoq3_current)
+	            	$currentPersen = (($totalBoq2_current - $totalBoq3_current) / $totalBoq2_current) * 100;
+	            if ($totalFinal > 0 && $totalBoq2_current)
+	            	$finalPersen = ($totalFinal / $totalBoq2_current) * 100;
+	            	
+	            if ($totalBoq2_oriAll > 0 && $totalBoq3_oriAll)
+	            	$oriPersenAll = (($totalBoq2_oriAll - $totalBoq3_oriAll) / $totalBoq2_oriAll) * 100;
+	            if ($totalBoq2_currentAll > 0 && $totalBoq3_currentAll)
+	            	$currentPersenAll = (($totalBoq2_currentAll - $totalBoq3_currentAll) / $totalBoq2_currentAll) * 100;
+                if ($this->isCFS) {
+                    $jumKet = "CFS";
+                } else {
+                    $jumKet = "Site";
+                }
+        ?>
+ 
+    </tbody>
+    <tfoot>
+    	<tr style="background-color: #CFDCEE">
+        	<td colspan="3" class="rounded-foot-left"><b>Sub Total </b></td>
+            <?php if (!$this->isCFS) { ?>
+        	<td align="right"><b><?php echo  number_format($totalBoq2_ori_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalBoq2_ori_USD,2); ?></b></td>
+                
+        	<td align="right"><b><?php echo  number_format($totalBoq2_current_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalBoq2_current_USD,2); ?></b></td>
+                
+            <?php } else { ?>
+            <td align="right" <?php echo $sub; ?>>&nbsp;</td>
+            <td align="right" <?php echo $sub; ?>>&nbsp;</td>
+            <?php } ?>
+        	<td align="right"><b><?php echo  number_format($totalBoq3_ori_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalBoq3_ori_USD,2); ?></b></td>
+                
+        	<td align="right"><b><?php echo  number_format($totalBoq3_current_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalBoq3_current_USD,2); ?></b></td>
+                
+                
+        	<td align="right"><b><?php echo  number_format($totalBoq4_current_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalBoq4_current_USD,2); ?></b></td>
+                
+                
+            <?php if($this->isCFS) { ?>
+                <td align="right"><b><?php echo  number_format($totalAccrual_current_IDR,2); ?></b></td>
+                <td align="right"><b><?php echo  number_format($totalAccrual_current_USD,2); ?></b></td>
+                    
+                    <?php } ?>
+        	<td align="right"><b><?php echo  number_format($oriPersen,2) . '%'; ?></b></td>
+        	<td align="right"><b><?php echo  number_format($currentPersen,2). '%'; ?></b></td>
+
+        </tr>
+
+        <tr style="background-color: #FFE800">
+        	<td colspan="3" class="rounded-foot-left"><b>Grand Total IDR</b></td>
+
+        	<td align="center"  <?php echo $sub; ?>>
+                    <a class="tooltip" href="#" >
+                    <b><?php echo  number_format($totalBoq2_oriAll,2); ?></b>
+                    <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalBoq2_ori_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalBoq2_ori_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                    </a>
+                    </td>
+        	<td align="center"  <?php echo $sub; ?>>
+                    <a class="tooltip" href="#" >
+                    <b><?php echo  number_format($totalBoq2_currentAll,2); ?></b>
+                <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalBoq2_current_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalBoq2_current_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                    </a>
+                </td>
+        	<td align="center"  <?php echo $sub; ?>>
+                    <a class="tooltip" href="#" >
+                    <b><?php echo  number_format($totalBoq3_oriAll,2); ?></b>
+                    <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalBoq3_ori_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalBoq3_ori_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                    </a>
+                </td>
+        	<td align="center"  <?php echo $sub; ?>>
+                    <a class="tooltip" href="#" >
+                    <b><?php echo  number_format($totalBoq3_currentAll,2); ?></b>
+                    <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalBoq3_current_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalBoq3_current_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                    </a>
+                </td>
+        	<td align="center"  <?php echo $sub; ?>>
+                    <a class="tooltip" href="#" >
+                    <b><?php echo  number_format($totalBoq4_currentAll,2); ?></b>
+                    <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalBoq4_current_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalBoq4_current_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                    </a>
+                </td>
+            <?php if($this->isCFS) { ?><td align="center"  <?php echo $sub; ?>>
+                <a class="tooltip" href="#" >
+                <b><?php echo  number_format($totalAccrual_currentAll,2); ?></b>
+                <span class="info" style="text-align:left"> 
+                        IDR : <?php echo  number_format($totalAccrual_current_IDR,2); ?><br>
+                        USD : <?php echo  number_format($totalAccrual_current_USD,2); ?> * <?php echo  $rate_idr; ?>
+                    </span>
+                </a>
+            </td><?php } ?>
+        	<td align="right"><b><?php echo  number_format($oriPersenAll,2) . '%'; ?></b></td>
+        	<td align="right"><b><?php echo  number_format($currentPersenAll,2). '%'; ?></b></td>
+        </tr>
+
+    </tfoot>
+    </div>
+</table>
+</div>
+<?=$this->paging($this->pageUrl,$this->totalResult,$this->limitPerPage,$this->current,$this->currentPage)?>
+<script type="text/javascript">
+//<![CDATA[
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 3,
+		<?php if ($this->detail)
+		{?>
+		headerRows : 4
+		<?php } else {?>
+		headerRows : 3
+		<?php } ?>
+	});
+})();
+
+//]]>
+</script>

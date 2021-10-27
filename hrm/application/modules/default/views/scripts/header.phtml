@@ -1,0 +1,395 @@
+<title>QDC ERP</title>
+<!-- ** CSS ** -->
+	<link REL="SHORTCUT ICON" HREF="/images/favicon.ico">
+    <!-- base library -->
+    <link rel="stylesheet" type="text/css" href="/css/ext-all.css" />
+    <link rel="stylesheet" type="text/css" href="/css/loading.css"/>
+    <!-- overrides to base library -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/CenterLayout.css" />
+
+    <!-- page specific -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/base/layout-browser.css">
+	<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowEditor.css" />
+	<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowActions.css" />
+	<link rel="stylesheet" type="text/css" href="/images/icons/silk.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GroupSummary.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GridSummary.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/gridsummary.css" />
+	<link rel="stylesheet" href="/css/paging.css" charset="utf-8">
+	<link rel="stylesheet" href="/css/box.css" charset="utf-8">
+
+    <!-- ** Javascript ** -->
+
+    <script type="text/javascript" src="/js/layout/base/config.js"></script>
+
+    <!-- ExtJS library: all widgets -->
+    <script type="text/javascript" src="/js/ext-base.js"></script>
+    <script type="text/javascript" src="/js/ext-all.js"></script>
+    <script type="text/javascript" src="/js/layout/base/patchforextjs3-firefoxbugs.js"></script>
+    <!-- overrides to base library -->
+
+
+    <script type="text/javascript">
+    //General config
+    var MSC_WORKID = '1100,2100,3100,4100,5100,6100';
+
+    //Common Function
+    function isMscWorkid(cekWorkid)
+    {
+        if (cekWorkid == undefined)
+            return false;
+        var found = false;
+        var cek = MSC_WORKID.search(cekWorkid.toString());
+        if (cek >= 0)
+        {
+            found = true;
+        }
+        return found;
+    }
+
+    function isServiceKdbrg(cekKdbrg)
+    {
+        if (cekKdbrg == undefined)
+            return false;
+
+        if (cekKdbrg.substr(0,1) == 2)
+        {
+            var found = true;
+        }
+        else
+            var found = false;
+        return found;
+    }
+
+    function CommaFormatted(amount)
+    {
+        amount = parseFloat(amount);
+        amount = amount.toString();
+        var delimiter = ","; // replace comma if desired
+        if (amount.search("[.]")>0)
+        {
+            var a = amount.split('.',2);
+            var d = a[1];
+            var i = parseInt(a[0]);
+        }
+        else
+        {
+            var d = '';
+            var i = parseInt(amount);
+        }
+        if(isNaN(i)) { return ''; }
+        var minus = '';
+        if(i < 0) { minus = '-'; }
+        i = Math.abs(i);
+        var n = new String(i);
+        var a = [];
+        while(n.length > 3)
+        {
+            var nn = n.substr(n.length-3);
+            a.unshift(nn);
+            n = n.substr(0,n.length-3);
+        }
+        if(n.length > 0) { a.unshift(n); }
+        n = a.join(delimiter);
+        if(d.length < 1) { amount = n; }
+        else
+        {
+            if (amount.search("[.]")>0)
+            {
+                amount = n + '.' + d;
+            }
+            else
+            {
+                amount = n;
+            }
+        }
+        amount = minus + amount;
+        return amount;
+    }
+
+    function goToDocs(docsType,idDocs)
+    {
+        if (Ext.getCmp('result-panel') != undefined)
+            var myPanel = Ext.getCmp('result-panel');
+        else
+            var myPanel = Ext.getCmp('abs-budget-panel');
+
+        var url = '';
+
+        if (docsType == 'PR')
+        {
+            url= '/procurement/procurement/apppr/approve/' + idDocs;
+        }
+
+        if (docsType == 'PO')
+        {
+            url= '/procurement/procurement/apppo/approve/' + idDocs;
+        }
+        else if (docsType == 'DOR')
+        {
+            url= '/logistic/logistic/appdor/approve/' + idDocs;
+        }
+        else if (docsType == 'ARF')
+        {
+            url= '/procurement/procurement/apparf/approve/' + idDocs;
+        }
+        else if (docsType == 'ASF')
+        {
+            url= '/procurement/procurement/appasf/approve/' + idDocs;
+        }
+        else if (docsType == 'PMEAL')
+        {
+            url= '/procurement/procurement/apppmeal/approve/' + idDocs;
+        }
+        else if (docsType == 'iLOV')
+        {
+            url= '/logistic/logistic/appilov/approve/' + idDocs;
+        }
+        else if (docsType == 'iCAN')
+        {
+            url= '/logistic/logistic/appican/approve/' + idDocs;
+        }
+        else if (docsType == 'iSUP')
+        {
+            url= '/logistic/logistic/appisupp/approve/' + idDocs;
+        }
+        else if (docsType == 'SUPP')
+        {
+            url= '/logistic/logistic/appsupp/approve/' + idDocs;
+        }
+        else if (docsType == 'AFE')
+        {
+            url= '/projectmanagement/afe/appafe/approve/' + idDocs;
+        }
+        else if (docsType == 'RPI')
+        {
+            url= '/procurement/procurement/apprpi/approve/' + idDocs;
+        }
+        else if (docsType == 'RPIO')
+        {
+            url= '/procurement/procurement/apprpibudget/approve/' + idDocs;
+        }
+        else if (docsType == 'PBOQ3')
+        {
+            url= '/procurement/procurement/apppmeal/approve/' + idDocs;
+        }
+        else if (docsType == 'PRABOQ3')
+        {
+            url= '/projectmanagement/budget/apppraboq/approve/' + idDocs;
+        }
+        else if (docsType == 'REM')
+        {
+            url= '/procurement/procurement/appreimburs/approve/' + idDocs;
+        }
+        else if (docsType == 'PRO')
+        {
+            url= '/procurement/procurement/appprbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'ARFO')
+        {
+            url= '/procurement/procurement/apparfbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'POO')
+        {
+            url= '/procurement/procurement/apppobudget/approve/' + idDocs;
+        }
+        else if (docsType == 'ASFO')
+        {
+            url= '/procurement/procurement/appasfbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'PRABGO')
+        {
+            url= '/projectmanagement/budget/apptemporaryohbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'RINV')
+        {
+            url= '/finance/invoice/apprequestinvoice/approve/' + idDocs;
+        }
+        else if (docsType == 'PRACO')
+        {
+            url= '/sales/sales/appco/approve/' + idDocs;
+        }
+        else if (docsType == 'APRACO')
+        {
+            url= '/sales/sales/appaddco/approve/' + idDocs;
+        }
+        myPanel.body.load({
+            url: url + '/show/true',
+            scripts : true
+        });
+
+    }
+
+    function loadjscssfile(filename, filetype)
+    {
+        if (filetype=="js"){ //if filename is a external JavaScript file
+            var fileref=document.createElement('script')
+            fileref.setAttribute("type","text/javascript")
+            fileref.setAttribute("src", filename)
+        }
+        else if (filetype=="css"){ //if filename is an external CSS file
+            var fileref=document.createElement("link")
+            fileref.setAttribute("rel", "stylesheet")
+            fileref.setAttribute("type", "text/css")
+            fileref.setAttribute("href", filename)
+        }
+        if (typeof fileref!="undefined")
+            document.getElementsByTagName("head")[0].appendChild(fileref)
+    }
+
+    function popup(url,winName)
+    {
+
+        if (winName == "")
+        {
+            var acak = 'myWin-' + Math.floor(Math.random()*100).toString();
+            winName = acak;
+        }
+        var width  = 800;
+        var height = 600;
+        var left   = (screen.width  - width)/2;
+        var top    = (screen.height - height)/2;
+        var params = 'width='+width+', height='+height;
+        params += ', top='+top+', left='+left;
+        params += ', directories=no';
+        params += ', location=no';
+        params += ', menubar=no';
+        params += ', resizable=no';
+        params += ', scrollbars=no';
+        params += ', status=no';
+        params += ', toolbar=no';
+        newwin=window.open(url,winName, params);
+        if (window.focus) {newwin.focus()}
+        return false;
+    }
+
+
+    function moneycomp(a,comp,b,decimals) {
+        if (!decimals)
+            decimals = 2;
+        var multiplier = Math.pow(10,decimals);
+        a = Math.round(a * multiplier); // multiply to do integer comparison instead of floating point
+        b = Math.round(b * multiplier);
+        switch (comp) {
+            case ">":
+                return (a > b);
+            case ">=":
+                return (a >= b);
+            case "<":
+                return (a < b);
+            case "<=":
+                return (a <= b);
+            case "==":
+                return (a == b);
+        }
+        return null;
+    }
+
+    function goToPage(url,params,loadContentPanel)
+    {
+        if (url == undefined)
+            return false;
+
+        if (loadContentPanel != undefined)
+        {
+            cPanel = Ext.getCmp('content-panel');
+            cPanel.setHeight('100%');
+            cPanel.load({
+                url: url,
+                scripts: true
+            });
+        }
+        else
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: url,
+                params: params,
+                scripts : true
+            });
+        }
+    };
+
+    Array.prototype.has=function(v){
+        for (i=0;i<this.length;i++){
+            var chars = this[i];
+            if (v.toString().match(chars))
+                return true;
+        }
+        return false;
+    };
+
+    function isFunction(functionToCheck) {
+        var getType = {};
+        return functionToCheck && getType.toString.call(functionToCheck) == '[object Function]';
+    }
+    </script>
+
+    <!-- extensions -->
+    <script type="text/javascript" src="/js/layout/base/App.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/CenterLayout.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/RowLayout.js"></script>
+    <script type="text/javascript" src="/js/layout/base/TreePanelStatefull_plugin.js"></script>
+    <!-- page specific -->
+    <script type="text/javascript" src="/js/layout/base/menu.js"></script>
+
+	<script type="text/javascript" src="/js/layout/ux/RowEditor.js"></script>
+	<script type="text/javascript" src="/js/layout/ux/RowActions.js"></script>
+	<script type="text/javascript" src="/js/layout/ux/GroupSummary.js"></script>
+	<script type="text/javascript" src="/js/layout/ux/gridsummary.js"></script>
+	<script type="text/javascript" src="/js/layout/base/windowblink.js"></script>
+	
+	<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+	<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+	<script type="text/javascript" src="/js/layout/base/treeserializer.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/fileuploadfield/css/fileuploadfield.css" />
+	<script type="text/javascript" src="/js/layout/ux/fileuploadfield/FileUploadField.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/RowExpander.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/multigroup/GroupSummary.css" />
+    <script type="text/javascript" src="/js/layout/ux/multigroup/GroupSummary.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/multigroup/MultiGrouping.js"></script>
+     <script type="text/javascript" src="/js/layout/ux/customRendererField.js"></script>
+     <script type="text/javascript" src="/js/layout/ux/PagingStore.js"></script>
+     <script type="text/javascript" src="/js/layout/ux/notification/notification.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/notification/notificationmgr.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/projectselector/projectSelector.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/projectselector/projectselector.css" />
+    <script type="text/javascript" src="/js/layout/ux/projectselector/budgetSelector.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/projectselector/budgetselector.css" />
+	<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/calendar/resources/css/calendar.css">
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/Ext.calendar.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayHeaderTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayBodyTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayViewTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/BoxLayoutTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/MonthViewTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/CalendarScrollManager.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/StatusProxy.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/CalendarDD.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/DayViewDD.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventRecord.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/MonthDayDetailView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/CalendarPicker.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/WeekEventRenderer.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/CalendarView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/MonthView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayHeaderView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayBodyView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/WeekView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/DateRangeField.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/ReminderField.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventEditForm.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventEditWindow.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/CalendarPanel.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/gridsearch.css"></link>
+    <script type="text/javascript" src="/js/layout/ux/Ext.ux.grid.Search.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/miframe.js"></script>
+	<script type="text/javascript" src='/js/layout/ux/mifmsg.js'></script>
+	<script type="text/javascript" src='/js/layout/ux/CheckColumn.js'></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/gridJurnal.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/windowJurnalAdj.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/printer/printer.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/rownumberer.js"></script>

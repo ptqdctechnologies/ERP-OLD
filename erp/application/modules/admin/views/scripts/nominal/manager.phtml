@@ -1,0 +1,238 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var grid = new Ext.ux.userGridSelector({
+        useCheckbox: true
+    });
+
+    var panel = new Ext.form.FormPanel({
+        renderTo: 'manager-panel',
+        title: 'Add Nominal Limit to Workflow',
+        frame: true,
+        border: true,
+        layout: 'form',
+        minHeight: 450,
+        width: 300,
+        items: [
+            {
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode',
+                Nameid: 'prj_nama',
+                ShowName: true,
+                fieldLabel:'Project Code '
+            },
+            {
+                xtype: 'fieldset',
+                title: 'Information',
+                collapsible: true,
+                collapsed: true,
+                items: [
+                    {
+                        html: 'Choose Project for bind person based on Project Code, Leave empty to apply on All Project.'
+                    }
+                ]
+            },
+            {
+                id: 'combo-type',
+                fieldLabel: 'Transaction',
+                hiddenName : 'workflow_item_type_id',
+                width: 100,
+                xtype: 'combo',
+                triggerAction: 'all',
+                mode: 'remote',
+                editable: false,
+                displayField: 'name',
+                style: 'font-weight: bold; color: black',
+                valueField: 'workflow_item_type_id',
+                store: new Ext.data.JsonStore({
+                    url: '/admin/workflow/listworkflowitemtype/all/true',
+                    root: 'posts',
+                    fields:[
+                        { name: "name"},{ name: "workflow_item_type_id"}
+                    ],
+                    listeners: {
+                        'beforeload': function(t, o){
+//                            o.params.type = jsonType;
+                        }
+                    }
+                }),
+                listeners: {
+                    'select': function(t,n,o){
+//                        store.proxy = new Ext.data.HttpProxy({
+//                            url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue()+url
+//                        });
+//                        store.reload();
+                    }
+                }
+            },
+            {
+                xtype: 'compositefield',
+                fieldLabel: 'Total Limit',
+                msgTarget : 'under',
+                defaults: {
+                    flex: 1
+                },
+                items: [
+                    new Ext.ux.customRendererField({
+                        name: 'total_limit',
+                        id: 'total_limit',
+                        style:'text-align:right',
+                        priceDelemiter:',',
+                        width: 120
+                    }),
+                    {
+                        xtype:'displayfield',
+                        value: 'IDR',
+                        width: 40
+                    }
+                ]
+            },
+            grid
+        ],
+        buttons: [
+            {
+                text: 'Create',
+                handler: function() {
+                    var json = grid.getPersonJSON(),
+                        prj = Ext.getCmp('prj_kode').getValue(),
+                        item_type = Ext.getCmp('combo-type').getRawValue(),
+                        total = Ext.getCmp('total_limit').getValue().toString().replace(/\$|\,/g,'');
+
+                    if (item_type == '')
+                    {
+                        Ext.Msg.alert('Error','Please choose transaction');
+                        return false;
+                    }
+
+                    Ext.Ajax.request({
+                        url: '/admin/nominal/create/',
+                        method:'POST',
+                        params: {
+                            json: json,
+                            prj_kode: prj,
+                            item_type: item_type,
+                            total_limit: total
+                        },
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                            if (returnData.success)
+                            {
+                                gridNominal.getStore().reload();
+                                grid.refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error',returnData.msg);
+                            }
+
+                        }
+                    });
+                }
+            }
+        ]
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id', mapping: 'id'},
+        {name: 'uid', mapping: 'uid'},
+        {name: 'name', mapping: 'name'},
+        {name: 'prj_kode'},
+        {name: 'item_type'},
+        {name: 'total_limit', type: 'float'}
+
+    ]);
+
+    var storeNominal = new Ext.data.Store({
+        url : '/admin/nominal/list',
+        reader:reader,
+        autoLoad: true
+    });
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        actions:[
+            {
+                iconCls:'icon-delete',
+                qtip:'Delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    Ext.MessageBox.confirm('Confirm', 'This action will delete this Item, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                if (record)
+                                {
+                                    var id = record.data['id'];
+                                    Ext.Ajax.request({
+                                        url: '/admin/nominal/delete',
+                                        params: {
+                                            id: id
+                                        },
+                                        method:'POST',
+                                        success: function(result, request){
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                            if (returnData.success)
+                                            {
+                                                storeNominal.remove(record);
+                                                gridNominal.getView().refresh();
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error',returnData.msg);
+                                            }
+
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+        ]
+        ,index: 'actions'
+        ,header: ''
+    });
+
+    var nominalColumns =  [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: "Full Name", width: 120, sortable: true, dataIndex: 'name'},
+        {header: "UID", width: 100, sortable: true, dataIndex: 'uid'},
+        {header: "Project", width: 100, sortable: true, dataIndex: 'prj_kode'},
+        {header: "Transaction", width: 100, sortable: true, dataIndex: 'item_type'},
+        {header: "Limit Total", width: 100, sortable: true, dataIndex: 'total_limit', align: 'right', renderer: function(v){
+            return v ? Ext.util.Format.number(v,'0,000.00') : '';
+        }}
+    ];
+
+    var gridNominal = new Ext.grid.GridPanel({
+        plugins: [rowactions],
+        bbar: [
+            new Ext.PagingToolbar({
+                pageSize: 100,
+                store: storeNominal,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        ],
+        title: 'Nominal List',
+        width: 600,
+        height: 400,
+        columns: nominalColumns,
+        store: storeNominal,
+        renderTo: 'grid-notif'
+    })
+});
+</script>
+
+<div id="manager-panel"></div><br/>
+<div id="grid-notif"></div>

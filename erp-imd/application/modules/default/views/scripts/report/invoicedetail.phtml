@@ -1,0 +1,152 @@
+
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+
+
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+$total=0;
+$subtotal = 0;
+$category = $this->result[0]['kategori'];
+?>
+<style type="text/css">
+
+.parentContainer{ 
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 740px;
+    height: 460px;
+    overflow: auto; 
+    font-size: 14px;
+}
+
+.parentContainer2{
+    font-size: 12px;
+}
+
+</style>
+
+<table class="parentContainer2">
+        <tr>
+            <td>Project</td><td>:</td>
+            <td><?=$this->result[0]['prj_kode'];?></td>
+            <td><?=$this->result[0]['prj_nama'];?></td>
+        </tr>
+        <tr>
+            <td>Site</td><td>:</td>
+            <td><?=$this->result[0]['sit_kode'];?></td>
+            <td><?=$this->result[0]['sit_nama'];?></td>
+        </tr>
+        <tr>
+            <td>Date</td><td>:</td>
+            <td><?=date('d-m-Y',strtotime($this->start_date));?> -</td>
+            <td><?=date('d-m-Y',strtotime($this->end_date));?></td>
+        </tr>
+        <tr>
+            <td>Export to Excel</td><td>:</td>
+            <td><a href="#" onclick="window.open('/default/report/viewinvoicedetail/prj_kode/<?=$this->result[0]['prj_kode'];?>/sit_kode/<?=$this->result[0]['sit_kode'];?>/start_date/<?=date('Y-m-d',  strtotime($this->start_date))?>/end_date/<?= date('Y-m-d',  strtotime($this->end_date))?>', 'mywin', 'toolbar=0');" >
+                    <img src="/images/print.png"></a></td>
+            <td>&nbsp;</td>
+        </tr>
+
+</table>
+
+<div class="parentContainer" >
+<table id="budgetTable" class="budgetTable" >
+    <thead>
+        <tr><th colspan="10"><center>INVOICE DETAIL</center></th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Category</center></th>
+            <th scope="col"><center>Date</center></th>
+            <th scope="col"><center>Transaction No.</center></th>
+            <th scope="col"><center>Currency</center></th>
+            <th scope="col"><center>Amount</center></th>
+            <!-- <th scope="col"><center>IDR Rate</center></th> -->
+            <th scope="col"><center>IDR Total</center></th>
+            <th scope="col"><center>Author</center></th>
+        </tr>
+        <?php
+        foreach ($this->result AS $index => $data)
+            {
+            
+            if($category==$data['kategori'])
+            {
+    	?>
+    	<tr>
+            <td><?=$i+=1;?></td>
+            <td><?=$data['kategori'];?> </td>
+            <td><?=date('d-m-Y',strtotime($data['tgl']));?></td>
+            <td><?=$data['trano'];?></td>
+            <td><?=$data['val_kode'];?></td>
+            <td align="right"><?=number_format(floatval($data['amount']),4);?></td>
+            <!-- <td><?=number_format($data['rateidr']);?></td> -->
+            <td align="right"><?=number_format(floatval($data['total']),4);?></td>
+            <td align="right"><?= ucfirst($data['author']); ?></td>      
+        </tr>
+
+        <?php  
+             $subtotal += $data['total'];}
+             else
+             {$category=$data['kategori'];
+        ?>     
+            <tr style="background: #4C6891;">
+            <td colspan="5" style="color:#FFFFFF;" align="right">Sub Total:</td>
+            <td style="color:#FFFFFF;"> --------> </td>
+            <td style="color:#FFFFFF;" align="right"><?=number_format(floatval($subtotal),4)?></td>
+            <td>&nbsp;</td>
+            </tr>
+             
+            <tr>
+            <td><?=$i+=1;?></td>
+            <td><?=$data['kategori'];?> </td>
+            <td><?=date('d-m-Y',strtotime($data['tgl']));?></td>
+            <td><?=$data['trano'];?></td>
+            <td><?=$data['val_kode'];?></td>
+            <td align="right"><?=number_format(floatval($data['amount']),4);?></td>
+            <!-- <td><?=number_format($data['rateidr']);?></td> -->
+            <td align="right"><?=number_format(floatval($data['total']),4);?></td>
+            <td align="right"><?= ucfirst($data['author']); ?></td>      
+            </tr>
+             
+         <?php     
+             $subtotal = $data['total'];}
+             $total +=$data['total'];
+             
+            }
+        ?>
+        <tr style="background: #4C6891;">
+            <td colspan="5" style="color:#FFFFFF;" align="right">Sub Total:</td>
+            <td style="color:#FFFFFF;"> --------> </td>
+            <td style="color:#FFFFFF;" align="right"><?=number_format(floatval($subtotal),4)?></td>
+            <td>&nbsp;</td>
+        </tr>
+        
+        <tr style="background: black;">
+            <td colspan="5" style="color:#FFFFFF;" align="right">Grand Total: </td>
+            <td style="color:#FFFFFF;"> --------> </td>
+            <td style="color:#FFFFFF;" align="right"><?=number_format(floatval($total),4)?></td>
+            <td>&nbsp;</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<script type="text/javascript">
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 2,
+		headerRows : 1
+	});
+})();
+
+</script>

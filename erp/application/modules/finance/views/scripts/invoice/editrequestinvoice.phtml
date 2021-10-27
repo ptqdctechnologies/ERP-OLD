@@ -1,0 +1,1173 @@
+<script type="text/javascript">
+<?php echo $this->action('popupgrid', 'grid'); ?>
+
+    function getExchangeRate()
+    {
+        Ext.Ajax.request({
+            url: '/default/valuta/getexchangerate',
+            method: 'POST',
+            success: function(result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if (returnData.success) {
+                    Ext.getCmp('rate_text').setValue(returnData.rate);
+                }
+            }
+            , failure: function(action) {
+                if (action.failureType == 'server') {
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            }
+        });
+    }
+    
+
+    var deletedFile = '';
+
+    var filelist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'filename',
+            type: 'string'
+        }, {
+            name: 'savename',
+            type: 'string'
+        }, {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'path',
+            type: 'string'
+        }]);
+
+    var storeFile = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: filelist})
+    });
+
+    function deleteFile()
+    {
+        var rec = Ext.getCmp('files-grid').getSelectionModel().getSelections();
+        theFile = storeFile.getAt(storeFile.findExact('id', rec[0].data['id']));
+
+        if (theFile != undefined)
+        {
+            Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this file?', function(btn) {
+                if (btn == 'yes')
+                {
+                    deletedFile += Ext.util.JSON.encode(theFile.data) + ',';
+                    storeFile.remove(theFile);
+                    Ext.getCmp('files-grid').getView().refresh();
+                }
+//                        if (theFile.data['status'] == 'new')
+//                            var params = {filename:theFile.data['savename']};
+//                            Ext.Ajax.request({
+//                                url: '/procurement/procurement/deletefile',
+//                                method:'POST',
+//                                success: function(result, request){
+//                                    var returnData = Ext.util.JSON.decode(result.responseText);
+//                                    if (returnData.success)
+//                                    {
+//                                        storeFile.remove(theFile);
+//                                        Ext.getCmp('files-grid').getView().refresh();
+//                                    }
+//                                    else
+//                                    {
+//                                        Ext.Msg.alert('Error!', returnData.msg);
+//                                        return false;
+//                                    }
+//                                },
+//                                failure:function( action){
+//                                if(action.failureType == 'server'){
+//                                  obj = Ext.util.JSON.decode(action.response.responseText);
+//                                  Ext.Msg.alert('Error!', obj.errors.reason);
+//                                }else{
+//                                  Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+//                                }
+//                                },
+//                                params: params
+//                            });
+//                    }
+            });
+        }
+    }
+    ;
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        //detail invoice
+        var detailInvoice = Ext.data.Record.create([
+            {name: 'id', type: 'integer'},
+            {name: 'total', type: 'float'},
+            {name: 'ket', type: 'string'}
+        ]);
+
+        var storeDetailInvoice = new Ext.data.Store({
+            id: 'store-detail-invoice',
+            reader: new Ext.data.JsonReader({fields: detailInvoice})
+        });
+
+        var summary = new Ext.ux.grid.GridSummary();
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            hideMode: "display",
+            actions: [
+                {
+                    iconCls: 'silk-delete',
+                    qtip: 'Delete',
+                    id: 'delete',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var rec = record;
+                        Ext.MessageBox.confirm('Confirm', 'Delete this item?',
+                                function(btn) {
+                                    if (btn == 'yes')
+                                    {
+                                        grid.getStore().remove(rec);
+//                                        hitungtotal();
+                                    }
+                                }
+                        );
+
+                    }
+                }
+            ],
+            header: '',
+            width: 30
+        });
+
+        function addInvoiceDetail(val)
+        {
+
+            if (val == '' || val == undefined)
+                return false;
+
+            var total = parseFloat(val);
+
+            if (total <= 0)
+            {
+                return false;
+            }
+
+            var totalDetailTemp = total + detailInvoiceGrid.getSummary();
+            var amount = parseFloat(Ext.getCmp('total').getValue().toString().replace(/\$|\,/g, ''));
+
+            if (totalDetailTemp > amount)
+                return false;
+
+            var e = new detailInvoice({
+                id: storeDetailInvoice.getTotalCount() + 1,
+                total: total,
+                ket: Ext.getCmp('invoice_detail_desc').getValue()
+            });
+
+            storeDetailInvoice.add(e);
+
+            Ext.getCmp('invoice_detail_desc').setValue('');
+            Ext.getCmp('invoice_detail_value').setValue('');
+            Ext.getCmp('invoice_detail_desc').focus(false, 50);
+
+        }
+
+
+        var detailInvoiceGrid = new Ext.grid.GridPanel({
+            id: 'invoice-detail-grid',
+            store: storeDetailInvoice,
+            height: 100,
+            plugins: [summary, rowactions],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header: 'Description',
+                    width: 250,
+                    dataIndex: 'ket',
+                    sortable: true
+                }, {
+                    header: 'Total Detail Invoice',
+                    dataIndex: 'total',
+                    width: 200,
+                    align: 'right',
+                    sortable: true,
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,000.00') : '';
+                    }
+                }
+            ],
+            getSummary: function()
+            {
+                var total = 0;
+                this.getStore().each(function(item) {
+                    total += parseFloat(item.get("total"));
+                });
+
+                return total;
+            },
+            getData: function()
+            {
+                var obj = [];
+                this.getStore().each(function(item) {
+                    obj.push(item.data);
+                });
+
+                return obj;
+            }
+        });
+
+        function clearInvoiceDetail() {
+
+            Ext.getCmp('invoice_detail_desc').setValue('');
+            Ext.getCmp('invoice_detail_value').setValue('');
+            storeDetailInvoice.removeAll();
+        }
+
+        var totRequest = 0, totPaymentIDR = 0, totPaymentUSD = 0;
+        var totBoq2IDR = 0, totBoq2USD = 0, totBalanceIDR = 0, totBalanceUSD = 0;
+        var editTrano = '';
+
+        function SetValueForm(trano)
+        {
+            Ext.Ajax.request({
+                url: '/finance/invoice/getdatarequestinvoiceforedit/trano/' + trano,
+                method: 'POST',
+                success: function(result, request)
+                {
+                    var returndata = Ext.util.JSON.decode(result.responseText);
+                    Ext.getCmp('cus_kode').setValue(returndata.data.cus_kode);
+                    Ext.getCmp('cus_nama').setValue(returndata.data.cus_nama);
+                    Ext.getCmp('prj_kode_text').setValue(returndata.data.prj_kode);
+                    Ext.getCmp('prj_nama_text').setValue(returndata.data.prj_nama);
+                    Ext.getCmp('sit_kode_text').setValue(returndata.data.sit_kode);
+                    Ext.getCmp('sit_nama_text').setValue(returndata.data.sit_nama);
+
+                    totRequest = parseFloat(returndata.data.total);
+                    totPaymentIDR = parseFloat(returndata.data.totalPaymentIDR);
+                    totPaymentUSD = parseFloat(returndata.data.totalPaymentUSD);
+
+                    totBoq2IDR = parseFloat(returndata.data.boq2IDR);
+                    totBoq2USD = parseFloat(returndata.data.boq2USD);
+                    totBalanceIDR = parseFloat(returndata.data.boq2IDR) - parseFloat(returndata.data.totalRequestOtherIDR);
+                    totBalanceUSD = parseFloat(returndata.data.boq2USD) - parseFloat(returndata.data.totalRequestOtherUSD);
+
+                    Ext.getCmp('boq2IDR').setValue(CommaFormatted(returndata.data.boq2IDR));
+                    Ext.getCmp('requestIDR').setValue(CommaFormatted(returndata.data.totalRequestOtherIDR));
+                    Ext.getCmp('balanceIDR').setValue(CommaFormatted(parseFloat(returndata.data.boq2IDR) - parseFloat(returndata.data.totalRequestOtherIDR)));
+                    Ext.getCmp('boq2USD').setValue(CommaFormatted(returndata.data.boq2USD));
+                    Ext.getCmp('requestUSD').setValue(CommaFormatted(returndata.data.totalRequestOtherUSD));
+                    Ext.getCmp('balanceUSD').setValue(CommaFormatted(parseFloat(returndata.data.boq2USD) - parseFloat(returndata.data.totalRequestOtherUSD)));
+
+                    Ext.getCmp('val_kode_text').setValue(returndata.data.val_kode);
+                    Ext.getCmp('co_number').setValue(returndata.data.co_no);
+                    if (returndata.data.statusppn == 'Y')
+                        Ext.getCmp('tax').setValue(1);
+                    Ext.getCmp('total').setValue(returndata.data.total);
+                    Ext.getCmp('paymentnotes').setValue(returndata.data.paymentnotes);
+                    Ext.getCmp('ket').setValue(returndata.data.ket);
+
+                    storeFile.loadData(returndata.file);
+                    Ext.getCmp('files-grid').getView().refresh();
+
+                    if (returndata.data.invoice_detail != null) {
+                    data = Ext.util.JSON.decode(returndata.data.invoice_detail);
+
+                    if (data.length > 0)
+                    {
+                        Ext.getCmp('with-detail').setValue('Y');
+                        Ext.getCmp('invoice_detail_fieldset').setVisible(true);
+
+                        for (var i = 0; i < data.length; i++) {
+
+                            storeDetailInvoice.add(new detailInvoice({
+                                "id": data[i].id,
+                                "ket": data[i].ket,
+                                "total": parseFloat(data[i].total)
+                            }));
+                        }
+                        detailInvoiceGrid.getView().refresh();
+
+                    }
+                    }
+
+                    editTrano = trano;
+                    getExchangeRate();
+                    Ext.getCmp('invoice_detail_form').enable();
+                },
+                failure: function(action)
+                {
+                    if (action.failureType == 'server')
+                    {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert(('Error!'), obj.errors.reason);
+                    }
+                }
+            })
+        }
+
+        function showrequestinvoice()
+        {
+            var combodata = [
+                ['Trano', 'trano'],
+                ['Customer Code', 'cus_kode'],
+                ['Project Code', 'prj_kode'],
+                ['Project Name', 'prj_nama'],
+                ['Site Code', 'sit_kode'],
+                ['Site Name', 'sit_nama']
+            ];
+
+            var combostore = new Ext.data.ArrayStore({
+                fields: ['a', 'b'],
+                data: combodata
+            });
+            var combo = new Ext.form.ComboBox({
+                store: combostore,
+                displayField: 'a',
+                valueField: 'b',
+                typeAhead: true,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                name: 'option',
+                width: 100,
+                style: 'margin-left: 5px',
+                value: 'trano',
+                id: 'option',
+                forceSelection: true,
+                editable: false
+
+            });
+
+            var storerinv = new Ext.data.Store({
+                url: '/finance/invoice/getrequestinvoicedetail',
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'trano'
+                        }, {
+                            name: 'prj_kode'
+                        }, {
+                            name: 'sit_kode'
+                        }, {
+                            name: 'cus_kode'
+                        }, {
+                            name: 'coa_kode'
+                        }]
+                })
+
+
+            });
+
+            var gridrinv = new Ext.grid.GridPanel({
+                store: storerinv,
+                height: 300,
+                listeners: {
+                    'rowdblclick': function(gridaktif, rowIndex, e)
+                    {
+                        isDbClick = true;
+                        var rinv = gridaktif.getStore().getAt(rowIndex);
+                        var rinv_no = rinv.get('trano');
+                        Ext.getCmp('rinv-number').setValue(rinv_no);
+                        SetValueForm(rinv_no);
+
+                        rinvshow.close();
+                    }
+                },
+                columns: [{
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        align: 'left',
+                        sortable: true
+                    }, {
+                        header: 'Project Code',
+                        dataIndex: 'prj_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Site Code',
+                        dataIndex: 'sit_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Customer Code',
+                        dataIndex: 'cus_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'COA code',
+                        dataIndex: 'coa_kode',
+                        align: 'center',
+                        sortable: true
+                    }], tbar: [
+                    {
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    },
+                    combo,
+                    {
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left:10px',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option').getValue();
+                                    var search = Ext.getCmp('search').getValue();
+
+                                    storerinv.proxy.setUrl('/finance/invoice/getrequestinvoicedetail/search/' + search + '/option/' + option);
+                                    storerinv.reload();
+                                    gridrinv.getView().refresh();
+                                }
+                            }
+                        }
+                    }
+                ], bbar: new Ext.PagingToolbar({
+                    id: 'paging',
+                    pageSize: 50,
+                    store: storerinv,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })
+            });
+
+            var rinvshow = new Ext.Window({
+                title: 'Choose Request Invoice',
+                id: 'choose-debitnote',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 700,
+                height: 330,
+                loadMask: true,
+                items: [
+                    gridrinv
+                ]
+            });
+
+            rinvshow.show();
+        }
+        ;
+
+        var fileColumns = [
+            new Ext.grid.RowNumberer(),
+            {header: "File Name", width: 130, dataIndex: 'filename'},
+            {header: '', width: 40, sortable: true, css: 'text-align:center;', renderer: function(v, p, r) {
+                    return '<a href="#" onclick="window.open(\'/default/file/download/path/files/filename/' + r.data['savename'] + '\',\'mywin\',\'left=20,top=20,width=100,height=20,toolbar=0,resizable=0\');"><img src="/images/icons/fam/page_find.gif"></a>&nbsp;<a href="#" onclick="deleteFile();"><img src="/images/g_rec_del.png"></a>';
+                }}
+        ];
+
+        var fileUploads = new Ext.FormPanel({
+            renderTo: 'form_file',
+            fileUpload: true,
+            autoHeight: true,
+            frame: true,
+            style: 'margin-top: 10px',
+            width: 700,
+            defaults: {
+                anchor: '95%',
+                allowBlank: false,
+                msgTarget: 'side'
+            },
+            items: [
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .46,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fileuploadfield',
+                                    id: 'po-file',
+                                    emptyText: 'Select a File',
+                                    fieldLabel: 'Attach File',
+                                    allowBlank: false,
+                                    name: 'file-path',
+                                    buttonText: '',
+                                    buttonCfg: {
+                                        iconCls: 'upload-icon'
+                                    }
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Upload',
+                                    style: 'float: right',
+                                    handler: function() {
+                                        if (fileUploads.getForm().isValid()) {
+                                            form_action = 1;
+                                            fileUploads.getForm().submit({
+                                                url: '/procurement/procurement/uploadfile/type/RINV',
+                                                waitMsg: 'Uploading file...',
+                                                success: function(form, action) {
+                                                    var returnData = action.result;
+                                                    if (returnData.success) {
+                                                        var c = new filelist({
+                                                            id: parseFloat(storeFile.getCount() + 1),
+                                                            filename: returnData.filename,
+                                                            savename: returnData.savename,
+                                                            path: returnData.path,
+                                                            status: 'new'
+                                                        });
+                                                        storeFile.add(c);
+                                                        Ext.getCmp('files-grid').getView().refresh();
+                                                        Ext.getCmp('po-file').setValue('');
+                                                    }
+                                                    else
+                                                    {
+                                                        Ext.Msg.alert('Error', returnData.msg);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .5,
+                            layout: 'form',
+                            items: [
+                                new Ext.grid.GridPanel({
+                                    id: 'files-grid',
+                                    iconCls: 'silk-grid',
+                                    height: 100,
+                                    style: 'margin-left: 5px',
+                                    store: storeFile,
+                                    trackMouseOver: true,
+                                    view: new Ext.grid.GridView({
+                                        forceFit: true
+                                    }),
+                                    columns: fileColumns
+                                })
+                            ]
+                        }
+                    ]
+                }
+
+            ],
+            buttons: []
+        });
+
+        Ext.apply(Ext.form.VTypes, {
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() {
+                    return this.numericRe.test(v)
+                };
+            }
+
+        });
+
+        var invoice_detail_form = new Ext.FormPanel({
+            id: 'invoice_detail_form',
+            title: 'Request Invoice Detail Form',
+            width: 600,
+            renderTo: 'inv_ket_form',
+            labelWidth: 120,
+            frame: true,
+            disabled: true,
+            items: [
+                {
+                    xtype: 'fieldset',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: 0.350,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'cus_kode',
+                                            readOnly: true,
+                                            fieldLabel: 'Customer',
+                                            width: 60
+                                        }
+                                    ]
+                                },
+                                {
+                                    columnWidth: 0.6,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'cus_nama',
+                                            hideLabel: true,
+                                            readOnly: true,
+                                            width: 250
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'boq2IDR',
+                                            readOnly: true,
+                                            fieldLabel: 'Current CO (IDR)',
+                                            style: 'text-align:right'
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'requestIDR',
+                                            readOnly: true,
+                                            fieldLabel: 'Requested Invoice (IDR)',
+                                            style: 'text-align:right'
+                                        }
+                                    ]
+                                },
+                                {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'balanceIDR',
+                                            readOnly: true,
+                                            fieldLabel: 'Balance (IDR)',
+                                            labelStyle: 'text-align:right;',
+                                            style: 'text-align:right'
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    items: [
+                        {
+                            layout: 'column',
+                            items: [
+                                {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'boq2USD',
+                                            readOnly: true,
+                                            fieldLabel: 'Current CO (USD)',
+                                            style: 'text-align:right'
+                                        },
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'requestUSD',
+                                            readOnly: true,
+                                            fieldLabel: 'Requested Invoice (USD)',
+                                            style: 'text-align:right'
+                                        }
+                                    ]
+                                },
+                                {
+                                    columnWidth: 0.5,
+                                    layout: 'form',
+                                    items: [
+                                        {
+                                            xtype: 'textfield',
+                                            id: 'balanceUSD',
+                                            readOnly: true,
+                                            fieldLabel: 'Balance (USD)',
+                                            labelStyle: 'text-align:right;',
+                                            style: 'text-align:right'
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+
+                    ]
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'co_number',
+                    fieldLabel: 'CO Number',
+                    allowBlank: false,
+                    width: 200
+                },
+                {
+                    fieldLabel: 'Currency',
+                    id: 'val_kode_text',
+                    name: 'val_kode',
+                    allowBlank: false,
+                    editable: false,
+                    xtype: "trigger",
+                    triggerClass: 'teropong',
+                    width: 60,
+                    onTriggerClick:
+                            function()
+                            {
+                                valutaPopUphandler();
+                            }
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'rate_text',
+                    fieldLabel: 'Exchange Rate',
+                    width: 100
+                },
+                new Ext.ux.customRendererField({
+                    priceDelemiter: ',',
+                    fieldLabel: 'Total Request',
+                    id: 'total',
+                    vtype: 'numeric',
+                    allowBlank: false,
+                    width: 160,
+                    style: "text-align:right",
+                    enableKeyEvents: true,
+                    listeners:
+                            {
+                                'keyup': function(t, e) {
+
+                                    var tombol = Ext.EventObject.getKey(e);
+                                    if (!isNaN(t.getValue()) && isFinite(t.getValue()))
+                                    {
+                                        var total = parseFloat(t.getValue().toString().replace(/\$|\,/g, ''));
+                                        var val_kode = Ext.getCmp('val_kode_text').getRawValue();
+
+                                        if (val_kode == 'IDR')
+                                        {
+                                            var balance = parseFloat(Ext.getCmp('boq2IDR').getValue().toString().replace(/\$|\,/g, ''));
+                                            if (balance - total < 0)
+                                            {
+                                                Ext.Msg.alert('Error', 'Total Request Invoice is greater than Current CO');
+                                                t.setValue(0);
+                                                Ext.getCmp('balanceIDR').setValue(CommaFormatted(totBalanceIDR));
+                                                return false;
+                                            }
+                                            Ext.getCmp('balanceIDR').setValue(CommaFormatted(balance - total));
+                                            Ext.getCmp('balanceUSD').setValue(CommaFormatted(totBalanceUSD));
+                                        }
+                                        else if (val_kode == 'USD')
+                                        {
+                                            var balance = parseFloat(Ext.getCmp('boq2USD').getValue().toString().replace(/\$|\,/g, ''));
+                                            if (balance - total < 0)
+                                            {
+                                                Ext.Msg.alert('Error', 'Total Request Invoice is greater than Balance');
+                                                t.setValue(0);
+                                                Ext.getCmp('balanceIDR').setValue(CommaFormatted(totBalanceIDR));
+                                                return false;
+                                            }
+
+
+                                            Ext.getCmp('balanceUSD').setValue(CommaFormatted(balance - total));
+                                            Ext.getCmp('balanceIDR').setValue(CommaFormatted(totBalanceIDR));
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', 'Please select Currency!');
+                                            t.setValue(0);
+                                            return false;
+                                        }
+                                    }
+//                            else
+//                            {
+//                                t.setValue('');
+//                            }
+                                }
+                            }
+
+                }),
+                {
+                    xtype: 'checkbox',
+                    id: 'tax',
+                    name: 'tax',
+                    fieldLabel: 'Tax',
+                    trueText: '1',
+                    falseText: '0'
+                }, {
+                    xtype: 'radiogroup',
+                    fieldLabel: 'With Invoice Detail ',
+                    id: 'with-detail',
+                    width: 100,
+                    items: [
+                        {boxLabel: 'Yes ', name: 'with-detail', inputValue: 'Y'},
+                        {boxLabel: 'No ', name: 'with-detail', inputValue: 'N', checked: true},
+                    ], listeners: {
+                        'change': function(t, ch)
+                        {
+                            if (ch.getGroupValue() == 'Y')
+                            {
+                                Ext.getCmp('invoice_detail_fieldset').setVisible(true);
+                            } else
+                            {
+                                Ext.getCmp('invoice_detail_fieldset').setVisible(false);
+                                clearInvoiceDetail();
+                            }
+                        }
+                    }
+                },
+                {
+                    xtype: 'fieldset',
+                    id: 'invoice_detail_fieldset',
+                    title: 'Invoice Detail',
+                    hidden: true,
+                    items: [
+                        {
+                            xtype: 'textfield',
+                            fieldLabel: 'Description',
+                            id: 'invoice_detail_desc',
+                            width: 250
+                        },
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Total Detail ',
+                            msgTarget: 'under',
+                            anchor: '-20',
+                            defaults: {
+//                                flex: 1
+                            },
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    xtype: 'textfield',
+                                    id: 'invoice_detail_value',
+                                    style: 'text-align:right',
+                                    priceDelemiter: ',',
+                                    width: 140,
+                                    fieldLabel: 'Total Detail ',
+                                    enableKeyEvents: true,
+                                    listeners: {
+                                        keypress: function(field, e) {
+                                            if (e.button == 12) {
+                                                addInvoiceDetail(field.getValue().toString().replace(/\$|\,/g, ''));
+                                            }
+                                        }
+                                    }
+                                }),
+                                {
+                                    xtype: 'button',
+                                    text: 'Add',
+                                    width: 40,
+                                    handler: function() {
+                                        addInvoiceDetail(Ext.getCmp('invoice_detail_value').getValue().toString().replace(/\$|\,/g, ''));
+                                    }
+                                }
+                            ]
+                        },
+                        detailInvoiceGrid
+                    ]
+                },
+                {
+                    xtype: 'textarea',
+                    id: 'paymentnotes',
+                    fieldLabel: 'Payment Notes',
+                    allowBlank: false,
+                    width: 300,
+                    height: 100
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'ket',
+                    fieldLabel: 'Remark',
+                    width: 300
+                }
+
+            ],
+            buttons: [
+                {
+                    text: 'Submit Request Invoice',
+                    iconCls: 'icon-save',
+                    handler: function(btn, ev)
+                    {
+                        var eksekusi = false;
+                        if (!Ext.getCmp('invoice_detail_form').getForm().isValid())
+                        {
+                            return false;
+                        }
+                        var total = parseFloat(Ext.getCmp('total').getValue().toString().replace(/\$|\,/g, ''));
+                        var val_kode = Ext.getCmp('val_kode_text').getRawValue();
+
+                        if (total == 0)
+                        {
+                            Ext.Msg.alert('Error', 'Total Request Invoice is zero!');
+                            return false;
+                        }
+
+                        detailFlag = Ext.getCmp('with-detail').getValue().getGroupValue();
+
+                        if (detailFlag == 'Y') {
+                            totalDetail = 0;
+                            storeDetailInvoice.each(function(store) {
+                                totalDetail += parseFloat(store.get("total"));
+                            });
+
+                            if ( total.toFixed(2) != totalDetail.toFixed(2)) {
+                                Ext.Msg.alert('Error', 'Total Request Invoice is different with Total Request Invoice Detail!');
+                                return false;
+                            }
+                        }
+                        if (val_kode == 'IDR')
+                        {
+                            var balance = parseFloat(Ext.getCmp('boq2IDR').getValue().toString().replace(/\$|\,/g, ''));
+                            if (total < totPaymentIDR)
+                            {
+                                Ext.MessageBox.confirm('Confirm', 'Total Request Invoice is less than Invoice already paid (' + CommaFormatted(totPaymentIDR) + '). Are you sure to continue ?', function(btn){
+                                    if (btn== 'no'){
+                                        Ext.getCmp('total').setValue(0);
+                                        Ext.getCmp('balanceIDR').setValue(CommaFormatted(totBalanceIDR));
+                                        Ext.getCmp('balanceUSD').setValue(CommaFormatted(totBalanceUSD));
+                                        return false;
+                                    }else{goToAppRequest(editTrano,total,val_kode);}
+                                });
+                            }else{goToAppRequest(editTrano,total,val_kode);}
+                        }
+                        else if (val_kode == 'USD')
+                        {
+                            var balance = parseFloat(Ext.getCmp('boq2USD').getValue().toString().replace(/\$|\,/g, ''));
+                            if (total < totPaymentUSD)
+                            {
+                                Ext.MessageBox.confirm('Confirm', 'Total Request Invoice is less than Invoice already paid (' + CommaFormatted(totPaymentUSD) + '). Are you sure to continue ?', function(btn){
+                                    if (btn== 'no'){
+                                        Ext.getCmp('total').setValue(0);
+                                        Ext.getCmp('balanceIDR').setValue(CommaFormatted(totBalanceIDR));
+                                        Ext.getCmp('balanceUSD').setValue(CommaFormatted(totBalanceUSD));
+                                        return false;
+                                
+                                    }else{goToAppRequest(editTrano,total,val_kode);}
+                                });
+                            }else{goToAppRequest(editTrano,total,val_kode);}
+                        }
+                 
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    iconCls: 'icon-cancel',
+                    handler: function(btn, ev)
+                    {
+                        if (Ext.getCmp('invoice_detail_form') != undefined)
+                            Ext.getCmp('invoice_detail_form').destroy();
+
+                    }
+                }
+            ]
+        });
+        
+ function goToAppRequest(editTrano,total,val_kode){
+                                
+                            var pajak = Ext.getCmp('tax').getValue();
+                            if (pajak == 1)
+                                pajak = 'Y';
+                            else
+                                pajak = 'N';
+
+                            var fileJson = '';
+                            storeFile.each(function(store) {
+                                fileJson += Ext.util.JSON.encode(store.data) + ',';
+                            });
+                            fileJson = '[' + fileJson.substring(0, fileJson.length - 1) + ']'; //JSON format fix
+
+                            deletedFile = '[' + deletedFile.substring(0, deletedFile.length - 1) + ']';
+
+                            var params = {
+                                trano: editTrano,
+                                prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                                sit_kode: Ext.getCmp('sit_kode_text').getValue(),
+                                prj_nama: Ext.getCmp('prj_nama_text').getValue(),
+                                sit_nama: Ext.getCmp('sit_nama_text').getValue(),
+                                cus_kode: Ext.getCmp('cus_kode').getValue(),
+                                total: total,
+                                val_kode: val_kode,
+                                co_no: Ext.getCmp('co_number').getValue(),
+                                paymentnotes: Ext.getCmp('paymentnotes').getValue().toString().replace(/\n|\r|\t/g, ''),
+                                ket: Ext.getCmp('ket').getValue().toString().replace(/\n|\r|\t/g, ''),
+                                rateidr: Ext.getCmp('rate_text').getValue().toString().replace(/\$|\,/g, ''),
+                                statusppn: pajak,
+                                file: fileJson,
+                                deletedfile: deletedFile,
+                                invoice_detail: Ext.util.JSON.encode(detailInvoiceGrid.getData())
+                            };
+
+                            myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                            myPanel.body.load({
+                                url: '/finance/invoice/apprequestinvoice/from/edit', //the url
+                                scripts: true,
+                                params: params //our params goes here
+                            });
+    }
+
+        var invoice_form = new Ext.FormPanel({
+            title: 'Request Invoice',
+            labelWidth: 170,
+            labelAlign: 'left',
+            id: 'invoice_form',
+            renderTo: 'inv_form',
+            frame: true,
+            width: 450,
+            items: [
+                {
+                    xtype: 'trigger',
+                    fieldLabel: 'Request Invoice Number',
+                    triggerClass: 'teropong',
+                    allowBlank: false,
+                    editable: false,
+                    id: 'rinv-number',
+                    onTriggerClick: function()
+                    {
+                        showrequestinvoice();
+                    }
+                },
+                {
+                    xtype: 'projectselector',
+                    fieldLabel: 'Project Code',
+                    anchor: '100%',
+                    id: 'project-select',
+                    Selectid: 'prj_kode_text',
+                    Nameid: 'prj_nama_text',
+                    ShowName: true,
+                    disabled: true
+                },
+                {
+                    xtype: 'siteselector',
+                    fieldLabel: 'Site Code',
+                    anchor: '100%',
+                    independent: false,
+                    id: 'site-select',
+                    SiteSelectid: 'sit_kode_text',
+                    SiteNameid: 'sit_nama_text',
+                    ProjectSelectid: 'prj_kode_text',
+                    ShowName: true,
+                    disabled: true
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    id: 'invoice-submit',
+                    iconCls: 'silk-add',
+                    disabled: true,
+                    handler: function(btn, ev)
+                    {
+                        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+                        var sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+                        if (prjKode == '')
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select Project!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        Ext.Ajax.request({
+                            url: '/finance/invoice/getprojectinvoice/prj_kode/' + prjKode + '/sit_kode/' + sitKode,
+                            method: 'POST',
+                            success: function(result) {
+                                obj = Ext.util.JSON.decode(result.responseText);
+
+                                if (obj.success)
+                                {
+                                    if (parseFloat(obj.summary.boq2IDR) == 0 && parseFloat(obj.summary.boq2USD) == 0)
+                                    {
+                                        Ext.Msg.alert('Error!', 'CO is not inputed yet!');
+                                        return false;
+                                    }
+
+                                    Ext.getCmp('invoice-submit').disable();
+                                    Ext.getCmp('invoice-cancel').enable();
+                                    Ext.getCmp('invoice_detail_form').enable();
+
+                                    Ext.getCmp('cus_kode').setValue(obj.customer.kode);
+                                    Ext.getCmp('cus_nama').setValue(obj.customer.nama);
+                                    Ext.getCmp('boq2IDR').setValue(CommaFormatted(obj.summary.boq2IDR.toString()));
+                                    Ext.getCmp('requestIDR').setValue(CommaFormatted(obj.summary.requestIDR.toString()));
+                                    Ext.getCmp('balanceIDR').setValue(CommaFormatted(obj.summary.balanceIDR.toString()));
+                                    Ext.getCmp('boq2USD').setValue(CommaFormatted(obj.summary.boq2USD.toString()));
+                                    Ext.getCmp('requestUSD').setValue(CommaFormatted(obj.summary.requestUSD.toString()));
+                                    Ext.getCmp('balanceUSD').setValue(CommaFormatted(obj.summary.balanceUSD.toString()));
+
+                                    Ext.getCmp('co_number').focus();
+                                    getExchangeRate();
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error', obj.msg);
+                                }
+                            },
+                            failure: function(action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+
+                        })
+                    }
+                },
+                {
+                    text: 'Clear',
+                    id: 'invoice-cancel',
+                    disabled: true,
+                    handler: function(btn, ev)
+                    {
+                        btn.disable();
+                        Ext.getCmp('invoice_detail_form').disable();
+                        Ext.getCmp('invoice-submit').enable();
+
+                        Ext.getCmp('prj_kode_text').setValue('');
+                        Ext.getCmp('sit_kode_text').setValue('');
+                        Ext.getCmp('prj_nama_text').setValue('');
+                        Ext.getCmp('sit_nama_text').setValue('');
+                        Ext.getCmp('cus_kode').setValue('');
+                        Ext.getCmp('cus_nama').setValue('');
+                        Ext.getCmp('boq2IDR').setValue(0);
+                        Ext.getCmp('requestIDR').setValue(0);
+                        Ext.getCmp('balanceIDR').setValue(0);
+                        Ext.getCmp('boq2USD').setValue(0);
+                        Ext.getCmp('requestUSD').setValue(0);
+                        Ext.getCmp('balanceUSD').setValue(0);
+                    }
+                }
+            ]
+        });
+
+<?php
+if ($this->trano != '') {
+    ?>
+            Ext.getCmp('rinv-number').setValue('<?= $this->trano ?>');
+            SetValueForm('<?= $this->trano ?>');
+    <?php
+}
+?>
+
+    });
+
+</script>
+
+<div id="inv_form"></div><br />
+<div id="form_file"></div><br />
+<div id="inv_ket_form"></div>

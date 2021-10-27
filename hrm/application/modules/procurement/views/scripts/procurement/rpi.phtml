@@ -1,0 +1,1318 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+    var rpilist = Ext.data.Record.create([{
+        name: 'workid',
+        type: 'string'
+    }, {
+        name: 'trano',
+        type: 'string'
+    },{
+        name: 'workname',
+        type: 'string'
+    }, {
+        name: 'prj_kode',
+        type: 'string'
+    },{
+        name: 'prj_nama',
+        type: 'string'
+    },{
+        name: 'sit_kode',
+        type: 'string'
+    },{
+        name: 'sit_nama',
+        type: 'string'
+    },{
+        name: 'sup_nama',
+        type: 'string'
+    },{
+        name: 'total',
+        type: 'string'
+    }]);
+
+
+	function showRPIChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'RPI Number',
+								    id : 'rpi_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showRPIList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('rpi_no_text').getValue();
+		 			        if (prno != undefined && prno != "")
+		 			        {
+				          	    Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/RPI/trano/' + prno,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                        myPanel.body.load({
+                                                                            url: '/procurement/procurement/editrpi/trano/' + prno,
+                                                                            scripts : true
+                                                                          });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+		 			        bForm.close();
+		 			        }
+                            else
+                           {
+                                Ext.Msg.alert('Error!', 'Please select transaction number!');
+                           }
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showRPIList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Date',width:100,sortable:true,dataIndex:'tgl'},
+                        {header:'PO Number',width:100,sortable:true,dataIndex:'po_no'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                        {header:'Suplier Name',width:150,sortable:true,dataIndex:'sup_nama'},
+                        {header:'Suplier Invoice No',width:150,sortable:true,dataIndex:'invoice_no'},
+                        {header:'Total RPI',align:'right',width:100,sortable:true,dataIndex:'total', renderer: function(v,p,r) {
+                            return CommaFormatted(v.toString());
+                        }}
+                    ];
+
+        urlJson = '/rpih/list/cekworkflow/true/type/P';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'tgl', mapping: 'tgl'},
+                {name: 'po_no', mapping: 'po_no'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'sup_nama', mapping: 'sup_nama'},
+                {name: 'invoice_no', mapping: 'invoice_no'},
+                {name: 'total', mapping: 'total'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 280;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=120;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showRPIChoose(trano);
+                                Ext.getCmp('rpi_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/rpih/listByParams/type/P/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchPoNo = function(field,e){
+            newUrl = '/rpih/listByParams/type/P/name/po_no/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/P/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/P/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSup_name = function(field,e){
+            newUrl = '/rpih/listByParams/type/P/name/sup_nama/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 430,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'Po Number'
+                  },
+                 new txtboks(240,10,80,'po_no',searchPoNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+            {
+                 x: 6,
+                 y: 92,
+            	xtype: 'label',
+                text: 'Suplier Name'
+                  },
+                 new txtboks(80,90,80,'sup_nama',searchSup_name),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    function showRPIChooseOverhead(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 340,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth:150,
+						items: [{
+								    fieldLabel : 'RPI Number (Overhead)',
+								    id : 'rpi_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showRPIOverheadList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('rpi_no_text').getValue();
+		 			        if (prno != undefined && prno != "")
+		 			        {
+				          	    Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/RPI/trano/' + prno,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                        myPanel.body.load({
+                                                                            url: '/procurement/procurement/editrpibudget/trano/' + prno,
+                                                                            scripts : true
+                                                                          });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+		 			        bForm.close();
+		 			        }
+                            else
+                           {
+                                Ext.Msg.alert('Error!', 'Please select transaction number!');
+                           }
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showRPIOverheadList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Date',width:100,sortable:true,dataIndex:'tgl'},
+                        {header:'PO Number',width:100,sortable:true,dataIndex:'po_no'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                        {header:'Suplier Name',width:150,sortable:true,dataIndex:'sup_nama'},
+                        {header:'Suplier Invoice No',width:150,sortable:true,dataIndex:'invoice_no'},
+                        {header:'Total RPI',width:100,sortable:true,align:'right',dataIndex:'total', renderer: function(v,p,r) {
+                            return CommaFormatted(v.toString());
+                        }}
+                    ];
+
+        urlJson = '/rpih/list/cekworkflow/true/type/O';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'tgl', mapping: 'tgl'},
+                {name: 'po_no', mapping: 'po_no'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'sup_nama', mapping: 'sup_nama'},
+                {name: 'invoice_no', mapping: 'invoice_no'},
+                {name: 'total', mapping: 'total'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 280;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=120;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showRPIChooseOverhead(trano);
+                                Ext.getCmp('rpi_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/rpih/listByParams/type/O/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchPoNo = function(field,e){
+            newUrl = '/rpih/listByParams/type/O/name/po_no/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/O/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/O/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSup_name = function(field,e){
+            newUrl = '/rpih/listByParams/type/O/name/sup_nama/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 430,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'Po Number'
+                  },
+                 new txtboks(240,10,80,'po_no',searchPoNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+            {
+                 x: 6,
+                 y: 92,
+            	xtype: 'label',
+                text: 'Suplier Name'
+                  },
+                 new txtboks(80,90,80,'sup_nama',searchSup_name),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    function showRPIChooseSales(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 340,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth:150,
+						items: [{
+								    fieldLabel : 'RPI Number (Sales)',
+								    id : 'rpi_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showRPISalesList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('rpi_no_text').getValue();
+		 			        if (prno != undefined && prno != "")
+		 			        {
+				          	    Ext.Ajax.request({
+                                        url: '/default/home/cekpayment/type/RPI/trano/' + prno,
+                                        method:'POST',
+                                        success: function(resp){
+                                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                                            if (returnData.success)
+                                            {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                        myPanel.body.load({
+                                                                            url: '/procurement/procurement/editrpisales/trano/' + prno,
+                                                                            scripts : true
+                                                                          });
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error', returnData.msg);
+                                            }
+                                        },
+                                        failure:function( action){
+                                        if(action.failureType == 'server'){
+                                          obj = Ext.util.JSON.decode(action.responseText);
+                                          Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                        }
+                                    });
+		 			        bForm.close();
+		 			        }
+                            else
+                           {
+                                Ext.Msg.alert('Error!', 'Please select transaction number!');
+                           }
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showRPISalesList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Date',width:100,sortable:true,dataIndex:'tgl'},
+                        {header:'PO Number',width:100,sortable:true,dataIndex:'po_no'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'},
+                        {header:'Suplier Name',width:150,sortable:true,dataIndex:'sup_nama'},
+                        {header:'Suplier Invoice No',width:150,sortable:true,dataIndex:'invoice_no'},
+                        {header:'Total RPI',width:100,sortable:true,align: 'right',dataIndex:'total', renderer: function(v,p,r) {
+                            return CommaFormatted(v.toString());
+                        }}
+                    ];
+
+        urlJson = '/rpih/list/cekworkflow/true/type/S';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'tgl', mapping: 'tgl'},
+                {name: 'po_no', mapping: 'po_no'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'sup_nama', mapping: 'sup_nama'},
+                {name: 'invoice_no', mapping: 'invoice_no'},
+                {name: 'total', mapping: 'total'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 280;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=120;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showRPIChooseSales(trano);
+                                Ext.getCmp('rpi_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/rpih/listByParams/type/S/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchPoNo = function(field,e){
+            newUrl = '/rpih/listByParams/type/S/name/po_no/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/S/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/rpih/listByParams/type/S/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSup_name = function(field,e){
+            newUrl = '/rpih/listByParams/type/S/name/sup_nama/data/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 430,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'Po Number'
+                  },
+                 new txtboks(240,10,80,'po_no',searchPoNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+            {
+                 x: 6,
+                 y: 92,
+            	xtype: 'label',
+                text: 'Suplier Name'
+                  },
+                 new txtboks(80,90,80,'sup_nama',searchSup_name),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    function showPaymentChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Payment Number',
+								    id : 'payment_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showPaymentList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var payno = Ext.getCmp('payment_no_text').getValue();
+		 			        if (payno != undefined)
+		 			        {
+
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+//                                    url: '/finance/payment/editpaymentrpi/trano/' + payno,
+                                    url: '/finance/payment/editpaymentvoucherrpi/trano/' + payno,
+                                    scripts : true
+                                  });
+
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showPaymentList()
+    {
+        var columns = [ {header:'Payment Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Document Number',width:100,sortable:true,dataIndex:'doc_trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        urlJson = '/finance/payment/paymentrpilist';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'doc_trano', mapping: 'doc_trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showPaymentChoose(trano);
+                                Ext.getCmp('payment_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/finance/payment/paymentrpilistbyparam/name/trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchDocNo = function(field,e){
+            newUrl = '/finance/payment/paymentrpilistbyparam/name/doc_trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/finance/payment/paymentrpilistbyparam/name/prj_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/finance/payment/paymentrpilistbyparam/name/sit_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'No Document'
+                  },
+                 new txtboks(240,10,80,'doc_trano',searchDocNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    showAllPO = function (){
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/procurement/procurement/allpo',
+                    scripts: true
+                });
+            };
+
+    showAddRPI = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/procurement/procurement/addrpi',
+	        scripts : true
+        });
+	};
+
+    showAddRPIBudget = function (){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/procurement/procurement/addrpibudget',
+                scripts: true
+            });
+        };
+
+    showAddRPISales = function (){
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: '/procurement/procurement/addrpisales',
+                scripts: true
+            });
+        };
+
+	showEditRPI = function(){
+	    showRPIChoose();
+	};
+
+    showEditRPIOverhead = function(){
+	    showRPIChooseOverhead();
+	};
+
+    showEditRPISales = function(){
+	    showRPIChooseSales();
+	};
+
+	showAppRPI = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/RPI',
+	        scripts : true
+        });
+	};
+
+    showPaymentRPI = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+//	        url: '/finance/payment/paymentrpi',
+	        url: '/finance/payment/paymentvoucherrpi',
+	        scripts : true
+        });
+	};
+
+    showEditPaymentRPI = function(){
+	 showPaymentChoose();
+	};
+    
+    var windowForm =  ({
+
+    title: 'Request Payment for Invoice Transaction',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+			
+			    items: [
+                        {
+                                id:'rpi_pool_button',
+                                text:'Pool PO',
+                                cls:'x-btn-text-icon',
+                                icon:"/images/list.png",
+				                handler:showAllPO
+                        },
+						{
+						    id: 'rpi_add_button',
+						    text: 'Create RPI',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddRPI
+						}
+						,{
+						    id: 'rpi_add_overhead_button',
+						    text: 'Create RPI (Overhead)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddRPIBudget
+						},{
+						    id: 'rpi_add_sales_button',
+						    text: 'Create RPI (Sales)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddRPISales
+						},{
+						    id: 'rpi_edit_button',
+						    text: 'Edit Existing RPI',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditRPI
+						},{
+						    id: 'rpi_edit_overhead_button',
+						    text: 'Edit Existing RPI (Overhead)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditRPIOverhead
+						},{
+						    id: 'rpi_edit_sales_button',
+						    text: 'Edit Existing RPI (Sales)',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditRPISales
+						},{
+						    id: 'rpi_app_button',
+						    text: 'Verify & Approval',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_script.gif",
+						    handler:showAppRPI
+						},{
+						    id: 'rpi_payment_button',
+						    text: 'Payment',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/money.png",
+						    handler:showPaymentRPI
+						},{
+						    id: 'rpi_edit_payment_button',
+						    text: 'Edit Payment',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/money.png",
+						    handler:showEditPaymentRPI
+						}
+						]
+				}
+			}
+         ]
+    });
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+myPanel = Ext.getCmp('abs-budget-panel');
+myPanel.body.load({
+    url: '/procurement/procurement/allpo',
+    scripts: true
+});
+        showSubmenu('abs-budget-panel');
+});
+</script>

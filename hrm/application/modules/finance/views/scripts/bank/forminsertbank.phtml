@@ -1,0 +1,152 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+
+    numericText: "Only numbers are allowed.",
+    numericMask: /[0-9]/,
+    numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+    numeric: function(v) {
+        return function() { return this.numericRe.test(v)} ;
+        }
+
+    });
+
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var insertbank = new Ext.form.FormPanel ({
+
+            title:'Insert New Bank Account',
+            id:'insert-bank',
+            renderTo:'insert_bank',
+            frame:true,
+            width:360,
+            labelWidth:160,
+            defaults:{
+                msgTarget:'side'
+            },
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Bank Name',
+                allowBlank:false,
+                id:'bank-name'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Bank Account Number',
+                allowBlank:false,
+                vtype:'numeric',
+                id:'acc-number'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Bank Account Name',
+                allowBlank:false,
+                id:'acc-name'
+                
+            },{
+                xtype:'combo',
+                allowBlank:false,
+                store: new Ext.data.SimpleStore ({
+                    fields: ['name', 'value'],
+                    data:[['IDR','IDR'],['USD','USD']]
+                }),
+                fieldLabel:'Bank Valuta',
+                displayField:'name',
+                valueField:'value',
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus:true,
+                width:157,
+                emptyText:'Select Bank Valuta ...',
+                id:'valuta-bank',
+                forceSelection: true,
+                editable: false
+            },{
+                xtype:'textfield',
+                fieldLabel:'Bank Branch',
+                allowBlank:false,
+                id:'bank-branch'
+            },{
+                xtype:'textarea',
+                fieldLabel:'Bank Address',
+                width:157,
+                allowBlank:false,
+                id:'bank-add'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Bank City Address',
+                allowBlank:false,
+                id:'bank-city'
+            }],
+            buttons:[{
+                text:'Submit',
+                handler:function (btn,ev)
+                {
+                    if (!Ext.getCmp('insert-bank').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please cek your field');
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            Ext.getCmp('insert-bank').getForm().submit({
+
+                                method:'POST',
+                                url:'/finance/bank/insertbank',
+                                success:function (thisForm,response)
+                                {
+                                    Ext.Msg.alert('Message','Success, New Bank Account has been saved');
+                                    panel = Ext.getCmp('abs-budget-panel');
+                                    panel.body.load ({
+                                        url: '/finance/bank/bankmenu',
+                                        scripts: true
+                                    })
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+
+
+                            })
+                        }
+
+                    })
+
+
+
+                }
+            },{
+                text:'Reset',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('insert-bank').getForm().reset();
+                }
+            },{
+                text:'Cancel',
+                style:'marginRight:18px',
+                handler:function(btn,ev)
+                {
+                    panel = Ext.getCmp('abs-budget-panel');
+                    panel.body.load ({
+                        url: '/finance/bank/bankmenu',
+                        scripts: true
+                    })
+                }
+            }]
+        })
+
+
+
+    })
+
+</script>
+
+   <div id="insert_bank"></div>

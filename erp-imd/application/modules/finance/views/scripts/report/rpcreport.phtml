@@ -1,0 +1,130 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+
+        var callbackFunc = function()
+        {
+            Ext.getCmp('user_text').setValue('');
+        };
+
+        var windowForm = ({
+            title: 'RPC Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {
+                    xtype: 'label',
+                    text: 'Person Name'
+                }, '-',
+                {
+                    xtype: 'userselector',
+                    id: 'users',
+                    ShowName: false,
+                    UserSelectid: 'user_text',
+                    width: 120
+                },
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width: 70,
+                    id: 'show_report',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: function(btn, ev)
+                    {
+
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/finance/report/view-rpc',
+                            params: {
+                                uid: Ext.getCmp('users').getUid()
+                            },
+                            scripts: true
+                        });
+                    }
+                }, '-',
+                {
+                    xtype: 'button',
+                    text: 'Show All',
+                    width: 70,
+                    id: 'show_report_all',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: function(btn, ev)
+                    {
+                        Ext.getCmp('user_text').setValue('');
+                        Ext.getCmp('users').setValue('');
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/finance/report/view-rpc',
+                            scripts: true
+                        });
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'Export Detail',
+//                cls:"x-btn-text-icon" ,
+                    icon: "/images/print.png",
+                    handler: function() {
+                        var uid = Ext.getCmp('users').getUid();
+                        var newurl = Ext.util.urlEncodeZend({
+                            uid: uid,
+                            detail: true
+                        });
+                        showLoadingMsg();
+                        location.href = '/finance/report/view-rpc/print/true/' + newurl;
+                    }
+                }, '-',
+                {
+                    xtype: 'button',
+                    text: 'Export',
+//                cls:"x-btn-text-icon" ,
+                    icon: "/images/print.png",
+                    handler: function() {
+                        var uid = Ext.getCmp('users').getUid();
+                        var newurl = Ext.util.urlEncodeZend({
+                            uid: uid
+                        });
+                        showLoadingMsg();
+                        location.href = '/finance/report/view-rpc/print/true/' + newurl;
+                    }
+                }, '-',
+                {
+                    xtype: 'tbbutton',
+                    text: 'Reset',
+                    handler: function()
+                    {
+                        Ext.getCmp('user_text').setValue('');
+                        Ext.getCmp('users').setValue('');
+                    }
+                }
+            ]
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+//        panelBaru.body.load({
+//            url: '/finance/report/view-arf-aging',
+//            scripts : true
+//        });
+    })
+
+
+</script>

@@ -1,0 +1,296 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+
+        var reader = new Ext.data.JsonReader({
+            idProperty: 'id',
+            totalProperty: 'count',
+            root: 'posts',
+            fields: [
+                {name: "id"},
+                {name: "prj_kode"},
+                {name: "prj_nama"},
+                {name: "sit_kode"},
+                {name: "sit_nama"},
+                {name: "uid"},
+                {name: "name"},
+                {name: "active"},
+                {name: "date_created", type: 'date', format: 'Y-m-d H:i:s'},
+            ]
+        });
+
+        var store = new Ext.data.GroupingStore({
+            id: 'store',
+            reader: reader,
+            autoLoad: true,
+            sortInfo:{field: 'prj_kode', direction: "ASC"},
+            groupField:'prj_kode',
+            proxy: new Ext.data.HttpProxy({
+                url : '/assign-site/get-user-site/uid/<?=$this->uid?>'
+            })
+        });
+
+        var renderActive = function(value, meta, record) {
+
+            if(record.data['active'] == 0 ){
+                return '<font color=red><s>' + value + '</s></font>';
+            }else{
+                return value;
+            }
+
+        };
+
+        var siteGrid = new Ext.grid.GridPanel({
+            id: 'user-site-grid',
+            loadMask: true,
+            stateful: false,
+            border: true,
+            height: 400,
+            columns: [
+                new Ext.grid.RowNumberer({
+                    width: 30
+                }),
+                {header: "Project", dataIndex: 'prj_kode'},
+                {header: "Site", dataIndex: 'sit_kode', renderer: function(v,p,r){
+                    var render = v + ' - ' + r.get('sit_nama');
+                    if(r.data['active'] == 0 )
+                        render = '<font color=red><s>' + render + '</s></font>';
+
+                    return render;
+                }},
+                {header: "Added By", dataIndex: 'name', renderer: renderActive},
+                {header: "Date Created", dataIndex: 'date_created', renderer: Ext.util.Format.dateRenderer('d M Y')},
+            ],
+            store: store,
+            view: new Ext.grid.GroupingView({
+                hideGroupedColumn :true,
+                forceFit:true,
+                startCollapsed: false,
+                groupTextTpl: '{text}' + '&nbsp;&nbsp;{[values.rs[0].data["prj_nama"]]}'
+            }),
+            sm: new Ext.grid.RowSelectionModel({singleSelect:true}),
+            bbar: new Ext.PagingToolbar ({
+                pageSize: 50,
+                store: store,
+                displayInfo: true,
+                displayMsg: '{0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar: [
+                {
+                    xtype: 'tbtext',
+                    text: 'Project Code',
+                    style: 'margin-right: 5px'
+                },
+                {
+                    xtype: 'projectselector',
+                    Selectid: 'prj_kode_search',
+                    id: 'projectselect_search',
+                    ShowName : false
+                },
+                {
+                    xtype: 'tbtext',
+                    text: 'Site Code',
+                    style: 'margin-right: 5px'
+                },
+                {
+                    xtype: 'siteselector',
+                    id: 'siteselect_search',
+                    ProjectSelectid: 'prj_kode_search',
+                    SiteSelectid: 'sit_kode_search',
+                    ShowName: false,
+                    noOverhead: true,
+                    width: 150
+                },
+                {
+                    xtype: 'button',
+                    text: 'Search',
+                    iconCls: 'silk-table-refresh',
+                    handler: function(){
+                        store.load({
+                            params: {
+                                prj_kode: Ext.getCmp('prj_kode_search').getValue(),
+                                sit_kode: Ext.getCmp('sit_kode_search').getValue()
+                            }
+                        });
+                        siteGrid.getView().refresh();
+                    }
+
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'reset',
+                    handler: function(){
+                        store.load();
+                        Ext.getCmp('prj_kode_search').setValue('');
+                        Ext.getCmp('sit_kode_search').setValue('');
+                        siteGrid.getView().refresh();
+                    }
+
+                }
+            ]
+        });
+
+        siteGrid.getSelectionModel().on('rowselect', function(sm, index, rec){
+            Ext.getCmp('btnSubmit').setVisible(false);
+            Ext.getCmp('btnUpdate').setVisible(true);
+            Ext.getCmp('prj_kode').setValue(rec.get("prj_kode"));
+            Ext.getCmp('prj_nama').setValue(rec.get("prj_nama"));
+            Ext.getCmp('sit_kode').setValue(rec.get("sit_kode"));
+            Ext.getCmp('sit_nama').setValue(rec.get("sit_nama"));
+            Ext.getCmp('active').setVisible(true);
+            if (rec.get("active") == 1)
+            {
+                Ext.getCmp('active').setValue('on');
+            }
+            else
+                Ext.getCmp('active').setValue('off');
+
+        });
+
+        var form = new Ext.Panel({
+            renderTo: 'forms',
+            frame: true,
+            items:[
+                {
+                    xtype: 'fieldset',
+                    items: [
+                        new Ext.form.FormPanel({
+                            id: 'user-detail-site',
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Username',
+                                    style: 'font-weight: bold',
+                                    readOnly: true,
+                                    width: 200,
+                                    value: '<?=$this->name?>'
+                                },
+                                {
+                                    xtype: 'projectselector',
+                                    fieldLabel: 'Project To Assign',
+                                    id: 'project-select',
+                                    Selectid: 'prj_kode',
+                                    Nameid: 'prj_nama',
+                                    ShowName: true,
+                                    width: 150
+                                },
+                                {
+                                    xtype: 'siteselector',
+                                    fieldLabel: 'Site To Assign',
+                                    id: 'site-select',
+                                    ProjectSelectid: 'prj_kode',
+                                    SiteSelectid: 'sit_kode',
+                                    SiteNameid: 'sit_nama',
+                                    ShowName: true,
+                                    noOverhead: true,
+                                    width: 150
+                                },
+                                {
+                                    xtype: 'checkbox',
+                                    fieldLabel: 'Active',
+                                    hidden: true,
+                                    name: 'active',
+                                    id: 'active'
+                                }
+                            ],
+                            buttons: [
+                                {
+                                    text: 'Submit',
+                                    id: 'btnSubmit',
+                                    iconCls: 'silk-add',
+                                    handler: function(){
+                                        Ext.getCmp('user-detail-site').getForm().submit({
+                                            url: '/assign-site/add-user-site',
+                                            params: {
+                                                uid: '<?=$this->uid?>'
+                                            },
+                                            success: function(form, action) {
+                                                if(action.result.success)
+                                                {
+                                                    Ext.Msg.alert('Success', 'Success');
+                                                    Ext.getCmp('btnReset').handler();
+                                                    store.reload();
+                                                    siteGrid.getView().refresh();
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error', action.result.msg);
+                                                }
+                                            },
+                                            failure: function(form, action) {
+                                                if (action.result.msg != undefined)
+                                                    Ext.Msg.alert('Error', action.result.msg);
+                                            }
+                                        });
+                                    }
+                                },
+                                {
+                                    text: 'Update',
+                                    id: 'btnUpdate',
+                                    hidden: true,
+                                    iconCls: 'silk-add',
+                                    handler: function(){
+                                        var rec = siteGrid.getSelectionModel().getSelected();
+                                        if (!rec)
+                                            return false;
+                                        Ext.getCmp('user-detail-site').getForm().submit({
+                                            url: '/assign-site/update-user-site',
+                                            params: {
+                                                uid: '<?=$this->uid?>',
+                                                id: rec.get("id")
+                                            },
+                                            success: function(form, action) {
+                                                if(action.result.success)
+                                                {
+                                                    Ext.Msg.alert('Success', 'Success');
+                                                    Ext.getCmp('btnReset').handler();
+                                                    store.reload();
+                                                    siteGrid.getView().refresh();
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error', action.result.msg);
+                                                }
+                                            },
+                                            failure: function(form, action) {
+                                                if (action.result.msg != undefined)
+                                                    Ext.Msg.alert('Error', action.result.msg);
+                                            }
+                                        });
+                                    }
+                                },
+                                {
+                                    text: 'Reset',
+                                    id: 'btnReset',
+                                    handler: function(){
+                                        Ext.getCmp('user-detail-site').getForm().reset();
+                                        siteGrid.getSelectionModel().clearSelections();
+                                        Ext.getCmp('prj_kode').setValue('');
+                                        Ext.getCmp('sit_kode').setValue('');
+                                        Ext.getCmp('prj_nama').setValue('');
+                                        Ext.getCmp('sit_nama').setValue('');
+                                        Ext.getCmp('btnSubmit').setVisible(true);
+                                        Ext.getCmp('btnUpdate').setVisible(false);
+                                        Ext.getCmp('active').setValue('off');
+                                        Ext.getCmp('active').setVisible(false);
+                                    }
+                                }
+                            ]
+                        })
+                    ]
+                },
+                {
+                    xtype: 'fieldset',
+                    title: 'Site for this User',
+                    items: [
+                        siteGrid
+                    ]
+                }
+
+            ]
+        });
+
+    });
+</script>
+    <div id="forms"></div>

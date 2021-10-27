@@ -1,0 +1,760 @@
+<script type="text/javascript">
+    var new_project = <?= ($this->new_project == true) ? 'true' : 'false' ?>,
+            disable_edit = <?= ($this->disable_edit == true) ? 'true' : 'false' ?>;
+    function editmaterial(kode_brg)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to edit ?', function(btn) {
+            if (btn == 'yes')
+            {
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/logistic/logisticbarang/editmaterial/kode_brg/' + kode_brg,
+                    scripts: true
+                });
+            }
+        });
+    }
+
+    function showuomlist()
+    {
+        var storeuom = new Ext.data.Store({
+            id: 'store-uom',
+            url: '/logistic/logisticbarang/getuom',
+            autoLoad: true,
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'sat_kode'
+                    }, {
+                        name: 'sat_nama'
+                    }, {
+                        name: 'id'
+                    }]
+            })
+        })
+
+        var griduom = new Ext.grid.GridPanel({
+            store: storeuom,
+            height: 300,
+            viewConfig: {
+                forceFit: true
+            },
+            columns: [new Ext.grid.RowNumberer(), {
+                    header: 'Uom Code',
+                    dataIndex: 'sat_kode',
+                    sortable: true,
+                    width: 120,
+                    align: 'center'
+                }, {
+                    header: 'Uom Name',
+                    dataIndex: 'sat_nama',
+                    sortable: true,
+                    width: 120,
+                    align: 'center'
+                }],
+            bbar: new Ext.PagingToolbar({
+                id: 'paging-refnumber',
+                pageSize: 20,
+                store: storeuom,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar: [{
+                    text: 'Search By',
+                    xtype: 'label',
+                    style: 'margin-left:5px'
+                }, '-', {
+                    xtype: 'combo',
+                    id: 'option-uom',
+                    width: 100,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['nilai', 'name'],
+                        data: [
+                            ['sat_nama', 'Uom Name'],
+                            ['sat_kode', 'Uom Code']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value: 'sat_nama'
+                }, '-', {
+                    xtype: 'textfield',
+                    id: 'search-uom',
+                    enableKeyEvents: true,
+                    listeners: {
+                        'keyup': function(txttext, event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 2)
+                            {
+                                var option = Ext.getCmp('option-uom').getValue();
+                                var search = Ext.getCmp('search-uom').getValue();
+
+                                storeuom.proxy.url = '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.proxy.setUrl('/logistic/logisticbarang/getuom/search/' + search + '/option/' + option);
+                                storeuom.proxy.api.read['url'] = '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.load();
+                                griduom.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+            listeners: {
+                'rowdblclick': function(gridaktif, rowIndex, e)
+                {
+                    isDbClick = true;
+
+                    var uom = gridaktif.getStore().getAt(rowIndex);
+
+                    var uomcode = uom.get('sat_kode');
+                    Ext.getCmp('uom').setValue(uomcode);
+
+                    windowuom.close();
+                }
+            }
+
+
+
+
+        })
+
+        var windowuom = new Ext.Window({
+            title: 'Choose Uom',
+            id: 'choose-brand',
+            layout: 'absolute',
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 500,
+            height: 330,
+            loadMask: true,
+            items: [griduom]
+
+        })
+
+        windowuom.show();
+    }
+
+
+    var submitForm = function() {
+        var thisGrid = Ext.getCmp('user-grids');
+
+        var kode_brg = Ext.getCmp('material-pop-up-panel').getForm().findField('kode_brg').getValue();
+        Ext.getBody().mask('Loading..','x-mask-loading',false);
+        Ext.getCmp('material-pop-up-panel').getForm().submit({
+            url: '/logistic/logisticbarang/doupdatematerial/kode_brg/' + kode_brg,
+            success: function(form, action) {
+                Ext.getBody().unmask();
+                Ext.MessageBox.show({
+                    title: 'Info',
+                    msg: 'Material has been updated!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.INFO
+                });
+                thisGrid.getStore().reload();
+                Ext.getCmp('material-pop-up').close();
+            },
+            failure: function(form, action) {
+                Ext.getBody().unmask();
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please Fill Blank Field!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+            }
+
+        });
+    };
+
+
+    var handlerPopUp = function(kode_brg, sat_kode,nama_brg) {
+
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to edit ?', function(btn) {
+            if (btn == 'yes')
+            {
+
+                var materialPopUp = new Ext.Window({
+                    id: 'material-pop-up',
+                    layout: 'fit',
+                    width: 500,
+                    height: 250,
+                    modal: true,
+                    items: [
+                        {
+                            id: 'material-pop-up-panel',
+                            xtype: 'form',
+                            padding: 10,
+                            frame: true,
+                            items: [new Ext.form.TextField({
+                                    id: "kode_brg",
+                                    name: "kode_brg",
+                                    width: 300,
+                                    fieldLabel: "Product ID",
+                                    disabled: true
+                                }),
+                                new Ext.form.TextField({
+                                    id: "nama_brg",
+                                    name: "nama_brg",
+                                    fieldLabel: "Description",
+                                    width: 300,
+                                    enableKeyEvents: true,
+                                    allowBlank: false
+                                }),
+                                {
+                                    xtype: 'trigger',
+                                    fieldLabel: 'Uom ',
+                                    labelStyle: 'width:100;',
+                                    width: 90,
+                                    triggerClass: 'teropong',
+                                    allowBlank: false,
+                                    editable: false,
+                                    id: 'uom',
+                                    name: 'uom',
+                                    value: sat_kode,
+                                    onTriggerClick: function() {
+                                        showuomlist();
+                                    }
+                                }, {
+                                    xtype: 'logisticpriceauth',
+                                    anchor: '100%',
+                                    width: 90,
+                                    id: 'price_text',
+                                    Selectid: 'hargaavg',
+                                    fieldLabel: 'Price',
+                                    hidden: true,
+                                    kode_brg : kode_brg,
+                                    nama_brg : nama_brg
+                                }, {
+                                    fieldLabel: 'Valuta ',
+                                    xtype: 'combo',
+                                    width: 100,
+                                    allowBlank: false,
+                                    store: new Ext.data.SimpleStore({
+                                        fields: ['name', 'nilai'],
+                                        data: [
+                                            ['IDR', 'IDR'],
+                                            ['USD', 'USD']
+                                        ]
+                                    }),
+                                    valueField: 'nilai',
+                                    displayField: 'name',
+                                    typeAhead: true,
+                                    forceSelection: true,
+                                    editable: false,
+                                    mode: 'local',
+                                    triggerAction: 'all',
+                                    selectOnFocus: true,
+                                    id: 'val_kode',
+                                    listeners: {
+//                                        'select': function(c, store, index) {
+//                                            var data = store.data['nilai'];
+//                                            if (data != 'IDR')
+//                                                Ext.getCmp('rateidr').setVisible(true);
+//                                            else
+//                                                Ext.getCmp('rateidr').setVisible(false);
+//                                        }
+                                    }
+                                }, new Ext.form.TextField({
+                                    id: "rateidr",
+                                    width: 100,
+                                    fieldLabel: "Exchange Rate"
+                                }),
+                            ],
+                            buttons: [{
+                                    id: "save_edit",
+                                    xtype: "button",
+                                    text: "Save",
+                                    handler: submitForm
+                                },
+                                {
+                                    id: "cancel_edit",
+                                    xtype: "button",
+                                    text: "Cancel",
+                                    handler: function() {
+                                        Ext.getCmp('material-pop-up').close();
+                                    }
+                                }]
+
+                        }
+                    ],
+                    closeAction: 'close',
+                    stateful: false
+                });
+
+                materialPopUp.title = 'Edit Material';
+                materialPopUp.show();
+                var popUpPanel = Ext.getCmp('material-pop-up-panel');
+                var rec = Ext.getCmp('user-grids').getSelectionModel().getSelected();
+                if (new_project) {
+                    Ext.getCmp('price_text').setVisible(true);
+                    Ext.getCmp('hargaavg').setValue(rec.data.hargaavg);
+                }
+                popUpPanel.getForm().loadRecord(rec);
+            }
+        });
+    };
+
+    Ext.onReady(function() {
+        Ext.QuickTips.init();
+
+        var proxy = new Ext.data.HttpProxy({
+            url: '/barang/list/new_project/' + new_project
+            //url: '/barang/listold/new_project/false'
+        });
+
+        var isPmeal = false;
+
+        var searchcode = function() {
+
+            var pmeal = '';
+            if (isPmeal)
+                pmeal = true;
+
+            var name = Ext.getCmp('txtcode').getValue();
+            var newUrl = '/barang/list/code/' + name + '/pmeal/' + pmeal + '/new_project/' + new_project;
+            //var newUrl = '/barang/listold/code/' + name + '/pmeal/' + pmeal + '/new_project/false';
+            store.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('user-grids').getStore().reload();
+        };
+
+        var searchname = function() {
+            var pmeal = '';
+            if (isPmeal)
+                pmeal = true;
+
+            var name = Ext.getCmp('txtname').getValue();
+            var newUrl = '/barang/list/name/' + name + '/pmeal/' + pmeal + '/new_project/' + new_project;
+            //var newUrl = '/barang/listold/name/' + name + '/pmeal/' + pmeal + '/new_project/false';
+            store.proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('user-grids').getStore().reload();
+        };
+        var searchrefresh = function() {
+            Ext.getCmp('txtcode').setValue("");
+            Ext.getCmp('txtname').setValue("");
+            gridhistories.setVisible(false);
+            grid.setVisible(true);
+            store.proxy = new Ext.data.HttpProxy({
+                url: '/barang/list' + '/new_project/' + new_project
+                //url: '/barang/listold/new_project/false'
+            });
+            Ext.getCmp('user-grids').getStore().reload();
+        };
+        var searchhistories = function() {
+            var name = Ext.getCmp('txtcode').getValue();
+            if (name == undefined || name == '')
+            {
+                App.setAlert(false, 'Please fill Product ID!');
+                return false;
+            }
+            gridhistories.setVisible(true);
+            grid.setVisible(false);
+            storehistories.proxy = new Ext.data.HttpProxy({
+                url: '/baranghistories/list/code/' + name + '/new_project/' + new_project
+            });
+            storehistories.reload();
+            Ext.getCmp('user-grids2').getStore().loadData(storehistories);
+//        Ext.getCmp('user-grids2').getView().refresh();
+
+        };
+
+        var searchpmeal = function() {
+
+            isPmeal = !isPmeal;
+            var pmeal = '';
+            if (isPmeal)
+                pmeal = '/pmeal/true';
+
+            store.proxy = new Ext.data.HttpProxy({
+                url: '/barang/list' + pmeal + '/new_project/' + new_project
+                //url: '/barang/listold' + pmeal + '/new_project/false'
+            });
+            gridhistories.setVisible(false);
+            grid.setVisible(true);
+            Ext.getCmp('user-grids').getStore().reload();
+        };
+
+        var readerhistories = new Ext.data.JsonReader({
+            idProperty: 'id',
+            totalProperty: 'count',
+            root: 'posts'},
+        [
+            {name: 'tra_no', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'brg_kode', type: 'string'},
+            {name: 'brg_nama', type: 'string'},
+            {name: 'val_kode', type: 'string'},
+            {name: 'sat_kode', type: 'string'},
+            {name: 'harga', type: 'double'},
+            {name: 'sup_kode', type: 'string'},
+            {name: 'sup_nama', type: 'string'},
+            {name: 'master_kota', type: 'string'}
+
+        ]
+                );
+
+        var storehistories = new Ext.data.Store({
+            id: 'user',
+            proxy: proxy,
+            reader: readerhistories
+        });
+
+
+        storehistories.load();
+        var gridhistories = new Ext.grid.GridPanel({
+            store: storehistories,
+            hidden: true,
+            stateful: false,
+            id: 'user-grids2',
+            columns: [
+                new Ext.grid.RowNumberer(),
+                {
+                    id: 'description',
+                    header: 'ID',
+                    width: 50,
+                    sortable: true,
+                    dataIndex: 'tra_no'
+                    , hideable: false,
+                    hidden: true
+
+                },
+                {
+                    header: 'Trans No',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'tra_no'
+                }, {
+                    header: 'Date',
+                    width: 90,
+                    sortable: true,
+                    dataIndex: 'tgl',
+                    renderer: function(v) {
+                        if (v != '' && v != undefined)
+                            return  Ext.util.Format.date(v, 'd M Y');
+                    }
+                }, {
+                    header: 'Product ID',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'brg_kode'
+                },
+                {
+                    header: 'Description',
+                    width: 400,
+                    sortable: true,
+                    dataIndex: 'brg_nama'
+                },
+                {
+                    header: 'Curr',
+                    width: 30,
+                    sortable: true,
+                    dataIndex: 'val_kode'
+                },
+                {
+                    header: 'Uom',
+                    width: 30,
+                    sortable: true,
+                    dataIndex: 'sat_kode'
+                },
+                {
+                    header: 'Price',
+                    width: 100,
+                    sortable: true,
+                    align: 'right',
+                    renderer: change,
+                    dataIndex: 'harga'
+                },
+                {
+                    header: 'Vendor Code',
+                    width: 60,
+                    sortable: true,
+                    dataIndex: 'sup_kode'
+                },
+                {
+                    header: 'Vendor Name',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'sup_nama'
+                }, {
+                    header: 'Vendor City',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'master_kota'
+                }],
+            bbar: [new Ext.PagingToolbar({
+                    pageSize: 50,
+                    store: storehistories,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                })],
+            tbar: [
+                {
+                    xtype: 'button',
+                    text: 'Back to Master List',
+                    id: 'refresh_button2',
+                    iconCls: "silk-table-refresh",
+                    handler: searchrefresh
+                }
+
+            ],
+            frame: true,
+            width: 1020,
+            height: 450,
+            clicksToEdit: 1,
+            collapsible: true,
+            animCollapse: false,
+            trackMouseOver: false,
+            //enableColumnMove: false,
+            title: 'Histories Price Material',
+            iconCls: 'icon-grid',
+            renderTo: 'list-material2'
+        });
+
+
+
+        var reader = new Ext.data.JsonReader({
+            idProperty: 'id',
+            totalProperty: 'count',
+            successProperty: 'success',
+            root: 'posts'},
+        [
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'val_kode', type: 'string'},
+            {name: 'sat_kode', type: 'string'},
+            {name: 'harga', type: 'string'},
+            {name: 'hargaavg', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'kode_brg_lama'},
+            {name: 'nama_brg_baru'},
+            {name: 'is_pmeal'},
+            {name: 'rateidr'}
+
+        ]
+                );
+
+
+        var store = new Ext.data.Store({
+            id: 'user',
+            proxy: proxy,
+            reader: reader
+        });
+
+        var paging = new Ext.PagingToolbar({
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+        store.load();
+
+        var grid = new Ext.grid.GridPanel({
+            store: store,
+            stateful: false,
+            id: 'user-grids',
+            listeners: {
+                rowclick: function(g, index, ev) {
+                    var rec = g.store.getAt(index);
+                    Ext.getCmp('txtcode').setValue(rec.data['kode_brg']);
+                    Ext.getCmp('txtname').setValue(rec.data['nama_brg']);
+                }
+            },
+            columns: [{
+                    id: 'edit',
+                    header: 'Edit',
+                    width: 40,
+                    sortable: true,
+                    css: 'text-align:center;',
+                    renderer: function(v, p, r) {
+                        if (!disable_edit)
+                            return '<a href="#" onclick="handlerPopUp(\'' + r.data['kode_brg'] + '\',\'' + r.data['sat_kode'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                    }
+                }, {
+                    id: 'description',
+                    header: 'ID',
+                    width: 50,
+                    sortable: true,
+                    dataIndex: 'kode_brg'
+                    , hideable: false,
+                    hidden: true
+                }, {
+                    header: 'Product ID',
+                    width: 60,
+                    sortable: true,
+                    dataIndex: 'kode_brg'
+                }, {
+                    header: 'Old Product ID',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'kode_brg_lama'
+                }, {
+                    header: 'Piece Meal',
+                    width: 90,
+                    sortable: true,
+                    dataIndex: 'is_pmeal',
+                    renderer: function(v, p, r) {
+                        if (v == true)
+                            return 'Y';
+
+                    }
+                }, {
+                    header: 'Description',
+                    width: 500,
+                    sortable: true,
+                    dataIndex: 'nama_brg'
+                }, {
+                    header: 'UoM',
+                    width: 40,
+                    sortable: true,
+                    dataIndex: 'sat_kode'
+                }, {
+                    header: 'Last Price',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'harga',
+                    align: 'right'
+                }, {
+                    header: 'Avg. Price',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'hargaavg',
+                    align: 'right',
+                    renderer : change
+                    
+                },{
+                    header: 'Curr',
+                    width: 50,
+                    sortable: true,
+                    dataIndex: 'val_kode'
+                }, {
+                    header: 'Last Update',
+                    width: 100,
+                    sortable: true,
+                    dataIndex: 'tgl',
+                    renderer: Ext.util.Format.dateRenderer('d M Y')
+                }
+            ],
+            bbar: paging,
+            tbar: [
+                {
+                    xtype: 'label',
+                    text: 'Product ID'
+                }, '-'
+                        ,
+                {
+                    xtype: 'textfield',
+                    name: 'txtcode',
+                    id: 'txtcode',
+                    enableKeyEvents: true,
+                    listeners: {
+//                                   keyup: searchcode
+                        keypress:
+                                function(field, e) {
+                                    if (e.button == 12) {
+                                        searchcode();
+                                    }
+                                }
+
+                    }
+                }
+
+                , {
+                    xtype: 'button',
+                    text: 'Search',
+                    width: 70,
+                    id: 'search_id',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/g_rec_src.png",
+                    handler: searchcode
+                }, '-'
+
+                        ,
+                {
+                    xtype: 'label',
+                    text: 'Description'
+                }, '-'
+                        ,
+                {
+                    xtype: 'textfield',
+                    name: 'txtname',
+                    id: 'txtname',
+                    enableKeyEvents: true,
+                    listeners: {
+                        keypress:
+                                function(field, e) {
+                                    if (e.button == 12) {
+                                        searchname();
+                                    }
+                                }
+                    }
+                }, {
+                    xtype: 'button',
+                    text: 'Search',
+                    width: 70,
+                    id: 'search_name',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/g_rec_src.png",
+                    handler: searchname
+                }, '-'
+                        , {
+                            xtype: 'button',
+                            text: 'Refresh',
+                            id: 'refresh_button',
+                            iconCls: "silk-table-refresh",
+                            handler: searchrefresh
+                        }, '-'
+                        , {
+                            xtype: 'button',
+                            text: 'Search Histories',
+                            id: 'searchhis_button',
+                            icon: "/images/g_rec_src.png",
+                            handler: searchhistories
+                        }, '-'
+                        , {
+                            xtype: 'button',
+                            text: 'Show Piece Meal',
+                            id: 'searchpmeal_button',
+                            iconCls: 'icon-log',
+                            enableToggle: true,
+                            toggleHandler: searchpmeal
+                        }
+
+            ],
+            frame: true,
+            width: 1020,
+            height: 450,
+            clicksToEdit: 1,
+            collapsible: true,
+            animCollapse: false,
+            trackMouseOver: false,
+            //enableColumnMove: false,
+            title: 'Master Material ' + ((new_project) ? '(New Project)' : ''),
+            iconCls: 'icon-grid',
+            renderTo: 'list-material'
+        });
+
+        function change(val)
+        {
+            return Ext.util.Format.number(val, '?0,000.00?');
+        }
+    });
+</script>
+<div id='list-material'></div>
+
+<div id='list-material2'></div>

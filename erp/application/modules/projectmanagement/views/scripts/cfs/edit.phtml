@@ -1,0 +1,259 @@
+<script type="text/javascript">
+
+function editToCFS()
+{
+    var cfslist = Ext.getCmp('cfslist').getSelectionModel().getSelections();
+    var rec = cfsstore.getAt(cfsstore.findExact('id', cfslist[0].data['id']));
+    Ext.getCmp('edit-new-cfs').getForm().loadRecord(rec);
+            
+}
+
+function delToCFS()
+{
+    Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this ?', function(btn){
+	if (btn== 'yes')
+	{
+            var cfslist = Ext.getCmp('cfslist').getSelectionModel().getSelections();
+            var id = cfslist[0].data['id'];
+            params = {id:id};
+            Ext.Ajax.request({
+	        url: '/projectmanagement/cfs/deletecfs',
+	        method:'POST',
+	        success:function(a,b){                                 
+                    Ext.Msg.alert('success','Edit CFS Success');
+                    refreshData();
+                },
+                failure:function(a, b)
+                {
+                    if (b.failureType == 'server')
+                    {
+                        var resp = Ext.util.JSON.decode(b.response.responseText);
+                        Ext.Msg.alert('Error',resp.pesan);
+                    }
+                },
+	        params: params
+	    });
+	}
+    });
+}
+
+var cfsstore = new Ext.data.Store({
+    url:'/projectmanagement/cfs/getviewcfs',
+    autoLoad:true,
+    reader: new Ext.data.JsonReader({
+        root:'data',
+        totalProperty:'total'
+    },
+    [
+        {name:'cfs_kode',type:'String'},
+        {name:'cfs_nama',type:'String'},
+        {name:'id',type:'int'}
+    ])
+});
+        
+function refreshData ()
+{
+    cfsstore.clearFilter();
+    Ext.getCmp('search').setValue('');
+    Ext.getCmp('paging').doRefresh();
+}
+
+var datas = [
+    ['CFS Code',1],
+    ['CFS Name',2]
+];
+
+var store = new Ext.data.ArrayStore({
+    fields: ['a', 'b'],
+    data : datas
+});
+
+var combo = new Ext.form.ComboBox({
+    store: store,
+    displayField:'a',
+    valueField: 'b',
+    typeAhead: true,
+    mode: 'local',
+    triggerAction: 'all',
+    selectOnFocus:true,
+    name:'option',
+    width:100,
+    style: 'margin-left: 5px',
+    value:1,
+    id:'option'
+});
+        
+Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var editcfs = new Ext.form.FormPanel ({
+
+            id:'edit-new-cfs',
+            title:'Edit Existing CFS',
+            renderTo:'cfsform',
+            frame:true,
+            iconCls: 'silk-user',
+            width:400,
+            height:120,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'CFS Code',
+                    name:'cfs_kode',
+                    msgTarget:'side',
+                    width:100,
+                    allowBlank:false
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'CFS Name',
+                    name:'cfs_nama',
+                    msgTarget:'side',
+                    width:260,
+                    allowBlank:false
+                },{
+                    xtype:'hidden',
+                    name:'id'
+                }
+            ],
+            buttons:[
+                {
+                    text:'Edit',
+                    handler:function(btn,ev)
+                    {
+                        if (!Ext.getCmp('edit-new-cfs').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }else
+                        {
+                            Ext.MessageBox.confirm(
+                                    'Confirm',
+                                    'Are you sure you want to edit CFS ?',
+                                    function(btn)
+                                    {
+                                        if (btn == 'yes')
+                                        {
+                                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                            Ext.getCmp('edit-new-cfs').getForm().submit({
+                                                method:'POST',
+                                                url:'/projectmanagement/cfs/geteditcfs',
+                                                success:function(a,b){
+                                                    //returnData = Ext.util.JSON.decode(b.response.responseText);
+                                                    Ext.getBody().unmask();
+                                                    Ext.Msg.alert('success','Edit CFS Success');
+                                                    refreshData();
+                                                },
+                                                failure:function(thisform, response)
+                                                {
+                                                    Ext.getBody().unmask();
+                                                    if (response.failureType == 'server')
+                                                    {
+                                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                                        Ext.Msg.alert('Error',resp.pesan);
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    });
+                        }
+                    }
+                },{
+                    text:'Reset',
+                    handler:function (btn,ev)
+                    {
+                        editcfs.form.reset();
+                    }
+                }
+            ]
+
+        });
+        
+        var grid = new Ext.grid.GridPanel ({
+
+            store:cfsstore,
+
+            viewConfig:{
+              forceFit:true
+            },
+
+            title:'View CFS List',
+            renderTo:'viewcfs',
+            id:'cfslist',
+            width:440,
+            height:400,
+            frame:true,
+            columns:[
+                new Ext.grid.RowNumberer(),
+                {header: "Edit",width: 40, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+                    return '<a href="#" onclick="editToCFS();"><img src="/images/g_rec_upd.png"></a>';
+                }},
+                {header: "Delete",width: 40, dataIndex: 'id',css:'text-align:center;',renderer: function (v,p,r) {
+                    return '<a href="#" onclick="delToCFS();"><img src="/images/g_rec_del.png"></a>';
+                }},
+                {
+                    header:'CFS Code',
+                    dataIndex:'cfs_kode',
+                    align:'center',
+                    width:60,
+                    sortable:true
+                },
+                {
+                    header:'CFS Name',
+                    dataIndex:'cfs_nama',
+                    align:'left',
+                    width:200,
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar ({
+                id:'paging',
+                pagesize:20,
+                store:cfsstore,
+                displayInfo:true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[
+                {
+                    xtype:'tbtext',
+                    text:'Search',
+                    style: 'margin-left: 5px'
+                },'-',
+                combo,
+                {
+                    xtype: 'textfield',
+                    id: 'search',
+                    style: 'margin-left: 10px;margin-right:10px',
+                    enableKeyEvents: true,
+                    listeners:{
+                        'keyup' : function (textfieldIni,event) {
+                            var isiTeks = textfieldIni.getValue();
+                            if (isiTeks != "" && isiTeks.toString().length >= 2)
+                            {
+                                var search = Ext.getCmp('search').getValue();
+                                var option = Ext.getCmp('option').getValue();
+                                cfsstore.proxy.setUrl('/projectmanagement/cfs/getviewcfs/search/' + search + '/option/' + option);
+                                cfsstore.reload();
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                },'-',{
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+                }
+            ]
+
+        });
+        
+ })
+
+
+</script>
+
+    <div id="cfsform" style="float:left"></div>
+    <div id="viewcfs" style="margin-left: 20px;float:left"></div>
+

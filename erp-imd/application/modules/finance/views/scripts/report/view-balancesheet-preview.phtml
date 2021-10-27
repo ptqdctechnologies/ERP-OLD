@@ -1,0 +1,101 @@
+<?php
+if (count($this->result) == 0) {
+    echo "No Data to display...";
+    die();
+}
+?>
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 840px;
+        height: 420px;
+        overflow: auto;
+        font-size: 14px;
+    }
+</style>
+<div style="border-bottom: 2px solid #99BBE8;width:840px;float:left;margin-bottom: 10px;">
+    <h1 style="font-size: 18px;font-family: tahoma,verdana,arial,sans-serif;">BALANCE SHEET FOR <?= $this->periode ?></h1>
+    <h2 style="font-size: 16px;float: left;"><b>Using Previous Saldo : <?= $this->lastSaldo['periode'] . "-" . $this->lastSaldo['tahun'] ?></b></h2>
+    <h3 style="font-size: 11px;float: right;"><i>Currency : IDR</i></h3>
+</div>
+<br>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+            <tr>
+                <th scope="col" rowspan="2"><center>No</center></th>
+        <th scope="col" rowspan="2"><center>COA Code</center></th>
+        <th scope="col"rowspan="2"><center>COA Name</center></th>
+        <?php if ($this->detail) { ?>
+            <th scope="col" rowspan="2"><center>Total</center></th>
+            <th scope="col" rowspan="2"><center>Total Previous Saldo</center></th>
+        <?php } ?>
+        <th scope="col" colspan="2"><center>Grand Total</center></th>
+     </tr>
+        <tr>
+            <th scope="col"><center>USD</center></th>
+        <th scope="col"><center>IDR</center></th>
+        </tr>
+       
+        </thead>
+        <tbody>
+
+            <?php
+            $nomer = 1;
+            foreach ($this->result as $k => $v) {
+                  if ($v['val_kode'] != 'IDR' && $v['val_kode'] != '') {
+                    if ($v['total'] != '')
+                        $totalUSD = $v['total'];
+                    else
+                        $totalUSD = $v['grandtotal'];
+
+                    $totalIDR = number_format($v['total_conversi'], 2);
+                } else {
+                    if ($v['total'] != '')
+                        $totalIDR = $v['total'];
+                    else
+                        $totalIDR = $v['grandtotal'];
+
+                    if ($v['grandtotal_usd'] > 0 )
+                        $totalUSD = number_format($v['grandtotal_usd'],2);
+                    else
+                        $totalUSD = 0.00;
+                }
+                ?>
+                <tr>
+                    <td><?= $nomer; ?></td>
+                    <td><?= ($v['coa_kode'] != '') ? $v['coa_kode'] : "&nbsp;" ?></td>
+                    <td><?= ($v['coa_nama'] != '') ? $v['coa_nama'] : $v['text'] ?></td>
+                    <?php if ($this->detail) { ?>
+                        <td align="right"><?= ($v['total_last'] != '') ? $v['total_last'] : $v['grandtotal_last'] ?></td>
+                        <td align="right"><?= ($v['total_preview'] != '') ? $v['total_preview'] : $v['grandtotal_preview'] ?></td>
+                    <?php } ?>
+                    <td align="right"><?= $totalUSD ?></td>
+                    <td align="right"><?= $totalIDR ?></td>
+                </tr>
+
+                <?php
+                $nomer++;
+                $totalIDR = 0.00;
+                $totalUSD = 0.00;
+            }
+            ?>
+        </tbody>
+    </table>
+</div>
+<script type="text/javascript">
+
+    (function() {
+        resizeTable("parentContainer");
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 3,
+            headerRows: 2
+        });
+
+    })();
+
+</script>

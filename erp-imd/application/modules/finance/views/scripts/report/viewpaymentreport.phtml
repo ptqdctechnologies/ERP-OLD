@@ -1,0 +1,183 @@
+<script type="text/javascript">
+
+
+    var type = '<?=$this->type?>';
+    var trano = '<?=$this->trano?>';
+    var prj_kode = '<?=$this->prj_kode?>';
+    var sit_kode = '<?=$this->sit_kode?>';
+    var supplier = '<?=$this->supplier?>';
+    var year = '<?=$this->year?>';
+
+//    console.log(type);
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions:[
+                {
+                    iconCls:'icon-go',
+                    qtip:'Detail',
+                    id: 'detail',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        var trano = record.get("ref_number");
+                        var prjKode = record.get("prj_kode");
+                        var sitKode = record.get("sit_kode");
+                        
+                        popup('/finance/report/view-detail-payment-report/trano/' + trano + '/type/' + type + '/prj_kode/' + prjKode + '/sit_kode/' + sitKode);
+                    }
+                }
+            ]
+            ,index: 'actions'
+            ,header: ''
+        });
+
+        var storepayment = new Ext.data.Store({
+
+        url:'/finance/report/getstorepayment/type/' + type + '/trano/' + trano + '/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode +
+                '/supplier/' + supplier + '/year/'+year,
+        autoLoad:true,
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[
+                    {name:'ref_number'},
+                    {name:'val_kode'},
+                    {name:'prj_kode'},
+                    {name:'sit_kode'},
+                    {name:'trano_value'},
+                    {name:'ppn_value'},
+                    {name:'total_bpv'},
+                    {name:'total_payment'},
+                    {name:'balance'},
+                    {name:'sup_nama'}
+                ]
+            })
+
+        })
+
+        var gridpaymentreportAction = new Ext.grid.GridPanel ({
+
+            store:storepayment,
+            viewConfig:{
+                forceFit:true
+            },
+            plugins: [rowactions],
+            frame:true,
+            renderTo:'grid-payment-report',
+            height:300,
+            columns:[
+            new Ext.grid.RowNumberer({width: 30}),
+                rowactions,
+            {
+                header:'Trano',
+                dataIndex:'ref_number',
+                align:'center',
+                sortable:true
+            },
+            {
+                header:'Project Code',
+                dataIndex:'prj_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Site Code',
+                dataIndex:'sit_kode',
+                align:'center',
+                sortable:true
+            },{
+                header:'Supplier',
+                dataIndex:'sup_nama',
+                align:'center',
+                sortable:true
+            },{
+                header:'Transaction Value',
+                dataIndex:'trano_value',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },
+            {
+                header:'Currency',
+                dataIndex:'val_kode',
+                align:'center',
+                sortable:true
+            },           
+            {
+                header:'VAT',
+                dataIndex:'ppn_value',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },{
+                header:'Voucher Value',
+                dataIndex:'total_bpv',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },{
+                header:'Payment Value',
+                dataIndex:'total_payment',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            },{
+                header:'Balance',
+                dataIndex:'balance',
+                align:'right',
+                sortable:true,
+                renderer: function(v){
+                    return v ? Ext.util.Format.number(v, '0,0') : '';
+                }
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-report',
+                pageSize: 5000,
+                store: storepayment,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar: [
+                {
+                    xtype: 'button',
+                    iconCls: 'silk-printer',
+                    text: 'Print This Table',
+                    handler: function(){
+                        Ext.ux.Printer.print({
+                            component: gridpaymentreportAction,
+                            printTitle: 'Payment Report'
+                        });
+                    }
+                }
+            ],
+            listeners: {
+                'beforerender': function(grid) {
+                    store = grid.getStore();
+                    if (type != 'BRF') {
+                        cm = grid.getColumnModel();
+                        cm.setHidden(3, true);
+                    }
+
+                }
+            }
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="grid-payment-report"></div>

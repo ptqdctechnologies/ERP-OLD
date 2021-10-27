@@ -1,0 +1,165 @@
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+?>
+<style type="text/css">
+		.tooltip {
+			border-bottom: 1px dotted #000000; color: #000000; outline: none;
+			cursor: help; text-decoration: none;
+			position: relative;
+		}
+		.tooltip span {
+			margin-left: -999em;
+			position: absolute;
+		}
+		.tooltip:hover span {
+			border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+			box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+			font-family: Calibri, Tahoma, Geneva, sans-serif;
+			position: absolute; left: 1em; top: 2em; z-index: 99;
+			margin-left: 0; 
+		}
+		.tooltip:hover img {
+			border: 0; margin: -10px 0 0 -55px;
+			float: left; position: absolute;
+		}
+		.tooltip:hover em {
+			font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+			display: block; padding: 0.2em 0 0.6em 0;
+		}
+		.info { padding: 0.8em 1em; }
+		.custom { padding: 0.5em 0.8em 0.8em 2em; }
+		* html a:hover { background: transparent; }
+		.info {background: #FFFFAA; border: 1px solid #FFAD33; }
+		</style>
+<style type="text/css">
+.title {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.cache{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.parentContainer { /* The parent container */
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 840px; /* Required to set */
+    height: 430px; /* Required to set */
+    overflow: hidden; /* Required to set */
+	font-size: 14px;
+}
+
+</style>
+<div class="title">MONTHLY PROGRESS REPORT<br/> <?=$this->prjKode?> </div>
+
+<?php if ($this->salary > 0) { ?>
+    <b>Total Salary : IDR <?=number_format($this->salary,2)?></b>
+<?php } ?>
+    
+<b>Period : <?php echo $this->periode;?> </b>
+<br><b>Budget : <?php echo $this->budget;?> </b>
+
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead>
+            <tr>
+            <th rowspan="2"><b>No.</b></th>
+            <th scope="col" class="rounded-q1" colspan="7" style="text-align: center;"><b>Monthly Progress</b></th>
+        </tr>
+        <tr>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Period</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Previous Month</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Current Month</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Month To Date</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Progress Value</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Invoice</th>
+            <th scope="col" class="rounded-q1" style="text-align: center;">Cash Out</th>
+        </tr>
+
+
+    </thead>
+
+    <div style="overflow-y:auto">
+    <tbody>
+    <?php
+            $no = 1;
+            $month = 1;
+            $count = 0;
+            $count2 = 0;
+            $count3 = 0;
+            $total1 = 0;
+            $total2 = 0;
+            $total3 = 0;
+            foreach($this->result as $key => $val)
+            {
+    ?>
+        <tr>
+             <td align="right"><?=$no?></td>
+            <td><?='Bulan '.$month?></td>
+            <td><?=$count?></td>
+            <?php $minus = $val['PROGRESS'] - $count; ?>
+            <td><?=$minus?></td>
+            <td><?=$val['PROGRESS']?></td>
+            <?php $pro = ($minus * $this->budget)/100;?>
+            <td align = "right"><?=$pro?></td>
+            <?php $minus2 = $val['INVOICE'] - $count2; $inv = ($minus2 * $this->budget)/100;?>
+            <td align = "right"><?=$inv?></td>
+            <?php $minus3 = $val['ACTUAL'] - $count3; $cash = ($minus3 * $this->budget)/100;?>
+            <td align = "right"><?=$cash?></td>
+        </tr>
+    <?php
+            $no++;
+            $month++;
+            $count = $val['PROGRESS'];
+            $count2 = $val['INVOICE'];
+            $count3 = $val['ACTUAL'];
+            $total1 += $pro;
+            $total2 += $inv;
+            $total3 += $cash;
+            }
+    ?>
+
+<!--    TOTAL -->
+    <tr style="background-color: #CFDCEE">
+        <td colspan="4" align="center"><b>TOTAL</b></td>
+        <td >&nbsp;</td>
+        <td align="right"><b><?=number_format($total1,2)?></b></td>
+        <td align="right"><b><?=number_format($total2,2)?></b></td>
+        <td align="right"><b><?=number_format($total3,2)?></b></td>
+        <td >&nbsp;</td>
+    </tr>
+    </tbody>
+    <tfoot>
+
+    </tfoot>
+    </div>
+</table>
+</div>
+<? //$this->paging($this->pageUrl,$this->totalResult,$this->limitPerPage,$this->current,$this->currentPage)?>
+<script type="text/javascript">
+//<![CDATA[
+
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 4,
+		headerRows : 2
+	});
+})();
+
+//]]>
+</script>

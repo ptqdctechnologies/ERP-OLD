@@ -1,0 +1,135 @@
+<script type="text/javascript">
+
+showInvoice = function(showAll){
+
+
+    if (showAll == undefined)
+        showAll = false;
+
+    if (showAll)
+    {
+        Ext.getCmp('project-select').reset();
+        Ext.getCmp('site-select').reset();
+    }
+
+    myPanel = Ext.getCmp('abs-budget-panel');
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+    sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+    var show = '';
+    if (showAll)
+        show = '/all/true';
+
+    myCekBox = Ext.getCmp('group-project');
+    if (myCekBox.getValue() == true)
+    {
+        show = show + '/group/true';
+    }
+
+    myPanel.body.load({
+        url: '/finance/report/view-co-to-invoice/prj_kode/' + prjKode + '/sit_kode/' + sitKode + show,
+        scripts: true
+
+});
+};
+
+printdocument = function(showAll){
+
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+    sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+    var url = '/finance/report/invoicesummary/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/all/true/print/true';
+
+    popup(url,'win-print-invoice-summary');
+};
+
+var windowForm =  ({
+
+    title: 'Co To Invoice Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselectorreport',
+            fieldLabel: 'Project Code',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text',
+            ShowName: false,
+            showAll: true
+        }
+        ,'-',
+        {
+            xtype: 'tbtext',
+            text: 'Site Code'
+        },
+        {
+            xtype: 'siteselector',
+            fieldLabel: 'Site Code',
+            anchor: '100%',
+            independent: false,
+            id: 'site-select',
+            SiteSelectid: 'sit_kode_text',
+            SiteNameid: 'sit_nama_text',
+            ProjectSelectid: 'prj_kode_text',
+            ShowName: false,
+            showAll: true
+        },
+        {
+            xtype: 'checkbox',
+            id: 'group-project',
+            boxLabel: 'Group By Project'
+        },
+        '-',
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:function(){
+                showInvoice();
+
+            }
+        },'-',
+        {
+            xtype: 'button',
+            text: 'Show All',
+            width:70,
+            id: 'show_budget_all',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler: function(){
+                    showInvoice(true);
+            }
+        },'-',
+//        {
+//            xtype: 'button',
+//            id: 'export_button',
+//            cls:"x-btn-icon",
+//            icon:"/images/print.png",
+//            handler:printdocument
+//        }
+    ]
+});
+
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

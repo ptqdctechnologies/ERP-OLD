@@ -1,0 +1,142 @@
+<link rel="stylesheet" type="text/css" href="/css/paging.css" />
+<style type="text/css">
+
+	#history {
+		border: 1px solid #666666;
+        width: 100%;
+        padding: 5px 15px 0 15px;
+	}
+
+	#history tbody tr td {
+		font-family: "lucida grande", verdana, sans-serif;
+		font-size: 8pt;
+		padding: 3px 8px;
+        text-align: center;
+	}
+
+    #history tbody tr th {
+		font-family: "lucida grande", verdana, sans-serif;
+		font-size: 8pt;
+		padding: 3px 8px;
+        background-color: #3d80df;
+        color: #fff;
+        text-align: center;
+	}
+
+	#history tbody tr.selected td {
+		background-color: #3d80df;
+		color: #ffffff;
+		font-weight: bold;
+		border-left: 1px solid #346DBE;
+		border-bottom: 1px solid #7DAAEA;
+	}
+</style>
+
+<table id="history">
+<tr>
+    <th>No.</th>
+    <th>Trano</th>
+    <th>Submit Date</th>
+    <th>Status</th>
+</tr>
+<?php
+        $i = $this->current;
+        foreach ($this->result as $key => $val)
+        {
+            if ($i % 2 == 0)
+                $style = "background-color:#eee;";
+            else
+                $style = "background-color:#fff;";
+?>
+<tr style="<?=$style?>">
+    <td><?=$i?></td>
+    <td><?=$val['trano']?></td>
+    <td><?=date("d M Y H:i:s",strtotime($val['tgl']))?></td>
+    <td><?php if ($val['final'] == 1) { ?>Final Approval<?php } else { ?>In Process<?php } ?></td>
+</tr>
+<?php
+            $i++;
+        }
+?>
+</table>
+<div id="paging-teks"><?=$this->current?> of <?=$this->totalResult?> Result</div>
+<div id="paging2">
+	<ul>
+		<?php if ($this->currentPage > 1) {?>
+		<li><a href="#" onclick="gotoPage(1);">First</a></li>
+		<li><a href="#" onclick="gotoPage(<?=($this->currentPage-1)?>);">&lt; Previous</a></li>
+		<?php }
+			  if ($this->currentPage > 2)
+			  {
+			  	for($i=$this->currentPage-2;$i<=($this->currentPage-1);$i++)
+			  	{
+		?>
+		<li><a href="#" onclick="gotoPage(<?=$i?>);"><?=$i?></a></li>
+		<?php
+			  	}
+			  }
+			  elseif ($this->currentPage > 1)
+			  {
+		?>
+		<li><a href="#" onclick="gotoPage(1);">1</a></li>
+		<?php
+			  }
+		?>
+		<li><a href="#" class="current"><?=$this->currentPage?></a></li>
+		<?php
+			  if ($this->totalPage >= ($this->currentPage + 2 ))
+			  {
+			  	for($i=$this->currentPage+1;$i<=($this->currentPage+2);$i++)
+			  	{
+		?>
+				<li><a href="#" onclick="gotoPage(<?=$i?>);"><?=$i?></a></li>
+		<?php
+			  	}
+			  }
+			  elseif ($this->totalPage >= ($this->currentPage + 1 ))
+			  {
+		?>
+				<li><a href="#" onclick="gotoPage(<?=$this->totalPage?>);"><?=$this->totalPage?></a></li>
+		<?php
+			  }
+			  if ($this->currentPage < $this->totalPage)
+			  {
+		?>
+		<li><a href="#" onclick="gotoPage(<?=($this->currentPage+1)?>);">Next &gt;</a></li>
+		<li><a href="#" onclick="gotoPage(<?=$this->totalPage?>);">Last</a></li>
+		<?php
+			  }
+		?>
+	</ul>
+</div>
+<script type="text/javascript">
+//function showHistoryDocs(trano)
+//{
+//
+//    myPanel = Ext.getCmp('result-panel');
+//    myPanel.body.load({
+//        url: '/default/home/showcheckdocument',
+//        scripts : true,
+//        params: {trano: trano}
+//    });
+//}
+
+function gotoPage(pageNum)
+{
+	var limit = <?=$this->limit?>;
+	var currentPage = <?=$this->currentPage?>;
+
+    var trano = '<?=$this->trano?>';
+    var type = '<?=$this->type?>';
+    var prjKode = '<?=$this->prjKode?>';
+	var currents = 1 + ((pageNum - 1) * limit);
+    window.location = "/default/projectdashboard/showtrans/uid/<?=$this->uid?>/prj_kode/<?=$this->prjKode?>/item_type/<?=$this->itemType?>/currentPage/" + pageNum + "/current/" + currents;
+//	 myPanel = Ext.getCmp('result-panel');
+//	    myPanel.body.load({
+//		        url: '/default/home/showdocssubmit',
+//	                scripts: true,
+//	                params: {currentPage: pageNum, current: currents, trano: trano, type: type, prj_kode: prjKode, orderby: order}
+//
+//		});
+}
+</script>

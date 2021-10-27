@@ -1,0 +1,247 @@
+<style>
+    .menu-title{
+        background: #D6E3F2;
+        border-style: solid;
+        border-color:#DAE6F4 #99bbe8 #99bbe8 #DAE6F4;
+        border-width: 1px;
+        margin:-2px -2px 0;
+        color:#15428b;
+        font:bold 10px tahoma,arial,verdana,sans-serif;
+        display:block;
+        padding:3px;
+    }
+</style>
+
+<script type="text/javascript">
+
+Ext.apply(Ext.form.VTypes, {
+    daterange : function(val, field) {
+        var date = field.parseDate(val);
+
+        if(!date){
+            return false;
+        }
+        if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+            var start = Ext.getCmp(field.startDateField);
+            start.setMaxValue(date);
+            start.validate();
+            this.dateRangeMax = date;
+        }
+        else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+            var end = Ext.getCmp(field.endDateField);
+            end.setMinValue(date);
+            end.validate();
+            this.dateRangeMin = date;
+        }
+        /*
+         * Always return true since we're only using this vtype to set the
+         * min/max allowed values (these are tested for after the vtype test)
+         */
+        return true;
+    },
+
+    numericText: "Only numbers are allowed.",
+    numericMask: /[0-9]/,
+    numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+    numeric: function(v) {
+        return function() { return this.numericRe.test(v)} ;
+    }
+
+});
+
+showCFS = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+
+	if (prjKode == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Project Code!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	}
+
+    month = Ext.getCmp('month').getValue();
+    start = Ext.getCmp('startdt').getRawValue();
+    end = Ext.getCmp('enddt').getRawValue();
+
+    var periode = '';
+
+    if (month != '')
+        periode = '/month/' + month;
+    if (start != '' && end != '')
+        periode = '/start/' + start + '/end/' + end;
+
+    myPanel.body.load({
+        url: '/projectmanagement/report/cfs/prj_kode/' + prjKode + periode ,
+        scripts: true
+    });
+}
+
+var i = 1;
+
+var monthArray = Date.monthNames.map(function (e) { return [e,i++]; });
+
+var windowForm =  ({
+
+    title: 'CFS Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselector',
+            fieldLabel: 'Project Code',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text',
+            ShowName: false
+        }
+        ,'-',
+        {
+            text: 'Periode',
+            iconCls: 'icon-calendar',
+            style: {
+                overflow: 'visible'     // For the Combo popup
+            },
+            menu: {
+                xtype: 'menu',
+                plain: true,
+                items:
+                [
+//                    '<b class="menu-title">Up To Month</b>',
+//                    {
+//                        id:'uptomonth',
+//                        xtype:'combo',
+//                        fieldLabel:'Month',
+//                        width:104,
+//                        store: new Ext.data.ArrayStore ({
+//                            fields:['name','value'],
+//                            data:monthArray
+//                        }),
+//                        valueField:'value',
+//                        displayField:'name',
+//                        typeAhead: true,
+//                        forceSelection: true,
+//                        editable: false,
+//                        mode: 'local',
+//                        triggerAction: 'all',
+//                        selectOnFocus: true,
+//                        emptyText: 'Select ... ',
+//                        listeners: {
+//                            'select': function (datef, datev){
+//                                Ext.getCmp('month').clearValue();
+////                                Ext.getCmp('startdt').setValue('');
+////                                Ext.getCmp('enddt').setValue('');
+//                            }
+//                        }
+//                    },
+                    '<b class="menu-title">By Month</b>',
+                    {
+                        id:'month',
+                        xtype:'combo',
+                        fieldLabel:'Month',
+                        width:104,
+                        store: new Ext.data.ArrayStore ({
+                            fields:['name','value'],
+                            data:monthArray
+                        }),
+                        valueField:'value',
+                        displayField:'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        emptyText: 'Select ... ',
+                        listeners: {
+                            'select': function (datef, datev){
+//                                Ext.getCmp('uptomonth').clearValue();
+                                Ext.getCmp('startdt').setValue('');
+                                Ext.getCmp('enddt').setValue('');
+                            }
+                        }
+                    },
+
+                    '-',
+                    '<b class="menu-title">By Date</b>',
+                    {
+                        xtype:'datefield',
+                        fieldLabel: 'Start Date',
+                        name: 'startdt',
+                        id: 'startdt',
+                        editable: false,
+                        endDateField: 'enddt', // id of the end date field
+                        format:'d-m-Y',
+                        vtype: 'daterange',
+                        emptyText: 'Start Date',
+                        listeners: {
+                            'select': function (datef, datev){
+                                 Ext.getCmp('month').clearValue();
+                            }
+                        }
+                    },{
+                        xtype:'datefield',
+                        fieldLabel: 'End Date',
+                        name: 'enddt',
+                        id: 'enddt',
+                        editable: false,
+                        startDateField: 'startdt',
+                        format:'d-m-Y',
+                        vtype: 'daterange',
+                        emptyText: 'End Date',
+                        listeners: {
+                            'select': function (datef, datev){
+                                 Ext.getCmp('month').clearValue();
+                            }
+                        }
+                    },
+                    '-',
+                    {
+                        xtype: 'button',
+                        text: 'Clear',
+                        handler: function(){
+                            Ext.getCmp('month').clearValue();
+//                            Ext.getCmp('uptomonth').clearValue();
+                            Ext.getCmp('startdt').setValue('');
+                            Ext.getCmp('enddt').setValue('');
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showCFS
+        }
+    ]
+});
+
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

@@ -1,0 +1,156 @@
+
+
+
+<script type="text/javascript">
+var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/dashboard/listprocessdocument/iduser/<?php echo $this->userID; ?>'
+	});
+//	
+    var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'prj_kode', type: 'string'},
+            {name: 'sit_kode', type: 'string'},
+            {name: 'description', type: 'string'},
+            {name: 'total_time', type: 'float'},
+            {name: 'over_time', type: 'float'},
+            {name: 'alloc_time', type: 'float'},
+            {name: 'due_date', type: 'date', dateFormat:'Y-m-d'},
+            {name: 'status', type: 'int'}
+         ]
+
+    );
+
+    // define a custom summary function
+//    Ext.ux.grid.GroupSummary.Calculations['totalCost'] = function(v, record, field){
+//        return v + (record.data.estimate * record.data.rate);
+//    };
+
+	// utilize custom extension for Group Summary
+    var summary = new Ext.ux.grid.GroupSummary();
+
+	var store = new Ext.data.GroupingStore({
+        reader: reader,
+	    proxy: proxy,
+        sortInfo: {field: 'due_date', direction: 'ASC'},
+        groupField: 'prj_kode'
+    });
+
+    store.load();
+    var grid = new Ext.grid.GridPanel({
+        store: store,
+        columns: [
+            {
+                id: 'description',
+                header: 'Task',
+                width: 80,
+                sortable: true,
+                dataIndex: 'description',
+                summaryType: 'count',
+                hideable: false,
+                summaryRenderer: function(v, params, data){
+                    return ((v === 0 || v > 1) ? '(' + v +' Tasks)' : '(1 Task)');
+                }
+            },{
+                header: 'Project Code',
+                width: 20,
+                sortable: true,
+                dataIndex: 'prj_kode'
+            },{
+                header: 'Due Date',
+                width: 25,
+                sortable: true,
+                dataIndex: 'due_date',
+                summaryType: 'max',
+                renderer: Ext.util.Format.dateRenderer('d/m/Y')
+            },{
+                header: 'Allocation Time',
+                width: 20,
+                sortable: true,
+                dataIndex: 'alloc_time',
+                summaryType: 'sum',
+                renderer : function(v){
+                    return v +' hours';
+                }
+            },{
+                header: 'Over Time',
+                width: 20,
+                sortable: true,
+                dataIndex: 'over_time',
+                summaryType: 'sum',
+                renderer : function(v){
+                	if (v > 0)
+                	{
+						disp = '<div style="background-color:#FF0000; color:#FFFFFF;">' + v +' hours </div>';
+                	}
+                	else
+                	{
+						disp = v + ' hours';
+                	}
+                    	return disp ;
+                }
+            },{
+                header: 'Total Time',
+                width: 20,
+                sortable: true,
+                dataIndex: 'total_time',
+                summaryType: 'sum',
+                renderer : function(v){
+                    return v +' hours';
+                }
+            },{
+                header: 'Status',
+                width: 20,
+                sortable: true,
+                dataIndex: 'status',
+                renderer : function(v, params, data){
+                	var statusApp;
+					if (v === '' || v === 0)
+					{
+						statusApp = 'Not Submitted';
+					}
+					else if (v === 100)
+					{
+						statusApp = 'Submitted';
+					}
+                	return statusApp;
+            	}
+            }
+        ],
+
+        view: new Ext.grid.GroupingView({
+            forceFit: true,
+            showGroupName: false,
+            enableNoGroups: false,
+			enableGroupingMenu: false,
+            hideGroupedColumn: true
+        }),
+
+        plugins: summary,
+
+        tbar : [{
+            text: 'Toggle',
+            tooltip: 'Toggle the visibility of summary row',
+            handler: function(){summary.toggleSummaries();}
+        }],
+
+        frame: true,
+        width: 800,
+        height: 450,
+        clicksToEdit: 1,
+        collapsible: true,
+        animCollapse: false,
+        trackMouseOver: false,
+        //enableColumnMove: false,
+        title: 'My Timesheet',
+        iconCls: 'icon-grid',
+        renderTo: 'list-timesheet'
+    });
+</script>
+
+<div id='list-timesheet'></div>

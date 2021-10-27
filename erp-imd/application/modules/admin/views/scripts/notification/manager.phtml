@@ -1,0 +1,253 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var grid = new Ext.ux.userGridSelector({
+        useCheckbox: true
+    });
+
+    var panel = new Ext.form.FormPanel({
+        renderTo: 'manager-panel',
+        title: 'Add Notification to Person',
+        frame: true,
+        border: true,
+        layout: 'form',
+        minHeight: 450,
+        width: 300,
+        items: [
+            {
+                xtype: 'projectselector',
+                anchor: '100%',
+                id: 'project-select',
+                Selectid: 'prj_kode',
+                Nameid: 'prj_nama',
+                ShowName: true,
+                fieldLabel:'Project Code '
+            },
+            {
+                xtype: 'fieldset',
+                title: 'Information',
+                collapsible: true,
+                collapsed: true,
+                items: [
+                    {
+                        html: 'Choose Project for bind person based on Project Code, Leave empty to apply on All Project.'
+                    }
+                ]
+            },
+            {
+                id: 'combo-type',
+                fieldLabel: 'Transaction',
+                hiddenName : 'workflow_item_type_id',
+                width: 100,
+                xtype: 'combo',
+                triggerAction: 'all',
+                mode: 'remote',
+                editable: false,
+                displayField: 'name',
+                style: 'font-weight: bold; color: black',
+                valueField: 'workflow_item_type_id',
+                store: new Ext.data.JsonStore({
+                    url: '/admin/workflow/listworkflowitemtype/all/true',
+                    root: 'posts',
+                    fields:[
+                        { name: "name"},{ name: "workflow_item_type_id"}
+                    ],
+                    listeners: {
+                        'beforeload': function(t, o){
+//                            o.params.type = jsonType;
+                        }
+                    }
+                }),
+                listeners: {
+                    'select': function(t,n,o){
+//                        store.proxy = new Ext.data.HttpProxy({
+//                            url : '/default/home/getlistdocumentbytype/type/' + Ext.getCmp('combo-type').getRawValue()+url
+//                        });
+//                        store.reload();
+                    }
+                }
+            },
+            {
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','value'],
+                    data:[
+                        ['EMAIL','EMAIL'],
+                        ['ERP','ERP'],
+                        ['ALL','ALL']
+                    ]
+                }),
+                valueField:'value',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'ERP',
+                fieldLabel: 'Type',
+                id:'option'
+            },
+            {
+                xtype: 'fieldset',
+                title: 'Information',
+                collapsible: true,
+                collapsed: true,
+                items: [
+                    {
+                        html: 'ERP : User will receive notification via ERP Message System, EMAIL : User will receive notification via Email, ALL : Both of Notification will be sent.'
+                    }
+                ]
+            },
+            grid
+        ],
+        buttons: [
+            {
+                text: 'Create',
+                handler: function() {
+                    var json = grid.getPersonJSON(),
+                        prj = Ext.getCmp('prj_kode').getValue(),
+                        type = Ext.getCmp('option').getValue(),
+                        item_type = Ext.getCmp('combo-type').getRawValue();
+
+                    if (item_type == '')
+                    {
+                        Ext.Msg.alert('Error','Please choose transaction');
+                        return false;
+                    }
+
+                    type = (type == '') ? 'ALL' : type;
+
+                    Ext.Ajax.request({
+                        url: '/admin/notification/create/',
+                        method:'POST',
+                        params: {
+                            json: json,
+                            prj_kode: prj,
+                            type: type,
+                            item_type: item_type
+                        },
+                        success: function(result, request){
+                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                            if (returnData.success)
+                            {
+                                gridNotif.getStore().reload();
+                                grid.refresh();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error',returnData.msg);
+                            }
+
+                        }
+                    });
+                }
+            }
+        ]
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        root: 'posts'
+    }, [
+        {name: 'id', mapping: 'id'},
+        {name: 'uid', mapping: 'uid'},
+        {name: 'name', mapping: 'name'},
+        {name: 'prj_kode'},
+        {name: 'item_type'},
+        {name: 'type_notification'}
+
+    ]);
+
+    var storeNotif = new Ext.data.Store({
+        url : '/admin/notification/list',
+        reader:reader,
+        autoLoad: true
+    });
+
+
+
+    var rowactions = new Ext.ux.grid.RowActions({
+        actions:[
+            {
+                iconCls:'icon-delete',
+                qtip:'Delete',
+                callback: function (grid,record,action,row,col)
+                {
+                    Ext.MessageBox.confirm('Confirm', 'This action will delete this Item, Proceed?',
+                        function(btn)
+                        {
+                            if (btn == 'yes')
+                            {
+                                if (record)
+                                {
+                                    var id = record.data['id'];
+                                    Ext.Ajax.request({
+                                        url: '/admin/notification/delete',
+                                        params: {
+                                            id: id
+                                        },
+                                        method:'POST',
+                                        success: function(result, request){
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                            if (returnData.success)
+                                            {
+                                                storeNotif.remove(record);
+                                                gridNotif.getView().refresh();
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert('Error',returnData.msg);
+                                            }
+
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+        ]
+        ,index: 'actions'
+        ,header: ''
+    });
+
+    var notifColumns =  [
+        new Ext.grid.RowNumberer(),
+        rowactions,
+        {header: "Full Name", width: 120, sortable: true, dataIndex: 'name'},
+        {header: "UID", width: 100, sortable: true, dataIndex: 'uid'},
+        {header: "Project", width: 100, sortable: true, dataIndex: 'prj_kode'},
+        {header: "Transaction", width: 100, sortable: true, dataIndex: 'item_type'},
+        {header: "Type", width: 100, sortable: true, dataIndex: 'type_notification'}
+    ];
+
+    var gridNotif = new Ext.grid.GridPanel({
+        plugins: [rowactions],
+        bbar: [
+            new Ext.PagingToolbar({
+                pageSize: 100,
+                store: storeNotif,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        ],
+        title: 'Notification List',
+        width: 600,
+        height: 400,
+        columns: notifColumns,
+        store: storeNotif,
+        renderTo: 'grid-notif'
+    })
+});
+</script>
+
+<div id="manager-panel"></div><br/>
+<div id="grid-notif"></div>

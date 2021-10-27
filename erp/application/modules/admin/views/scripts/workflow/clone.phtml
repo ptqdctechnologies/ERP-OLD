@@ -1,0 +1,282 @@
+<script type="text/javascript">
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    function showWorkflow(wItemId)
+    {
+        if (!wItemId)
+            return false;
+
+        if (win)
+            win = null;
+
+        var win = new Ext.Window({
+            title: 'Workflow Preview',
+            width: 300,
+            autoHeight: true,
+            modal: true,
+            items: [
+                {
+                    id: 'wPreviewPanel',
+                    frame: true
+                }
+            ]
+        });
+
+        win.show();
+        Ext.getCmp('wPreviewPanel').body.load({
+            url: '/admin/workflow/showworkflowprocess/workflow_item_id/' + wItemId,
+            scripts : true
+        });
+    }
+
+    var proxy = new Ext.data.HttpProxy({
+        url: '/admin/workflow/listworkflowitem'
+    });
+
+    var reader = new Ext.data.JsonReader({
+        totalProperty: 'count',
+        successProperty: 'success',
+        idProperty: 'workflow_item_id',
+        messageProperty: 'message',
+        root: 'posts'  // <-- New "messageProperty" meta-data
+    }, [
+        {name: 'workflow_item_id'},
+        {name: 'workflow_item_type_id'},
+        {name: 'name'},
+        {name: 'description'},
+        {name: 'workflow_item_type_name'},
+        {name: 'prj_kode'},
+        {name: 'sit_kode'}
+    ]);
+
+    var store = new Ext.data.Store({
+        id: 'user',
+        proxy: proxy,
+        reader: reader,
+        autoLoad: true
+    });
+    var rowactions = new Ext.ux.grid.RowActions({
+        hideMode:"display",
+        actions:[
+            {
+                iconCls:'silk-magnifier',
+                qtip:'Show Workflow',
+                callback: function (grid,record,action,row,col)
+                {
+                    var rec = record.get("workflow_item_id");
+                    showWorkflow(rec);
+                }
+            }
+        ]
+    });
+    var sm = new Ext.grid.CheckboxSelectionModel();
+    var userColumns =  [
+        new Ext.grid.RowNumberer(),
+        sm,
+        rowactions,
+        {header: "Name", width: 140, sortable: true, dataIndex: 'name'},
+        {header: "Workflow Type", width: 140, sortable: true, dataIndex: 'workflow_item_type_name'},
+        {header: "Project Code", width: 80, sortable: true, dataIndex: 'prj_kode'},
+//        {header: "Site Code", width: 80, sortable: true, dataIndex: 'sit_kode'}
+    ];
+
+    function reloadStore(params) {
+        var option = Ext.getCmp('option').getValue();
+        var search = Ext.getCmp('search').getValue();
+        var generic = Ext.getCmp('generic').getValue();
+
+        if (params != undefined)
+        {
+            generic = params.generic;
+        }
+
+        store.setBaseParam('search',search);
+        store.setBaseParam('option',option);
+        store.setBaseParam('generic',generic);
+        store.reload();
+        grids.getSelectionModel().clearSelections();
+    }
+
+    function clearStore() {
+        store.setBaseParam('search','');
+        store.setBaseParam('option','');
+        store.setBaseParam('generic','');
+        store.reload();
+        grids.getSelectionModel().clearSelections();
+    }
+
+    var grids = new Ext.grid.GridPanel({
+        store: store,
+        columns : userColumns,
+        height: 300,
+        sm: sm,
+        plugins: [
+            rowactions
+        ],
+        tbar: [
+            {
+                xtype:'tbtext',
+                text:'Search by'
+            },
+            new Ext.form.ComboBox({
+                store: new Ext.data.ArrayStore({
+                    fields: ['a', 'b'],
+                    data : [
+                        ['Name',1],
+                        ['Workflow Type',2],
+                        ['Project Code',3]
+                    ]
+                }),
+                displayField:'a',
+                valueField: 'b',
+                typeAhead: true,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus:true,
+                name:'option',
+                width:100,
+                style: 'margin-left: 5px',
+                value:1,
+                id:'option'
+            }),
+            {
+                xtype:'textfield',
+                style:'margin-left:10px',
+                id:'search',
+                enableKeyEvents: true,
+                listeners:{
+                    'keyup' : function(text,event){
+                        var txttext = text.getValue();
+                        if (txttext != "" && txttext.toString().length >= 2 ){
+                            reloadStore();
+                        }
+                    }
+                }
+            },
+            '-',
+            {
+                xtype:'checkbox',
+                boxLabel:'Generic',
+                id: 'generic',
+                listeners:{
+                    'check': function (checkboxIni,diCentang)
+                    {
+                        reloadStore({generic: diCentang});
+                    }
+                }
+            },
+            '-',
+            {
+                text: 'Clear',
+                xtype: 'button',
+                handler: function() {
+                    clearStore();
+                }
+            }
+        ],
+        bbar:[ new Ext.PagingToolbar({
+	            pageSize: 100,
+	            store: store,
+	            displayInfo: true,
+	            displayMsg: 'Displaying data {0} - {1} of {2}',
+	            emptyMsg: "No data to display"
+	        })],
+        listeners: {
+        }
+    });
+
+    var form = new Ext.Panel({
+        renderTo: 'user-form',
+        layout: 'form',
+        frame: true,
+        title: 'Clone Workflow',
+        height: 400,
+        items: [
+            grids,
+            {
+                xtype: 'projectselector',
+                id: 'project-select',
+                Selectid: 'prj_kode_text',
+                Nameid: 'prj_nama_text',
+                ShowName: true,
+                fieldLabel:'Clone to Project Code',
+                allowBlank:false,
+                showAll: true,
+                callback: function(prj){
+                }
+            }
+        ],
+        buttons: [
+            {
+                text: 'Submit',
+                handler: function(){
+                    var stores = grids.getSelectionModel().getSelections(),
+                        prj_kode = Ext.getCmp('prj_kode_text').getValue();
+
+                    if (stores == undefined || stores == '')
+                    {
+                        Ext.Msg.alert('Error', "Workflow is not Selected");
+                        return false;
+                    }
+
+                    if (prj_kode == undefined || prj_kode == '')
+                    {
+                        Ext.Msg.alert('Error', "Project Code is not Selected");
+                        return false;
+                    }
+
+                    var json = '';
+                    Ext.each(stores,function(store){
+                        json += Ext.util.JSON.encode(store.data) + ',';
+                    });
+                    json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+
+                    Ext.Msg.confirm('Confirmation','Are You sure to clone all of these workflow? Pressing Yes will not launch the Nuke..',function(btn){
+                        if (btn == 'yes'){
+                            showProgressBar();
+                            Ext.Ajax.request({
+                                url: '/admin/workflow/do-clone',
+                                params: {
+                                    json: json,
+                                    prj_kode: prj_kode
+                                },
+                                method:'POST',
+                                success: function(resp){
+                                    var result = Ext.util.JSON.decode(resp.responseText);
+                                    if (result.success == true)
+                                    {
+                                        result.msg = (result.msg != undefined) ? result.msg : "Workflow has been cloned";
+                                        closeProgressBar();
+                                        grids.getSelectionModel().clearSelections();
+                                        Ext.getCmp('prj_kode_text').setValue('');
+                                        Ext.Msg.alert("Success",result.msg);
+                                    }
+                                    else
+                                    {
+                                        closeProgressBar();
+                                        Ext.Msg.alert("Error",result.msg);
+                                    }
+                                },
+                                failure:function( action){
+                                    closeProgressBar();
+                                    if(action.failureType == 'server'){
+                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+                            });
+                        }
+                    })
+                }
+            }
+        ]
+    })
+
+});
+</script>
+
+ <div id="user-form"></div>

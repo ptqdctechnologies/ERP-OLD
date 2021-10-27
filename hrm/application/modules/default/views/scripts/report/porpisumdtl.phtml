@@ -1,0 +1,273 @@
+
+<script type="text/javascript">
+    
+var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '<?php echo $this->url; ?>'
+	});
+	
+        var reader = new Ext.data.JsonReader({
+        idProperty: 'id',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+          	{name: 'id'},
+            {name: 'po_no', type: 'string'},
+            {name: 'rpi_no', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'tgl_po', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'tgl_rpi', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},      
+            {name: 'totalPO_IDR',type:'float'},
+            {name: 'totalPO_USD',type:'float'},
+            {name: 'totalRPI_IDR',type:'float'},
+            {name: 'totalRPI_USD',type:'float'},
+            {name: 'balanceIDR',type:'float'},
+            {name: 'balanceUSD',type:'float'},  
+            {name: 'gtotalPO_IDR',type:'float'}, 
+            {name: 'gtotalPO_USD',type:'float'},  
+            {name: 'gtotalRPI_IDR',type:'float'},  
+            {name: 'gtotalRPI_USD',type:'float'},  
+            {name: 'gtotalBalance_IDR',type:'float'},  
+            {name: 'gtotalBalance_USD',type:'float'}   
+         ]
+    );
+
+		var a;
+        
+        Ext.grid.GroupSummary.Calculations['totalBalanceIDR'] = function(v, record, field){
+  	        return v + (record.data.totalPO_IDR - record.data.totalRPI_IDR);
+  	    };
+    	  Ext.grid.GroupSummary.Calculations['totalBalanceUSD'] = function(v, record, field){
+  	        return v + (record.data.totalPO_USD - record.data.totalRPI_USD);
+  	    };
+
+        var summary = new Ext.grid.GroupSummary();
+//        summary['totalBalance'] = function(v, record, field){
+//  	        return v + (record.data.totalPO_IDR - record.data.totalRPI_IDR);
+//  	    };
+        
+    	var totalPO_IDR;
+    	var totalPO_USD;
+    	var totalRPI_IDR;
+    	var totalRPI_USD;
+    	var totalBalance_IDR;
+    	var totalBalance_USD;
+
+
+		
+    	
+    var store = new Ext.ux.MultiGroupingStore({
+        proxy: proxy          
+       ,reader: reader
+       ,sortInfo: {field: 'id', direction: 'ASC'}
+       ,groupField: ['po_no','workid']
+     });
+
+    
+	  store.on('load', function(s,r,o) {
+	  	totalPO_IDR = Ext.util.Format.number(r[0].data['gtotalPO_IDR'], '?0,000.00?');
+	  	totalRPI_IDR = Ext.util.Format.number(r[0].data['gtotalRPI_IDR'], '?0,000.00?');
+	  	totalRPI_USD = Ext.util.Format.number(r[0].data['gtotalRPI_USD'], '?0,000.00?');
+	  	totalPO_USD = Ext.util.Format.number(r[0].data['gtotalPO_USD'], '?0,000.00?');
+	  	totalBalance_IDR = Ext.util.Format.number(r[0].data['gtotalBalance_IDR'], '?0,000.00?');
+	  	totalBalance_USD = Ext.util.Format.number(r[0].data['gtotalBalance_USD'], '?0,000.00?');
+
+		document.getElementById(Ext.getCmp('po').items.items[0].id).innerHTML = '<b>Grand Total PO (IDR) = ' + totalPO_IDR + '</b>';
+		document.getElementById(Ext.getCmp('po').items.items[2].id).innerHTML = '<b>Grand Total PO (USD) = ' + totalPO_USD + '</b>';
+		document.getElementById(Ext.getCmp('rpi').items.items[0].id).innerHTML = '<b>Grand Total RPI (IDR) = ' + totalRPI_IDR + '</b>';
+		document.getElementById(Ext.getCmp('rpi').items.items[2].id).innerHTML = '<b>Grand Total RPI (USD) = ' + totalRPI_USD + '</b>';
+		document.getElementById(Ext.getCmp('balance').items.items[0].id).innerHTML = '<b>Grand Total Balance (IDR) = ' + totalBalance_IDR + '</b>';
+		document.getElementById(Ext.getCmp('balance').items.items[2].id).innerHTML = '<b>Grand Total Balance (USD) = ' + totalBalance_USD + '</b>';        
+	});  
+	  store.load();
+
+    var groupView = new Ext.ux.MultiGroupingView({
+        forceFit: true,
+        hideGroupedColumn :true
+       ,startCollapsed: true
+       ,emptyGroupText: 'All Group Fields Empty'
+       ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+		,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Record" : "Records"]})'
+       ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+       });
+
+    
+    var grid = new Ext.ux.MultiGroupingPanel({
+        stateful: false,
+        id: 'multi-grid',
+        store: store,
+        columns: [
+            {
+                id: 'po_no',
+                header: 'PO Number',
+                width: 120,
+                sortable: true,
+                dataIndex: 'po_no',
+                summaryType: 'count',
+                hideable: false
+            },{
+                id: 'workid',
+                header: 'Work ID',
+                width: 120,
+                sortable: true,
+                dataIndex: 'workid',
+                summaryType: 'count',
+                hideable: false
+            },{
+                id: 'rpi_no',
+                header: 'RPI Number',
+                width: 120,
+                sortable: true,
+                dataIndex: 'rpi_no',
+                hideable: false
+            },
+            {
+                header: 'Date',
+                width: 80,
+                sortable: true,
+                dataIndex: 'tgl_rpi',
+                renderer: Ext.util.Format.dateRenderer('d/m/Y')
+            },{
+                header: 'Product Id',
+                width: 80,
+                sortable: true,
+                dataIndex: 'kode_brg'          
+            },
+            {
+                header: 'Description',
+                width: 200,
+                sortable: true,
+                dataIndex: 'nama_brg'          
+            },
+            {
+                header: 'PO IDR',
+                width: 100,
+                sortable: true,
+                dataIndex: 'totalPO_IDR',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },    
+            {
+                header: 'PO USD',
+                width: 100,
+                sortable: true,
+                dataIndex: 'totalPO_USD',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },
+            {
+                header: 'RPI IDR',
+                width: 100,
+                sortable: true,
+                dataIndex: 'totalRPI_IDR',
+                renderer: change,
+                align: 'right',               
+                summaryType: 'sum'
+            },
+            {
+                header: 'RPI USD',
+                width: 100,
+                sortable: true,
+                dataIndex: 'totalRPI_USD',
+                align: 'right',
+                renderer: change,
+                summaryType: 'sum'
+            },
+            {
+                header: 'Balance IDR',
+                width: 100,
+                sortable: true,
+                dataIndex: 'balanceIDR',
+                align: 'right',
+                renderer: change,
+                summaryType: 'totalBalanceIDR'
+            },
+            {
+                header: 'Balance USD',
+                width: 100,
+                sortable: true,
+                dataIndex: 'balanceUSD',
+                align: 'right',
+                renderer: change,
+                summaryType: 'totalBalanceUSD'
+             }
+        ],      
+
+        view : groupView,	
+        plugins: summary,
+		loadMask: true,
+        bbar:[ 
+
+              ],
+        frame: true,
+        width: 935,
+        height: 450,  
+        trackMouseOver: false,
+        title: '',
+        iconCls: 'icon-grid',
+        renderTo: 'list-timesheet'
+    }
+    ); 
+
+
+    grid.loadMask.el.mask();  
+    var tb1 = new Ext.Toolbar({
+        id: 'po',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total PO (IDR) = ' + totalPO_IDR + '</b>',
+				'-',
+				'<b>Grand Total PO (USD) = ' + totalPO_USD + '</b>',
+				]
+		});
+
+    var tb3 = new Ext.Toolbar({
+        id: 'rpi',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total RPI (IDR) = ' + totalRPI_IDR + '</b>',
+				'-',
+				'<b>Grand Total RPI (USD) = ' + totalRPI_USD + '</b>',
+			]
+
+        });
+    var tb4 = new Ext.Toolbar({
+        id: 'balance',
+		renderTo : grid.bbar,
+		items: [
+				'<b>Grand Total Balance (IDR) = ' + totalBalance_IDR + '</b>',
+				'-',
+				'<b>Grand Total Balance (USD) = ' + totalBalance_USD + '</b>',
+			]
+
+        });
+    
+    var tb2 = new Ext.PagingToolbar({
+
+	        id: 'paging',
+        	renderTo: grid.bbar,
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+    function change(val)
+    {
+        return '<div style="text-align:right;">' + Ext.util.Format.number(val, '?0,000.00?') + '</div>';
+    }
+
+
+
+    
+
+    
+</script>
+
+<div id='list-timesheet'></div>

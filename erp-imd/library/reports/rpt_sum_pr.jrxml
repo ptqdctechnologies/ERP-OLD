@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rpt_sum_pr" language="groovy" pageWidth="612" pageHeight="792" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="prjKode" class="java.lang.String"/>
+	<parameter name="sitKode" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT
+                    p.trano,
+                    p.tgl,
+                    p.prj_kode,
+                    p.prj_nama,
+                    p.sit_kode,
+                    p.sit_nama,
+                    p.workid,
+                    p.workname,
+                    p.qty,
+		    p.harga,
+                    SUM(p.totalIDR) as total_IDR,
+                    SUM(p.totalUSD) as total_USD,
+                    p.val_kode,
+                    p.pc_nama
+                FROM(
+                        SELECT
+                            a.trano,
+                            a.tgl,
+                            a.prj_kode,
+                            a.prj_nama,
+                            a.sit_kode,
+                            a.sit_nama,
+                            a.workid,
+                            a.workname,
+                            a.val_kode,
+                            a.qty,
+                            a.harga,
+                           (CASE a.val_kode WHEN 'IDR' THEN (a.harga*a.qty) ElSE 0.00 END) AS totalIDR,
+                           (CASE a.val_kode WHEN 'USD'  THEN (a.harga*a.qty) ElSE 0.00 END) AS totalUSD,
+                           (SELECT uid FROM master_login WHERE master_login = b.user) as pc_nama
+                        FROM
+                            procurement_prd a
+                        LEFT JOIN
+                            procurement_prh b
+                        ON
+                            a.trano = b.trano
+			WHERE
+                       		a.prj_kode = '$P!{prjKode}'
+                        AND
+                            	a.sit_kode = '$P!{sitKode}') p
+                GROUP BY p.trano
+                ORDER BY p.trano
+]]>
+	</queryString>
+	<field name="trano" class="java.lang.String"/>
+	<field name="tgl" class="java.lang.String"/>
+	<field name="prj_kode" class="java.lang.String"/>
+	<field name="prj_nama" class="java.lang.String"/>
+	<field name="sit_kode" class="java.lang.String"/>
+	<field name="sit_nama" class="java.lang.String"/>
+	<field name="workid" class="java.lang.String"/>
+	<field name="workname" class="java.lang.String"/>
+	<field name="qty" class="java.math.BigDecimal"/>
+	<field name="harga" class="java.math.BigDecimal"/>
+	<field name="total_IDR" class="java.math.BigDecimal"/>
+	<field name="total_USD" class="java.math.BigDecimal"/>
+	<field name="val_kode" class="java.lang.String"/>
+	<field name="pc_nama" class="java.lang.String"/>
+	<variable name="total" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{total_IDR}]]></variableExpression>
+	</variable>
+	<variable name="total_USD" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{total_USD}]]></variableExpression>
+	</variable>
+	<variable name="nomor" class="java.lang.Integer" calculation="Count">
+		<variableExpression><![CDATA[$V{COLUMN_COUNT}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="63" splitType="Stretch">
+			<staticText>
+				<reportElement x="173" y="15" width="235" height="30"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PR Summary Report]]></text>
+			</staticText>
+			<textField pattern="MMMMM dd, yyyy">
+				<reportElement x="473" y="0" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField pattern="h.mm a">
+				<reportElement x="472" y="19" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.util.Date"><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="47" splitType="Stretch">
+			<textField>
+				<reportElement x="56" y="0" width="68" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{prj_kode}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="115" y="0" width="233" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{prj_nama}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="56" y="20" width="68" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{sit_kode}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="115" y="20" width="233" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{sit_nama}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="0" width="43" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Project]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="20" width="43" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Site]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="43" y="0" width="13" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="43" y="20" width="13" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<line>
+				<reportElement x="2" y="43" width="570" height="1"/>
+			</line>
+			<textField evaluationTime="Report">
+				<reportElement x="533" y="0" width="40" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="507" y="0" width="53" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.lang.String"><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement x="2" y="0" width="22" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[No]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="168" y="0" width="48" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Work Id]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="329" y="1" width="79" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total IDR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="408" y="0" width="72" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total USD]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="480" y="0" width="92" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Requestor]]></text>
+			</staticText>
+			<line>
+				<reportElement x="2" y="23" width="570" height="1"/>
+				<graphicElement>
+					<pen lineStyle="Dotted"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="24" y="0" width="79" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[No Trans]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="103" y="0" width="65" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Date]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="216" y="0" width="113" height="20"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Work Name]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="23" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="480" y="0" width="92" height="20"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{pc_nama}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="329" y="0" width="79" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{total_IDR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="408" y="0" width="72" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression class="java.math.BigDecimal"><![CDATA[$F{total_USD}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="24" y="0" width="79" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{trano}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="168" y="0" width="48" height="20"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{workid}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement isPrintRepeatedValues="false" x="216" y="0" width="113" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{workname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="24" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$V{nomor}]]></textFieldExpression>
+			</textField>
+			<textField pattern="MM/dd/yyyy">
+				<reportElement x="103" y="0" width="65" height="20"/>
+				<textElement/>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{tgl}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="29" splitType="Stretch">
+			<textField>
+				<reportElement x="248" y="0" width="133" height="20"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new java.text.DecimalFormat("#,##0.00").format($V{total})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="407" y="0" width="73" height="20"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new java.text.DecimalFormat("#,##0.00").format($V{total_USD})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="385" y="0" width="28" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[IDR]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="483" y="0" width="26" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[USD]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="0" width="54" height="20"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total :]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

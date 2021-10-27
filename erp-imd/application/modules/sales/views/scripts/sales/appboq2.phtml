@@ -1,0 +1,356 @@
+<style>
+
+    .last-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#EFEFEF;
+    /*color:#222222;*/
+    color: #C15119;
+    padding:4px;
+    text-align:left;
+}
+.all-reject{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    background:#F6CBCA;
+    color:#222222;
+    padding:4px;
+    text-align:left;
+}
+.all-approve{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border:solid 1px #DEDEDE;
+    /*background:#CEE6C3;*/
+    color:#222222;
+    padding:4px;
+    text-align:left;
+    height: 200px;
+    overflow: auto;
+}
+
+.body {
+	/*width: 720px;*/
+    overflow: auto;
+}
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+.etc {
+	width: 100%;
+	height: 50px;
+}
+.kanan-etc {
+	float: right;
+	width: 48%;
+}
+.kiri-etc {
+	float: left;
+	width: 48%;
+}
+.blok {
+	font-size: 12px;
+	font-weight: bold;
+	margin-bottom: 5px;
+}
+.budgetTable {
+	width: 100%;
+	font-size: 12px;
+	font-weight: normal;
+}
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+            font-family:tahoma, verdana;
+            display:block;
+            color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+.ketin {
+    width: 100%;
+    font-size: 12px;
+	font-weight: bold;
+    background-color:#FBF0A5;
+}
+.ketin fieldset p {
+    padding: 5px 5px 5px 5px;
+}
+</style>
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<script type="text/javascript ">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var trano = '<?=$this->boq2['trano']?>';
+        var ID = '<?=$this->ID?>';
+        var uid = '<?=$this->uid?>';
+        var user_id = '<?=$this->userID?>';
+
+        <?php if ($this->reject) {?>
+
+        var editButton = new Ext.Button ({
+            text: 'Goto Edit BOQ2',
+            iconCls: 'icon-go',
+            scale: 'large',
+            handler: function (){
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/sales/sales/editboq2/trano/' + trano,
+                    scripts : true
+                });
+            },
+            renderTo: 'reject-button'   
+        })
+
+        <?php } else {?>
+        var questionButton = new Ext.Button({
+            text: 'Ask Question',
+            iconCls: 'icon-ask',
+            scale: 'large',
+            handler: function (){
+                askQuestion('<?php echo $trano; ?>');
+            },
+            renderTo: 'ask-button'
+        });
+
+        var approveButton = new Ext.Button ({
+            text:'Approve',
+            iconCls: 'icon-add',
+            scale: 'large',
+            renderTo:'ok-button',
+            handler: function ()
+            {
+                Ext.MessageBox.show({
+                    title: 'Comment',
+                    msg: 'Please enter comment:',
+                    width:300,
+                    buttons: Ext.MessageBox.OKCANCEL,
+                    multiline: true,
+                    fn:Approved
+                });
+                function Approved (btn, text)
+                {
+                    var comment='';
+                    if (btn == 'ok')
+                    {
+                        comment = text;
+                    }else if (btn == 'cancel')
+                    return false;
+                    params = {trans:ID, user: uid, comment: comment, user_id:user_id};
+                    Ext.getBody().mask('Transfering PRABOQ2 to BOQ2... Do not REFRESH THIS PAGE!');
+
+                    Ext.Ajax.request({
+                        url: '/admin/workflow/approve',
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                            if (returnData.success)
+                            {
+                                Ext.getBody().unmask();
+                                getDocs();
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/default/home/showprocessdocument',
+                                    scripts : true
+                                });
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', returnData.msg);
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                        },
+                        params: params
+                    });
+                }
+            }
+        })
+
+        var rejectButton = new Ext.Button ({
+            text:'Reject',
+            iconCls:'icon-cancel',
+            scale:'large',
+            renderTo:'reject-button',
+            handler: function ()
+            {
+                Ext.MessageBox.show({
+                    title: 'Comment',
+                    msg: 'Please enter comment:',
+                    width:300,
+                    buttons: Ext.MessageBox.OKCANCEL,
+                    multiline: true,
+                    fn:Rejected
+                });
+
+
+                function Rejected (btn,text)
+                {
+                    var comment='';
+                    if (btn == 'ok')
+                    {
+                        comment = text;
+                    }
+                    else if (btn == 'cancel')
+                        return false;
+                    params = {trans:ID, user: uid, comment: comment, user_id:user_id};
+                    Ext.Ajax.request({
+                        url: '/admin/workflow/reject',
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                            if (returnData.success)
+                            {
+            //    				Ext.Msg.alert('Success', 'Document has been rejected!');
+                                getDocs();
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                    url: '/default/home/showprocessdocument',
+                                    scripts : true
+                                });
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', returnData.msg);
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                        }
+                        },
+                        params: params
+                    });
+                }
+
+            }
+        })
+
+        var cancelButton = new Ext.Button ({
+            text:'Cancel',
+            scale:'large',
+            renderTo:'cancel-button',
+            handler: function (){
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/default/home/viewdocument/processdocument/true',
+                    scripts : true
+                });
+            }
+        })
+        <?php }?>
+
+    })
+
+</script>
+
+
+<div class="body">
+
+    <div align="right"><img src="/images/imd.gif" alt= "logo imd" /></div>
+    <div class="title">CUSTOMER ORDER</div>
+
+    <?php if ($this->reject) { ?>
+    <div class="last-reject">
+        This Document was Rejected by <?php echo $this->lastReject['displayname']; ?> (<?php echo $this->lastReject['display_name']; ?>) at <?php echo date('d-m-Y H:i:s',strtotime($this->lastReject['date'])); ?>
+        <br />
+        Comment : <?php echo $this->lastReject['comment']; ?>
+    </div>
+    <?php } ?>
+
+    <div class="etc">
+        <div class="kiri-etc">
+            <div class="blok">No Trans : <?=$this->boq2['trano']?></div>
+            <div class="blok">Project : <?=$this->boq2['prj_kode']?> / <?=$this->boq2['prj_nama']?></div>
+            <div class="blok">Site : <?=$this->boq2['sit_kode']?> / <?=$this->boq2['sit_nama']?></div>
+            <div class="blok">CO Status : <?=$this->boq2['statusestimate']?></div>
+            <div class="blok">PO Customer : <?=$this->boq2['pocustomer']?></div>
+        </div>
+        <div class="kanan-etc">
+            <div class="blok">Input Date : <?=date('d  M  Y',strtotime($this->boq2['tgl']))?></div>
+            <div class="blok">Costomer : <?=$this->boq2['cus_kode']?></div>
+            <div class="blok">PIC Sourcing : <?=$this->boq2['petugas']?></div>
+        </div>
+    </div>
+
+    <table id="mytable" cellspacing="0" style="margin-top:10px;">
+
+        <tr>
+            <th scope="col" colspan="2"><center>Transaction</center></th>
+        </tr>
+        <tr>
+            <th scope="row" class="spec">Contract Value (IDR)</th><td align="right"><?=number_format($this->boq2['total'])?></td>
+        </tr>
+        <tr>
+            <th scope="row" class="spec">Contract Value (USD)</th><td align="right"><?=number_format($this->boq2['totalusd'])?></td>
+        </tr>
+        <tr>
+            <th scope="row" class="spec">Remark</th><td width="600"><?=$this->boq2['ket']?></td>
+        </tr>
+
+    </table>
+
+    <div class="all-approve">
+        <b>Approval History</b>
+        <ul>
+            <?php
+                foreach ($this->approval as $key => $val)
+                {
+            ?>
+                <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s',strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+            <?
+                }
+            ?>
+        </ul>
+    </div>
+
+</div>
+
+<div style="margin-top:10px">
+    <div id="cancel-button" style="float:right;margin-left:5px"></div>
+    <div id="reject-button" style="float:right;margin-left:5px"></div>
+    <div id="ok-button" style="float:right;margin-left:5px"></div>
+    <div id="ask-button" style="float:right"></div>
+</div>
+
+

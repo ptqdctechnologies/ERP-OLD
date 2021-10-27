@@ -1,0 +1,217 @@
+<script type="text/javascript" src="/js/layout/base/iconcomboext.js"></script>
+
+<script type="text/javascript">
+
+var tranoPopUpHandler = function(button,event) {
+    idForm = button.id.toString();
+    Ext.getCmp('trano_text').setValue('');
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-trano_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    stateful:false,
+    modal: true,
+    resizable: false,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 10,
+        y: 12,
+        xtype: 'label',
+        text: 'Trans No:'
+        },
+         new txtboks(80,10,120,'tra_no',searchTrano),
+         new SampleGrid('trano2_list')
+    ]
+
+  });
+  aForm.title = 'Pop up windows ';
+  aForm.show();
+ };
+
+showPoList = function ()
+{
+    var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'}
+                ];
+
+    urlJson = '/humanresource/report/salarylist';
+    data =  [
+            {name: 'trano', mapping: 'trano'}];
+    primaryKey = 'trano';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+        reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+   yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+                            closeForm = false;
+                            isDblClick = true;
+                            objectName = 'trano';
+                            txtBoxChange = 'trano_text';
+                            closeForm = true;
+                            formId = 'a-form-panel-trano_button';
+                            prox = 'trano_proxy';
+                            gri = 'trano_grid';
+                            var trano = g.getStore().getAt(rowIndex).get(objectName);
+
+                            Ext.getCmp('trano_text').setValue(trano);
+                            aForm.close();
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchTrano = function(field,e){
+        if (field.getValue().toString().length >= 2)
+        {
+            newUrl = '/humanresource/report/salarylist/trano/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        }
+    };
+
+    var aForm =  new Ext.Window({
+    id: 'a-form-panel-trano_button',
+    layout: 'absolute',
+    minWidth: 300,
+    minHeight: 200,
+    stateful:false,
+    modal: true,
+    width: 400,
+    height: 400,
+    items : [
+        {
+        x: 6,
+        y: 12,
+        xtype: 'label',
+        text: 'Salary Number'
+        },
+       new txtboks(80,10,80,'trans_no',searchTrano),
+       new grids('pr_list')
+    ]
+
+  });
+  aForm.title = 'Choose No Trans';
+  aForm.show();
+
+}
+
+ showTrans = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');	
+	    noTrans = Ext.getCmp('trano_text').getValue();
+   
+	    if (noTrans == '')	   
+              {
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Trans No!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	      }
+	    else
+	        urlLoad = '/humanresource/report/summarysalary/trano/' + noTrans;
+	    
+	    myPanel.body.load({
+	        url: urlLoad,
+                scripts: true
+
+	});
+	}
+var windowForm =  ({
+
+    title: 'Salary Summary Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Salary No'
+        },
+        {
+            xtype:'textfield',
+            id:'trano_text',
+            width:100
+        },
+        {
+           xtype: 'button',
+            id: 'trano_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/g_rec_src.png",
+            handler:showPoList
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_trans',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showTrans
+        }
+    ]
+});
+
+
+
+
+<?php echo $this->action('index','textfield',null); ?>
+
+
+ viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+</script>
+

@@ -1,0 +1,193 @@
+<script type="text/javascript">
+
+Ext.onReady(function(){
+
+    Ext.QuickTips.init();
+
+    function printJournal()
+    {
+        var month = Ext.getCmp('month').getValue(),
+            coa_kode = Ext.getCmp('coa_kode').getValue();
+        var D = Ext.calendar.Date;
+        month = D.formatDate(month,'yyyy-mm');
+        var type = Ext.getCmp('print_type').getValue();
+
+        location.href='/finance/report/print-kas-bank/type_doc/' + type + '/month/' + month + '/coa_kode/' + coa_kode;
+    }
+
+    function viewtrano ()
+    {
+        var type = Ext.getCmp('option-type').getValue();
+
+//            console.log(type);
+
+        if (type == 'ALL')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Sorry, Please select your type transaction',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+        var jurnalstore = new Ext.data.Store ({
+            autoLoad:true,
+            url:'/finance/adjustingjournal/getgeneraljurnal',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'trano'
+                },{
+                    name:'date'
+                },{
+                    name:'prj_kode'
+                },{
+                    name:'sit_kode'
+                }]
+            })
+
+        })
+
+        var jurnalwindow = new Ext.Window ({
+
+            title:'General Journal List',
+            id:'general-jurnal-window',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 432,
+            height: 330,
+            loadMask:true,
+            items:[
+//                coagrid
+            ]
+
+        })
+
+        jurnalwindow.show();
+    }
+
+    var datas = new Ext.data.SimpleStore({
+        fields:['type','name']
+        ,data:[['pdf','PDF'],['xls','Excel']]
+    });
+
+    var combo=new Ext.form.ComboBox({
+        fieldLabel: 'Print As'
+        ,id: 'print_type'
+        ,name:'showReport'
+        ,store: datas
+        ,valueField:'type'
+        ,displayField:'name'
+        ,typeAhead: true
+        ,mode: 'local'
+        ,triggerAction: 'all'
+        ,value:'pdf'
+        ,selectOnFocus:true
+        ,anchor:'95%'
+        ,hiddenName:'type'
+        ,width:70
+        ,editable: false
+
+    });
+
+    var windowForm = ({
+
+        title:'Kas Bank Report',
+        id: 'abs-budget-panel',
+        layout: 'fit',
+        bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+        bodyStyle: 'padding:15px;',
+        loadMask: true,
+        minWidth: 300,
+        minHeight: 200,
+        tbar:[
+        {
+            xtype:'label',
+            text:'Month of transaction',
+            style:'font-weight:bold;margin-left:10px;'
+        },'-',{
+            xtype:'datefield',
+            name: 'month',
+            id: 'month',
+            allowBlank:false,
+            msgTarget:'side',
+            format: 'm-Y', // or other format you'd like
+            plugins: 'monthPickerPlugin',
+        },
+        {
+            xtype:'label',
+            text:'COA Number',
+            style:'font-weight:bold;margin-left:10px;'
+        },'-',
+        {
+            xtype:'coaselector',
+            id:'coa_kodes',
+            Selectid:'coa_kode',
+            Nameid:'coa_nama',
+            ShowName: true,
+            allowBlank:false
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_ap',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            style:'margin-left:10px;',
+            handler:function()
+            {
+                var month = Ext.getCmp('month').getValue(),
+                    coa_kode = Ext.getCmp('coa_kode').getValue();
+                var D = Ext.calendar.Date;
+                month = D.formatDate(month,'yyyy-mm');
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/finance/report/view-kas-bank/month/' +  month + '/coa_kode/' + coa_kode,
+                    scripts : true
+                });
+            }
+        },
+        {
+            xtype: 'button',
+            text: 'Reset',
+            handler: function(){
+                Ext.getCmp('coa_kode').setValue('');
+                Ext.getCmp('coa_nama').setValue('');
+                Ext.getCmp('month').setValue('');
+            }
+        },
+        '-',
+            combo,
+            {
+                xtype: 'tbbutton',
+                iconCls: 'silk-printer',
+                text: 'Print This Journal',
+                handler: function(){
+                    printJournal();
+                }
+            },
+        ]
+    });
+
+    viewPort = Ext.getCmp('viewport');
+
+    centerRegionTab = viewPort.getComponent('content-panel');
+    centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+    centerRegionTab.add(windowForm);
+    panelBaru = Ext.getCmp('abs-budget-panel');
+    centerRegionTab.layout.setActiveItem('abs-budget-panel');
+    showSubmenu('abs-budget-panel');
+
+})
+
+</script>

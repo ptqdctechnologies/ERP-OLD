@@ -1,0 +1,70 @@
+<script type="text/javascript">
+Ext.require(['Ext.data.*']);
+Ext.require('Ext.chart.*');
+Ext.require(['Ext.layout.container.Fit']);
+
+Ext.onReady(function() {
+    var store1 = Ext.create('Ext.data.JsonStore', {
+        fields: ['persen', 'week'],
+        data: <?=$this->json?>
+    });
+    var panel = Ext.create('widget.panel', {
+        width: 600,
+        height: 400,
+        title: 'S Curve Baseline',
+        renderTo: Ext.getBody(),
+        layout: 'fit',
+        tbar: [
+        <?php if (!$this->noButton) { ?>
+            {
+                xtype: 'button',
+                text: 'Preview Gantt Chart',
+                iconCls: 'silk-magnifier',
+                handler: function(){
+                    var left   = (screen.width  - 800)/2;
+                    var top    = (screen.height - 400)/2;
+                    var params = 'width='+800+', height='+400;
+                    params += ', top='+top+', left='+left;
+                    params += ', directories=no';
+                    params += ', location=no';
+                    params += ', menubar=no';
+                    params += ', resizable=no';
+                    params += ', scrollbars=no';
+                    params += ', status=no';
+                    params += ', toolbar=no';
+                    newwin=window.open('/extjs4/gantt/previewgantt/fromdatabase/<?=$this->fromDatabase?>/trano/<?=$this->trano?>','ganttwin', params);
+                }
+            }
+        <?php } ?>
+        ],
+        items: [{
+            xtype: 'chart',
+            animate: true,
+            shadow: true,
+            store: store1,
+            axes: [{
+                type: 'Numeric',
+                minimum: 0,
+                position: 'left',
+                fields: ['persen'],
+                title: '%',
+                grid: true
+            }, {
+                type: 'Category',
+                position: 'bottom',
+                fields: ['week'],
+                title: 'Week Start From <?=$this->startDate?>'
+            }],
+            series: [{
+                type: 'line',
+                axis: 'left',
+                smooth: true,
+                gutter: 80,
+                xField: 'week',
+                yField: ['persen']
+            }]
+        }]
+    });
+});
+
+</script>

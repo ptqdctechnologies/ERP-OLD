@@ -1,0 +1,462 @@
+
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/gridsearch.css" />
+<script type="text/javascript" src="/js/layout/ux/Ext.ux.grid.Search.js"></script>
+<script type="text/javascript">
+
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+	function showDocsChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 110,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Transaction Number',
+								    id : 'docs_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showDocsList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Submit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var prno = Ext.getCmp('docs_no_text').getValue();
+		 			        if (prno != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/admin/document/deletetrans/trano/' + prno,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showDocsList()
+    {
+        var columns = [ {header:'Trano',width:120,sortable:true,dataIndex:'trano'},
+                        {header:'Type',width:50,sortable:true,dataIndex:'item_type'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'}
+                    ];
+
+        urlJson = '/admin/document/list';
+        data =  [
+                {name: 'trano', mapping: 'item_id'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'item_type', mapping: 'item_type'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=50;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showDocsChoose(trano);
+                                Ext.getCmp('docs_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/admin/document/list/trano/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+        };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 350,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano)
+           ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose Transaction';
+      aForm.show();
+
+
+}
+
+function showDocsChoose2(prNum,idNum)
+	{
+        var ids = idNum;
+		var bForm =  new Ext.Window({
+		    id: 'window2',
+		    layout:'fit',
+		    width: 300,
+		    height: 110,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Transaction Number',
+								    id : 'docs_no_text',
+								    xtype: 'trigger',
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showDocsList2();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Submit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        if (ids != undefined && ids != "")
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/admin/document/logtransaction/id/' + ids,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showDocsList2()
+    {
+        var columns = [ {header:'Trano',width:120,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:60,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Date',width:130,sortable:true,dataIndex:'tgl'},
+                        {header:'User',width:140,sortable:true,dataIndex:'uid'}
+                    ];
+
+        urlJson = '/admin/document/loglist';
+        data =  [
+                {name: 'id', mapping: 'id'},
+                {name: 'trano', mapping: 'trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'tgl', mapping: 'tgl'},
+                {name: 'uid', mapping: 'uid'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 480;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=50;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                var id = g.getStore().getAt(rowIndex).data['id'];
+                                var trano = g.getStore().getAt(rowIndex).get('trano');
+                                showDocsChoose2(trano,id);
+                                Ext.getCmp('docs_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/admin/document/loglist/trano/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+        };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 500,
+        height: 350,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano)
+           ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose Transaction';
+      aForm.show();
+
+
+}
+
+showDeleteTrans = function(){
+//    myPanel = Ext.getCmp('abs-budget-panel');
+//    myPanel.body.load({
+//        url: '/admin/document/deletetrans',
+//        scripts : true
+//    });
+
+    showDocsChoose();
+
+};
+
+showBypassTrans = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/admin/document/bypasstrans',
+        scripts : true
+    });
+};
+
+showFileManager = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/admin/document/filemanager',
+        scripts : true
+    });
+};
+
+showLog = function(){
+    showDocsChoose2();
+};
+showFileUpload = function (){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    myPanel.body.load({
+        url: '/admin/document/fileupload',
+        scripts : true
+    });
+}
+
+var windowForm =  ({
+
+    title: 'Document Transaction',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+						{
+						    id: 'show_button',
+						    text: 'Delete Transaction',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/grid.png",
+						    handler:showDeleteTrans
+						}
+                        ,{
+						    id: 'show_button3',
+						    text: 'Log Transaction',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/grid.png",
+						    handler:showLog
+						}
+                        ,{
+						    id: 'show_button2',
+						    text: 'File Attachment Manager',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/Document.png",
+						    handler:showFileManager
+						},{
+                            id: 'show_button4',
+						    text: 'File Upload',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/Document.png",
+						    handler:showFileUpload
+                        }
+					]
+				}
+			}
+           ]
+
+});
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

@@ -1,0 +1,168 @@
+<script type="text/javascript">
+
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        },
+        emailText: "Not a valid email address. Must be in the following format: yourname@company.domain",
+        emailRe: /^(\s*[a-zA-Z0-9\._%-]+@[a-zA-Z0-9\.-]+\.[a-zA-Z]{2,4})\s*$/,
+        email: function(v) {
+            return this.emailRe.test(v);
+        }
+
+    });
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var addcustomer = new Ext.FormPanel({
+            title: 'Add Customer',
+            id: 'add-customer',
+            iconCls: 'silk-user',
+            frame: true,
+            renderTo: 'addcustomer',
+            width: 360,
+            labelWidth: 140,
+            items: [
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Code',
+                    name: 'cus_kode',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    maxLength: 5, enableKeyEvents: true,
+                    listeners: {
+                        'keyup': function(t, e) {
+                            oldtext = t.getValue();
+                            new_text = oldtext.replace(" ", "");
+                            this.setValue(new_text);
+                        }
+                    }
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Name',
+                    name: 'cus_name',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Customer Address',
+                    name: 'cus_add',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Customer Tax Address',
+                    name: 'cus_tax_add',
+                    msgTarget: 'side',
+                    width: 180
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Phone',
+                    name: 'cus_phone',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    vtype: 'numeric'
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Fax',
+                    name: 'cus_fax',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    vtype: 'numeric'
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Email',
+                    name: 'cus_email',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false,
+                    vtype: 'email'
+                }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer NPWP',
+                    name: 'cus_npwp',
+                    msgTarget: 'side',
+                    width: 180
+                }, {
+                    xtype: 'textarea',
+                    fieldLabel: 'Description',
+                    name: 'cus_desc',
+                    msgTarget: 'side',
+                    width: 180,
+                    allowBlank: false
+                }
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function(btn, ev)
+                    {
+                        if (!Ext.getCmp('add-customer').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error', 'Please fill in all required fields');
+                            return false;
+                        }
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.getCmp('add-customer').getForm().submit({
+                            method: 'POST',
+                            url: '/logistic/logisticcustomer/getaddcustomer',
+                            success: function(thisForm, response)
+                            {
+                                Ext.getBody().unmask();
+                                myPanel = Ext.getCmp('master_customer');
+                                myPanel.body.load({
+                                    url: '/logistic/logisticcustomer/customer',
+                                    scripts: true
+                                });
+                            },
+                            failure: function(thisForm, response) {
+                                Ext.getBody().unmask();
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error', resp.pesan);
+                                }
+                            }
+
+                        })
+                    }
+                }, {
+                    text: 'Reset',
+                    handler: function(btn, ev)
+                    {
+                        addcustomer.form.reset()
+                    }
+                }, {
+                    text: 'Cancel',
+                    handler: function(btn, ev) {
+                        myPanel = Ext.getCmp('master_customer');
+                        myPanel.body.load({
+                            url: '/logistic/logisticcustomer/customer',
+                            scripts: true
+                        });
+                    }
+                }
+            ]
+
+        })
+
+
+    })
+
+
+</script>
+
+<div id="addcustomer"></div>

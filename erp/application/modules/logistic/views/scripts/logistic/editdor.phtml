@@ -1,0 +1,2285 @@
+<script type="text/javascript"><!--
+var t = 0;
+    var flag_internal = 0;
+    showAddDOR = function () {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+//        url: '/procurement/procurement/addpo',
+            url: '/logistic/logistic/adddor',
+            scripts: true
+        });
+    };
+
+    Ext.form.ImageField = Ext.extend(Ext.form.Field, {
+        autoCreate: {tag: 'img'}
+        , setValue: function (new_value) {
+            if (new_value == undefined || new_value == null) {
+                this.el.dom.src = '/images/no_image.png';
+            } else {
+                this.el.dom.src = '/images/' + new_value;
+            }
+        }
+        , initValue: function () {
+            this.setValue(this.value);
+        }
+
+        , initComponent: function () {
+            Ext.apply(this, {
+            });
+
+            Ext.form.ImageField.superclass.initComponent.apply(this);
+        }
+    });
+
+    Ext.reg('image_field', Ext.form.ImageField);
+
+
+//custom summary renderer example
+    function totals(t, params, data) {
+
+        return CommaFormatted(t);
+
+    }
+
+    Ext.ux.grid.GridSummary.Calculations = {
+        'jumlah': function (v, record, colName, data, rowIdx) {
+            return data[colName] + Ext.num(parseFloat(v.toString().replace(/\$|\,/g, '')), 0);
+        }
+    };
+
+    var summary = new Ext.ux.grid.GridSummary();
+
+
+    var prlist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        }, {
+            name: 'tgl_pr',
+            type: 'date',
+            dateFormat: 'd-m-Y'
+        }, {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'trano',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'harga',
+            type: 'string'
+        }, 
+        {
+            name: 'hargaavg',
+            type: 'float'
+        },
+        {
+            name: 'val_kode',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        },
+        {
+            name: 'balanceDOR',
+            type: 'string'
+        },
+        {
+            name: 'status',
+            type: 'string'
+        }
+    ]);
+
+
+    var dorlist = Ext.data.Record.create([{
+            name: 'id',
+            type: 'integer'
+        },
+//{
+//    name: 'tgl',
+//    type: 'date',
+//    dateFormat: 'Y-m-d'
+//},
+        {
+            name: 'status',
+            type: 'string'
+        }, {
+            name: 'urut',
+            type: 'string'
+        }, {
+            name: 'tgl_pr',
+            type: 'date',
+            dateFormat: 'd-m-Y'
+        }, {
+            name: 'trano',
+            type: 'string'
+        }, {
+            name: 'prj_kode',
+            type: 'string'
+        }, {
+            name: 'prj_nama',
+            type: 'string'
+        }, {
+            name: 'sit_kode',
+            type: 'string'
+        }, {
+            name: 'sit_nama',
+            type: 'string'
+        }, {
+            name: 'workid',
+            type: 'string'
+        }, {
+            name: 'workname',
+            type: 'string'
+        }, {
+            name: 'kode_brg',
+            type: 'string'
+        }, {
+            name: 'nama_brg',
+            type: 'string'
+        }, {
+            name: 'qty',
+            type: 'string'
+        }, {
+            name: 'harga',
+            type: 'string'
+        }, 
+        {
+            name: 'harga_asli',
+            type: 'string'
+        },
+        {
+            name: 'val_kode',
+            type: 'string'
+        }, {
+            name: 'uom',
+            type: 'string'
+        }, {
+            name: 'totalDOR',
+            type: 'float'
+        },
+        {
+            name: 'dor_number',
+            type: 'string'
+        }, {
+            name: 'tgl',
+            type: 'date',
+            dateFormat: 'd-m-Y'
+        }, {
+            name: 'pr_number',
+            type: 'string'
+        },
+        {
+            name: 'ket',
+            type: 'string'
+        },
+        {
+            name: 'discount',
+            type: 'discount'
+        }]);
+
+    var storePR = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: prlist}),
+//        listeners: {
+//            'add': function (t, r, o)
+//            {
+//                var myTrano = r[0].data['trano'];
+//                var myWork = r[0].data['workid'];
+//                var myBrg = r[0].data['kode_brg'];
+//                var prjKode = r[0].data['prj_kode'];
+//                var sitKode = r[0].data['sit_kode'];
+//                storeDOR.each(function (stores)
+//                {
+//                    if (stores.data['trano'] == myTrano && stores.data['sit_kode'] == sitKode && stores.data['prj_kode'] == prjKode && stores.data['workid'] == myWork && stores.data['kode_brg'] == myBrg)
+//                    {
+//                        stores.data['id'] = r[0].data['id'];
+//                        r[0].data['totalDOR'] = parseFloat(r[0].data['totalDOR']) + parseFloat(stores.data['qty']);
+//
+//                    }
+//                }
+//                )
+//
+//
+//            }
+//        }
+    });
+
+    var writer = new Ext.data.JsonWriter({
+        encode: true,
+        writeAllFields: false
+    });
+
+    var proxy = new Ext.data.HttpProxy({
+        api: {
+            create: '/default/prd/list'
+        }
+
+
+    });
+
+    var storeDOR = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: dorlist}),
+        listeners: {
+            'load': function (t, r, o) {
+                //addEditedDor();
+            }
+        }
+    });
+
+
+    /*function addEditedDor()
+    {
+        var tranos = new Array();
+        var ids = new Array();
+        storeDOR.each(function (stores) {
+            if (stores.data['id'] != undefined)
+            {
+//			if (!isMscWorkid(stores.data['workid']))
+//			{
+                var col = storePR.queryBy(function (record, id) {
+
+                    return record.get('trano') == stores.data['trano'] && record.get('prj_kode') == stores.data['prj_kode'] && record.get('sit_kode') == stores.data['sit_kode'];// && record.get('workid') == stores.data['workid']  && record.get('kode_brg') == stores.data['kode_brg'];
+
+                });
+//			}
+//			else
+//			{
+//				var col = store.queryBy(function(record,id){
+//
+//					 return record.get('workid') == stores.data['workid'];
+//
+//				});
+//			}
+//            console.log(col.length);return true;
+                if (col.length == 0)
+                {
+                    var trano = stores.data['trano'];
+                    tranos[tranos.length] = trano;
+                    ids[ids.length] = stores.data['id'];
+
+
+                }
+                else
+                {
+                    var strDOR = storeDOR.getAt(storeDOR.findExact('id', stores.data['id']));
+                    strDOR.data['id'] = col.items[0].data['id'];
+                }
+            }
+        });
+
+        Array.prototype.getUnique = function () {
+            var u = {}, a = [];
+            for (var i = 0, l = this.length; i < l; ++i) {
+                if (this[i] in u)
+                    continue;
+                a.push(this[i]);
+                u[this[i]] = 1;
+            }
+            return a;
+        };
+
+        if (tranos.length > 0)
+        {
+            tranos = tranos.getUnique();
+            ids = ids.getUnique();
+            Ext.each(tranos, function (trano, indeks) {
+                Ext.Ajax.request({
+                    results: 0,
+                    url: '/default/home/getdorsummary/data/' + trano,
+                    params: {
+                    },
+                    method: 'POST',
+                    success: function (result, request) {
+                        var returnData = Ext.util.JSON.decode(result.responseText);
+                        var lastID = 1;
+                        Ext.each(returnData.posts, function (op) {
+
+                            var c = new prlist({
+                                trano: op['trano'],
+                                tgl_pr: op['tgl'],
+                                urut: op['urut'],
+                                prj_kode: op['prj_kode'],
+                                prj_nama: op['prj_nama'],
+                                sit_kode: op['sit_kode'],
+                                sit_nama: op['sit_nama'],
+                                workid: op['workid'],
+                                workname: op['workname'],
+                                kode_brg: op['kode_brg'],
+                                nama_brg: op['nama_brg'],
+                                qty: op['qty'],
+                                uom: op['uom'],
+                                harga: op['harga'],
+                                val_kode: op['val_kode'],
+                                totalDOR: op['totalDOR'],
+                                id: lastID
+
+                            });
+                            storePR.add(c);
+                            lastID++;
+
+                        });
+                        Ext.getCmp('pr-detail-grid').getView().refresh();
+                    }
+                });
+            });
+
+        }
+    }*/
+
+    var datas = new Ext.data.SimpleStore({
+        fields: ['nilai', 'term']
+        , data: [
+            ['14', '14'],
+            ['30', '30'],
+            ['45', '45']
+
+        ]
+
+    });
+
+
+    var expander = new Ext.ux.grid.RowExpander({
+        tpl: new Ext.Template(
+                '<div style="margin-left:50px;"><p><b>Project Name:</b> {prj_nama}</p><br>',
+                '<p><b>Site Name:</b> {sit_nama}</p><br>',
+                '<p><b>PR Date:</b> {tgl_pr}</p><br>',
+                '<p><b>Uom:</b> {uom}</p><br>',
+                '<p><b>Work ID:</b> {workid}</p><br>',
+                '<p><b>Work Name:</b> {workname}</p></div>'
+                )
+    });
+
+
+
+    var userColumns = [
+        new Ext.grid.RowNumberer(),
+        expander,
+        {header: "Add", width: 30, dataIndex: 'id', renderer: function (v, p, r) {
+                var qty = r.data['qty'];
+                percent = (r.data['totalDOR'] / qty) * 100;
+                if (percent < 100) {
+                    //return '<a href="#" onclick="addToDOR(' + v + ');"><img src="/images/g_rec_add.png"></a>';
+                    return '<a href="#" "><img src="/images/g_rec_add.png"></a>';
+                }
+                else
+                {
+                    p.attr = 'ext:qtip="This item (' + r.data['kode_brg'] + ') must be created by PR"';
+                    return '<img src="/images/icons/fam/page_tag_red.gif">';
+//    		return '<a href="#" onclick="addToAFE(' + v + ');"><img src="/images/icons/fam/page_tag_red.gif"></a>';
+                }
+            }},
+        {header: 'Trano', width: 90, sortable: true, dataIndex: 'trano'},
+        {header: 'Project', width: 80, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Site', width: 40, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Product Id', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', width: 150, sortable: true, dataIndex: 'nama_brg'},
+//    {header:'Valuta',width:70,sortable:true,dataIndex:'val_kode'},
+        {header: 'Qty', width: 70, sortable: true, dataIndex: 'qty', renderer: change, align: 'right'},
+        {header: 'PR Price', width: 70, sortable: true, dataIndex: 'harga', renderer: change, align: 'right'},
+        {header: 'Average Price', width: 70, sortable: true, dataIndex: 'hargaavg', renderer: change, align: 'right'},  
+        {header: "Available", width: 100, renderer: function (v, p, r) {
+                var percent = 0;
+//        if (!isMscWorkid(r.data['workid']))
+//        {
+                if (r.data['qty'] != 0 && r.data['totalDOR'] != 0)
+                {
+                    var qty = r.data['qty'];
+                    percent = (r.data['totalDOR'] / qty) * 100;
+                    if (percent > 100)
+                        percent = 100;
+                    percent = percent.toFixed(2);
+                    var warna = '#0a0';
+                    if (percent > 75)
+                        warna = '#FF3F7D';
+                    else if (percent > 50)
+                        warna = '#FFDA2F';
+
+                    var avail = qty - r.data['totalDOR'];
+                    p.attr = 'ext:qtip="Available : ' + avail + ', Already in DOR : ' + r.data['totalDOR'] + '"';
+
+                }
+//        }
+//        else
+//        {
+//        	if (r.data['totalPrice'] != 0 && r.data['totalPriceDOR'] != 0)
+//	        {
+//            	var total = parseFloat(r.data['totalPrice']);
+//            	var totalDOR = parseFloat(r.data['totalPriceDOR']);
+//	        	percent = ( totalDOR / total) * 100;
+//	        	if (percent > 100)
+//	            	percent = 100;
+//	        	percent = percent.toFixed(2);
+//				var warna = '#0a0';
+//	        	if (percent > 75)
+//	            	warna = '#FF3F7D';
+//	        	else if (percent > 50)
+//	            	warna = '#FFDA2F';
+//	        }
+//        }
+                return '<div class="meter-wrap"><div class="meter-value" style="background-color: ' + warna + '; width: ' + percent + '%;"><div class="meter-text"><b>' + percent + '%</b></div></div></div>';
+            }}
+    ]
+
+    var userColumns2 = [
+        new Ext.grid.RowNumberer(),
+        {header: "Edit", width: 60, dataIndex: 'id', css: 'text-align:center;', renderer: function (v, p, r) {
+                return '<a href="#" onclick="editToDOR(' + v + ');"><img src="/images/g_rec_upd.png"></a>';
+            }},
+        /*{header: "Delete", width: 60, dataIndex: 'id', css: 'text-align:center;', renderer: function (v, p, r) {
+                return '<a href="#" onclick="delToDOR(' + v + ',\'' + r.data['workid'] + '\');"><img src="/images/g_rec_del.png"></a>';
+            }},*/
+        {header: 'Trano', width: 90, sortable: true, dataIndex: 'trano'},
+        {header: 'Project', width: 80, sortable: true, dataIndex: 'prj_kode'},
+        {header: 'Site', width: 40, sortable: true, dataIndex: 'sit_kode'},
+        {header: 'Product Id', width: 65, sortable: true, dataIndex: 'kode_brg'},
+        {header: 'Product Name', width: 220, sortable: true, dataIndex: 'nama_brg'},
+        {header: 'Qty', width: 80, sortable: true, dataIndex: 'qty', renderer: change, summaryType: 'jumlah', summaryRenderer: totals, align: 'right'}
+
+    ]
+
+<?php echo $this->action('popupgrid', 'grid'); ?>
+
+    function change(val)
+    {
+        return Ext.util.Format.number(val, '?0,000.00?');
+    }
+
+    function getNewID()
+    {
+
+//
+//	storePR.filterBy(function(record,id){
+//		if (isMscWorkid(record.get('workid')))
+//		{
+//			return record.get('workid');
+//		}
+//	});
+
+        var maxRecordPR = storePR.getCount();
+
+
+
+//        storePO.filterBy(function(record,id){
+//		if (isMscWorkid(record.get('workid')))
+//		{
+//			return record.get('workid');
+//		}
+//	});
+        var maxRecordDOR = storeDOR.getCount();
+
+        var newID = maxRecordPR + maxRecordDOR + 1;
+
+//	storePR.clearFilter();
+//	storePO.clearFilter();
+        return newID;
+    }
+
+    function getDORRecord(workid, kode_brg, isEdit)
+    {
+        //Clear filter
+        storeDORclearFilter();
+        storeDOR.filterBy(function (record, id) {
+            if (!isEdit)
+            {
+                if (record.get('workid') == workid.toString() && record.get('kode_brg') == kode_brg.toString())
+                {
+                    return record.get('workid');
+                }
+            }
+            else
+            {
+                if (record.get('workid') == workid.toString() && (record.get('status') != '' || record.get('status') != undefined))
+                {
+                    return record.get('workid');
+                }
+            }
+        });
+        if (storeDOR.getCount() > 0)
+        {
+            var rec = storeDOR.getAt(0);
+        }
+
+        storeDOR.clearFilter();
+        return rec;
+    }
+
+    function resetButton()
+    {
+//	Ext.getCmp('cancel-dor').setText('Cancel Add');
+//	Ext.getCmp('cancel-dor').disable();
+//	Ext.getCmp('save-dor').setText('Add to PR List(Cart)');
+// 	Ext.getCmp('save-dor').disable();
+        url: '/logistic/logistic/adddor';
+
+    }
+
+    function clearDORForm()
+    {
+        var teks = Ext.getCmp('dor-form').findByType('textfield');
+        Ext.each(teks, function (t, index) {
+            t.setValue('');
+        });
+        document.getElementById('qty').innerHTML = '0';
+        document.getElementById('tot-dor').innerHTML = '0';
+        document.getElementById('balanceqty').innerHTML = '0';
+        document.getElementById('balance-dor').innerHTML = '0';
+    }
+
+    function clearEditStatus()
+    {
+        storeDOR.each(function (store) {
+            if (store.data['status'] == 'edit')
+            {
+//                var e = storeDOR.getAt(storeDOR.findExact('id', store.data['id']));
+                store.data['status'] = '';
+            }
+        });
+        storePR.each(function (store) {
+            if (store.data['status'] == 'edit')
+            {
+//                var e = storePR.getAt(storePR.findExact('id', store.data['id']));
+                store.data['status'] = '';
+            }
+        });
+    }
+
+    function addToDOR()
+    {
+        //var ori = storePR.getAt(storePR.findExact('id', idPr));
+        var rec = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+        if (rec[0] != undefined)
+        {
+            var qty = parseFloat(rec[0].data['qty']);
+            var qtyDOR = parseFloat(rec[0].data['totalDOR']);
+            var balanceDOR = qty - qtyDOR;
+            Ext.getCmp('pr_no_text').setValue(rec[0].data['trano']);
+            Ext.getCmp('dor-workid').setValue(rec[0].data['workid']);
+            Ext.getCmp('dor-workname').setValue(rec[0].data['workname']);
+            Ext.getCmp('kode_brg_text').setValue(rec[0].data['kode_brg']);
+            Ext.getCmp('nama_brg_text').setValue(rec[0].data['nama_brg']);
+            Ext.getCmp('prj_kode_text2').setValue(rec[0].data['prj_kode']);
+            Ext.getCmp('prj_nama_text2').setValue(rec[0].data['prj_nama']);
+            Ext.getCmp('sit_kode_text2').setValue(rec[0].data['sit_kode']);
+            Ext.getCmp('sit_nama_text2').setValue(rec[0].data['sit_nama']);
+            Ext.getCmp('pr_price_text').setValue(parseFloat(rec[0].data['harga']).toFixed(2));
+            Ext.getCmp('pr_hargaavg_text').setValue(parseFloat(rec[0].data['hargaavg']).toFixed(2));
+            Ext.getCmp('qty-dor').setValue(balanceDOR);
+            Ext.getCmp('kode_brg_text').disable();
+//                Ext.getCmp('unit_price_text').setValue('');
+            //Ext.getCmp('qty-dor').setValue('qty');
+
+
+            //Ext.getCmp('tgl_po_text').setValue(dateNow.format('Y-m-d'));
+            //Ext.getCmp('total_price_text').setValue(rec[0].data['totalPricePo']);
+
+//                var valNew = Ext.getCmp('val_kode_text').getValue();
+
+            Ext.getCmp('uom_text').setValue(rec[0].data['uom']);
+            var piece = rec[0].data['uom'];
+//				var valuta = rec[0].data['val_kode'];
+
+//				Ext.getCmp('save-dor').disable();
+            Ext.getCmp('dor-grid').disable();
+            Ext.getCmp('pr-detail-grid').disable();
+            Ext.getCmp('cancel-dor').setText('Cancel Add');
+            Ext.getCmp('cancel-dor').enable();
+
+
+
+//                var totpri = rec[0].data['totalPrice'];
+            //var totpriPO = rec[0].data['totalPricePO'];
+
+
+//                var pricepr= rec[0].data['price'];
+            //var pricepo = Ext.getCmp('unit_price_text').getValue();
+            //var balancepri = pricepr - pricepo;
+
+
+            var qty = parseFloat(rec[0].data['qty']);
+            var totDOR = parseFloat(rec[0].data['totalDOR']);
+            var balanceqty = qty - totDOR;
+
+
+            document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>PR Qty :</td><td align="right"><b id="qty">' + qty.toFixed(4) + ' ' + piece + ' ' + '</b></td></tr><tr><td>In DOR Qty :</td><td align="right"><b id="tot-dor">' + totDOR.toFixed(4) + ' ' + piece + '</b></td></tr><tr><td>Balance qty:</td><td align="right"><b id="balanceqty" style="color:#FF3F7D">' + balanceqty.toFixed(4) + ' ' + piece + '</b></td></tr><tr><td>New Balance qty :</td><td align="right"><b id="balance-dor" style="color:#FF3F7D">0' + ' ' + piece + '</b></td></tr></table>';
+
+
+        }
+        else
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Error while fetching data...',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+    }
+
+    function insertDORtoList()
+    {
+
+        var cek = storePR.getAt(storePR.findExact('status', 'edit'));
+        var newQty = parseFloat(Ext.getCmp('qty-dor').getValue().toString().replace(/\$|\,/g, ''));
+        var discount = parseFloat(Ext.getCmp('discount-dor').getValue().toString().replace(/\$|\,/g, '')) / 100;
+        var markup = false;
+        if (cek != undefined)
+        {
+//        var dor = storeDOR.getAt(storeDOR.findExact('id',cek.data['id']));
+
+            var dor = undefined;
+            storeDOR.clearFilter();
+            storeDOR.filterBy(function (record, id) {
+                if (record.get('trano') == cek.get('trano') && record.get('workid') == cek.get('workid') && record.get('prj_kode') == cek.get('prj_kode') && record.get('sit_kode') == cek.get('sit_kode') && record.get('kode_brg') == cek.get('kode_brg'))
+                {
+                    return record.get('workid');
+                }
+            });
+            if (storeDOR.getCount() > 0)
+            {
+                dor = storeDOR.getAt(0);
+            }
+            storeDOR.clearFilter();
+            if (cek.data['trano'] == dor.data['trano'])
+            {
+                dor.data['qty'] = newQty;
+                dor.data['discount'] = discount;
+                cek.data['totalDOR'] = parseFloat(cek.data['totalDOR']) + newQty;
+                clearEditStatus();
+                cek = undefined;
+            }
+            Ext.getCmp('save-dor').setText('Add to DOR list');
+        }
+        else
+        {
+            var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+            storePR.clearFilter();
+            storePR.filterBy(function (record, id) {
+                if (record.get('trano') == recpr[0].data['trano'] && record.get('workid') == recpr[0].data['workid'] && record.get('prj_kode') == recpr[0].data['prj_kode'] && record.get('sit_kode') == recpr[0].data['sit_kode'] && record.get('kode_brg') == recpr[0].data['kode_brg'])
+                {
+                    return record.get('workid');
+                }
+            });
+            var pr = undefined;
+            if (storePR.getCount() > 0)
+            {
+                pr = storePR.getAt(0);
+            }
+            storePR.clearFilter();
+            storeDOR.clearFilter();
+            storeDOR.filterBy(function (record, id) {
+                if (record.get('trano') == pr.get('trano') && record.get('workid') == pr.get('workid') && record.get('prj_kode') == pr.get('prj_kode') && record.get('sit_kode') == pr.get('sit_kode') && record.get('kode_brg') == pr.get('kode_brg'))
+                {
+                    return record.get('workid');
+                }
+            });
+            var dor = undefined;
+            if (storeDOR.getCount() > 0)
+            {
+                dor = storeDOR.getAt(0);
+            }
+            storeDOR.clearFilter();
+//        var pr = storePR.getAt(storePR.findExact('id', recpr[0].data['id']));
+//        var dor = storeDOR.getAt(storeDOR.findExact('id', recpr[0].data['id']));
+            if (recpr[0] != undefined && dor == undefined)
+            {
+
+                var kode_brg = recpr[0].data['kode_brg'];
+                if (discount == 0)
+                    markup = true;
+
+                Ext.Ajax.request({
+                    results: 0,
+                    url: '/logistic/logisticbarang/ceklastprice',
+                    params: {
+                        kode_brg: recpr[0].data['kode_brg'],
+                        harga: recpr[0].data['harga'],
+                        markup: markup,
+                        discount: discount
+                    },
+                    method: 'POST',
+                    success: function (result, request) {
+                        var returnData = Ext.util.JSON.decode(result.responseText);
+                        if (returnData.allowed) {
+                            var d = new dorlist({
+                                trano: recpr[0].data['trano'],
+                                tgl: recpr[0].data['tgl'],
+                                urut: recpr[0].data['urut'],
+                                workid: recpr[0].data['workid'],
+                                workname: recpr[0].data['workname'],
+                                pr_number: recpr[0].data['trano'],
+                                prj_kode: recpr[0].data['prj_kode'],
+                                sit_kode: recpr[0].data['sit_kode'],
+                                prj_nama: recpr[0].data['prj_nama'],
+                                sit_nama: recpr[0].data['sit_nama'],
+                                kode_brg: recpr[0].data['kode_brg'],
+                                nama_brg: recpr[0].data['nama_brg'],
+                                harga: recpr[0].data['harga'],
+                                val_kode: recpr[0].data['val_kode'],
+                                qty: newQty,
+                                uom: recpr[0].data['uom'],
+                                id: pr.data['id'],
+                                discount: discount
+                            });
+                            storeDOR.add(d);
+                            pr.data['totalDOR'] = parseFloat(pr.data['totalDOR']) + newQty;
+                            pr = undefined;
+                            d = undefined;
+                        }
+                        else
+                        {
+                            Ext.Msg.alert('Error', returnData.msg);
+                        }
+                    }
+                    ,
+                    failure: function (action) {
+                        if (action.failureType == 'server') {
+                            obj = Ext.util.JSON.decode(action.response.responseText);
+                            Ext.Msg.alert('Error!', obj.errors.reason);
+                        }
+                    }
+                });
+
+            }
+            else if (recpr[0] != undefined && dor != undefined)
+            {
+                dor.data['qty'] = parseFloat(dor.data['qty']) + newQty;
+                dor.data['discount'] = discount;
+                pr.data['totalDOR'] = parseFloat(pr.data['totalDOR']) + newQty;
+                pr = undefined;
+                dor = undefined;
+                d = undefined;
+            }
+        }
+        Ext.getCmp('pr-detail-grid').enable();
+        Ext.getCmp('dor-grid').enable();
+        Ext.getCmp('pr-detail-grid').getView().refresh();
+        Ext.getCmp('dor-grid').getView().refresh();
+        clearDORForm();
+        resetButton();
+    }
+
+
+    function delToDOR()
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function (btn) {
+            if (btn == 'yes')
+            {
+                var recpr = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+                var recdor = Ext.getCmp('dor-grid').getSelectionModel().getSelections();
+
+                recpr = storePR.getAt(storePR.findExact('id', recdor[0].data['id']));
+                var qtydor = parseFloat(recdor[0].data['qty']);
+                var inPR = parseFloat(recpr.data['totalDOR']);
+                recpr.data['totalDOR'] = inPR - qtydor;
+                storeDOR.remove(recdor[0]);
+//			}
+                resetButton();
+                Ext.getCmp('pr-detail-grid').getView().refresh();
+                Ext.getCmp('dor-grid').getView().refresh();
+            }
+        });
+    }
+
+    function editToDOR()
+    {
+        Ext.getCmp('save-dor').setText('Update to DOR list');
+        var recdor = Ext.getCmp('dor-grid').getSelectionModel().getSelections();
+
+//    var recpr = storePR.getAt(storePR.findExact('id', recdor[0].data['id']));
+        var recpr = undefined;
+        storePR.clearFilter();
+        storePR.filterBy(function (record, id) {
+            if (record.get('trano') == recdor[0].data['trano'] && record.get('workid') == recdor[0].data['workid'] && record.get('prj_kode') == recdor[0].data['prj_kode'] && record.get('sit_kode') == recdor[0].data['sit_kode'] && record.get('kode_brg') == recdor[0].data['kode_brg'])
+            {
+                return record.get('workid');
+            }
+        });
+        if (storePR.getCount() > 0)
+        {
+            recpr = storePR.getAt(0);
+        }
+        //storePR.clearFilter();
+        Ext.getCmp('pr-detail-grid').disable();
+        Ext.getCmp('dor-grid').disable();
+        Ext.getCmp('cancel-dor').setText('Cancel Edit');
+        Ext.getCmp('cancel-dor').enable();
+        
+
+        if (recdor[0] != undefined && recpr != undefined)
+        {
+            
+            var qty = parseFloat(recpr.data['qty']);
+            //var qtyDOR = parseFloat(recdor[0].data['qty']);
+            recdor[0].data['status'] = 'edit';
+            recpr.data['status'] = 'edit';
+            Ext.getCmp('form_status').setValue('edit');
+            Ext.getCmp('pr_no_text').setValue(recdor[0].data['pr_number']);
+            Ext.getCmp('pr_price_text').setValue(recpr.data['harga']);
+            Ext.getCmp('pr_hargaavg_text').setValue(recpr.data['hargaavg']);
+            Ext.getCmp('dor-workid').setValue(recdor[0].data['workid']);
+            Ext.getCmp('dor-workname').setValue(recdor[0].data['workname']);
+            Ext.getCmp('kode_brg_text').setValue(recdor[0].data['kode_brg']);
+            Ext.getCmp('nama_brg_text').setValue(recdor[0].data['nama_brg']);
+            Ext.getCmp('prj_kode_text2').setValue(recdor[0].data['prj_kode']);
+            Ext.getCmp('prj_nama_text2').setValue(recdor[0].data['prj_nama']);
+            Ext.getCmp('sit_kode_text2').setValue(recdor[0].data['sit_kode']);
+            Ext.getCmp('sit_nama_text2').setValue(recdor[0].data['sit_nama']);
+            Ext.getCmp('uom_text').setValue(recdor[0].data['uom']);
+            Ext.getCmp('qty-dor').setValue(recdor[0].data['qty']);
+            Ext.getCmp('discount-dor').setValue(recdor[0].data['discount'] * 100);
+            Ext.getCmp('discount_text').setValue('%');
+            Ext.getCmp('pr_after_discount_text').setValue(recdor[0].data['harga']);
+
+            Ext.getCmp('save-dor').disable();
+
+            Ext.Ajax.request({
+                results: 0,
+                url: '/default/home/getdordetail/prj_kode/' + recpr.data['prj_kode'] + '/sit_kode/' + recpr.data['sit_kode'] + '/workid/' + recpr.data['workid'] + '/kode_brg/' + recpr.data['kode_brg'] + '/trano/' + recpr.data['trano'],
+                method: 'POST',
+                success: function (result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+
+                        var oriQtyDOR = parseFloat(returnData.totalDOR);
+                        var oriQty = parseFloat(returnData.qty);
+                        if (oriQtyDOR != undefined)
+                        {
+                            var oripr = storePR.getAt(storePR.findExact('status', 'edit'));
+                            if (oriQtyDOR == oriQty)
+                            {
+                                oriQtyDOR = oriQtyDOR - oriQty;
+                            }
+                            oripr.data['totalDOR'] = oriQtyDOR;
+
+                            var piece = oripr.data['uom'];
+                            var totDOR = oriQtyDOR;
+                            var balanceqty = (parseFloat(oriQty) - parseFloat(oriQtyDOR));
+                            document.getElementById('a-qty').innerHTML = '<table class="tablebox"><tr><td>PR Qty :</td><td align="right"><b id="qty">' + qty.toFixed(4) + ' ' + piece + ' ' + '</b></td></tr><tr><td>In DOR Qty :</td><td align="right"><b id="tot-dor">' + totDOR.toFixed(4) + ' ' + piece + '</b></td></tr><tr><td>Balance qty:</td><td align="right"><b id="balanceqty" style="color:#FF3F7D">' + balanceqty.toFixed(4) + ' ' + piece + '</b></td></tr><tr><td>New Balance qty :</td><td align="right"><b id="balance-dor" style="color:#FF3F7D">0' + ' ' + piece + '</b></td></tr></table>';
+                        }
+                        else
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Error while fetching data...',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                        }
+
+                    }
+                }
+                ,
+                failure: function (action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+
+
+
+        }
+        else
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Error while fetching data...',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+        }
+
+    }
+
+    function submitPR(trano)
+    {
+        var cek = storePR.getAt(storePR.findExact('trano', trano));
+
+        if (cek != undefined)
+            return false;
+        Ext.Ajax.request({
+            results: 0,
+            url: '/default/home/getdorsummary/pr_no/' + trano,
+            method: 'POST',
+            success: function (result, request) {
+                var returnData = Ext.util.JSON.decode(result.responseText);
+
+                Ext.each(returnData.posts, function (op) {
+
+                    var c = new prlist({
+                        trano: op['trano'],
+                        tgl_pr: op['tgl'],
+                        urut: op['urut'],
+                        prj_kode: op['prj_kode'],
+                        prj_nama: op['prj_nama'],
+                        sit_kode: op['sit_kode'],
+                        sit_nama: op['sit_nama'],
+                        workid: op['workid'],
+                        workname: op['workname'],
+                        kode_brg: op['kode_brg'],
+                        nama_brg: op['nama_brg'],
+                        qty: op['qty'],
+                        uom: op['uom'],
+                        harga: op['harga'],
+                        hargaavg: op['hargaavg'],
+                        val_kode: op['val_kode'],
+                        totalDOR: op['totalDOR'],
+                        id: op['id']//getNewID()
+
+                    });
+                    storePR.add(c);
+
+                });
+                Ext.getCmp('pr-detail-grid').getView().refresh();
+            }
+        });
+    }
+
+    function showPrList()
+    {
+        var columns = [{header: 'Trano', width: 100, sortable: true, dataIndex: 'trano'},
+            {header: 'Project ID', width: 100, sortable: true, dataIndex: 'prj_kode'},
+            {header: 'Project Name', width: 150, sortable: true, dataIndex: 'prj_nama'},
+            {header: 'Site Code', width: 100, sortable: true, dataIndex: 'sit_kode'},
+            {header: 'Site Name', width: 100, sortable: true, dataIndex: 'sit_nama'}
+        ];
+
+        urlJson = '/default/prh/list';
+        data = [
+            {name: 'trano', mapping: 'trano'},
+            {name: 'prj_kode', mapping: 'prj_kode'},
+            {name: 'prj_nama', mapping: 'prj_nama'},
+            {name: 'sit_kode', mapping: 'sit_kode'},
+            {name: 'sit_nama', mapping: 'sit_nama'},
+            {name: 'prj_nama', mapping: 'prj_nama'}, ];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy: new Ext.data.HttpProxy({
+                url: urlJson
+            }),
+            reader: new Ext.data.JsonReader({
+                root: 'posts',
+                totalProperty: 'count'
+            }, data)
+        });
+        stores.load();
+        yAxis = 100;
+        grids = function ()
+        {
+            grids.superclass.constructor.call(this, {
+                store: stores,
+                columns: columns,
+                x: 0,
+                y: yAxis,
+                id: 'pr_grid',
+                loadMask: true,
+                bbar: [new Ext.PagingToolbar({
+                        pageSize: 100,
+                        store: stores,
+                        displayInfo: true,
+                        displayMsg: 'Displaying data {0} - {1} of {2}',
+                        emptyMsg: "No data to display"
+                    })],
+                width: 380,
+                height: 250,
+                listeners: {
+                    'rowdblclick': function (g, rowIndex, e) {
+                        closeForm = false;
+                        isDblClick = true;
+                        objectName = 'trano';
+                        txtBoxChange = 'trano_text';
+                        closeForm = true;
+                        formId = 'a-form-panel-trano_button';
+                        gri = 'pr_grid';
+                        var trano = g.getStore().getAt(rowIndex).get(objectName);
+                        var cekStore = storePR.findExact('trano', trano);
+                        if (cekStore >= 0)
+                        {
+                            Ext.Msg.alert('Error', 'This item already exist in PR Detail!');
+                            return false;
+                        }
+
+                        submitPR(trano);
+
+                        window.setTimeout(function () {
+                            isDblClick = false;
+                        }, 0);
+                    }
+                }
+            });
+        }
+        Ext.override(Ext.PagingToolbar, {
+            doRefresh: function () {
+                this.clearFilter();
+                delete this.store.lastParams;
+                this.doLoad(this.cursor);
+            }
+        });
+
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks, Ext.form.TextField);//PR
+        searchTrano = function (field, e) {
+            newUrl = '/prh/listByParams/name/trano/data/' + field.getValue();
+            Ext.getCmp('pr_grid').getStore().proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('pr_grid').getStore().reload();
+        }
+        searchPrj_kode = function (field, e) {
+            newUrl = '/prh/listByParams/name/prj_kode/data/' + field.getValue();
+            Ext.getCmp('pr_grid').getStore().proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('pr_grid').getStore().reload();
+        }
+        searchSit_kode = function (field, e) {
+            vnewUrl = '/prh/listByParams/name/sit_kode/data/' + field.getValue();
+            Ext.getCmp('pr_grid').getStore().proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('pr_grid').getStore().reload();
+        }
+        searchPrj_name = function (field, e) {
+            newUrl = '/prh/listByParams/name/prj_nama/data/' + field.getValue();
+            Ext.getCmp('pr_grid').getStore().proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('pr_grid').getStore().reload();
+        }
+        searchSit_name = function (field, e) {
+            newUrl = '/prh/listByParams/name/sit_nama/data/' + field.getValue();
+            Ext.getCmp('pr_grid').getStore().proxy = new Ext.data.HttpProxy({
+                url: newUrl
+            });
+            Ext.getCmp('pr_grid').getStore().reload();
+        }
+        var aForm = new Ext.Window({
+            id: 'a-form-panel-trano_button',
+            layout: 'absolute',
+            minWidth: 300,
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            width: 400,
+            height: 400,
+            items: [
+                {
+                    x: 6,
+                    y: 12,
+                    xtype: 'label',
+                    text: 'No Trans'
+                },
+                new txtboks(80, 10, 80, 'trans_no', searchTrano),
+                {
+                    x: 6,
+                    y: 37,
+                    xtype: 'label',
+                    text: 'Project Code'
+                },
+                new txtboks(80, 35, 80, 'prj_kode', searchPrj_kode),
+                {
+                    x: 6,
+                    y: 62,
+                    xtype: 'label',
+                    text: 'Project Name'
+                },
+                new txtboks(80, 60, 80, 'prj_nama', searchPrj_name),
+                {
+                    x: 180,
+                    y: 37,
+                    xtype: 'label',
+                    text: 'Site Code'
+                },
+                new txtboks(240, 35, 80, 'sit_kode', searchSit_kode),
+                {
+                    x: 180,
+                    y: 62,
+                    xtype: 'label',
+                    text: 'Site Name'
+                },
+                new txtboks(240, 60, 80, 'sit_nama', searchSit_name)
+                        , new grids('pr_list')
+            ]
+
+        });
+        aForm.title = 'Choose No Trans';
+        aForm.show();
+
+    }
+
+
+    function cekQty(newQty)
+    {
+        var qtyPr = parseFloat(document.getElementById('qty').innerHTML);
+        var qtyDor = parseFloat(document.getElementById('tot-dor').innerHTML);
+        var newBalance = newQty;
+        if (newBalance > qtyPr)
+        {
+            Ext.getCmp('save-dor').disable();
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Request Quantity is over the Budget!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            Ext.getCmp('qty-dor').setValue((qtyPr - qtyDor));
+            return false;
+        }
+        else
+        {
+            temp = qtyPr - newBalance;
+            document.getElementById('balance-dor').innerHTML = temp.toFixed(4);
+            Ext.getCmp('save-dor').enable();
+        }
+        return true;
+    }
+
+
+    function init()
+    {
+        var tglSekarang = new Date();
+//	Ext.getCmp('tgl_text').setValue(tglSekarang.format('d-m-Y'));
+
+//	getExchangeRate();
+        //Ext.getCmp('tgl_kirim_text').setValue(tgl_sekarang.format('Y-m-d'));
+
+
+    }
+
+    var textField = new Ext.form.TextField();
+
+    userForm = new Ext.extend(Ext.form.FormPanel, {
+        iconCls: 'silk-user',
+        title: 'Edit Existing Delivery Order Request (DOR)',
+        frame: true,
+        width: 800,
+        labelAlign: 'left',
+        initComponent: function () {
+            this.items = this.buildForm();
+            this.buttons = this.buildUI();
+
+            this.addEvents({
+                create: true
+            });
+            userForm.superclass.initComponent.call(this);
+        }
+        ,
+        buildForm: function () {
+            return [
+                {
+                    fieldLabel: 'DO Number',
+                    id: 'do_number_text',
+                    name: 'do_number',
+                    disabled: true,
+                    width: 110,
+                    xtype: 'textfield',
+                    value: '<?php echo $this->trano; ?>'
+                },
+                {
+                    fieldLabel: 'Date',
+                    id: 'tgl_text',
+                    name: 'tgl_do',
+                    disabled: true,
+                    width: 80,
+                    xtype: 'textfield',
+                    value: '<?php echo $this->tgl; ?>'
+                },
+                {
+                    fieldLabel: 'Deliver Type',
+                    id: 'deliver_to_text',
+                    name: 'tujuan',
+                    xtype: 'combo',
+                    width: 150,
+                    allowBlank: false,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['type', 'name'],
+                        data: [['wh-site', 'Warehouse to Site'], ['wh-wh', 'Warehouse to Warehouse'], ['sup-site', 'Supplier to Site']]
+                    }),
+                    valueField: 'type',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    emptyText: 'Select Type',
+                    listeners: {
+                        'select': function (c, store, index) {
+                            Ext.getCmp('tanda-panah').setVisible(true);
+                            var data = store.data['type'];
+                            if (data == 'wh-site')
+                            {
+                                Ext.getCmp('fieldset-wh').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(false);
+                                Ext.getCmp('fieldset-site').setVisible(true);
+                                Ext.getCmp('fieldset-sup').setVisible(false);
+                                Ext.getCmp('receiver_text').enable();
+                                Ext.getCmp('receiver_phone_text').enable();
+                                Ext.getCmp('gudang_select_text2').setValue('S');
+                                Ext.getCmp('gudang_select_text').setValue('');
+                                flag_internal = 0;
+                            }
+                            else if (data == 'wh-wh')
+                            {
+                                Ext.getCmp('fieldset-wh').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(true);
+                                Ext.getCmp('fieldset-site').setVisible(false);
+                                Ext.getCmp('fieldset-sup').setVisible(false);
+                                Ext.getCmp('receiver_text').disable();
+                                Ext.getCmp('receiver_phone_text').disable();
+                                Ext.getCmp('gudang_select_text').setValue('');
+                                Ext.getCmp('gudang_select_text2').setValue('');
+                                flag_internal = 1;
+                                //flag internl true
+                            }
+                            else if (data == 'sup-site')
+                            {
+                                Ext.getCmp('fieldset-sup').setVisible(true);
+                                Ext.getCmp('fieldset-wh2').setVisible(false);
+                                Ext.getCmp('fieldset-wh').setVisible(false);
+                                Ext.getCmp('fieldset-site').setVisible(true);
+                                Ext.getCmp('receiver_text').enable();
+                                Ext.getCmp('receiver_phone_text').enable();
+                                Ext.getCmp('gudang_select_text').setValue('Supp');
+                                Ext.getCmp('gudang_select_text2').setValue('S');
+                                flag_internal = 0;
+                            }
+
+                        }
+                    }
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .400,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-wh',
+                                    title: 'Warehouse Detail',
+                                    itemId: 'fieldset-item-wh',
+                                    width: 300,
+                                    hidden: true,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Warehouse',
+                                            id: 'gudang_select_text',
+                                            name: 'tujuan',
+                                            xtype: 'combo',
+                                            width: 130,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/delivery/list'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'gdg_nama'
+                                                    }, {
+                                                        name: 'gdg_kode'
+                                                    }, {
+                                                        name: 'alamat1'
+                                                    }])
+                                            }),
+                                            valueField: 'gdg_kode',
+                                            displayField: 'gdg_nama',
+                                            typeAhead: true,
+                                            forceSelection: true,
+                                            editable: false,
+                                            mode: 'remote',
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            emptyText: 'Select Warehouse',
+                                            listeners: {
+                                                'select': function (c, store, index) {
+
+                                                    var data = store.data['alamat1'];
+                                                    Ext.getCmp('gudang_text').setValue(data);
+
+                                                }
+                                            }
+                                        },
+                                        {
+                                            fieldLabel: 'Address',
+                                            id: 'gudang_text',
+                                            xtype: 'textarea',
+                                            disabled: true,
+                                            width: 150,
+                                            height: 80
+                                        }
+                                    ]
+                                },
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-sup',
+                                    title: 'Supplier Detail',
+                                    itemId: 'fieldset-item-sup',
+                                    hidden: true,
+                                    width: 300,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Suppiler',
+                                            id: 'supplier_select_text',
+                                            xtype: 'combo',
+                                            width: 170,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/suplier/list'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'sup_nama'
+                                                    }, {
+                                                        name: 'sup_kode'
+                                                    }, {
+                                                        name: 'alamat'
+                                                    }]),
+                                                autoLoad: true
+                                            }),
+//                                            pageSize: 50,
+                                            valueField: 'sup_kode',
+                                            displayField: 'sup_nama',
+                                            typeAhead: true,
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            forceSelection: false,
+                                            editable: false,
+                                            mode: 'local',
+                                            emptyText: 'Select Supplier',
+                                            listeners: {
+                                                'select': function (c, store, index) {
+
+                                                    var data = store.data['alamat'];
+                                                    Ext.getCmp('supplier_text').setValue(data);
+
+                                                }
+                                            }
+                                        },
+                                        {
+                                            fieldLabel: 'Address',
+                                            id: 'supplier_text',
+                                            xtype: 'textarea',
+                                            disabled: true,
+                                            width: 150,
+                                            height: 80
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .100,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'image_field',
+                                    hideLabel: true,
+                                    id: 'tanda-panah',
+                                    hidden: true,
+                                    value: 'arrow-right.png'
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .400,
+                            layout: 'form',
+                            items: [
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-wh2',
+                                    title: 'Warehouse Detail',
+                                    itemId: 'fieldset-item-wh2',
+                                    hidden: true,
+                                    width: 300,
+                                    items: [
+                                        {
+                                            fieldLabel: 'Warehouse',
+                                            id: 'gudang_select_text2',
+                                            name: 'tujuan',
+                                            xtype: 'combo',
+                                            width: 130,
+                                            allowBlank: false,
+                                            store: new Ext.data.Store({
+                                                proxy: new Ext.data.HttpProxy({
+                                                    url: '/delivery/list'
+                                                }),
+                                                reader: new Ext.data.JsonReader({
+                                                    totalProperty: 'count',
+                                                    root: 'posts'
+                                                }, [{
+                                                        name: 'gdg_nama'
+                                                    }, {
+                                                        name: 'gdg_kode'
+                                                    }, {
+                                                        name: 'alamat1'
+                                                    }])
+                                            }),
+                                            valueField: 'gdg_kode',
+                                            displayField: 'gdg_nama',
+                                            typeAhead: true,
+                                            forceSelection: true,
+                                            editable: false,
+                                            mode: 'remote',
+                                            triggerAction: 'all',
+                                            selectOnFocus: true,
+                                            emptyText: 'Select Warehouse',
+                                            listeners: {
+                                                'select': function (c, store, index) {
+
+                                                    var data = store.data['alamat1'];
+                                                    Ext.getCmp('gudang_text2').setValue(data);
+
+                                                }
+                                            }
+                                        },
+                                        {
+                                            fieldLabel: 'Address',
+                                            id: 'gudang_text2',
+                                            xtype: 'textarea',
+                                            disabled: true,
+                                            width: 150,
+                                            height: 80
+                                        }
+                                    ]
+                                },
+                                {
+                                    xtype: 'fieldset',
+                                    id: 'fieldset-site',
+                                    title: 'Site Detail',
+                                    itemId: 'fieldset-item-site',
+                                    hidden: true,
+                                    width: 300,
+                                    items: [
+                                        {
+                                            id: 'sit_nama_text',
+                                            fieldLabel: 'Site Name',
+                                            xtype: 'textfield',
+                                            width: 130
+                                        },
+                                        {
+                                            fieldLabel: 'Address',
+                                            id: 'site_alamat_text',
+                                            xtype: 'textarea',
+                                            width: 130,
+                                            height: 80
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'receiver_text',
+                    fieldLabel: 'Receiver Name',
+                    xtype: 'textfield',
+                    disabled: true,
+                    width: 100
+                },
+                {
+                    id: 'receiver_phone_text',
+                    fieldLabel: 'Receiver Number',
+                    xtype: 'textfield',
+                    disabled: true,
+                    width: 100
+                }
+
+            ];
+        },
+        buildUI: function () {
+            return [
+                {
+                    text: 'Search PR',
+                    icon: "/images/g_rec_src.png",
+                    handler: function () {
+                        showPrList();
+                    }
+
+                },
+                {
+                    text: 'Reset',
+                    handler: function (btn, ev) {
+
+                        this.getForm().reset();
+
+                        storePR.removeAll();
+                        init();
+                    },
+                    scope: this
+                }, {
+                    text: 'Cancel',
+                    handler: function (btn, ev) {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/logistic/dor',
+                            scripts: true
+                        });
+                    },
+                    scope: this
+                }];
+        }
+    });
+
+    userForm2 = new Ext.extend(Ext.form.FormPanel, {
+        renderTo: 'user-form2',
+        id: 'dor-form',
+        iconCls: 'silk-user',
+        labelAlign: 'right',
+        title: 'Detail Delivery Order Request (DOR)',
+        frame: true,
+        width: 400,
+        labelAlign: 'left',
+                style: 'margin-top: 10px',
+        initComponent: function () {
+            this.items = this.buildForm();
+            this.buttons = this.buildUI();
+            this.addEvents({
+                create: true
+            });
+            userForm2.superclass.initComponent.call(this);
+        }
+        ,
+        buildForm: function () {
+            return [
+                {
+                    fieldLabel: 'Status',
+                    id: 'form_status',
+                    xtype: 'textfield',
+                    hidden:true,
+                    width: 100
+                },
+                {
+                    fieldLabel: 'PR Number',
+                    id: 'pr_no_text',
+                    xtype: 'textfield',
+                    disabled: true,
+                    width: 100
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .46,
+                            layout: 'form',
+                            items: [
+                                {
+                                    fieldLabel: 'Project',
+                                    id: 'prj_kode_text2',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 70
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .54,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'prj_nama_text2',
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    disabled: true
+                                }
+
+                            ]
+                        }
+                    ]
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .38,
+                            layout: 'form',
+                            items: [
+                                {
+                                    fieldLabel: 'Site',
+                                    id: 'sit_kode_text2',
+                                    xtype: 'textfield',
+                                    width: 40,
+                                    disabled: true
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .6,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'sit_nama_text2',
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    disabled: true
+                                }
+
+                            ]
+                        }
+                    ]
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .38,
+                            layout: 'form',
+                            items: [
+                                {
+                                    fieldLabel: 'Work ID',
+                                    id: 'dor-workid',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 40
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .6,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'dor-workname',
+                                    name: 'workname',
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    disabled: true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .46,
+                            layout: 'form',
+                            items: [
+                                {
+                                    fieldLabel: 'Product ID',
+                                    id: 'kode_brg_text',
+                                    name: 'kode_brg',
+                                    xtype: "textfield",
+                                    disabled: true,
+                                    width: 70
+                                }
+                            ]
+                        },
+                        {
+                            columnWidth: .54,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'nama_brg_text',
+                                    name: 'nama_brg',
+                                    xtype: 'textfield',
+                                    width: 200,
+                                    disabled: true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                new Ext.ux.customRendererField({
+                    priceDelemiter: ',',
+                    fieldLabel: 'PR Price',
+                    id: 'pr_price_text',
+                    disabled: true,
+                    width: 100,
+                    style: "text-align:right",                                    
+                }),               
+                new Ext.ux.customRendererField({
+                    priceDelemiter: ',',
+                    fieldLabel: 'Average Price',
+                    id: 'pr_hargaavg_text',               
+                    disabled: true,
+                    width: 100,
+                    style: "text-align:right",                                   
+                }),   
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .435,
+                            layout: 'form',
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    priceDelemiter: ',',
+                                    fieldLabel: 'Qty Request',
+                                    id: 'qty-dor',
+                                    name: 'qty',
+                                    allowBlank: false,
+                                    width: 60,
+                                    style: "text-align:right",
+                                    enableKeyEvents: true
+                                    , listeners:
+                                            {
+                                                'keyup': function (t, e) {
+                                                    var tombol = Ext.EventObject.getKey(e);
+                                                    if (!isNaN(t.getValue()))
+                                                    {
+                                                        var newQty = parseFloat(t.getValue());
+                                                        if (!cekQty(newQty))
+                                                            return false;
+                                                    }
+                                                    if (tombol == 13)
+                                                    {
+                                                        if (Ext.getCmp('dor-form').getForm().isValid())
+                                                            insertDORtoList();
+                                                    }
+                                                }
+                                            }
+
+                                })
+                            ]
+                        },
+                        {
+                            columnWidth: .54,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'uom_text',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 40
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    layout: 'column',
+                    items: [
+                        {
+                            columnWidth: .435,
+                            layout: 'form',
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    priceDelemiter: ',',
+                                    fieldLabel: 'Discount',
+                                    id: 'discount-dor',
+                                    name: 'discount',
+                                    allowBlank: false,
+                                    width: 60,
+                                    disabled:false,
+                                    style: "text-align:right",
+                                    enableKeyEvents: true,
+                                    value: 0,
+                                    listeners:
+                                            {
+                                                'keyup': function (t, e) {
+
+                                                    Ext.getCmp('save-dor').enable();
+                                                }
+                                            }
+
+
+                                })
+                            ]
+                        },
+                        {
+                            columnWidth: .54,
+                            layout: 'form',
+                            items: [
+                                {
+                                    hideLabel: true,
+                                    id: 'discount_text',
+                                    xtype: 'textfield',
+                                    disabled: true,
+                                    width: 40,
+                                    value: '%'
+                                }
+                            ]
+                        }
+                    ]
+                },                
+                new Ext.ux.customRendererField({
+                    priceDelemiter: ',',
+                    fieldLabel: 'After Discount',
+                    id: 'pr_after_discount_text',               
+                    disabled: true,
+                    width: 100,
+                    style: "text-align:right",                                   
+                })
+
+
+
+            ];
+        },
+        buildUI: function () {
+            return [
+                {
+                    text: 'Add to DOR List',
+                    id: 'save-dor',
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        //var rec = Ext.getCmp('pr-detail-grid').getSelectionModel().getSelections();
+                        //insertPOtoList(rec[0].data['id']);
+                        //if (rec == '' || rec == undefined)
+                            //return;
+
+                        //kode_brg = rec[0].data['kode_brg'];
+                        kode_brg = Ext.getCmp('kode_brg_text').getValue(); 
+
+                        // pengecekkan harga rata2 kode barang
+                        Ext.Ajax.request({
+                            url: '/logistic/logistic/check-average-price',
+                            method: 'POST',
+                            params: {
+                                kode_brg: kode_brg,
+                            },
+                            success: function (result, request) {
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if (returnData.success) {
+                                    insertDORtoList();
+                                    Ext.getCmp('discount_text').setValue('%');
+                                } else {
+                                    Ext.Msg.alert('Sorry', 'Average Price of this item has not been set! <br />Please call Procurement Staff to update it.');
+                                    return false;
+                                }
+                            }
+                            ,
+                            failure: function (action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            }
+                        });
+
+                    }
+
+
+                }, {
+                    text: 'Cancel',
+                    id: 'cancel-dor',
+                    iconCls: 'icon-cancel',
+                    handler: function (btn, ev) {
+                        clearDORForm();
+                        Ext.getCmp('pr-detail-grid').enable();
+                        Ext.getCmp('dor-grid').enable();
+                        Ext.getCmp('pr-detail-grid').getView().refresh();
+                        Ext.getCmp('dor-grid').getView().refresh();
+                        Ext.getCmp('save-dor').disable();
+                        Ext.getCmp('cancel-dor').disable();
+                    }, scope: this
+                }
+            ];
+        }
+    });
+
+
+    userGrid = Ext.extend(Ext.grid.GridPanel, {
+        id: 'pr-detail-grid',
+        title: 'PR Detail',
+        iconCls: 'silk-grid',
+        plugins: expander,
+        frame: true,
+        height: 250,
+        style: 'margin-top: 10px',
+        trackMouseOver: true,
+        initComponent: function () {
+            userGrid.superclass.initComponent.call(this);
+        }
+
+    });
+
+    userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+        iconCls: 'silk-grid',
+        id: 'dor-grid',
+        frame: true,
+        height: 250,
+        title: 'DOR Cart',
+        style: 'margin-top: 10px',
+        initComponent: function () {
+
+            this.buttons = this.buildUI();
+
+            userGrid.superclass.initComponent.call(this);
+        },
+        buildUI: function () {
+        },
+        onSave: function (btn, ev) {
+            //this.store.save();
+            var json = '';
+            this.store.each(function (store) {
+                json += Ext.util.JSON.encode(store.data) + ',';
+            });
+            json = json.substring(0, json.length - 1);
+            params = {posts: [json]};
+            Ext.Ajax.request({
+                url: '/logistic/logistic/insertdor',
+                method: 'POST',
+                success: function (resp) {
+                    Ext.Msg.alert('Success', 'Data has been saved!');
+                    //isEdited = false;
+                },
+                failure: function (action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    } else {
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                    }
+                },
+                params: params
+            });
+        }
+    });
+
+    Ext.onReady(function () {
+        Ext.QuickTips.init();
+
+
+        var userForms = new userForm({
+            renderTo: 'user-form'
+        });
+
+        var userGrids = new userGrid({
+            renderTo: 'user-grid',
+            store: storePR,
+            columns: userColumns,
+            width: 700,
+            bbar: new Ext.PagingToolbar({
+                id: 'paging',
+                pageSize: 100,
+                store: storePR,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        });
+
+        var userForms2 = new userForm2({
+            renderTo: 'user-form2'
+        });
+
+        var userGrids2 = new userGrid2({
+            renderTo: 'user-grid2',
+            store: storeDOR,
+            columns: userColumns2,
+            width: 700,
+            plugins: [summary],
+            view: new Ext.grid.GridView({
+                forceFit: false,
+                listeners: {
+                    refresh: function (grid) {
+                        if (t != undefined) {
+
+
+
+                        }
+                    }
+                }
+            }),
+            bbar: ['->', {
+                    xtype: 'button',
+                    text: 'Save DOR List(Cart)',
+                    iconCls: 'icon-save',
+                    handler: function ()
+                    {
+                        if (Ext.getCmp('dor-grid').getStore().getCount() == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Cart is Empty!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+                        var tujuan = Ext.getCmp('deliver_to_text').getValue();
+                        if (tujuan == "")
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please select Deliver Type!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+//                        var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+//                        if (prj_kode == "")
+//                        {
+//                            Ext.MessageBox.show({
+//                                title: 'Error',
+//                                msg: 'Please select Project Code for this DOR!',
+//                                buttons: Ext.MessageBox.OK,
+//                                icon: Ext.MessageBox.ERROR
+//                            });
+//                            return false;
+//                        }
+                        var json = '';
+                        var parameter = '';
+                        Ext.getCmp('dor-grid').getStore().each(function (store) {
+
+                            json += Ext.util.JSON.encode(store.data) + ',';
+                        });
+                        json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+                        
+                        var tgl = '<?php echo $this->tgl; ?>';
+                        var trano = '<?php echo $this->trano; ?>';
+                        var tujuan = Ext.getCmp('deliver_to_text').getValue();
+                        if (tujuan == 'wh-wh')
+                        {
+                            var from_kode = Ext.getCmp('fieldset-wh').findById('gudang_select_text').getValue();
+                            var from_nama = Ext.getCmp('fieldset-wh').findById('gudang_select_text').getRawValue();
+                            var alamat1 = Ext.getCmp('fieldset-wh').findById('gudang_text').getValue();
+                            var dest_kode = Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').getValue();
+                            var dest_nama = Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').getRawValue();
+                            var alamat = Ext.getCmp('fieldset-wh2').findById('gudang_text2').getValue();
+
+                            if (from_kode == "" || dest_kode == "")
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please select Warehouse!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+                        else if (tujuan == 'wh-site')
+                        {
+                            var from_kode = Ext.getCmp('fieldset-wh').findById('gudang_select_text').getValue().toString().replace(/\"|\'/g, '');
+                            ;
+                            var from_nama = Ext.getCmp('fieldset-wh').findById('gudang_select_text').getRawValue().toString().replace(/\"|\'/g, '');
+                            ;
+                            var alamat1 = Ext.getCmp('fieldset-wh').findById('gudang_text').getValue().toString().replace(/\"|\'/g, '');
+                            var dest_nama = Ext.getCmp('fieldset-site').findById('sit_nama_text').getValue().toString().replace(/\"|\'/g, '');
+                            var dest_kode = Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').getValue().toString().replace(/\"|\'/g, '');
+                            var alamat = Ext.getCmp('fieldset-site').findById('site_alamat_text').getValue().toString().replace(/\"|\'/g, '');
+                            if (from_kode == "" || dest_nama == "")
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please select Warehouse / Site!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+                        else if (tujuan == 'sup-site')
+                        {
+                            var from_kode = Ext.getCmp('fieldset-wh').findById('gudang_select_text').getValue().toString().replace(/\"|\'/g, '');
+                            var from_nama = Ext.getCmp('fieldset-sup').findById('supplier_select_text').getRawValue().toString().replace(/\"|\'/g, '');
+
+                            var alamat1 = Ext.getCmp('fieldset-sup').findById('supplier_text').getValue().toString().replace(/\"|\'/g, '');
+
+                            var dest_nama = Ext.getCmp('fieldset-site').findById('sit_nama_text').getValue().toString().replace(/\"|\'/g, '');
+                            var dest_kode = Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').getValue().replace(/\"|\'/g, '');
+                            var alamat = Ext.getCmp('fieldset-site').findById('site_alamat_text').getValue().toString().replace(/\"|\'/g, '');
+
+
+                            if (from_kode == "" || dest_nama == "")
+                            {
+                                Ext.MessageBox.show({
+                                    title: 'Error',
+                                    msg: 'Please select Supplier / Site!',
+                                    buttons: Ext.MessageBox.OK,
+                                    icon: Ext.MessageBox.ERROR
+                                });
+                                return false;
+                            }
+                        }
+                        var recv = Ext.getCmp('receiver_text').getValue().toString().replace(/\"|\'/g, '');
+                        ;
+                        var recv_no = Ext.getCmp('receiver_phone_text').getValue().toString().replace(/\"|\'/g, '');
+                        ;
+                        parameter = '[{';
+                        parameter += '"prj_kode":"' + prj_kode + '"';
+                        parameter += ',"dest_kode":"' + dest_kode + '"';
+                        parameter += ',"dest_nama":"' + dest_nama + '"';
+                        parameter += ',"from_kode":"' + from_kode + '"';
+                        parameter += ',"from_nama":"' + from_nama + '"';
+                        parameter += ',"receiver_nama":"' + recv + '"';
+                        parameter += ',"receiver_tlp":"' + recv_no + '"';
+                        parameter += ',"alamat":"' + alamat + '"';
+                        parameter += ',"alamat1":"' + alamat1 + '"';
+                        parameter += ',"trano":"' + trano + '"';
+                        parameter += ',"tgl":"' + tgl + '"';
+                        parameter += ',"deliver_to":"' + tujuan + '"';
+                        parameter += ',"flag_internal":"' + flag_internal + '"'; //internal flag
+                        parameter += '}]';
+
+                        params = {posts: json, etc: parameter};
+                        myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+                        myPanel.body.load({
+                            url: '/logistic/logistic/appdor/from/edit', //the url
+                            scripts: true,
+                            params: params //our params goes here
+                        });
+                    },
+                    scope: this
+                },
+                {
+                    xtype: 'button',
+                    text: 'Cancel DOR List(Cart)',
+                    iconCls: 'icon-cancel',
+                    handler: showAddDOR
+                    ,
+                    scope: this
+                }
+            ]
+        });
+
+
+        init();
+<?php
+if ($this->json != '') {
+    ?>
+            var json = <?php echo $this->json; ?>;
+    <?php
+    if ($this->jsonEtc != '') {
+        ?>
+                var etc = <?php echo $this->jsonEtc; ?>;
+                if (etc[0]['deliver_to'] == 'wh-wh')
+                {
+                    Ext.getCmp('deliver_to_text').setValue(etc[0]['deliver_to']);
+                    Ext.getCmp('fieldset-wh').setVisible(true);
+                    Ext.getCmp('fieldset-wh2').setVisible(true);
+                    Ext.getCmp('fieldset-site').setVisible(false);
+                    Ext.getCmp('fieldset-sup').setVisible(false);
+                    Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').setValue(etc[0]['dest_kode']);
+                    Ext.getCmp('fieldset-wh2').findById('gudang_select_text2').setRawValue(etc[0]['dest_nama']);
+                    Ext.getCmp('fieldset-wh2').findById('gudang_text2').setValue(etc[0]['alamat']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_select_text').setValue(etc[0]['from_kode']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_select_text').setRawValue(etc[0]['from_nama']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_text').setValue(etc[0]['alamat1']);
+                    flag_internal = 1;
+                    //flag inter true
+                }
+                else if (etc[0]['deliver_to'] == 'wh-site')
+                {
+                    Ext.getCmp('deliver_to_text').setValue(etc[0]['deliver_to']);
+                    Ext.getCmp('fieldset-site').setVisible(true);
+                    Ext.getCmp('fieldset-wh').setVisible(true);
+                    Ext.getCmp('fieldset-wh2').setVisible(false);
+                    Ext.getCmp('fieldset-sup').setVisible(false);
+                    Ext.getCmp('fieldset-site').findById('sit_nama_text').setValue(etc[0]['dest_kode']);
+                    Ext.getCmp('fieldset-site').findById('sit_nama_text').setRawValue(etc[0]['dest_nama']);
+                    Ext.getCmp('fieldset-site').findById('site_alamat_text').setValue(etc[0]['alamat']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_select_text').setValue(etc[0]['from_kode']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_select_text').setRawValue(etc[0]['from_nama']);
+                    Ext.getCmp('fieldset-wh').findById('gudang_text').setValue(etc[0]['alamat1']);
+                    flag_internal = 0;
+                }
+                else if (etc[0]['deliver_to'] == 'sup-site')
+                {
+                    Ext.getCmp('deliver_to_text').setValue(etc[0]['deliver_to']);
+                    Ext.getCmp('fieldset-site').setVisible(true);
+                    Ext.getCmp('fieldset-wh').setVisible(false);
+                    Ext.getCmp('fieldset-wh2').setVisible(false);
+                    Ext.getCmp('fieldset-sup').setVisible(true);
+                    Ext.getCmp('fieldset-site').findById('sit_nama_text').setValue(etc[0]['dest_kode']);
+                    Ext.getCmp('fieldset-site').findById('sit_nama_text').setRawValue(etc[0]['dest_nama']);
+                    Ext.getCmp('fieldset-site').findById('site_alamat_text').setValue(etc[0]['alamat']);
+                    //Ext.getCmp('fieldset-wh').findById('supplier_select_text').setValue(etc[0]['from_kode']);
+                    Ext.getCmp('supplier_select_text').setValue(etc[0]['from_kode']);
+                    //Ext.getCmp('fieldset-wh').findById('supplier_select_text').setRawValue(etc[0]['from_nama']);
+                    Ext.getCmp('supplier_select_text').setRawValue(etc[0]['from_nama']);
+                    //Ext.getCmp('fieldset-wh').findById('supplier_text').setValue(etc[0]['alamat1']);
+                    Ext.getCmp('supplier_text').setValue(etc[0]['alamat1']);
+                    flag_internal = 0;
+                    Ext.getCmp('fieldset-wh').findById('gudang_select_text').setValue(etc[0]['from_nama']);
+                }
+                Ext.getCmp('receiver_text').setValue(etc[0]['receiver_nama']);
+                Ext.getCmp('receiver_phone_text').setValue(etc[0]['receiver_tlp']);
+                prj_kode = etc[0]['prj_kode'];
+                if (etc[0]['deliver_to'] != null || etc[0]['deliver_to'] != undefined)
+                {
+                    Ext.getCmp('tanda-panah').setVisible(true);
+
+                }
+        <?php
+    }
+    ?>
+
+
+
+            storeDOR.loadData(json);
+            var groupStore = new Ext.data.GroupingStore({
+                id: 'group-store',
+                reader: new Ext.data.JsonReader({fields: prlist}),
+                groupField: 'trano',
+                sortInfo: {field: 'trano', direction: 'ASC'},
+            });
+            groupStore.loadData(json);
+            groupStore.each(function(store) {
+                submitPR(store.data['trano']);
+            });
+            groupStore = undefined;
+            Ext.getCmp('pr-detail-grid').getView().refresh();
+            Ext.getCmp('dor-grid').getView().refresh();
+
+    <?php
+}
+?>
+
+
+    });
+
+
+
+</script>
+
+<div id="user-form"></div>
+<div id="user-grid"></div>
+<div id="separator">
+    <div id="user-form2" style="float:left"></div>
+    <div class="sidebox" style="float:left;width:28em;">
+        <div class="boxhead"><h2>Available Qty</h2></div>
+        <div class="boxbody" id="a-qty"></div>
+    </div>
+</div>
+<div id="user-grid2" style="margin-top:10px;float:left;"></div>

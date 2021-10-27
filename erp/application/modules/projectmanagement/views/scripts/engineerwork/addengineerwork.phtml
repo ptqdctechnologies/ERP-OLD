@@ -1,0 +1,105 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var addengineerwork = new Ext.form.FormPanel ({
+
+            id:'add-new-engineer-work',
+            title:'Add New Engineer Work',
+            renderTo:'engineerworkform',
+            frame:true,
+            iconCls: 'silk-user',
+            width:400,
+            height:120,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'Work ID',
+                    name:'workid',
+                    msgTarget:'side',
+                    width:100,
+                    allowBlank:false
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Work Name',
+                    name:'workname',
+                    msgTarget:'side',
+                    width:260,
+                    allowBlank:false
+                }
+            ],
+            buttons:[
+                {
+                    text:'Submit',
+                    handler:function(btn,ev)
+                    {
+                        if (!Ext.getCmp('add-new-engineer-work').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }else
+                        {
+                            Ext.MessageBox.confirm(
+                                    'Confirm',
+                                    'Are you sure you want to do that?',
+                                    function(btn)
+                                    {
+                                        if (btn == 'yes')
+                                        {
+                                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                            Ext.getCmp('add-new-engineer-work').getForm().submit({
+                                                method:'POST',
+                                                url:'/projectmanagement/engineerwork/getaddengineerwork',
+                                                success:function(thisform,response){
+                                                    Ext.getBody().unmask();
+                                                    Ext.Msg.alert('success','New Engineer Work has ben saved');
+                                                    Panel = Ext.getCmp('abs-budget-panel');
+                                                    Panel.body.load ({
+                                                        url:'/projectmanagement/engineerwork/viewengineerwork',
+                                                        scripts:true
+                                                    })
+                                                },failure:function(thisfoem, response)
+                                                {
+                                                    Ext.getBody().unmask();
+                                                    if (response.failureType == 'server')
+                                                    {
+                                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                                        Ext.Msg.alert('Error',resp.pesan);
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    });
+                        }
+                    }
+                },{
+                    text:'Reset',
+                    handler:function (btn,ev)
+                    {
+                        addengineerwork.form.reset();
+                    }
+                },{
+                    text:'Cancel',
+                    handler:function (btn,ev)
+                    {
+                        Panel = Ext.getCmp('abs-budget-panel');
+                        Panel.body.load ({
+                            url:'/projectmanagement/engineerwork/viewengineerwork',
+                            scripts:true
+                        })
+                    }
+                }
+            ]
+
+        })
+
+
+    })
+
+</script>
+
+
+<div id="engineerworkform"></div>
+ 

@@ -1,0 +1,202 @@
+<script type="text/javascript">
+
+    var type = '<?=$this->type?>';
+    var startdate = '<?=$this->startdate?>';
+    var enddate = '<?=$this->enddate?>';
+    var ref_number = '<?=$this->ref_number?>';
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+//        console.log(type,startdate,enddate,ref_number);
+
+        var summary = new Ext.grid.GroupSummary();
+
+        var storegeneraljurnal = new Ext.ux.MultiGroupingStore({
+
+            url:'/finance/adjustingjournal/getgeneraljurnal/type/' + type + '/startdate/' + startdate + '/enddate/' + enddate + '/ref_number/' + ref_number,
+            autoLoad:true,
+            paramNames: {
+                dir: 'DESC',
+                sort: 'tgl'
+            },
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'id',type:'String'
+                    },{
+                        name:'trano',type:'String'
+                    },{
+                        name:'prj_kode',type:'String'
+                    },{
+                        name:'sit_kode',type:'String'
+                    },{
+                        name:'ref_number',type:'String'
+                    },{
+                        name:'tgl',type:'date',dateFormat : 'Y-m-d H:i:s'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'coa_kode'
+                    },{
+                        name:'coa_nama'
+                    },{
+                        name:'val_kode'
+                    },{
+                        name:'rateidr'
+                    },{
+                        name:'ket'
+                    },{
+                        name:'debit'
+                    },{
+                        name:'credit'
+                    }]
+                })
+            ,remoteGroup: true
+            ,sortInfo: {field: 'tgl', direction: 'DESC'}
+                ,groupField: ['trano','ref_number']
+            ,groupOnSort: false
+//            ,listeners: {
+//                'load': function(t,r,o){
+//                    console.log(r);
+//                }
+//            }
+            });
+
+        var groupView = new Ext.ux.MultiGroupingView({
+            hideGroupedColumn :true
+           ,enableRowBody:true
+           ,getRowClass:function(record, rowIndex, p, store) {
+            }
+           ,startCollapsed: false
+           ,forceFit: true
+           ,emptyGroupText: 'NULL'
+           ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+           ,groupTextTpl:
+                    '{text} <span style=\'color: red;\'>{gvalue}</span> ({[values.rs.length]} {[values.rs.length == 1 ? "Item" : "Items"]})' +
+                    '{[values.group == "ref_number" ? "&nbsp;&nbsp;<span style=\'color: black;\'>" + values.rs[0].data["ket"] + "</span>" : "" ]} '
+           ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+           });
+
+        var grid = new Ext.ux.MultiGroupingPanel({
+            stateful: false,
+            store: storegeneraljurnal,
+            frame: true,
+            renderTo: 'grid-jurnal',
+            columns: [{
+                    header: 'Trans. No.',
+                    width: 120,
+                    sortable: true,
+                    dataIndex: 'trano'
+                },{
+                    header: 'Ref Number',
+                    width: 320,
+                    sortable: true,
+                    dataIndex: 'ref_number'
+                },{
+                    header:'Date',
+                    sortable:true,
+                    dataIndex: 'tgl',
+                    renderer: Ext.util.Format.dateRenderer('d M Y')
+                },{
+                    header:'Coa code',
+                    width: 80,
+                    sortable: true,
+                    dataIndex:'coa_kode'
+                },{
+                    header:'Coa name',
+                    sortable: true,
+                    dataIndex:'coa_nama'
+                },{
+                    header:'Valuta',
+                    sortable: true,
+                    align: 'right',
+                    dataIndex:'val_kode'
+                },{
+                    header:'Debit',
+                    sortable:true,
+                    dataIndex:'debit',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                },{
+                    header:'Credit',
+                    sortable:true,
+                    dataIndex:'credit',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+                },{
+                    header:'Project Code',
+                    width: 80,
+                    sortable: true,
+                    dataIndex:'prj_kode',
+                    align:'center'
+                },{
+                    header:'Site Code',
+                    width: 80,
+                    sortable: true,
+                    dataIndex:'sit_kode',
+                    align:'center'
+                }
+//                {
+//                    header: 'Description',
+//                    width: 350,
+//                    sortable: true,
+//                    dataIndex: 'name'
+//                },
+//                {
+//                    header: 'Currency',
+//                    width: 80,
+//                    sortable: true,
+//                    dataIndex: 'val_kode'
+//                },
+//                {
+//                    header: 'Total',
+//                    width: 220,
+//                    sortable: true,
+//                    dataIndex: 'total',
+//                    align: 'right',
+//                    renderer: function(v,p,r){
+//                        if (v < 0)
+//                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+//                        else
+//                            var value = Ext.util.Format.number(v,'?0,000.00');
+//                        return value;
+//                    },
+//                    summaryType: 'sum'
+//                }
+            ],
+            view : groupView,
+            plugins: summary,
+            loadMask: true,
+            height: 450,
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-jurnal',
+                pageSize: 10,
+                store: storegeneraljurnal,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        });
+
+    })
+
+</script>
+
+    <div id="grid-jurnal"></div>

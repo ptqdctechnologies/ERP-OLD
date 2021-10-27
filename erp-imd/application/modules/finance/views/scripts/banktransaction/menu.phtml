@@ -1,0 +1,166 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var windowForm = ({
+            title: 'Bank Transaction',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [{
+                    xtype: 'tbbutton',
+                    text: 'Select Action',
+                    iconCls: 'menu-drop',
+                    menu: {
+                        items: [{
+                                text: 'Bank Receive Money',
+                                id: 'insert-bank-in',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/action_paste.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/insertbankin',
+                                        scripts: true
+                                    });
+                                }
+                            }, {
+                                text: 'Edit Bank Receive Money',
+                                id: 'edit-bank-in',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/page_edit.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/edit-bankin',
+                                        scripts: true
+                                    });
+                                }
+                            }, {
+                                text: 'Bank Spend Money',
+                                id: 'insert-bank-out',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/action_paste.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/insertbankout',
+                                        scripts: true
+                                    });
+                                }
+                            }, {
+                                text: 'Edit Bank Spend Money',
+                                id: 'edit-bank-out',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/page_edit.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/edit-bankout',
+                                        scripts: true
+                                    });
+                                }
+                            }
+                            , {
+                                text: 'Bank Charges',
+                                id: 'bank-charges',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/action_paste.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/insertbankcharges',
+                                        scripts: true
+                                    });
+                                }
+                            },
+                            {
+                                text: 'Edit Bank Charges',
+                                id: 'edit-bank-charges',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/page_edit.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/edit-bankcharges',
+                                        scripts: true
+                                    });
+                                }
+                            },
+                            {
+                                text: 'Verify and Approval Bank Charges',
+                                id: 'vap-bank-charges',
+                                cls: "x-btn-text-icon",
+                                icon:"/images/icons/fam/page_script.gif",
+                                handler: function()
+                                {
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/vapbankcharges',
+                                        scripts: true
+                                    });
+                                }
+                            }
+                        ]
+                    }
+                }]
+
+        })
+        
+        function getExchangeRate()
+        {
+            Ext.Ajax.request({
+                url: '/default/valuta/getexchangerate/val_kode/USD',
+                method: 'POST',
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        if(returnData.rate == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Input Current IDR Rate. Thank You.',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR,
+                                fn:function(){window.location='';}
+                            });
+                        }
+                    
+                        Ext.getCmp('rateidr').setValue(returnData.rate);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }
+                }
+            });
+        }
+        getExchangeRate();
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+</script>

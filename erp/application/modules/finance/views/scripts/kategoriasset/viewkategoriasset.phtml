@@ -1,0 +1,157 @@
+<script type="text/javascript">
+
+    function editkategori (kode)
+    {
+        myPanel = Ext.getCmp('abs-budget-panel');
+        myPanel.body.load({
+            url: '/finance/kategoriasset/editkategoriasset/kode/' + kode,
+            scripts : true
+        });
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var kategoristore = new Ext.data.Store ({
+
+            id:'store-kategori',
+            url:'/finance/kategoriasset/getkategoriasset',
+            autoLoad:true,
+                reader:new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'kode_ktfa'
+                    },{
+                        name:'nama'
+                    },{
+                        name:'coa_debit'
+                    },{
+                        name:'coa_credit'
+                    }]
+                })
+        })
+
+        var kategorigrid = new Ext.grid.GridPanel ({
+
+            store:kategoristore,
+            height:300,
+            renderTo:'grid-kategori',
+            frame:true,
+            id:'grid_kategori',
+            viewConfig:{
+                forceFit:true
+            },
+            columns:[new Ext.grid.RowNumberer(),{
+                header: "Edit",
+                width: 40,
+                dataIndex: 'id',
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                    return '<a href="#" onclick="editkategori(\'' + r.data['kode_ktfa'] + '\')"><img src="/images/g_rec_upd.png"></a>';
+                },
+                align:'center'
+            },{
+                header:'Code',
+                dataIndex:'kode_ktfa',
+                align:'center',
+                sortable:true
+            },{
+                header:'Kategori Name',
+                dataIndex:'nama',
+                align:'center',
+                sortable:true
+            },{
+                header:'COA Debit',
+                dataIndex:'coa_debit',
+                align:'center',
+                sortable:true
+            },{
+                header:'COA Credit',
+                dataIndex:'coa_credit',
+                align:'center',
+                sortable:true
+            }],bbar:new Ext.PagingToolbar ({
+                id: 'paging-kategori',
+                pageSize: 20,
+                store: kategoristore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),tbar:[{
+                text:'Search By',
+                xtype:'label',
+                style:'margin-left:5px'
+            },'-',{
+                xtype: 'combo',
+                width: 100,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['Code','kode_ktfa'],
+                            ['Name','nama']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                value:'kode_ktfa',
+                id:'option'
+            },{
+                xtype:'textfield',
+                id:'search',
+                style:'margin-left:10px',
+                enableKeyEvents:true,
+                width:100,
+                listeners:{
+                    'keyup' : function (txttext,event)
+                    {
+                        var txttext = txttext.getValue();
+                        if (txttext != "" && txttext.toString().length >= 3)
+                        {
+                            var option = Ext.getCmp('option').getValue();
+                            var search = Ext.getCmp('search').getValue();
+
+                            kategoristore.proxy.url= '/finance/kategoriasset/getkategoriasset/search/' + search + '/option/' + option;
+                            kategoristore.proxy.setUrl('/finance/kategoriasset/getkategoriasset/search/' + search + '/option/' + option);
+                            kategoristore.proxy.api.read['url']= '/finance/kategoriasset/getkategoriasset/search/' + search + '/option/' + option;
+                            kategoristore.load();
+                            kategorigrid.getView().refresh();
+                        }
+                    }
+                }
+            },'-',{
+                xtype: 'button',
+                text : 'Refresh',
+                id: 'refresh_button',
+                iconCls:"silk-table-refresh" ,
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('search').setValue('');
+                    Ext.getCmp('option').setValue('Code');
+                    kategoristore.proxy.url= '/finance/kategoriasset/getkategoriasset';
+                    kategoristore.proxy.setUrl('/finance/kategoriasset/getkategoriasset');
+                    kategoristore.proxy.api.read['url']= '/finance/kategoriasset/getkategoriasset';
+                    kategoristore.load();
+                    kategorigrid.getView().refresh();
+                }
+            }]
+
+
+        })
+
+
+    })
+
+
+
+</script>
+
+    <div id="grid-kategori"></div>

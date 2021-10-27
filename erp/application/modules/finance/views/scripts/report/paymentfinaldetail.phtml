@@ -1,0 +1,532 @@
+<script type="text/javascript">
+
+    Ext.onReady(function () {
+
+        Ext.QuickTips.init();
+
+        function showsupplier()
+        {
+            var storesupplier = new Ext.data.Store({
+                url: '/logistic/logistic/getviewsupplier',
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'id'
+                        }, {
+                            name: 'sup_kode'
+                        }, {
+                            name: 'sup_nama'
+                        }]
+                })
+
+            })
+
+            var gridsupplier = new Ext.grid.GridPanel({
+                store: storesupplier,
+                height: 300,
+                viewConfig: {
+                    forceFit: true
+                },
+                columns: [new Ext.grid.RowNumberer(),
+                    {
+                        header: 'Supplier Code',
+                        dataIndex: 'sup_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Supplier Name',
+                        dataIndex: 'sup_nama',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging-supplier',
+                    pageSize: 30,
+                    store: storesupplier,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, '-', {
+                        xtype: 'combo',
+                        id: 'option-supplier',
+                        width: 100,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['nilai', 'name'],
+                            data: [
+                                [1, 'Supplier Code'],
+                                [2, 'Supplier Name']
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 1
+                    }, '-', {
+                        xtype: 'textfield',
+                        id: 'search-supplier',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function (txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var optionrefnumber = Ext.getCmp('option-supplier').getValue();
+                                    var searchrefnumber = Ext.getCmp('search-supplier').getValue();
+
+                                    storesupplier.proxy.url = '/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                                    storesupplier.proxy.setUrl('/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber);
+                                    storesupplier.proxy.api.read['url'] = '/logistic/logistic/getviewsupplier/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                                    storesupplier.load();
+                                    gridsupplier.getView().refresh();
+                                }
+                            }
+                        }
+                    }], listeners: {
+                    'rowdblclick': function (gridaktif, rowIndex, e)
+                    {
+                        isDbClick = true;
+
+                        var supplier = gridaktif.getStore().getAt(rowIndex);
+
+                        var sup_kode = supplier.get('sup_kode');
+
+                        Ext.getCmp('supplier').setValue(sup_kode);
+
+                        windowsupplier.close();
+                    }
+                }
+
+            })
+
+            var windowsupplier = new Ext.Window({
+                title: 'Choose Supplier',
+                id: 'choose-supplier',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask: true,
+                items: [gridsupplier]
+
+            })
+
+            windowsupplier.show();
+        }
+
+        function showwindow(type)
+        {
+            var storetrano = new Ext.data.Store({
+                url: '/finance/report/getstoretrano/type/' + type,
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'trano', type: 'String'
+                        }, {
+                            name: 'prj_kode', type: 'String'
+                        }, {
+                            name: 'sit_kode', type: 'String'
+                        }, {
+                            name: 'request', type: 'String'
+                        }, {
+                            name: 'description', type: 'String'
+                        }, {
+                            name: 'total'
+                        }, {
+                            name: 'valuta', type: 'String'
+                        }, {
+                            name: 'ppn'
+                        }]
+                })
+
+            })
+
+            var gridtrano = new Ext.grid.GridPanel({
+                store: storetrano,
+                height: 300,
+                viewConfig: {
+                    forceFit: true
+                },
+                columns: [new Ext.grid.RowNumberer(),
+                    {
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Project Code',
+                        dataIndex: 'prj_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Site Code',
+                        dataIndex: 'sit_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging-trano',
+                    pageSize: 40,
+                    store: storetrano,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, '-', {
+                        xtype: 'combo',
+                        id: 'option-trano',
+                        width: 100,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['nilai', 'name'],
+                            data: [
+                                ['trano', 'Trano'],
+                                ['prj_kode', 'Project Code'],
+                                ['sit_kode', 'Site Code']
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 'trano'
+                    }, '-', {
+                        xtype: 'textfield',
+                        id: 'search-trano',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function (txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var optionrefnumber = Ext.getCmp('option-trano').getValue();
+                                    var searchrefnumber = Ext.getCmp('search-trano').getValue();
+
+                                    storetrano.proxy.url = '/finance/bankpaymentvoucher/getstorerefnumber/type/' + type + '/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                                    storetrano.proxy.setUrl('/finance/bankpaymentvoucher/getstorerefnumber/type/' + type + '/search/' + searchrefnumber + '/option/' + optionrefnumber);
+                                    storetrano.proxy.api.read['url'] = '/finance/bankpaymentvoucher/getstorerefnumber/type/' + type + '/search/' + searchrefnumber + '/option/' + optionrefnumber;
+                                    storetrano.load();
+                                    gridtrano.getView().refresh();
+                                }
+                            }
+                        }
+                    }],
+                listeners: {
+                    'rowdblclick': function (gridaktif, rowIndex, e)
+                    {
+                        isDbClick = true;
+
+                        var trans = gridaktif.getStore().getAt(rowIndex);
+
+                        var trano = trans.get('trano');
+
+                        Ext.getCmp('trano').setValue(trano);
+
+                        windowtrano.close();
+                    }
+                }
+
+            })
+
+            var windowtrano = new Ext.Window({
+                title: 'Choose Trano',
+                id: 'choose-trano',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask: true,
+                items: [gridtrano]
+//            listeners:{
+//                'beforeclose' :function (panel)
+//                {
+////                    Ext.getCmp('pulsa').setValue(false);
+//                }
+//            }
+
+            })
+
+            windowtrano.show();
+        }
+
+        function exportToExcel() {
+
+            var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+            var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+            var type = Ext.getCmp('type').getValue();
+            var trano = Ext.getCmp('trano').getValue();
+            var supplier = Ext.getCmp('supplier').getValue();
+            var year = Ext.getCmp('year').getValue();
+            if (year)
+            {
+                var D = Ext.calendar.Date;
+                year = D.formatDate(year, 'mm yyyy');
+            }
+
+            errorMsg = '';
+
+            if (type == '')
+                errorMsg += '- Transaction Type field is required <br />';
+
+            if (errorMsg != '') {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: errorMsg,
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+            location.href = '/finance/report/getstorepaymentfinaldetail/type/' + type + '/trano/' + trano + '/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode + '/supplier/'
+                    + supplier + '/export/true' + '/year/' + year;
+
+        }
+
+        var windowForm = ({
+            title: 'Payment Final Approve Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {// configured using the anchor layout
+                    xtype: 'container',
+                    layout: 'anchor',
+                    height: 27 * 2,
+                    defaults: {height: 27, anchor: '100%'},
+                    items: [
+                        new Ext.Toolbar({
+                            id: 'primary_toolbar',
+                            autoWidth: true,
+                            items: [
+                                {
+                                    xtype: 'tbtext',
+                                    text: 'Type',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'combo',
+                                    width: 80,
+                                    id: 'type',
+                                    store: new Ext.data.SimpleStore({
+                                        fields: ['nilai', 'name'],
+                                        data: [
+                                            ['RPI', 'RPI'],
+                                            ['ARF', 'ARF'],
+                                            ['REM', 'REM'],
+                                            ['BRF', 'BRF'],
+                                            ['PPNREM', 'PPNREM']
+                                        ]
+                                    }),
+                                    valueField: 'nilai',
+                                    displayField: 'name',
+                                    typeAhead: true,
+                                    forceSelection: true,
+                                    editable: false,
+                                    mode: 'local',
+                                    triggerAction: 'all',
+                                    selectOnFocus: true
+                                }, '-', {
+                                    xtype: 'tbtext',
+                                    text: 'Trano',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'trigger',
+                                    triggerClass: 'teropong',
+                                    editable: false,
+                                    id: 'trano',
+                                    onTriggerClick: function ()
+                                    {
+                                        var type = Ext.getCmp('type').getValue();
+
+                                        if (type == '')
+                                        {
+                                            Ext.Msg.alert('Error', 'Please Select Transaction Type ');
+                                        } else {
+
+                                            showwindow(type);
+                                        }
+                                    }
+                                }, '-', {
+                                    xtype: 'tbtext',
+                                    text: 'Project Code',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'projectselectorreport',
+                                    anchor: '100%',
+                                    id: 'project-select',
+                                    Selectid: 'prj_kode_text',
+                                    Nameid: 'prj_nama_text',
+                                    ShowName: false,
+                                    showAll: true
+                                }, '-', {
+                                    xtype: 'tbtext',
+                                    text: 'Site Code',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'siteselector',
+                                    anchor: '100%',
+                                    independent: false,
+                                    id: 'site-select',
+                                    SiteSelectid: 'sit_kode_text',
+                                    SiteNameid: 'sit_nama_text',
+                                    ProjectSelectid: 'prj_kode_text',
+                                    ShowName: false,
+                                    showAll: true
+                                }, '-', {
+                                    xtype: 'tbtext',
+                                    text: 'Supplier',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'trigger',
+                                    triggerClass: 'teropong',
+                                    editable: false,
+                                    id: 'supplier',
+                                    width: 80,
+                                    onTriggerClick: function ()
+                                    {
+                                        var type = Ext.getCmp('type').getValue();
+
+                                        if (type != 'RPI')
+                                        {
+                                            Ext.Msg.alert('Error', 'Please Select Transaction Type to RPI ');
+                                        } else {
+
+                                            showsupplier();
+                                        }
+                                    }
+                                }, {
+                                    xtype: 'button',
+                                    text: 'Show',
+                                    width: 70,
+                                    id: 'show_report',
+                                    cls: "x-btn-text-icon",
+                                    icon: "/images/icons/fam/control_rewind.png",
+                                    handler: function (btn, ev)
+                                    {
+                                        var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                                        var sit_kode = Ext.getCmp('sit_kode_text').getValue();
+                                        var type = Ext.getCmp('type').getValue();
+                                        var trano = Ext.getCmp('trano').getValue();
+                                        var supplier = Ext.getCmp('supplier').getValue();
+                                        var year = Ext.getCmp('year').getValue();
+                                        
+                                        if (year)
+                                        {
+                                            var D = Ext.calendar.Date;
+                                            year = D.formatDate(year, 'mm yyyy');
+                                        }
+
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/finance/report/viewpaymentfinaldetail/type/' + type + '/trano/' + trano + '/prj_kode/' + prj_kode + '/sit_kode/' + sit_kode +
+                                                    '/supplier/' + supplier + '/year/' + year,
+                                            scripts: true
+                                        });
+                                    }
+                                }, '-', {
+                                    xtype: 'button',
+                                    text: 'Clear',
+                                    width: 70,
+                                    cls: "x-btn-text-icon",
+                                    icon: "/images/icons/fam/control_rewind.png",
+                                    id: 'clear',
+                                    handler: function (btn, ev)
+                                    {
+                                        Ext.getCmp('prj_kode_text').setValue('');
+                                        Ext.getCmp('sit_kode_text').setValue('');
+                                        Ext.getCmp('type').setValue('');
+                                        Ext.getCmp('trano').setValue('');
+                                        Ext.getCmp('supplier').setValue('');
+                                    }
+                                }
+                            ]
+                        }),
+                        new Ext.Toolbar({
+                            id: 'secondary_toolbar',
+                            autoWidth: true,
+                            items: [{
+                                    xtype: 'tbtext',
+                                    text: 'Year',
+                                    style: 'font-weight:bold;margin-left:10px;'
+                                }, '-', {
+                                    xtype: 'datefield',
+                                    name: 'year',
+                                    id: 'year',
+                                    allowBlank: false,
+                                    msgTarget: 'side',
+                                    format: 'M Y', // or other format you'd like
+                                    plugins: 'monthPickerPlugin'
+                                }, '-',
+                                {
+                                    xtype: 'button',
+                                    id: 'print_button',
+                                    text: 'Export To Xls',
+                                    cls: "x-btn-text-icon",
+                                    icon: "/images/print.png",
+                                    handler: function ()
+                                    {
+                                        exportToExcel();
+                                    }
+                                }
+                            ]
+                        })
+                    ]
+                }
+            ]
+//               ]
+
+        })
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function (c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+
+</script>

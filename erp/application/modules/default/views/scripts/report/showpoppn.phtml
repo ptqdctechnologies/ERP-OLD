@@ -1,0 +1,151 @@
+<script type="text/javascript">
+
+ showPoppn = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+            stgl1 = Ext.util.Format.date(Ext.getCmp('tgl1_text').getValue(),'Y-m-d');
+            stgl2 = Ext.util.Format.date(Ext.getCmp('tgl2_text').getValue(),'Y-m-d');
+            
+            if (stgl1 == '')
+            {
+			Ext.MessageBox.show({
+		           title: 'Error',
+		           msg: 'Please Insert/Select Date!',
+		           buttons: Ext.MessageBox.OK,
+		           icon: Ext.MessageBox.ERROR
+		       });
+			 return false;
+
+            }
+
+            if (stgl2 == '')
+            {
+			Ext.MessageBox.show({
+		           title: 'Error',
+		           msg: 'Please Insert/Select Date!',
+		           buttons: Ext.MessageBox.OK,
+		           icon: Ext.MessageBox.ERROR
+		       });
+			 return false;
+
+            }
+
+	    urlLoad = '/report/poppn/tgl1/' + stgl1 + '/tgl2/' + stgl2 ;
+
+	    myPanel.body.load({
+	        url: urlLoad,
+	        scripts:true
+
+	});
+	}
+
+var datas = new Ext.data.SimpleStore({
+    fields:['type','name']
+            ,data:[['pdf','PDF'],['xls','Excel']]
+        });
+
+var combo=new Ext.form.ComboBox({
+    fieldLabel: 'Export'
+    ,name:'showReport'
+    ,store: datas
+    ,valueField:'type'
+    ,displayField:'name'
+    ,typeAhead: true
+    ,mode: 'local'
+    ,triggerAction: 'all'
+    ,value:'pdf'
+    ,selectOnFocus:true
+    ,anchor:'95%'
+    ,hiddenName:'type'
+    ,width:70
+
+});
+
+exportReport = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    stgl1 = Ext.util.Format.date(Ext.getCmp('tgl1_text').getValue(),'Y-m-d');
+    stgl2 = Ext.util.Format.date(Ext.getCmp('tgl2_text').getValue(),'Y-m-d');
+    if (stgl1 == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Insert/Select Date!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+
+	}
+	if (combo.getRawValue() == '')
+	{
+		Ext.MessageBox.show({
+	           title: 'Error',
+	           msg: 'Please Select Format!',
+	           buttons: Ext.MessageBox.OK,
+	           icon: Ext.MessageBox.ERROR
+	       });
+		 return false;
+	}
+	else
+	{
+		urlLoad =  '/jasper/poppn/tgl1/' + stgl1 + '/tgl2/'+ stgl2 + '/type/' + combo.getValue();
+	}
+
+    window.open(urlLoad,'mywin',
+    'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+};
+
+var windowForm =  ({
+    title: 'PO Tax\n\
+ Summary Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Date'
+        },  
+        {
+            xtype: 'datefield',
+            id: 'tgl1_text'                 
+        },'To',
+        {
+            xtype: 'datefield',
+            id: 'tgl2_text'               
+        },
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showPoppn
+        },
+        '-'
+        ,
+        combo,
+        {
+            xtype: 'button',
+            id: 'export_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/print.png",
+            handler:exportReport
+        }
+    ]
+});
+
+viewPort = Ext.getCmp('viewport');
+  
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>
+
+

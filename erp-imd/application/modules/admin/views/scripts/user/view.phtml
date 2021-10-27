@@ -1,0 +1,428 @@
+<?php
+/* 
+Created @ Mar 30, 2010 11:09:48 AM
+ */
+
+?>
+<script type="text/javascript">
+
+var App = new Ext.App({});
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/user/list',
+        create : '/admin/user/list',
+        update: '/admin/user/list',
+        destroy: '/admin/user/list'
+    }
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    root: 'posts'
+}, [
+    {name: 'id'},
+    {name: 'uid'},
+    {name: 'name'},
+    {name: 'npk'},
+    {name: 'is_admin'},
+    {name: 'last_login'}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+// Typical Store collecting the Proxy, Reader and Writer together.
+var store = new Ext.data.Store({
+    id: 'user_list',
+    proxy: proxy,
+    reader: reader,
+    writer: writer,
+    autoSave: true
+});
+
+
+store.load();
+
+
+var submitForm = function(){  
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+		
+	Ext.getCmp('user-pop-up-panel').getForm().submit({
+		url: '/admin/user/update/id/'+index.id,
+		success: function(form, action){
+    		Ext.MessageBox.show({
+  	           title: 'Info',
+  	           msg: 'User has been updated!',
+  	           buttons: Ext.MessageBox.OK,
+  	           icon: Ext.MessageBox.INFO
+  	       });
+    		thisGrid.getStore().reload();
+    		Ext.getCmp('user-pop-up').close();    
+		},
+		failure: function(form, action){
+			Ext.MessageBox.show({
+	  	           title: 'Error',
+	  	           msg: 'Error!',
+	  	           buttons: Ext.MessageBox.OK,
+	  	           icon: Ext.MessageBox.ERROR
+	  	       });
+		}
+		
+    	});
+	};
+
+	var submitForm2 = function(){  
+		var thisGrid = Ext.getCmp('grid_user');
+				
+    	
+    	Ext.getCmp('user-pop-up-panel2').getForm().submit({
+			url: '/admin/user/add/',
+			success: function(form, action){
+	    		Ext.MessageBox.show({
+	  	           title: 'Info',
+	  	           msg: 'User has been Added!',
+	  	           buttons: Ext.MessageBox.OK,
+	  	           icon: Ext.MessageBox.INFO
+	  	       });
+	    		thisGrid.getStore().reload();
+	    		Ext.getCmp('user-pop-up').close();    
+    		},
+    		failure: function(form, action){
+    			if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error', obj.errors.reason);
+                }else{
+                    Ext.Msg.alert('Warning!', 'Authentication server is unreachable : ' + action.response.responseText);
+                }
+    		}
+    		
+        	});
+		};
+    
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns =  [
+    new Ext.grid.RowNumberer(),
+    {header: "Username / UID", width: 100, sortable: true, dataIndex: 'uid', editor: textField},
+    {header: "Name", width: 150, sortable: true, dataIndex: 'name', editor: textField},
+    {header: "NPK", width: 100, sortable: true, dataIndex: 'npk', editor: textField},
+    {header: "Admin", width: 50, sortable: true, dataIndex: 'is_admin', renderer: function(v,p,r){
+        if (v == '1')
+            return '<img src="/images/lov_select.gif">';
+        else
+            return '<img src="/images/lov_cancel.gif">';
+    }},
+    {header: "Last Login", width: 140, sortable: true, dataIndex: 'last_login'}
+];
+
+var handlerPopUp = function(type){
+
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+	
+
+	if (!index) {
+	    return false;
+	}
+
+	var userPopUp = new Ext.Window({
+	    id: 'user-pop-up',
+	    layout: 'fit',
+	    width: 400,
+	    height: 250,
+        modal: true,
+	    items : [
+        {
+            id: 'user-pop-up-panel',
+            xtype: 'form',
+            padding: 10,
+            frame:true,
+            items : [
+                     new Ext.form.TextField({
+                        id:"uid",
+                        name:"uid",
+                        fieldLabel:"Username / UID",
+                        width:150,
+                        enableKeyEvents:true
+                     }),
+//                      new Ext.form.TextField({
+//                         id:"name",
+//                         name:"name",
+//                         fieldLabel:"Name",
+//                         width:150,
+//                         enableKeyEvents:true
+//                      }),
+                        new Ext.form.TextField({
+                           id:"npk",
+                           name:"npk",
+                           fieldLabel:"NPK",
+                           width:150,
+                           enableKeyEvents:true
+                        }),
+                        {
+                            xtype: 'checkbox'
+                            ,id:'is_admin'
+                            ,name : 'is_admin'
+                            ,fieldLabel: 'Is Admin ?'
+                            ,trueText: '1'
+                            ,falseText: '0'
+                        }
+                        ] ,
+             buttons: [ {
+                    id:"save_edit",
+                    xtype:"button",
+                    text:"Save",
+                    handler: submitForm
+                },
+                {
+                    id:"cancel_edit",
+                    xtype:"button",
+                    text:"Cancel",
+                    handler: function() {
+                        Ext.getCmp('user-pop-up').close();
+                    }
+                }]
+
+        }
+        ],
+        closeAction: 'close',
+	    stateful: false
+	});
+	
+	userPopUp.title = 'Edit User';
+    userPopUp.show();
+    var popUpPanel = Ext.getCmp('user-pop-up-panel');
+    var rec = Ext.getCmp('grid_user').getSelectionModel().getSelected();
+    popUpPanel.getForm().loadRecord(rec);
+//    popUpPanel.getForm().load({url:'/admin/user/get/id/'+index.id, waitMsg:'Loading...'});
+	
+};
+
+var handlerPopUp2 = function(){
+
+	var thisGrid = Ext.getCmp('grid_user');
+	
+	var userPopUp = new Ext.Window({
+	    id: 'user-pop-up',
+	    layout: 'fit',
+	    width: 400,
+	    height: 250,
+        closeAction: 'close',
+        modal: true,
+	    items : [
+        {
+            id: 'user-pop-up-panel2',
+            xtype: 'form',
+            padding: 10,
+            frame:true,
+            items : [
+
+                     new Ext.form.TextField({
+                        id:"uid",
+                        name:"uid",
+                        fieldLabel:"Username / UID",
+                        width:150,
+                        enableKeyEvents:true
+                     }),
+                      new Ext.form.TextField({
+                         id:"name",
+                         name:"name",
+                         fieldLabel:"Name",
+                         width:150,
+                         enableKeyEvents:true
+                      }),
+                      new Ext.form.TextField({
+                        id:"password",
+                        name:"password",
+                        fieldLabel:"Password",
+                        width:150,
+                        inputType :'password',
+                        allowBlank : false, 
+                        enableKeyEvents:true
+                        }),
+                        new Ext.form.TextField({
+                           id:"npk",
+                           name:"npk",
+                           fieldLabel:"NPK",
+                           width:150,
+                           enableKeyEvents:true
+                        }),
+                        {
+                            xtype: 'checkbox'
+                            ,id:'is_admin'
+                            ,name : 'is_admin'
+                            ,fieldLabel: 'Is Admin ?'
+                            ,trueText: '1'
+                            ,falseText: '0'
+                        }
+                        ] ,
+             buttons: [ {
+                    id:"save_edit",
+                    xtype:"button",
+                    text:"Save",
+                    handler: submitForm2
+                },
+                {
+                    id:"cancel_edit",
+                    xtype:"button",
+                    text:"Cancel",
+                    handler: function() {
+                        Ext.getCmp('user-pop-up').close();
+                    }
+                }]
+
+        }
+
+        ],
+	    stateful: false
+	});
+	userPopUp.title = 'Add User';
+    userPopUp.show();
+	
+};
+
+var handlerPopUp3 = function (){
+	var thisGrid = Ext.getCmp('grid_user');
+	var index = thisGrid.getSelectionModel().getSelected();
+	Ext.Msg.confirm('Confirm', 'Do You want to remove this User?', function(btn){
+	    if (btn == 'yes'){
+	    	var conn = new Ext.data.Connection();
+	    	conn.request({
+	    	    url: '/admin/user/delete/id/'+index.id,
+	    	    method: 'POST',
+	    	    success: function(responseObject) {
+	    			Ext.Msg.alert('Success','User has been removed!');
+	    			thisGrid.getStore().reload();
+	    	    },
+	    	     failure: function(responseObject) {
+	    	    	if(action.failureType == 'server'){
+	                    obj = Ext.util.JSON.decode(responseObject.responseText);
+	                    Ext.Msg.alert('Error', obj.errors.reason);
+	                }else{
+	                    Ext.Msg.alert('Warning!', 'Authentication server is unreachable : ' + action.response.responseText);
+	                }
+	    	     }
+	    	});
+	    }
+	});
+		
+}
+
+var selModel = new Ext.grid.RowSelectionModel();
+
+var userGrid = new Ext.grid.GridPanel({
+        id: 'grid_user',
+        store: store,
+        height: 450,
+        columns : userColumns,
+        loadMask: true,
+        selModel: selModel,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 50,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        tbar:[{
+            text: 'Add',
+            iconCls: 'silk-add',
+            handler: handlerPopUp2,
+            scope: this
+        }, '-', {
+            text: 'Delete',
+            iconCls: 'silk-del',
+            handler: handlerPopUp3,
+            scope: this
+        }, '-', {
+            text: 'Edit',
+            iconCls: 'silk-upd',
+            handler: handlerPopUp,
+            scope: this
+        }],
+    listeners: {
+
+
+    }
+
+
+    });
+
+
+
+
+
+var searchUserByName = function(field,e){
+	newUrl = '/admin/user/listbyparam/data/' + field.getValue();    
+	proxies = Ext.getCmp('grid_user').getStore();
+    proxies.proxy = new Ext.data.HttpProxy({
+        url: newUrl
+         });
+    Ext.getCmp('grid_user').getStore().reload();
+}
+
+var userForm = new Ext.form.FormPanel({
+    title: 'User Administration',
+    id:'user-form',
+//    layout:'fit',
+    frame: true,
+    items: [
+//        {
+//        x: 0,
+//        y: 0,
+//        xtype: 'label',
+//        text: 'Username:'
+//    },
+//         new Ext.form.TextField({
+//            id:"user_name",
+//            x:80,
+//            y:0,
+//            width:150,
+//            enableKeyEvents:true,
+//            listeners: {
+//                keyup: searchUserByName}
+//         }),
+        {
+            xtype: 'textfield',
+            fieldLabel: 'Search Username',
+            width:150,
+            enableKeyEvents:true,
+            listeners: {
+                keyup: searchUserByName
+            }
+        },
+         userGrid ]
+    });
+
+ 
+
+
+var myPanel = ({
+
+    id: 'panel-baru',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    items: userForm
+});
+
+ viewPort = Ext.getCmp('viewport');
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(myPanel);
+ panelBaru = Ext.getCmp('panel-baru');
+ centerRegionTab.layout.setActiveItem('panel-baru');
+
+</script>
+
+<div id="user-form"></div>
+
+<div id="user-grid"></div>

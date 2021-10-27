@@ -1,0 +1,197 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+//        console.log(type,startdate,enddate,ref_number);
+
+        var summary = new Ext.grid.GroupSummary();
+
+        var storegeneraljurnal = new Ext.ux.MultiGroupingStore({
+            paramNames: {
+                dir: 'DESC',
+                sort: 'tgl'
+            },
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+//                totalProperty:'total',
+                fields:[{
+                    name:'id'
+                },{
+                    name:'trano',type:'String'
+                },{
+                    name:'prj_kode',type:'String'
+                },{
+                    name:'sit_kode',type:'String'
+                },{
+                    name:'arf_no',type:'String'
+                },{
+                    name:'tgl',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'tgl_akhir',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'uid'
+                },{
+                    name:'username'
+                },{
+                    name:'val_kode'
+                },{
+                    name:'rateidr'
+                },{
+                    name:'total_bayar'
+                },{
+                    name:'total_settle'
+                },{
+                    name:'total_settle_cancel'
+                },{
+                    name:'balance'
+                },{
+                    name:'bt'
+                }]
+            })
+            ,sortInfo: {field: 'tgl', direction: 'DESC'}
+            ,groupField: ['username','arf_no']
+            ,groupOnSort: false
+        });
+
+        storegeneraljurnal.loadData(<?=$this->json?>);
+
+        var groupView = new Ext.ux.MultiGroupingView({
+            hideGroupedColumn :true
+            ,enableRowBody:true
+            ,getRowClass:function(record, rowIndex, p, store) {
+//                return 'x-grid3-row-with-body3';
+            }
+            ,startCollapsed: false
+            ,forceFit: true
+            ,emptyGroupText: 'NULL'
+            ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+            ,groupTextTpl:
+                '{gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Item" : "Items"]})' +
+                    '{[values.group == "arf_no" ? (values.rs[0].data["bt"] == true ? "&nbsp;&nbsp;<span style=\'color: red;\'>(Bussiness Trip)</span>" : "") : "" ]} '
+            ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+        });
+
+        var grid = new Ext.ux.MultiGroupingPanel({
+            stateful: false,
+            store: storegeneraljurnal,
+            frame: false,
+//            renderTo: 'grid-jurnal',
+            columns: [
+            {
+                header: 'Person',
+                width: 150,
+                sortable: true,
+                dataIndex: 'username'
+            },{
+                header: 'ARF No',
+                width: 120,
+                sortable: true,
+                dataIndex: 'arf_no'
+            },{
+                header:'Start Date',
+                sortable:true,
+                dataIndex: 'tgl',
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Due Date',
+                sortable:true,
+                dataIndex: 'tgl_akhir',
+                renderer: Ext.util.Format.dateRenderer('d M Y')
+            },{
+                header:'Project Code',
+                width: 80,
+                sortable: true,
+                dataIndex:'prj_kode',
+                align:'center'
+            },{
+                header:'Site Code',
+                width: 80,
+                sortable: true,
+                dataIndex:'sit_kode',
+                align:'center'
+            },{
+                header:'Valuta',
+                sortable: true,
+                align: 'right',
+                dataIndex:'val_kode'
+            },{
+                header:'Total ARF',
+                sortable:true,
+                dataIndex:'total_bayar',
+                summaryType: 'sum',
+                align: 'right',
+                renderer: function(v,p,r){
+                    if (v < 0)
+                        var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                    else
+                        var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            },{
+                header:'Total Settle',
+                sortable:true,
+                dataIndex:'total_settle',
+                summaryType: 'sum',
+                align: 'right',
+                renderer: function(v,p,r){
+                    if (v < 0)
+                        var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                    else
+                        var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            },{
+                    header:'Total Return (Setllement Cancelled)',
+                    sortable:true,
+                    dataIndex:'total_settle_cancel',
+                    summaryType: 'sum',
+                    align: 'right',
+                    renderer: function(v,p,r){
+                        if (v < 0)
+                            var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                        else
+                            var value = Ext.util.Format.number(v,'?0,000.00');
+                        return value;
+                    }
+            },{
+                header:'Balance',
+                sortable:true,
+                dataIndex:'balance',
+                summaryType: 'sum',
+                align: 'right',
+                renderer: function(v,p,r){
+                    if (v < 0)
+                        var value = '(' + Ext.util.Format.number((-1 * v),'?0,000.00') + ')';
+                    else
+                        var value = Ext.util.Format.number(v,'?0,000.00');
+                    return value;
+                }
+            }
+            ],
+            view : groupView,
+            plugins: summary,
+            loadMask: true,
+            height: 450
+        });
+
+        var panel = new Ext.Panel({
+            renderTo: 'grid-jurnal',
+            items: [
+                grid
+            ],
+            tbar: [
+                {
+                    xtype: 'button',
+                    iconCls: 'silk-plugin',
+                    text: 'Print this report'
+                }
+            ]
+        });
+
+    })
+
+</script>
+
+<div id="grid-jurnal"></div>

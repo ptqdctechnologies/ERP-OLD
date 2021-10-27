@@ -1,0 +1,677 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+
+        Ext.apply(Ext.form.VTypes, {
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() {
+                    return this.numericRe.test(v)
+                };
+            }
+        });
+        var customer = '';
+        function getExchangeRate()
+        {
+            Ext.Ajax.request({
+                url: '/default/valuta/getexchangerate',
+                method: 'POST',
+                success: function(result, request) {
+                    var returnData = Ext.util.JSON.decode(result.responseText);
+                    if (returnData.success) {
+                        Ext.getCmp('rate_text').setValue(returnData.rate);
+                    }
+                }
+                , failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }customer
+                }
+            });
+        }
+
+        var exportReport = function()
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            noTrans = Ext.getCmp('trano').getValue();
+            sign = Ext.getCmp('sign').getValue();
+            nofaktur = Ext.getCmp('no_faktur_pajak').getValue();
+            lembar = Ext.getCmp('lembar').getValue();
+            notation = Ext.getCmp('notation').getValue();
+            if (noTrans == '')
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please Insert/Select Trans No!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+            if (sign == '')
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please Insert/Select Sign Document!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+            if (sign == '')
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Please fill Tax Invoice Number!',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+            var rateidr = parseFloat(Ext.getCmp('rate_text').getValue().toString().replace(/\$|\,/g, ''));
+            if (rateidr == 0)
+                rateidr = '';
+            urlLoad = '/jasper/invoice/trano/' + noTrans + '/type/pdf/sign/' + sign + '/rateidr/' + rateidr + '/no_faktur_pajak/' + nofaktur + '/lembar/' + lembar;
+            params = {trano: noTrans};
+            Ext.Ajax.request({
+                url: '/default/home/cekprint',
+                method: 'POST',
+                success: function(resp) {
+                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                    if (returnData.success)
+                    {
+//                        location.href = urlLoad;
+                        downloadFile('/jasper/invoice', {
+                            trano: noTrans,
+                            type: 'pdf',
+                            sign: sign,
+                            rateidr: rateidr,
+                            no_faktur_pajak: nofaktur,
+                            lembar: lembar,
+                            notation: notation
+                        });
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Error', returnData.msg);
+                    }
+                },
+                failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    } else {
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                    }
+                },
+                params: params
+            });
+        }
+
+        showwindow = function()
+        {
+            var invstore = new Ext.data.Store({
+                autoLoad: true,
+                url: '/finance/invoice/getinvoice',
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'trano'
+                        }, {
+                            name: 'riv_no'
+                        }, {
+                            name: 'prj_kode'
+                        }, {
+                            name: 'sit_kode'
+                        }, {
+                            name: 'cus_kode'
+                        }, {
+                            name: 'coa_kode'
+                        }, {
+                            name: 'total'
+                        }, {
+                            name: 'val_kode'
+                        },{
+                            name: 'tax_number'
+                        },{
+                            name: 'rateidr'
+                        }]
+                })
+
+            })
+
+            var invoicegrid = new Ext.grid.GridPanel({
+                store: invstore,
+                height: 370,
+                width: 786,
+                viewConfig: {
+                    forceFit: true
+                },
+                columns: [{
+                        header: 'Trano',
+                        dataIndex: 'trano',
+                        align: 'left',
+                        sortable: true
+                    }, {
+                        header: 'Request Invoice Trano',
+                        dataIndex: 'riv_no',
+                        align: 'left',
+                        sortable: true
+                    }, {
+                        header: 'Project Code',
+                        dataIndex: 'prj_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Site Code',
+                        dataIndex: 'sit_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Customer Code',
+                        dataIndex: 'cus_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'COA code',
+                        dataIndex: 'coa_kode',
+                        align: 'center',
+                        sortable: true
+                    },{
+                        header: '',
+                        dataIndex: 'tax_number',
+                        align: 'center',
+                        sortable: true,
+                        hidden : true
+                    }], bbar: new Ext.PagingToolbar({
+                    id: 'paging-invoice',
+                    pageSize: 50,
+                    store: invstore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px;margin-right:5px'
+                    }, '-', {
+                        xtype: 'combo',
+                        width: 146,
+                        allowBlank: false,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['name', 'nilai'],
+                            data: [
+                                ['Trano', 'trano'],
+                                ['Request Invoice', 'riv_no'],
+                                ['Project Code', 'prj_kode'],
+                                ['Site Code', 'sit_kode'],
+                                ['Customer Code', 'cus_kode']
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 'trano',
+                        id: 'option'
+                    }, '-', {
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left:10px',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option').getValue();
+                                    var search = Ext.getCmp('search').getValue();
+                                    invstore.proxy.setUrl('/finance/invoice/getinvoice/search/' + search + '/option/' + option);
+                                    invstore.reload();
+                                    invoicegrid.getView().refresh();
+                                }
+                            }
+                        }
+                    }],
+                listeners: {
+                    'rowdblclick': function(gridaktif, rowindex, e)
+                    {
+                        isDbClick = true;
+                        var inv = gridaktif.getStore().getAt(rowindex);
+                        var trano = inv.get('trano');
+                        var total_inv = inv.get('total');
+                        var val_inv = inv.get('val_kode');
+                        var tax_number = inv.get('tax_number');
+                        var rateidr = inv.get('rateidr');
+                        Ext.getCmp('trano').setValue(trano);
+                        Ext.getCmp('total_inv').setValue(total_inv);
+                        Ext.getCmp('val_kode_inv').setValue(val_inv);
+                        Ext.getCmp('no_faktur_pajak').setValue(tax_number);
+                        Ext.getCmp('rate_text').setValue(rateidr);
+                        Ext.Ajax.request({
+                            url: '/logistic/logisticcustomer/get-customer-data',
+                            method: 'POST',
+                            params: {
+                                cus_kode: inv.get("cus_kode")
+                            },
+                            success: function(resp) {
+                                var returnData = Ext.util.JSON.decode(resp.responseText);
+                                if (returnData.success)
+                                {
+                                    if (returnData.data)
+                                    {
+                                        customer = returnData.data;
+                                        Ext.getCmp('cus_address').setValue(returnData.data.alamat);
+                                        Ext.getCmp('cus_address_tax').setValue(returnData.data.alamatpajak);
+                                        Ext.getCmp('cus_npwp').setValue(returnData.data.npwp);
+                                        Ext.getCmp('cus_name').setValue(returnData.data.cus_nama);
+                                    }
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error', returnData.msg);
+                                }
+                            },
+                            failure: function(action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                }
+                            }
+                        });
+                        invwindow.close();
+                    }
+                }
+
+            })
+
+
+            var invwindow = new Ext.Window({
+                title: 'Invoice List',
+                layout: 'absolute',
+                minWidth: 300,
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                width: 800,
+                height: 400,
+                loadMask: true,
+                frame: true,
+                items: [invoicegrid]
+
+            })
+
+            invwindow.show();
+        }
+
+        var editCustomer = function(customer, field) {
+
+            if (customer == '' || customer == undefined || field == '')
+                return false;
+            var cuswindow = new Ext.Window({
+                title: 'Update Customer Data',
+                stateful: false,
+                modal: true,
+                resizable: false,
+                width: 350,
+                autoHeight: true,
+                loadMask: true,
+                frame: true,
+                items: [
+                    new Ext.form.FormPanel({
+                        autoWidth: true,
+                        autoHeight: true,
+                        frame: true,
+                        items: [
+                            {
+                                xtype: 'textarea',
+                                width: 200,
+                                height: 100,
+                                fieldLabel: 'New Value',
+                                labelWidth: 40,
+                                id: 'new_value'
+                            }
+                        ]
+                    })
+                ],
+                buttons: [
+                    {
+                        text: 'Submit',
+                        handler: function() {
+                            var value = Ext.getCmp('new_value').getValue();
+                            if (value)
+                            {
+                                var paramsField = '';
+                                if (field == 'cus_address')
+                                    paramsField = 'alamat';
+                                if (field == 'cus_address_tax')
+                                    paramsField = 'alamatpajak';
+                                if (field == 'cus_npwp')
+                                    paramsField = 'npwp';
+                                Ext.Ajax.request({
+                                    url: '/logistic/logisticcustomer/update-customer-data',
+                                    method: 'POST',
+                                    params: {
+                                        value: value,
+                                        field: paramsField,
+                                        cus_kode: customer.cus_kode
+                                    },
+                                    success: function(resp) {
+                                        var returnData = Ext.util.JSON.decode(resp.responseText);
+                                        if (returnData.success)
+                                        {
+                                            if (returnData.data)
+                                            {
+                                                Ext.getCmp('cus_address').setValue(returnData.data.alamat);
+                                                Ext.getCmp('cus_address_tax').setValue(returnData.data.alamatpajak);
+                                                Ext.getCmp('cus_npwp').setValue(returnData.data.npwp);
+                                                cuswindow.close();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', returnData.msg);
+                                        }
+                                    },
+                                    failure: function(action) {
+                                        if (action.failureType == 'server') {
+                                            obj = Ext.util.JSON.decode(action.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        } else {
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                                        }
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                Ext.msg.Alert('Error', 'Please insert new value');
+                                return false;
+                            }
+                        }
+                    },
+                    {
+                        text: 'Cancel',
+                        handler: function() {
+                            cuswindow.close();
+                        }
+                    }
+                ]
+
+            });
+            cuswindow.show();
+        }
+
+        var managerstore = new Ext.data.JsonStore({
+            autoLoad: true,
+            url: '/finance/paymentreimbursement/listmanager',
+            root: 'posts',
+            //                totalProperty:'count',
+            fields: [{
+                    name: 'uid_manager'
+                }, {
+                    name: 'display_name'
+                }, {
+                    name: 'role_name'
+                }]
+
+
+
+        })
+
+        var combosign = new Ext.form.ComboBox({
+            store: managerstore
+            , id: 'sign'
+            , valueField: 'uid_manager'
+            , displayField: 'display_name'
+            , typeAhead: true
+            , mode: 'local'
+            , triggerAction: 'all'
+            , selectOnFocus: true
+            , anchor: '95%'
+            , hiddenName: 'type'
+            , width: 140
+            , editable: false
+            , fieldLabel: 'Manager'
+
+        });
+        var datas = new Ext.data.SimpleStore({
+            fields: ['type', 'name']
+            , data: [['pdf', 'PDF'], ['xls', 'Excel']]
+        });
+        var combo = new Ext.form.ComboBox({
+            fieldLabel: 'Export'
+            , name: 'showReport'
+            , store: datas
+            , valueField: 'type'
+            , displayField: 'name'
+            , typeAhead: true
+            , mode: 'local'
+            , triggerAction: 'all'
+            , value: 'pdf'
+            , selectOnFocus: true
+            , anchor: '95%'
+            , hiddenName: 'type'
+            , width: 70
+            , editable: false
+
+        });
+        var form = new Ext.form.FormPanel({
+            frame: true,
+            width: 400,
+            renderTo: 'invoice-form',
+            items: [
+                {
+                    xtype: 'trigger',
+                    fieldLabel: 'Invoice Number ',
+                    width: 140,
+                    triggerClass: 'teropong',
+                    allowBlank: false,
+                    editable: false,
+                    stat: 'enable',
+                    id: 'trano',
+                    onTriggerClick: function()
+                    {
+                        showwindow();
+                    }
+
+                }, {
+                    layout: 'column',
+                    items: [{layout: 'form',
+                            items: [
+                                new Ext.ux.customRendererField({
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Total Invoice ',
+                                    id: 'total_inv',
+                                    vtype: 'numeric',
+                                    style: 'text-align:right;font-weight: bold;color: black;',
+                                    priceDelemiter: ',',
+                                    width: 200,
+                                    disabled: true
+                                }),
+                            ]},
+                        {
+                            xtype: 'textfield',
+                            id: 'val_kode_inv',
+                            width: 40,
+                            hideLabel: true,
+                            disabled: true,
+                            style: 'text-align:center;font-weight: bold;color: black;'
+                        }
+
+                    ]
+                },
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'Customer Name',
+                    readOnly: true,
+                    width: 200,
+                    id: 'cus_name'
+                },
+                combosign,
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'Tax Invoice No.',
+                    width: 230,
+                    id: 'no_faktur_pajak'
+                },
+                new Ext.form.ComboBox({
+                    fieldLabel: 'Tax Invoice Page'
+                    , name: 'showReport'
+                    , store: new Ext.data.SimpleStore({
+                        fields: ['type']
+                        , data: [['1'], ['2'], ['3']]
+                    })
+                    , valueField: 'type'
+                    , displayField: 'type'
+                    , typeAhead: false
+                    , mode: 'local'
+                    , triggerAction: 'all'
+                    , value: '2'
+                    , selectOnFocus: true
+                    , anchor: '95%'
+                    , hiddenName: 'type'
+                    , width: 40
+                    , editable: false
+                    , id: 'lembar'
+
+                }),
+                {
+                    xtype: 'checkbox',
+                    name: 'notation',
+                    id: 'notation',
+                    fieldLabel: 'Total Notation',
+                    trueText: '1',
+                    falseText: '0',
+                    checked: true
+                },
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Customer Address',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'fieldset',
+                            title: 'Please use Edit Button for Update this Information',
+                            items: [
+                                {
+                                    xtype: 'textarea',
+                                    hideLabel: true,
+                                    id: 'cus_address',
+                                    readOnly: true,
+                                    width: 220
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Edit',
+                                    style: 'padding: 1px',
+                                    handler: function() {
+                                        editCustomer(customer, 'cus_address');
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Customer Tax Address',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'fieldset',
+                            title: 'Please use Edit Button for Update this Information',
+                            items: [
+                                {
+                                    xtype: 'textarea',
+                                    readOnly: true,
+                                    hideLabel: true,
+                                    id: 'cus_address_tax',
+                                    width: 220
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Edit',
+                                    style: 'padding: 1px',
+                                    handler: function() {
+                                        editCustomer(customer, 'cus_address_tax');
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    xtype: 'compositefield',
+                    fieldLabel: 'Customer NPWP',
+                    msgTarget: 'under',
+                    anchor: '-20',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'fieldset',
+                            title: 'Please use Edit Button for Update this Information',
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    hideLabel: true,
+                                    readOnly: true,
+                                    id: 'cus_npwp',
+                                    width: 200
+                                },
+                                {
+                                    xtype: 'button',
+                                    text: 'Edit',
+                                    style: 'padding: 1px',
+                                    handler: function() {
+                                        editCustomer(customer, 'cus_npwp');
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                new Ext.ux.customRendererField({
+                    xtype: 'textfield',
+                    fieldLabel: 'Rateidr ',
+                    id: 'rate_text',
+                    vtype: 'numeric',
+                    style: 'text-align:right',
+                    priceDelemiter: ','
+//                    value: getExchangeRate()
+                })
+            ],
+            buttons: [
+                {
+                    text: 'Print',
+                    handler: exportReport
+                }
+            ]
+        })
+    });
+</script>
+
+<div id="invoice-form"></div>

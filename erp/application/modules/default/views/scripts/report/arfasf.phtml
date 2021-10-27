@@ -1,0 +1,203 @@
+<?php if ($this->popup) { ?>
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<?php } ?>
+
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<style type="text/css">
+
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+    }.subtitle {
+        width: 100%;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 25px;
+    }
+    .parentContainer{ 
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 900px; 
+        height: 700px; 
+        overflow: auto; 
+        font-size: 14px;
+    }
+
+</style>
+<div class="title">ARF to ASF </div>
+<div class="subtitle"> <?= $this->prjKode." (".$this->sitKode.")"; ?> </div>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+        <tr>
+        <th scope="col"><center><b>No</b></center></th>
+        <th scope="col"><center><b>ARF Number</b></center></th>
+        <th scope="col"><center><b>ARF Date</b></center></th>
+        <th scope="col"><center><b>Requester</b></center></th>
+        <th scope="col"><center><b>ARF Total</b></center></th>
+        <th scope="col"><center><b>Payment </b></center></th>
+        <th scope="col"><center><b>ASF Number</b></center></th>
+        <th scope="col"><center><b>ASF Date</b></center></th>
+        <th scope="col"><center><b>Expense Claim</b></center></th>
+        <th scope="col"><center><b>RPC</b></center></th>
+        <th scope="col"><center><b>ASF Status</b></center></th>
+        <th scope="col"><center><b>ASF Status Date</b></center></th>
+        <th scope="col"><center><b>ASF Description</b></center></th>
+        <th scope="col"><center><b>ARF Aging</b></center></th>
+        <th scope="col"><center><b>Balance ARF to ASF </b></center></th>
+        <th scope="col"><center><b>Balance ARF to Payment </b></center></th>
+        </tr>
+        <tr>
+        </tr>
+        </thead>
+        <tbody>
+            <?php
+            $i = 0;
+            $totalARFIDR = 0;
+            $totalARFUSD = 0;
+            $totalASFIDR = 0;
+            $totalASFUSD = 0;
+            $totalASFCanIDR = 0;
+            $totalASFCanUSD = 0;
+            $totalBalIDR = 0;
+            $totalBalUSD = 0;
+            $colorbalidr = '';
+            $colorbalusd = '';
+            foreach ($this->result as $k => $v) 
+            {
+                $row = 1;
+                $totalRow = 0;
+                
+                foreach($v as $k0 => $v0){
+                    $totalRow += count($v0);
+                }
+                
+                foreach($v as $k1 => $v1)
+                {
+                    $row2 = 1;
+                    $totalASFperARF = 0;
+                    
+                    $totalRow2 = count($v1);
+                    
+                    foreach($v1 as $k2 => $v2){
+                                               
+                        if($v2['stat_asf'] == 'Rejected'){
+                            continue;
+                        }
+                        
+                        $totalASFperARF += $v2['total_asf'];
+                        $totalASFperARF += $v2['total_asfcancel'];
+                    } 
+                    
+                    foreach($v1 as $k3 => $v3)
+                    {
+                        ?>
+                <tr>
+                    <td><?=$i+1; ?></td>
+                    <?php  if (($row== 1)&&($row2== 1)){
+                        ?>
+                    <td rowspan="<?=$totalRow?>" align="left"><?= $v3['arf_num']; ?></td>
+                    <td rowspan="<?=$totalRow?>" align="left"><?= ($v3['tgl_arf'] != '-') ? date('d-m-Y', strtotime($v3['tgl_arf'])) : '-'; ?></td>
+                    <?php } if ($row2== 1) {
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalARFIDR += $v3['total_arf'];
+                        } else {
+                            $totalARFUSD += $v3['total_arf'];
+                        }
+                        ?>
+                    <td rowspan="<?=$totalRow2?>" align="left"><?= $v3['requester']; ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_arf']) : number_format($v3['total_arf'], 2)); ?></td>
+                    <td rowspan="<?=$totalRow2?>" align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_payment']) : number_format($v3['total_payment'], 2)); ?></td>
+                    <?php } 
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalASFIDR += $v3['total_asf'];
+                            $totalASFCanIDR += $v3['total_asfcancel'];
+                        } else {
+                            $totalASFUSD += $v3['total_asf'];
+                            $totalASFCanUSD += $v3['total_asfcancel'];
+                        }
+                    ?>
+                    <td align="left"><?= $v3['asf_num']; ?></td>
+                    <td align="left"><?= ($v3['tgl_asf'] != '-') ? date('d-m-Y', strtotime($v3['tgl_asf'])) : '-'; ?></td>
+                    <td align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_asf']) : number_format($v3['total_asf'], 2)); ?></td>
+                    <td align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['total_asfcancel']) : number_format($v3['total_asfcancel'], 2)); ?></td>
+                    <td align="right"><?= $v3['stat_asf']; ?></td>
+                    <td align="right"><?= ($v3['tglstat_asf'] != '-') ? date('d-m-Y', strtotime($v3['tglstat_asf'])) : '-'; ?></td>
+                    <td align="right"><?= $v3['asf_desc']; ?></td>
+                    <td align="right"><?= $v3['aging_arf_days']; ?></td>
+                    <?php if ($row2== 1) { 
+                        $balance = $v3['total_arf'] - $totalASFperARF;
+
+                        if ($v3['val_kode'] != 'USD') {
+                            $totalBalIDR += $balance;
+                        } else {
+                            $totalBalUSD += $balance;
+                        }
+                        
+                        $color = '';
+                        
+                        if($balance < 0) {
+                            $color = "red"; 
+                        } else {
+                            $color = "black";
+                        }
+                    ?>
+                    <td rowspan="<?=$totalRow2?>" align="right"><p style="color:<?=$color?>;"><?= (($v3['val_kode'] != 'USD') ? number_format($balance) : number_format($balance, 2)); ?></p></td>
+                    <?php } ?>
+                    <td align="right"><?= (($v3['val_kode'] != 'USD') ? number_format($v3['balance']) : number_format($v3['balance'], 2)); ?></td>
+                </tr>
+
+                <?php
+                        $i++;
+                        $row2++;
+                    }
+                    $row++;
+                }
+            }
+            
+            if($totalBalIDR < 0) {
+                $colorbalidr = "red";
+            } else {
+                $colorbalidr = "black";
+            }
+            
+            if($totalBalUSD < 0) {
+                $colorbalusd = "red";
+            } else {
+                $colorbalidr = "black";
+            }
+            ?>
+            <tr>
+                <td colspan="4" align="center"><b>Total IDR</b></td><td align="right"><b><?=number_format($totalARFIDR);?></b></td><td colspan="2"></td><td align="right"><b><?=number_format($totalASFIDR);?></b></td><td align="right"><b><?=number_format($totalASFCanIDR);?></b></td><td colspan="4"></td><td align="right"><b><p style="color:<?=$colorbalidr?>;"><?=number_format($totalBalIDR);?></p></b></td> <td align="right"><b><?=number_format($totalPayIDRIDR);?></b></td><td align="right"><b><?=number_format($totalBalpIDRIDR);?></b></td>
+            </tr>
+            <tr>
+                <td colspan="4" align="center"><b>Total USD</b></td><td align="right"><b><?=number_format($totalARFUSD, 2);?></b></td><td colspan="2"></td><td align="right"><b><?=number_format($totalASFUSD, 2);?></b></td><td align="right"><b><?=number_format($totalASFCanUSD, 2);?></b></td><td colspan="4"></td><td align="right"><b><p style="color:<?=$colorbalusd?>;"><?=number_format($totalBalUSD, 2);?></p></b></td> <td align="right"><b><?=number_format($totalPayIDRIDR);?></b></td><td align="right"><b><?=number_format($totalBalpIDRIDR);?></b></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+    <script type="text/javascript">
+
+    (function() {
+        resizeTable("parentContainer");
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+            fixedCols: 2,
+            headerRows: 2
+        });
+    })();
+
+</script>

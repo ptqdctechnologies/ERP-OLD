@@ -1,0 +1,741 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+//var calendarList = {
+//    "calendars":[{
+//        "id":1,
+//        "title":"Home"
+//    },{
+//        "id":2,
+//        "title":"Work"
+//    },{
+//        "id":3,
+//        "title":"School"
+//    }]
+//};
+
+var today = new Date().clearTime();
+
+var eventList = {
+    "evts": <?php echo $this->json; ?>
+};
+
+//var eventList = {
+//    "evts": [{
+//        "id": 1001,
+//        "cid": 1,
+//        "title": "Vacation",
+//        "start": today.add(Date.DAY, -20).add(Date.HOUR, 10),
+//        "end": today.add(Date.DAY, -10).add(Date.HOUR, 15),
+//        "ad": false,
+//        "notes": "Have fun"
+//    },
+//    {
+//        "id": 1002,
+//        "cid": 2,
+//        "title": "Lunch with Matt",
+//        "start": today.add(Date.HOUR, 11).add(Date.MINUTE, 30),
+//        "end": today.add(Date.HOUR, 13),
+//        "ad": false,
+//        "loc": "Chuy's!",
+//        "url": "http://chuys.com",
+//        "notes": "Order the queso",
+//        "rem": "15"
+//    },
+//    {
+//        "id": 1003,
+//        "cid": 3,
+//        "title": "Project due",
+//        "start": today.add(Date.HOUR, 15),
+//        "end": today.add(Date.HOUR, 15),
+//        "ad": false
+//    },
+//    {
+//        "id": 1004,
+//        "cid": 1,
+//        "title": "Sarah's birthday",
+//        "start": today,
+//        "end": today,
+//        "notes": "Need to get a gift",
+//        "ad": true
+//    },
+//    {
+//        "id": 1005,
+//        "cid": 2,
+//        "title": "A long one...",
+//        "start": today.add(Date.DAY, -12),
+//        "end": today.add(Date.DAY, 10).add(Date.SECOND, -1),
+//        "ad": true
+//    },
+//    {
+//        "id": 1006,
+//        "cid": 3,
+//        "title": "School holiday",
+//        "start": today.add(Date.DAY, 5),
+//        "end": today.add(Date.DAY, 7).add(Date.SECOND, -1),
+//        "ad": true,
+//        "rem": "2880"
+//    },
+//    {
+//        "id": 1007,
+//        "cid": 1,
+//        "title": "Haircut",
+//        "start": today.add(Date.HOUR, 9),
+//        "end": today.add(Date.HOUR, 9).add(Date.MINUTE, 30),
+//        "ad": false,
+//        "notes": "Get cash on the way"
+//    },
+//    {
+//        "id": 1008,
+//        "cid": 3,
+//        "title": "An old event",
+//        "start": today.add(Date.DAY, -30),
+//        "end": today.add(Date.DAY, -28),
+//        "ad": true,
+//        "notes": "Get cash on the way"
+//    },
+//    {
+//        "id": 1009,
+//        "cid": 2,
+//        "title": "Board meeting",
+//        "start": today.add(Date.DAY, -2).add(Date.HOUR, 13),
+//        "end": today.add(Date.DAY, -2).add(Date.HOUR, 18),
+//        "ad": false,
+//        "loc": "ABC Inc.",
+//        "rem": "60"
+//    },
+//    {
+//        "id": 1010,
+//        "cid": 3,
+//        "title": "Jenny's final exams",
+//        "start": today.add(Date.DAY, -2),
+//        "end": today.add(Date.DAY, 3).add(Date.SECOND, -1),
+//        "ad": true
+//    },
+//    {
+//        "id": 10011,
+//        "cid": 1,
+//        "title": "Movie night",
+//        "start": today.add(Date.DAY, 2).add(Date.HOUR, 19),
+//        "end": today.add(Date.DAY, 2).add(Date.HOUR, 23),
+//        "ad": false,
+//        "notes": "Don't forget the tickets!",
+//        "rem": "60"
+//    }]
+//};
+
+    App = function() {
+    return {
+        init : function() {
+//            Ext.BLANK_IMAGE_URL = 'http://extjs.cachefly.net/ext-3.1.0/resources/images/default/s.gif';
+
+            // This is an example calendar store that enables the events to have
+            // different colors based on CalendarId. This is not a fully-implmented
+            // multi-calendar implementation, which is beyond the scope of this sample app
+//            this.calendarStore = new Ext.data.JsonStore({
+//                storeId: 'calendarStore',
+//                root: 'calendars',
+//                idProperty: 'id',
+//                data: calendarList, // defined in calendar-list.js
+//                proxy: new Ext.data.MemoryProxy(),
+//                autoLoad: true,
+//                fields: [
+//                    {name:'CalendarId', mapping: 'id', type: 'int'},
+//                    {name:'Title', mapping: 'title', type: 'string'}
+//                ],
+//                sortInfo: {
+//                    field: 'CalendarId',
+//                    direction: 'ASC'
+//                }
+//            });
+
+            // A sample event store that loads static JSON from a local file. Obviously a real
+            // implementation would likely be loading remote data via an HttpProxy, but the
+            // underlying store functionality is the same.  Note that if you would like to
+            // provide custom data mappings for events, see EventRecord.js.
+
+		    this.eventStore = new Ext.data.JsonStore({
+		        id: 'eventStore',
+		        root: 'evts',
+		        data: eventList, 
+				proxy: new Ext.data.MemoryProxy(),
+		        fields: Ext.calendar.EventRecord.prototype.fields.getRange(),
+		        sortInfo: {
+		            field: 'StartDate',
+		            direction: 'ASC'
+		        }
+		    });
+
+            this.bForm =  new Ext.Window({
+                    id: 'waiting-form',
+                    layout:'fit',
+                    width: 300,
+                    stateful: false,
+                    modal: true,
+                    resizable: false,
+                    style: 'margin-top:10px;',
+                    items: [
+                        new Ext.ProgressBar({
+                           id:'pbar'
+                       })
+                    ],
+                    listeners: {
+                        'show': function(t){
+                             Ext.getCmp('pbar').on('update', function(val){
+                                    //You can handle this event at each progress interval if
+                                    //needed to perform some other action
+                                    Ext.getCmp('pbar').updateText('Loading Timesheet....');
+                                });
+
+                            Ext.getCmp('pbar').wait({
+                                    interval:200,
+                                    increment:15
+                            });
+                        }
+
+                    }
+            });
+
+//            new Ext.Panel({
+//                renderTo: 'date-picks',
+//                frame: true,
+//                layout: 'fit',
+//                width: 185,
+//                items: [
+//
+//                ]
+//            });
+
+            new Ext.Panel ({
+                id: 'app-center',
+                renderTo: 'calendars',
+                title: 'Add New Timesheet',
+                stateful: false,
+                frame: true,
+                fbar: [
+                    '->',
+                    {
+                        text: 'Save Timesheet',
+                        iconCls: 'icon-save',
+                        disabled: false,
+                        handler: this.onSubmit,
+                        scope: this
+                    }
+                ],
+                items: [
+                        {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth: .22,
+                                    items: [
+                                        new Ext.DatePicker({
+                                            id: 'app-nav-picker',
+                                            cls: 'ext-cal-nav-picker',
+                                            disabledDays: [0,6],
+                                            listeners: {
+                                                'select': {
+                                                    fn: function(dp, dt){
+                    //                                    Ext.getCmp('app-calendar').setStartDate(dt);
+                                                        App.calendarPanel.setStartDate(dt);
+                                                    },
+                                                scope: this
+                                                }
+                                            }
+                                        })
+                                    ]
+                                   },
+                                    {
+                                    columnWidth: .78,
+                                    items: [
+                                        new Ext.calendar.CalendarPanel({
+                                            eventStore: this.eventStore,
+                                            calendarStore: this.calendarStore,
+                                            border: false,
+                                            id:'app-calendar',
+                                            height: 500,
+                                            activeItem: 2, // month view
+                                            monthViewCfg: {
+                                                showHeader: true,
+                                                showWeekLinks: true,
+                                                showWeekNumbers: true
+                                            },
+
+                                            initComponent: function() {
+                                                App.calendarPanel = this;
+                                                this.constructor.prototype.initComponent.apply(this, arguments);
+                                            },
+                                            
+                                            listeners: {
+                                                'eventclick': {
+                                                    fn: function(vw, rec, el){
+                                                        if (!rec.data['IsPrev'])
+                                                        {
+                                                            this.showEditWindow(rec, el);
+                                                            this.clearMsg();
+                                                        }
+                                                        else
+                                                        {
+                                                            if (rec.data['CalendarId'] == 2)
+                                                                Ext.Msg.alert('Error','Cannot edit this Event, Reason: Already submitted into Workflow.');
+                                                            else
+                                                                Ext.Msg.alert('Error','Cannot edit this Event, Reason: Use Edit Timesheet Draft.');
+
+                                                        }
+                                                    },
+                                                    scope: this
+                                                },
+                                                'viewchange': {
+                                                    fn: function(p, vw, dateInfo){
+                                                        if(this.editWin){
+                                                            this.editWin.hide();
+                                                        };
+                                                        if(dateInfo !== null){
+                                                            // will be null when switching to the event edit form so ignore
+                                                            Ext.getCmp('app-nav-picker').setValue(dateInfo.activeDate);
+                                                            this.updateTitle(dateInfo.viewStart, dateInfo.viewEnd);
+                                                            var stores = this.eventStore;
+                                                            var panels = this.calendarPanel;
+                                                            var forms = this.bForm;
+
+                                                            forms.show();
+                                                            Ext.Ajax.request({
+                                                                url: '/projectmanagement/timesheet/getlasttimesheet/month/' + (dateInfo.activeDate.getMonth() + 1),
+                                                                method:'POST',
+                                                                success: function(result, request){
+                                                                        var returnData = Ext.util.JSON.decode(result.responseText);
+                                                                        if(returnData.success) {
+                                                                            var t = returnData;
+                                                                            stores.loadData(t);
+                                                                            stores.reload();
+                                                                            forms.hide();
+                                                                        }
+                                                                    }
+                                                                    ,failure:function( action){
+                                                                if(action.failureType == 'server'){
+                                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                                Ext.Msg.alert('Error!', obj.errors.reason);
+                                                                }
+                                                                }
+                                                            });
+                                                        }
+                                                    },
+                                                    scope: this
+                                                },
+                                                'dayclick': {
+                                                    fn: function(vw, dt, ad, el){
+
+                                                        var cek = false;
+                                                        cek = this.checkDateLimit(dt);
+
+                                                        if (!cek)
+                                                        {
+                                                            Ext.Msg.alert('Error','Cannot add event on this date, minimum date : <?=$this->minDate?>..');
+                                                        }
+                                                        else
+                                                        {
+                                                            var hasil = true;
+//                                                            var hasil=false;
+//                                                            hasil = this.checkDateWithinEvent({StartDate: dt});
+                                                            if (hasil)
+                                                            {
+                                                                this.showEditWindow({
+                                                                    StartDate: dt,
+                                                                    IsAllDay: ad
+                                                                }, el);
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                                            }
+                                                        }
+                                                            this.clearMsg();
+                                                    },
+                                                    scope: this
+                                                },
+                                                'rangeselect': {
+                                                    fn: function(win, dates, onComplete){
+
+                                                        var hasil=true;
+
+                                                        hasil = this.checkDateWithinEvent(dates);
+                                                        if (hasil)
+                                                        {
+                                                            this.showEditWindow(dates);
+                                                            this.editWin.on('hide', onComplete, this, {single:true});
+                                                        }
+                                                        else
+                                                        {
+                                                            Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                                        }
+                                                        this.clearMsg();
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventmove': {
+                                                    fn: function(vw, rec){
+                                                        if (!rec.data['IsPrev'])
+                                                        {
+                                                            var hasil=true;
+
+//                                                            this.eventStore.each(function(recs){
+//                                                                console.log(recs.id);console.log(rec.id);
+//                                                                if (rec.id != recs.id)
+//                                                                {
+//                                                                    hasil = this.checkDateWithinEvent(rec.data, rec);
+//                                                                    if (!hasil)
+//                                                                    {
+//                                                                        return false;
+//                                                                    }
+//                                                                }
+//                                                            },this);
+
+                                                            hasil = this.checkDateWithinEvent(rec.data,rec);
+                                                            if (hasil)
+                                                            {
+                                                                rec.data.IsSubmit = undefined;
+                                                                rec.commit();
+                                                            }
+                                                            else
+                                                            {
+                                                                Ext.Msg.alert('Error','Cannot add another event for these days..');
+//                                                                rec.reject();
+                                                            }
+
+                                                            var time = rec.data.IsAllDay ? '' : ' \\a\\t g:i a';
+                                                        }
+                                                        else
+                                                        {
+                                                            if (rec.data['CalendarId'] == 2)
+                                                                Ext.Msg.alert('Error','Cannot move this event because it still on Workflow Progress..');
+                                                            else
+                                                                Ext.Msg.alert('Error','Cannot move this event because it still on Draft..');
+
+                                                            rec.reject();
+                                                        }
+                        //                                    this.showMsg('Event '+ rec.data.Title +' was moved to '+rec.data.StartDate.format('F jS'+time));
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventresize': {
+                                                    fn: function(vw, rec){
+                                                        rec.data.IsSubmit = undefined;
+                                                        rec.commit();
+                        //                                    this.showMsg('Event '+ rec.data.Title +' was updated');
+                                                    },
+                                                    scope: this
+                                                },
+                                                'eventdelete': {
+                                                    fn: function(win, rec){
+                                                        this.eventStore.remove(rec);
+                        //                                    this.showMsg('Event '+ rec.data.Title +' was deleted');
+                                                    },
+                                                    scope: this
+                                                },
+                                                'initdrag': {
+                                                    fn: function(vw){
+                                                        if(this.editWin && this.editWin.isVisible()){
+                                                            this.editWin.close();
+                                                        }
+                                                    },
+                                                    scope: this
+                                                }
+                                            }
+                                        })
+                                        ]
+                                    }
+                                    ]
+                        }
+                                    ]
+                                });
+        },
+        onSubmit: function() {
+            var json = '';
+            var parameter = '';
+            this.eventStore.each(function(store){
+                if (store.data.IsSubmit === false)
+                    return true;
+                if (!store.data['IsPrev'])
+                {
+                    var D = Ext.calendar.Date;
+                    if (store.data.IsSubmit == undefined)
+                    {
+                        store.data.StartDate = D.formatDate(store.data.StartDate,'dd-mm-yyyy hh:nn:ss');
+                        store.data.EndDate = D.formatDate(store.data.EndDate,'dd-mm-yyyy hh:nn:ss');
+//                        store.data.Notes = store.data.Notes.replace(/\'|\"|\n|\r|\t/g,'');
+                        store.data.Notes = escape(store.data.Notes);
+                        json += Ext.util.JSON.encode(store.data) + ',';
+                    }
+                }
+            });
+            if (json == '')
+            {
+                 Ext.Msg.alert('Error','Cannot save timesheet, Reason: There\'s no changes in Your timesheet.');
+                 return false;
+            }
+            json = '[' + json.substring(0, json.length - 1) + ']'; //JSON format fix
+    
+            params = {posts:json};
+            myPanel = Ext.getCmp('abs-budget-panel'); //Load the panel
+            myPanel.body.load({
+                url: '/projectmanagement/timesheet/apptimesheet', //the url
+                scripts : true,
+                params: params //our params goes here
+            });
+        },
+        // The edit popup window is not part of the CalendarPanel itself -- it is a separate component.
+        // This makes it very easy to swap it out with a different type of window or custom view, or omit
+        // it altogether. Because of this, it's up to the application code to tie the pieces together.
+        // Note that this function is called from various event handlers in the CalendarPanel above.
+		showEditWindow : function(rec, animateTarget){
+//	        if(!this.editWin){
+	            this.editWin = new Ext.calendar.EventEditWindow({
+                    closeAction: 'close',
+                    calendarStore: this.calendarStore,
+                    sumRecord: (this.eventStore.getCount() + 1),
+					listeners: {
+						'eventadd': {
+							fn: function(win, rec){
+                                var hasil=true;
+
+                                hasil = this.checkDateWithinEvent(rec.data);
+                                if (hasil)
+                                {
+                                    win.close();
+                                    rec.data.IsNew = false;
+                                    rec.data.IsSubmit = undefined;
+                                    this.eventStore.add(rec);
+                                }
+                                else
+                                {
+                                    Ext.Msg.alert('Error','Cannot add another event for these days..');
+                                    return false;
+                                }
+//                                this.showMsg('Event '+ rec.data.Title +' was added');
+							},
+							scope: this
+						},
+                        'eventcancel': {
+							fn: function(win, rec){
+								win.close();
+								
+							},
+							scope: this
+						},
+						'eventupdate': {
+							fn: function(win, rec){
+								win.close();
+                                rec.data.IsSubmit = undefined;
+								rec.commit();
+//                                this.showMsg('Event '+ rec.data.Title +' was updated');
+							},
+							scope: this
+						},
+						'eventdelete': {
+							fn: function(win, rec){
+								this.eventStore.remove(rec);
+								win.close();
+//                                this.showMsg('Event '+ rec.data.Title +' was deleted');
+							},
+							scope: this
+						},
+                        'editdetails': {
+                            fn: function(win, rec){
+                                win.close();
+                                App.calendarPanel.showEditForm(rec);
+                            }
+                        }
+					}
+                });
+//	        }
+
+	        this.editWin.show(rec, animateTarget);
+		},
+        checkDateLimit: function(cekDate) {
+            var D = Ext.calendar.Date;
+            var ret= false;
+
+            var limit = new Date('<?=date("Y",strtotime($this->curDate))?>','<?=(date("m",strtotime($this->curDate)) - 1)?>','<?=date("d",strtotime($this->curDate))?>');
+            var Dates = [
+        <?php
+            foreach($this->limitDate as $k => $v)
+            {
+        ?>
+            new Date('<?=date("Y",strtotime($v))?>','<?=(date("m",strtotime($v)) - 1)?>','<?=date("d",strtotime($v))?>') <?php if ($k < (count($this->limitDate) - 1)) { ?>,<?php } ?>
+        <?php
+            }
+        ?>
+            ];
+            if (cekDate < limit)
+            {
+                for(var i = 0;i < Dates.length;i++)
+                {
+//                    if (cekDate-0 == Dates[i]-0)
+                    if (D.formatDate(cekDate,'dd mm yyyy') == D.formatDate(Dates[i],'dd mm yyyy'))
+                    {
+                        ret = true;
+                        break;
+                    }
+                }
+                return ret;
+            }
+            else
+            {
+                return true;
+            }
+
+            return false;
+        },
+        checkDateWithinEvent: function(dates, move) {
+            var ret = true;
+            var D = Ext.calendar.Date,behalfof = dates.BehalfOf;
+            if (behalfof != '')
+            {
+                this.eventStore.filterBy(function(record,id){
+                    return record.get('BehalfOf') == behalfof;
+                });
+            }
+            if (this.eventStore.getCount() == 0)
+            {
+                var checkD = D.formatDate(dates.StartDate,'dd mm yyyy');
+                if (checkD)
+                {
+                    if (!this.checkDateLimit(dates.StartDate))
+                        ret = false;
+                    if (!this.checkDateLimit(dates.EndDate))
+                        ret =  false;
+                }
+            }
+            else
+            {
+                this.eventStore.each(function(store){
+                    if (behalfof == '' && store.data.BehalfOf != '')
+                        return true;
+
+                    var
+                    start = store.data.StartDate,
+                    end = store.data.EndDate;
+
+    //                if (!this.checkDateLimit(start))
+    //                    ret = false;
+    //                if (!this.checkDateLimit(end))
+    //                  ret =  false;
+
+
+                    if (store.data.IsAllDay && move == undefined)
+                    {
+                        var startD = D.formatDate(start,'dd mm yyyy');
+                        var checkD = D.formatDate(dates.StartDate,'dd mm yyyy');
+                        if (startD == checkD)
+                        {
+                            ret = false;
+                            return false;
+                        }
+                        else
+                        {
+                            if (dates.EndDate == undefined)
+                                dates.EndDate = dates.StartDate;
+
+                            var hasil = D.dateWithin(start,end,dates.StartDate);
+                            var hasil2 = D.dateWithin(start,end,dates.EndDate);
+                            if (hasil || hasil2)
+                            {
+                                ret = false;
+                                return false;
+                            }
+                            var hasil = D.dateWithin(dates.StartDate,dates.EndDate,start);
+                            var hasil2 = D.dateWithin(dates.StartDate,dates.EndDate,end);
+                            if (hasil || hasil2)
+                            {
+                                ret = false;
+                                return false;
+                            }
+                        }
+                    }
+                    if (dates.EndDate == undefined)
+                        dates.EndDate = dates.StartDate;
+
+
+                    if (move != undefined)
+                    {
+//                            return true;
+                        if (!this.checkDateLimit(dates.EndDate))
+                        {
+                            ret = false;
+                            return false;
+                        }
+                        if (!this.checkDateLimit(dates.StartDate))
+                        {
+                            ret = false;
+                            return false;
+                        }
+
+                        if (move.data.EventId != store.data.EventId)
+                        {
+                            var hasil = D.dateWithin(dates.StartDate,dates.EndDate,start);
+                            var hasil2 = D.dateWithin(dates.StartDate,dates.EndDate,end);
+                            if (hasil || hasil2)
+                            {
+                                ret = false;
+                                return false;
+                            }
+                        }
+
+                        return false;
+                    }
+                    var hasil = D.dateWithin(start,end,dates.StartDate);
+                    var hasil2 = D.dateWithin(start,end,dates.EndDate);
+                    if (hasil || hasil2)
+                    {
+                        ret = false;
+                        return false;
+                    }
+                },this);
+            }
+            this.eventStore.clearFilter();
+
+            return ret;
+        },
+        // The CalendarPanel itself supports the standard Panel title config, but that title
+        // only spans the calendar views.  For a title that spans the entire width of the app
+        // we added a title to the layout's outer center region that is app-specific. This code
+        // updates that outer title based on the currently-selected view range anytime the view changes.
+        updateTitle: function(startDt, endDt){
+//            var p = Ext.getCmp('app-center');
+//
+//            if(startDt.clearTime().getTime() == endDt.clearTime().getTime()){
+//                p.setTitle(startDt.format('F j, Y'));
+//            }
+//            else if(startDt.getFullYear() == endDt.getFullYear()){
+//                if(startDt.getMonth() == endDt.getMonth()){
+//                    p.setTitle(startDt.format('F j') + ' - ' + endDt.format('j, Y'));
+//                }
+//                else{
+//                    p.setTitle(startDt.format('F j') + ' - ' + endDt.format('F j, Y'));
+//                }
+//            }
+//            else{
+//                p.setTitle(startDt.format('F j, Y') + ' - ' + endDt.format('F j, Y'));
+//            }
+        },
+
+        // This is an application-specific way to communicate CalendarPanel event messages back to the user.
+        // This could be replaced with a function to do "toast" style messages, growl messages, etc. This will
+        // vary based on application requirements, which is why it's not baked into the CalendarPanel.
+        showMsg: function(msg){
+//            Ext.fly('app-msg').update(msg).removeClass('x-hidden');
+        },
+
+        clearMsg: function(){
+//            Ext.fly('app-msg').update('').addClass('x-hidden');
+        }
+    }
+}();
+});
+
+Ext.onReady(App.init, App);
+</script>
+
+<div  id="date-picks">
+</div>
+<div  id="calendars">
+</div>

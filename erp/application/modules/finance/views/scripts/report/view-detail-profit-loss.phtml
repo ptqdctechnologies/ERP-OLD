@@ -1,0 +1,110 @@
+<?php
+if (count($this->result) == 0) {
+    echo "No Data to display...";
+    die();
+}
+
+?>
+
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<style type="text/css">
+
+    .parentContainer{
+        margin: 5px;
+        padding: 0px;
+        border: none;
+        width: 670px;
+        height: 420px;
+        overflow: auto;
+        font-size: 14px;
+    }
+</style>
+<div style="border-bottom: 2px solid #99BBE8;width:670px;float:left;margin-bottom: 10px;">
+    <h1 style="font-size: 18px;font-family: tahoma,verdana,arial,sans-serif;">DETAIL JURNAL FOR <?= $this->coaKode ?> - <?= $this->coaNama ?></h1>
+    <?php if ($this->periode) { ?>
+        <h1 style="font-size: 18px;font-family: tahoma,verdana,arial,sans-serif;"><?= $this->periode ?></h1>
+    <?php } ?>
+
+    <h3 style="font-size: 11px;float: right;"><i>Currency : IDR</i></h3>
+</div>
+<div style="float:right"><input type="submit" onclick="location.href = '/finance/report/view-detail-profit-loss/prj_kode/<?= $this->prjKode ?>/coa_kode/<?= $this->coaKode ?>/month/<?$this->month?>/export/true'" value="Print"></div>
+<br>
+<div class="parentContainer">
+    <table id="budgetTable" class="budgetTable">
+        <thead id="fixed">
+            <tr>
+                <th scope="col"><center>No</center></th>
+        <th scope="col"><center>Trano</center></th>
+            <th scope="col"><center>Ref Number</center></th>
+        <th scope="col"><center>Debit</center></th>
+        <th scope="col"><center>Credit</center></th>
+            <th scope="col"><center>Debit (Conversion)</center></th>
+            <th scope="col"><center>Credit (Conversion)</center></th>
+        </tr>
+        </thead>
+        <tbody>
+
+            <?php
+            $nomer = 1;
+            $totDebit = 0;
+            $totCredit = 0;
+            foreach ($this->result as $k => $v) {
+                if ($v['debit'] < 0)
+                    $color = "#ffea8f";
+                elseif ($v['credit'] < 0)
+                    $color = "#ffea8f";
+                else
+                    $color = "";
+
+                if ($color)
+                    $color = 'bgcolor="' . $color . '"';
+                ?>
+                <tr <?= $color ?>>
+                    <td><?= $nomer; ?></td>
+                    <td><?= ($v['trano'] != '') ? $v['trano'] : "&nbsp;" ?></td>
+            <td><?=($v['ref_number'] != '') ? $v['ref_number'] : "&nbsp;"?></td>
+                    <td align="right"><?= ($v['debit'] != '') ? number_format($v['debit'], 2) : "&nbsp;" ?></td>
+                    <td align="right"><?= ($v['credit'] != '') ? number_format($v['credit'], 2) : "&nbsp;" ?></td>
+            <td align="right"><?=($v['debit_conversion'] != '') ? number_format($v['debit_conversion'],2) : "&nbsp;"?></td>
+            <td align="right"><?=($v['credit_conversion'] != '') ? number_format($v['credit_conversion'],2) : "&nbsp;"?></td>
+                </tr>
+
+                <?php
+                $nomer++;
+            }
+            $totCredit = $this->total_debit;
+            $totDebit = $this->total_credit;
+            ?>
+            <tr>
+            <td colspan="4">Total</td>
+                <td align="right"><?= number_format($this->total_debit, 2) ?></td>
+                <td align="right"><?= number_format($this->total_credit, 2) ?></td>
+            </tr>
+            <?php
+            if ($this->dk == 'Debit')
+                $totCredit = -1 * $this->total_credit;
+            else
+                $totDebit = -1 * $this->total_debit;
+
+            $total = $totCredit + $totDebit;
+            
+            ?>
+            <tr>
+            <td colspan="5">Profit & Loss Value</td>
+                <td align="right"><?= number_format($total, 2) ?></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<script type="text/javascript">
+
+    (function() {
+        var mySt = new superTable("budgetTable", {
+            cssSkin: "sSky",
+	    fixedCols : 3,
+            headerRows: 1
+        });
+    })();
+
+</script>

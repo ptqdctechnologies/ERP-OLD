@@ -1,0 +1,474 @@
+<script type="text/javascript">
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/userrole/listroletype/status/1'
+    }
+});
+
+var proxy2 = new Ext.data.HttpProxy({
+    api: {
+        read : '/admin/userrole/list/groupbyuser/1'
+    }
+});
+
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id_role',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'id_role'},
+    {name: 'display_name'},
+    {name: 'role_name'},
+    {name: 'active'}
+]);
+
+var reader2 = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    successProperty: 'success',
+    idProperty: 'id',
+    messageProperty: 'message',
+    root: 'posts'  // <-- New "messageProperty" meta-data
+}, [
+    {name: 'id'},
+    {name: 'fullname'},
+    {name: 'id_user'},
+    {name: 'prj_kode'},
+    {name: 'sit_kode'}
+]);
+
+// The new DataWriter component.
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: true
+});
+
+var store = new Ext.data.Store({
+    id: 'user-store',
+    proxy: proxy,
+    reader: reader,
+    writer: writer,  // <-- plug a DataWriter into the store just as you would a Reader
+    autoSave: true // <-- false would delay executing create, update, destroy requests until specifically told to do so with some [save] buton.
+});
+
+var store2 = new Ext.data.Store({
+    id: 'user-store2',
+    proxy: proxy2,
+    reader: reader2
+});
+
+// load the store immeditately
+store.load();
+store2.load();
+
+
+// A new generic text field
+var textField =  new Ext.form.TextField();
+
+// Let's pretend we rendered our grid-columns with meta-data from our ORM framework.
+var userColumns =  [
+    new Ext.grid.RowNumberer(),
+    {header: "Role Name", sortable: true, dataIndex: 'display_name'},
+    {header: "Role Type", sortable: true, dataIndex: 'role_name'}
+];
+
+var userColumns2 =  [
+                    new Ext.grid.RowNumberer(),
+                    {header: "Full Name", width: 150, sortable: true, dataIndex: 'fullname'}
+//                    {header: "Project", width: 80, sortable: true, dataIndex: 'prj_kode'},
+//                    {header: "Site", width: 80, sortable: true, dataIndex: 'sit_kode'},
+                    ];
+
+    searchRoleType = function(){
+        var userName = Ext.getCmp('roletype-text').getValue();
+    	store.proxy.setApi('read','/admin/userrole/listroletype/name/' + userName);
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+
+    refreshGridRole = function(){
+    	store.proxy.setApi('read','/admin/userrole/listroletype');
+    	Ext.getCmp('user-grids').getStore().reload();
+    };
+
+
+/**
+ * App.user.Grid
+ * A typical EditorGridPanel extension.
+ */
+userGrid = Ext.extend(Ext.grid.GridPanel, {
+	id:'user-grids',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 450,
+    width: 300,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+	
+    initComponent : function() {
+		this.viewConfig = {
+            forceFit: true
+        };
+        
+//		this.relayEvents(this.store, ['destroy', 'save', 'update']);
+
+        this.tbar = this.buildTopToolbar();
+        userGrid.superclass.initComponent.call(this);
+    },
+
+    /**
+     * buildTopToolbar
+     */
+    buildTopToolbar : function() {
+        return [
+                {
+					text: 'Role Type Name',
+					xtype:'label',
+				    style: 'margin-right: 5px'
+                },
+                {
+					xtype: 'textfield',
+					id: 'roletype-text'
+                },
+                {
+                    iconCls: 'search-icon',
+                    handler: searchRoleType,
+                    scope: this
+                },
+                '-',
+                {
+                    iconCls: 'silk-table-refresh',
+                    handler: refreshGridRole,
+                    scope: this
+                }
+                ];
+    }
+    
+
+});
+
+
+userGrid2 = Ext.extend(Ext.grid.GridPanel, {
+	id:'user-grids2',
+    iconCls: 'silk-grid',
+    frame: true,
+    height: 450,
+    width: 180,
+    style: 'margin-top: 10px',
+    trackMouseOver: true,
+	
+    initComponent : function() {
+		this.viewConfig = {
+            forceFit: true
+        };
+        
+        userGrid2.superclass.initComponent.call(this);
+    }
+
+    
+    
+
+});
+
+var nodeJson;
+
+var user_id;
+var user_role;
+var userGrids;
+var userGrids2;
+var tree;
+
+var datas = new Ext.data.SimpleStore({
+    fields:['type','name']
+            ,data:[            	
+                   ['home','Home'],
+                   ['procurement','Procurement and Commercial'],
+                   ['projectmanagement','Project Management'],
+                   ['projectstaff','Project Staff'],
+                   ['logistic','Logistic'],
+                   ['finance','Finance'],
+                   ['hr','Human Resource'],
+                   ['sales','Sales']
+                   ,['admin','Admin']  
+                  ]
+        });
+
+function checkChild(node)
+{
+
+	    if (node.hasChildNodes) {
+	        node.eachChild(function(child){
+	        	child.getUI().toggleCheck(true);
+	            checkChild(child);
+	        });
+	    }
+}
+
+function uncheckChild(node)
+{
+
+	    if (node.hasChildNodes) {
+	        node.eachChild(function(child){
+	        	child.getUI().toggleCheck(false);
+	            uncheckChild(child);
+	        });
+	    }
+}
+
+function getUncheckChild(node)
+{
+	    if (node.hasChildNodes) {
+	        node.eachChild(function(child){
+	        	if (!child.attributes.checked && child.isLeaf() && !child.hasChildNodes())
+	        	{
+	        		nodeJson += '{"menu_id" : "' + child.id + '","status" : 1},' ;
+	        	}
+	            getUncheckChild(child);
+	        });
+	    }
+}
+
+var win;
+
+function createWin()
+{
+	win =  new Ext.Window({
+	    id: 'default-privilege',
+	    layout: 'fit',
+	    width: 250,
+	    height: 100,
+	    stateful: false,
+	    title: 'Choose Default Privilege',
+	    defaultType: 'textfield',
+	    items: [
+				{
+					xtype: 'combo'
+					,fieldLabel: 'Module Type'
+					,id: 'userrole'
+				    ,name:'selectMenu'
+				    ,store: datas
+				    ,valueField:'type'
+				    ,displayField:'name'
+				    ,typeAhead: true
+				    ,mode: 'local'
+				    ,triggerAction: 'all'
+				    ,value: 'procurement'
+				    ,selectOnFocus:true
+				    ,hiddenName:'type'
+				}
+	            
+			    ],
+		buttons: [
+					{
+						xtype: 'button',
+						text: 'Ok',
+						handler: function(){
+						user_role = Ext.getCmp('userrole').getValue();
+					    if (user_role != undefined || user_role != '')
+					    {
+					    	params = {id_user: user_id};
+					    	Ext.Ajax.request({
+					            url: '/admin/menu/submitmenuprivilege/type/default/role/' + user_role,
+					            method:'POST',
+					            success: function(result, request){
+					      	   		var returnData = Ext.util.JSON.decode(result.responseText);
+					 				if( !returnData.success) {
+					 					Ext.Msg.alert('Error!', returnData.message);
+					 				} else {
+					 					Ext.Msg.alert('Success!', 'Default Menu Privilege have been submitted!');
+					 					tree.root.reload();
+						            	tree.getRootNode().expand(true);
+						            	win.close();
+					 				}
+					 			}
+					 		,failure:function( action){
+					    	if(action.failureType == 'server'){
+					        obj = Ext.util.JSON.decode(action.response.responseText);
+					        Ext.Msg.alert('Error!', obj.errors.reason);
+					    	}
+					    	},
+					            params: params
+					        });
+					    } 
+					}
+					}
+					]	    
+	});
+}
+
+showDefault = function(){
+
+	if (win)
+	{
+		win.destroy();
+	}
+		createWin();
+		win.show();	
+}
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+	
+    userGrids = new userGrid({
+        renderTo: 'user-grid',
+        title: 'Avaiable Role',
+        store: store,
+        columns : userColumns,
+        listeners: {
+        	rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                role_id = rec.data['id_role'];
+                user_role = rec.data['role_name'];
+                store2.proxy.setApi('read','/admin/userrole/list/role_id/' + role_id + '/groupbyuser/1');
+            	Ext.getCmp('user-grids2').getStore().reload();
+            	tree.getLoader().dataUrl = '/default/menu/getmenu';
+                tree.root.reload();
+                tree.getRootNode().expand(true);
+            }
+        }
+    });
+
+    
+    userGrids2 = new userGrid2({
+        renderTo: 'user-grid2',
+        title: 'User in Role',
+        store: store2,
+        columns : userColumns2,
+        listeners: {
+        	rowclick: function(g, index, ev) {
+                var rec = g.store.getAt(index);
+                user_id = rec.data['id_user'];
+                tree.getLoader().dataUrl = '/default/menu/getmenu/id_user/' + user_id + '/checked/1';
+                tree.root.reload();
+                tree.getRootNode().expand(true);
+            }
+        }
+    });
+
+
+    tree = new Ext.tree.TreePanel({
+        renderTo:'user-tree',
+        title: 'Menu Privilege',
+        height: 450,
+        width: 300,
+        useArrows:true,
+        autoScroll:true,
+        animate:true,
+        containerScroll: true,
+        rootVisible: false,
+//        frame: true,
+        root: {
+            nodeType: 'async',
+            text: 'Menu',
+            id: 'root-menu'
+        },
+        tbar: [
+               {
+                   	text: 'Check All',
+                   	iconCls: 'silk-add',
+                   	handler: function(){ 
+                 		node = tree.getRootNode();
+            	  		 node.eachChild(function(child){
+		      	        	child.getUI().toggleCheck(true);
+		      	            checkChild(child);
+      	       			 });
+
+                 	},
+                   	scope: this
+               },
+               {
+                 	text: 'unCheck All',
+                 	iconCls: 'silk-del',
+                 	handler: function(){ 
+               		node = tree.getRootNode();
+          	  		 node.eachChild(function(child){
+		      	        	child.getUI().toggleCheck(false);
+		      	            uncheckChild(child);
+    	       			 });
+
+               	},
+                 	scope: this
+             },
+             {
+               	text: 'Refresh',
+               	iconCls: 'silk-table-refresh',
+               	handler: function(){ 
+            	 tree.root.reload();
+            	 tree.getRootNode().expand(true);
+
+             	},
+               	scope: this
+           }
+               ],
+        // auto create TreeLoader
+        dataUrl: '/default/menu/getmenu',
+        
+        listeners: {
+            'checkchange': function(node, checked){
+                if(checked){
+                    node.getUI().addClass('complete');
+                }else{
+                    node.getUI().removeClass('complete');
+                }
+            }
+        },
+        
+        buttons: [{
+            text: 'Save Privilege',
+            handler: function(){
+			nodeJson = '';
+        	node = tree.getRootNode();
+	  		 node.eachChild(function(child){
+	            getUncheckChild(child);
+   			 });
+            
+//                var nodes = '', selNodes = tree.getChecked();
+//                Ext.each(selNodes, function(node){
+//                    nodes += '{"menu_id" : "' + node.id + '","status" : 1},' ;
+//                    
+//                });
+                if (nodeJson.length > 0)
+                	json = nodeJson.substring(0, nodeJson.length - 1) ; 
+                else
+                    json = '{"delete-all" : true}';
+            	params = {posts:json, id_user: user_id};
+            	Ext.Ajax.request({
+                    url: '/admin/menu/submitmenuprivilege',
+                    method:'POST',
+                    success: function(result, request){
+              	   		var returnData = Ext.util.JSON.decode(result.responseText);
+         				if( !returnData.success) {
+         					Ext.Msg.alert('Error!', returnData.message);
+         				} else {
+         					Ext.Msg.alert('Success!', 'Menu Privilege have been submitted!');
+         					tree.root.reload();
+        	            	tree.getRootNode().expand(true);
+         				}
+         			}
+         		,failure:function( action){
+            	if(action.failureType == 'server'){
+	                obj = Ext.util.JSON.decode(action.response.responseText);
+	                Ext.Msg.alert('Error!', obj.errors.reason);
+	            	}
+            	},
+                    params: params
+                }); 
+            }
+        },
+        {
+            text: 'Create Default Privilege',
+            handler: showDefault
+        }
+        ]
+    });
+
+    tree.getRootNode().expand(true);
+    
+});
+</script>
+<div style="float:left">
+ <div id="user-grid" style="float:left"></div>
+ <div id="user-grid2" style="float:left;margin-left:5px;"></div>
+ <div id="user-tree" style="float:left;margin-left:5px;margin-top:8px;"></div>
+ </div>

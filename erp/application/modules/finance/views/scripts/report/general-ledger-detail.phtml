@@ -1,0 +1,389 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+        Ext.apply(Ext.form.VTypes, {
+            daterange: function(val, field) {
+                var date = field.parseDate(val);
+                if (!date) {
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                 * Always return true since we're only using this vtype to set the
+                 * min/max allowed values (these are tested for after the vtype test)
+                 */
+                return true;
+            }
+        });
+        var checkValid = function(all)
+        {
+            if (coaKode == '')
+            {
+                Ext.Msg.alert("Error", "Please select COA");
+                return false;
+            }
+
+            return true;
+        };
+        var checkValid2 = function()
+        {
+
+            var trano = Ext.getCmp('trano_text').getValue();
+            if (trano == '' || trano == undefined)
+            {
+                Ext.Msg.alert("Error", "Please select Trano");
+                return false;
+            }
+
+            return true;
+        };
+        var checkValid3 = function()
+        {
+
+            var month = Ext.getCmp('month').getValue();
+            if (month == '' || month == undefined)
+            {
+                Ext.Msg.alert("Error", "Please select Month");
+                return false;
+            }
+
+            return true;
+        };
+
+
+        var coaKode = '';
+
+
+        var datas = new Ext.data.SimpleStore({
+            fields: ['type', 'name']
+            , data: [['pdf', 'PDF'], ['xls', 'Excel']]
+        });
+
+        var combo = new Ext.form.ComboBox({
+            fieldLabel: 'Export'
+            , name: 'showReport'
+            , store: datas
+            , valueField: 'type'
+            , displayField: 'name'
+            , typeAhead: true
+            , mode: 'local'
+            , triggerAction: 'all'
+            , value: 'pdf'
+            , selectOnFocus: true
+            , anchor: '95%'
+            , hiddenName: 'type'
+            , width: 70
+            , editable: false
+
+        });
+
+        var windowForm = new Ext.Panel({
+            title: 'General Ledger Detail Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: {// configured using the anchor layout
+                xtype: 'container',
+                layout: 'anchor',
+                height: 27 * 3,
+                defaults: {height: 27, anchor: '100%'},
+                items: [
+                    new Ext.Toolbar({
+                        id: 'main_toolbar',
+                        autoWidth: true,
+                        items: [
+                            {
+                                xtype: 'label',
+                                text: 'COA Code'
+                            }, '-',
+                            {
+                                xtype: 'coaselector',
+                                id: 'coa_kode',
+                                Selectid: 'coa_kode_text',
+                                Nameid: 'coa_nama_text',
+                                ShowName: false,
+                                callbackFunc: function(coa)
+                                {
+                                    if (coaKode != '')
+                                        if (coaKode.search(coa) < 0) {
+                                            coaKode = coaKode + ',' + coa;
+                                        } else {
+                                            Ext.Msg.alert("Error", "This COA Code already exist");
+                                            Ext.getCmp('coa_kode_text').setValue('');
+                                            return false;
+                                        }
+                                    else
+                                        coaKode = coa;
+                                    
+                                    Ext.getCmp('selected_coa').setValue(coaKode);
+                                    Ext.getCmp('coa_kode_text').setValue('');
+                                }
+                            }
+                            , '-', {
+                                xtype: 'label',
+                                text: 'Project Code'
+                            }, '-',
+                            {
+                                xtype: 'projectselectorreport',
+                                anchor: '100%',
+                                id: 'project-select',
+                                Selectid: 'prj_kode_text',
+                                Nameid: 'prj_nama_text',
+                                ShowName: false,
+                                fieldLabel: 'Project Code '
+                            },
+                            {
+                                text: 'By Month',
+                                iconCls: 'icon-calendar',
+                                style: {
+                                    overflow: 'visible'     // For the Combo popup
+                                },
+                                menu: {
+                                    xtype: 'menu',
+                                    plain: true,
+                                    items:
+                                            [
+                                                '<b class="menu-title">Month & Year</b>',
+                                                {
+                                                    xtype: 'datefield',
+                                                    name: 'month',
+                                                    id: 'month',
+                                                    msgTarget: 'side',
+                                                    format: 'm-Y', // or other format you'd like
+                                                    plugins: 'monthPickerPlugin',
+                                                    listeners: {
+                                                        'select': function(t, newDate) {
+                                                            Ext.getCmp('startdate').setValue('');
+                                                            Ext.getCmp('enddate').setValue('');
+                                                        }
+                                                    }
+                                                },
+                                            ]
+                                }
+                            },
+                            {
+                                text: 'By Date',
+                                iconCls: 'icon-calendar',
+                                style: {
+                                    overflow: 'visible'     // For the Combo popup
+                                },
+                                menu: {
+                                    xtype: 'menu',
+                                    plain: true,
+                                    items:
+                                            [
+                                                '<b class="menu-title">Start Date</b>',
+                                                {
+                                                    xtype: 'datefield',
+                                                    name: 'startdate',
+                                                    id: 'startdate',
+                                                    msgTarget: 'side',
+                                                    endDateField: 'enddate', // id of the end date field
+                                                    vtype: 'daterange',
+                                                    format: 'd-m-Y', // or other format you'd like
+                                                    listeners: {
+                                                        'select': function(t, newDate) {
+                                                            Ext.getCmp('month').setValue('');
+                                                        }
+                                                    }
+                                                },
+                                                '<b class="menu-title">End Date</b>',
+                                                {
+                                                    xtype: 'datefield',
+                                                    name: 'enddate',
+                                                    id: 'enddate',
+                                                    startDateField: 'startdate', // id of the start date field
+                                                    msgTarget: 'side',
+                                                    vtype: 'daterange',
+                                                    format: 'd-m-Y', // or other format you'd like
+                                                    listeners: {
+                                                        'select': function(t, newDate) {
+                                                            Ext.getCmp('month').setValue('');
+                                                        }
+                                                    }
+                                                },
+                                            ]
+                                }
+                            },
+                            {
+                                xtype: 'button',
+                                text: 'Reset',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/lov_refresh.gif",
+                                handler: function() {
+                                    Ext.getCmp('coa_kode_text').setValue('');
+                                    Ext.getCmp('month').setValue('');
+                                    Ext.getCmp('startdate').setValue('');
+                                    Ext.getCmp('enddate').setValue('');
+                                    Ext.getCmp('prj_kode_text').setValue('');
+                                    Ext.getCmp('prj_nama_text').setValue('');
+                                    Ext.getCmp('selected_coa').setValue('');
+                                    coaKode = '';
+                                }
+                            },
+                            '-',
+                            {
+                                xtype: 'button',
+                                text: 'Show',
+                                width: 70,
+                                id: 'show_report',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/control_rewind.png",
+                                handler: function(btn, ev)
+                                {
+                                    if (checkValid())
+                                    {
+                                        var month = Ext.getCmp('month').getValue();
+                                        if (month)
+                                        {
+                                            var D = Ext.calendar.Date;
+                                            month = D.formatDate(month, 'yyyy-mm');
+                                        }
+
+                                        var tgl_awal = Ext.getCmp('startdate').getValue();
+                                        if (tgl_awal)
+                                        {
+                                            var D = Ext.calendar.Date;
+                                            tgl_awal = D.formatDate(tgl_awal, 'yyyy-mm-dd');
+                                        }
+
+                                        var tgl_akhir = Ext.getCmp('enddate').getValue();
+                                        if (tgl_akhir)
+                                        {
+                                            var D = Ext.calendar.Date;
+                                            tgl_akhir = D.formatDate(tgl_akhir, 'yyyy-mm-dd');
+                                        }
+
+//                                        var coa = Ext.getCmp('coa_kode_text').getValue();
+                                        var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/finance/report/view-general-ledger-detail/coa_kode/' + coaKode + '/prj_kode/' + prj_kode + '/month/' + month + '/tgl_awal/' + tgl_awal + '/tgl_akhir/' + tgl_akhir,
+                                            params: {
+//                                    coa_kode : Ext.getCmp('coa_kode_text').getValue(),
+//                                    month : month,
+//                                    tgl_awal : tgl_awal,
+//                                    tgl_akhir : tgl_akhir
+                                            },
+                                            scripts: true
+                                        });
+                                    }
+                                }
+                            }
+//                ,'-',
+//                {
+//                    xtype: 'button',
+//                    text: 'Show Detail per Transaction',
+//                    width:70,
+//                    id: 'show_report_all',
+//                    cls:"x-btn-text-icon" ,
+//                    icon:"/images/icons/fam/control_rewind.png",
+//                    handler:function(btn,ev)
+//                    {
+//                        if(checkValid(true))
+//                        {
+//                            myPanel = Ext.getCmp('abs-budget-panel');
+//                            myPanel.body.load({
+//                                url: '/finance/report/view-detail-journal-trans',
+//                                params: {
+//                                    prj_kode : Ext.getCmp('prj_kode_text').getValue(),
+//                                    coa_kode : Ext.getCmp('coa_kode_text').getValue()
+//                                },
+//                                scripts : true
+//                            });
+//                        }
+//                    }
+//                }
+                            , '-', 'Export To', '-', combo, {
+                                xtype: 'button',
+                                id: 'print_button',
+                                text: 'Print',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/print.png",
+                                handler: function()
+                                {
+                                    if (!checkValid())
+                                        return false;
+                                    var month = Ext.getCmp('month').getValue();
+                                    if (month)
+                                    {
+                                        var D = Ext.calendar.Date;
+                                        month = D.formatDate(month, 'yyyy-mm');
+                                    }
+
+                                    var tgl_awal = Ext.getCmp('startdate').getValue();
+                                    if (tgl_awal)
+                                    {
+                                        var D = Ext.calendar.Date;
+                                        tgl_awal = D.formatDate(tgl_awal, 'yyyy-mm-dd');
+                                    }
+
+                                    var tgl_akhir = Ext.getCmp('enddate').getValue();
+                                    if (tgl_akhir)
+                                    {
+                                        var D = Ext.calendar.Date;
+                                        tgl_akhir = D.formatDate(tgl_akhir, 'yyyy-mm-dd');
+                                    }
+
+                                    var coa = Ext.getCmp('coa_kode_text').getValue();
+                                    var prj_kode = Ext.getCmp('prj_kode_text').getValue();
+                                    location.href = '/finance/report/print-general-ledger-detail/coa_kode/' + coaKode + '/prj_kode/' + prj_kode + '/month/' + month + '/tgl_awal/' + tgl_awal + '/tgl_akhir/' + tgl_akhir + '/type/' + combo.getValue();
+                                }
+                            }
+                        ]}),
+                    new Ext.Toolbar({
+                        items: [
+                            {
+                                xtype: 'label',
+                                text: 'Selected COA'
+                            }, '-',
+                            {
+                                xtype: 'textfield',
+                                id: 'selected_coa',
+                                width: 200,
+//                                readOnly: true
+                            },
+                            {
+                                xtype: 'button',
+                                text: 'Clear',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/lov_refresh.gif",
+                                handler: function() {
+                                    Ext.getCmp('selected_coa').setValue('');
+                                    Ext.getCmp('coa_kode_text').setValue('');
+                                    coaKode = '';
+                                }
+                            }
+                        ]
+                    })
+                ]}
+        });
+        viewPort = Ext.getCmp('viewport');
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+    })
+
+
+</script>

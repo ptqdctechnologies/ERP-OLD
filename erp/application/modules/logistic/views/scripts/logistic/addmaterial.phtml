@@ -1,0 +1,979 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() { return this.numericRe.test(v)} ;
+	        }
+    });
+
+    function showtosList()
+    {
+    var columns = [
+                    {header:'ToS Code',width:55,sortable:true,dataIndex:'tos_kode'},
+                    {header:'Type of Supply Name',width:180,sortable:true,dataIndex:'tos_nama'},
+                ];
+
+    data =  [
+
+            {name: 'tos_kode', mapping: 'tos_kode'},
+            {name: 'tos_nama', mapping: 'tos_nama'},
+            ];
+
+
+    urlJson = '/barang/listtos';
+
+    primaryKey = 'ktg_kode';
+    Pk = primaryKey;
+    widthGrid = 300;
+    heightGrid = 200;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=80;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'tos_kode';
+				            txtBoxChange = 'tos_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-tos_kode_button';
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("tos_nama");
+                            Ext.getCmp('tos_kode_text').setValue(record);
+
+                            if (Ext.getCmp('tos_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('tos_nama_text').setValue(record2);
+                            }
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchTosKode = function(field,e){
+        newUrl = '/default/barang/listtosbyparams/name/tos_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchTosName = function(field,e){
+        newUrl = '/default/barang/listtosbyparams/name/tos_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-tos_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 300,
+        height: 250,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'ToS Code:'
+            },
+             new txtboks(80,10,80,'tos_kode',searchTosKode),
+             {
+            x: 10,
+            y: 52,
+            xtype: 'label',
+            text: 'ToS Name:'
+            },
+            new txtboks(80,50,80,'tos_nama',searchTosName),
+             new grids('kategori_list')
+        ]
+
+      });
+      aForm.title = 'Choose Type Of Supply';
+      aForm.show();
+    }
+
+    function showkategoriList()
+    {
+    var columns = [
+                    {header:'Category Code',width:80,sortable:true,dataIndex:'ktg_kode'},
+                    {header:'Category Name',width:120,sortable:true,dataIndex:'ktg_nama'},
+                ];
+
+    data =  [
+
+            {name: 'ktg_kode', mapping: 'ktg_kode'},
+            {name: 'ktg_nama', mapping: 'ktg_nama'},
+            ];
+
+
+    urlJson = '/barang/listkategori';
+
+    primaryKey = 'ktg_kode';
+    Pk = primaryKey;
+    widthGrid = 250;
+    heightGrid = 220;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=80;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'ktg_kode';
+				            txtBoxChange = 'ktg_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-pjr_kode_button';
+				            var ktgKode = g.getStore().getAt(rowIndex).get(objectName);
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("ktg_nama");
+                            Ext.getCmp('ktg_kode_text').setValue(record);
+
+                            if (Ext.getCmp('ktg_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('ktg_nama_text').setValue(record2);
+                            }
+                            if (Ext.getCmp('sktg_kode_text') != undefined)
+                            {
+                            	Ext.getCmp('sktg_kode_text').setValue('');
+                            }
+                            if (Ext.getCmp('sktg_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('sktg_nama_text').setValue('');
+                            }                          
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchKtgKode = function(field,e){
+        newUrl = '/default/barang/listkategoribyparams/name/ktg_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchKtgName = function(field,e){
+        newUrl = '/default/barang/listkategoribyparams/name/ktg_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-pjr_kode_button',
+        layout: 'absolute',
+        minWidth: 250,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 280,
+        height: 300,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Category Code'
+            },
+             new txtboks(93,10,80,'kategori_kode',searchKtgKode),
+             {
+            x: 10,
+            y: 52,
+            xtype: 'label',
+            text: 'Category Name'
+            },
+            new txtboks(93,50,80,'kategori_nama',searchKtgName),
+             new grids('kategori_list')
+        ]
+
+      });
+      aForm.title = 'Choose Category';
+      aForm.show();
+    }
+
+    function showSktgList()
+    {
+    var columns = [
+                   {header:'Category Code',width:100,sortable:true,dataIndex:'ktg_kode'},
+                    {header:'Subcategory Code',width:100,sortable:true,dataIndex:'sktg_kode'},
+                    {header:'Subcategory Name',width:150,sortable:true,dataIndex:'sktg_nama'},
+                ];
+
+    data =  [
+            {name: 'ktg_kode', mapping: 'ktg_kode'},
+            {name: 'sktg_kode', mapping: 'sktg_kode'},
+            {name: 'sktg_nama', mapping: 'sktg_nama'},
+            ];
+
+
+    urlJson = '/barang/listsubkategori/byKtg_Kode/'+Ext.getCmp('ktg_kode_text').getValue();
+
+    primaryKey = 'sktg_kode';
+    Pk = primaryKey;
+    widthGrid = 380;
+    heightGrid = 250;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=100;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'sktg_kode';
+				            txtBoxChange = 'sktg_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-sktg_kode_button';
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("sktg_nama");
+				            Ext.getCmp('sktg_kode_text').setValue(record);
+				            if (Ext.getCmp('sktg_nama_text') != undefined)
+				            {
+				            	Ext.getCmp('sktg_nama_text').setValue(record2);
+				            }
+
+                            var tos = Ext.getCmp('tos_kode_text').getValue();
+
+                            Ext.Ajax.request({
+                            url: '/logistic/logistic/getlastmaterial/tos_kode/'+tos,
+                            method:'POST',
+                            success: function(result, request){
+                                    var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                    if(returnData.success) {
+                                        Ext.getCmp('kode_brg_text').setValue(returnData.kode_brg);
+                                    }
+                                }
+                                ,failure:function( action){
+                            if(action.failureType == 'server'){
+                            obj = Ext.util.JSON.decode(action.response.responseText);
+                            Ext.Msg.alert('Error!', obj.errors.reason);
+                            }
+                            }
+                            });
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchSktgName = function(field,e){
+        newUrl = '/default/barang/listbykategori/sktg_nama/' + field.getValue() + '/ktg_kode/' + Ext.getCmp('ktg_kode_text').getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchSktgKode = function(field,e){
+        newUrl = '/default/barang/istbykategori/sktg_kode/' + field.getValue() + '/ktg_kode/' + Ext.getCmp('ktg_kode_text').getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-sktg_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Sub Category Code:'
+            },
+             new txtboks(120,10,80,'sktg_kode',searchSktgName),
+             {
+            x: 10,
+            y: 52,
+            xtype: 'label',
+            text: 'Sub Category Name:'
+            },
+            new txtboks(120,50,80,'sktg_nama',searchSktgKode),
+             new grids('sktg_list')
+        ]
+
+      });
+      aForm.title = 'Pop Up Window';
+      aForm.show();
+    }
+
+    function showSatuanList()
+    {
+    var columns = [
+                    {header:'UoM',width:55,sortable:true,dataIndex:'sat_kode'},
+                    {header:'Description',width:180,sortable:true,dataIndex:'sat_nama'},
+                ];
+
+    data =  [
+
+            {name: 'sat_kode', mapping: 'sat_kode'},
+            {name: 'sat_nama', mapping: 'sat_nama'},
+            ];
+
+
+    urlJson = '/satuan/list';
+
+    primaryKey = 'sat_kode';
+    Pk = primaryKey;
+    widthGrid = 250;
+    heightGrid = 300;
+
+    var stores = new Ext.data.Store({
+        proxy:new Ext.data.HttpProxy({
+        url: urlJson
+         }),
+            reader: new Ext.data.JsonReader({
+        root: 'posts',
+        totalProperty: 'count'
+    },data)
+        });
+
+    yAxis=80;
+    grids = function()
+    {
+        grids.superclass.constructor.call(this, {
+        store: stores,
+        columns: columns,
+        x:0,
+        y:yAxis,
+        id:primaryKey+'_grid',
+        loadMask: true,
+        bbar:[ new Ext.PagingToolbar({
+            pageSize: 100,
+            store: stores,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        })],
+        height:heightGrid,
+        width:widthGrid,
+        listeners: {
+            'rowdblclick': function(g, rowIndex, e){
+				        	objectName = 'sat_kode';
+				            txtBoxChange = 'sat_kode_text';
+				            closeForm = true;
+				            formId = 'a-form-panel-sat_kode_button';
+
+				            prox = 'trano_proxy';
+				            gri = 'trano_grid';
+
+				            var record = g.getStore().getAt(rowIndex).get(objectName);
+				            var record2 = g.getStore().getAt(rowIndex).get("sat_nama");
+                            Ext.getCmp('uom_kode_text').setValue(record);
+
+                            if (Ext.getCmp('uom_nama_text') != undefined)
+                            {
+                            	Ext.getCmp('uom_nama_text').setValue(record2);
+                            }
+
+                            if (closeForm)
+                            {
+                                Ext.getCmp(formId).close();
+                            }
+
+                            window.setTimeout(function(){
+                                    isDblClick = false;
+                            }, 0);
+                    }
+            }
+    });
+    }
+    stores.load();
+
+    Ext.extend(grids, Ext.grid.GridPanel);
+    Ext.extend(txtboks,Ext.form.TextField);//PR
+    searchSatKode = function(field,e){
+        newUrl = '/default/satuan/listbyparams/name/sat_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+
+    }
+    searchSatName = function(field,e){
+        newUrl = '/default/satuan/listbyparams/name/sat_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+    }
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-sat_kode_button',
+        layout: 'absolute',
+        minWidth: 250,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 280,
+        height: 400,
+        items : [
+            {
+            x: 10,
+            y: 12,
+            xtype: 'label',
+            text: 'Uom :'
+            },
+             new txtboks(80,10,80,'sat_kode',searchSatKode),
+             {
+            x: 10,
+            y: 52,
+            xtype: 'label',
+            text: 'Description :'
+            },
+            new txtboks(80,50,80,'sat_nama',searchSatName),
+             new grids('satuan_list')
+        ]
+
+      });
+      aForm.title = 'Choose UoM';
+      aForm.show();
+    }
+
+    var datas = new Ext.data.SimpleStore({
+        fields:['nilai', 'status']
+                ,data:[
+                       ['PT','PT'],
+                       ['CV','CV'],
+                       ['UD','UD'],
+                       ['Mandor','Mandor'],
+                       ['Toko','Toko'],
+                       ['Other','Other']
+
+                   ]
+
+            });
+
+     var datas2 = new Ext.data.SimpleStore({
+        fields:['nilai', 'type']
+                ,data:[
+                       ['Transportation','Transportation'],
+                       ['Mandor/Subcon','Mandor/Subcon'],
+                       ['Supplier Material Sipil','Supplier Material Sipil'],
+                       ['Supplier Material RF','Supplier Material RF'],
+                       ['Supplier Material ME','Supplier Material ME']
+                   ]
+
+            });
+
+function submitButton()
+{
+    if (!Ext.getCmp('mat-form').getForm().isValid())
+     {
+         Ext.MessageBox.show({
+               title: 'Error',
+               msg: 'Please Fill Blank Field!',
+               buttons: Ext.MessageBox.OK,
+               icon: Ext.MessageBox.ERROR
+           });
+         return false;
+     }
+
+    var parameter = '';
+
+    var tosKode = Ext.getCmp('tos_kode_text').getValue();
+    var ktgKode = Ext.getCmp('ktg_kode_text').getValue();
+    var sktgKode = Ext.getCmp('sktg_kode_text').getValue();
+    var kodeBrg = Ext.getCmp('kode_brg_text').getValue();
+    var ket = Ext.getCmp('ket_text').getValue().toString().replace(/\n|\r|\"|\'/g,'');
+    var uom = Ext.getCmp('uom_kode_text').getValue();
+    var stspmeal = Ext.getCmp('sts_pmeal_text').getValue();
+    var price = parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g,''));
+
+        parameter = '[{"tos_kode":"' + tosKode + '","ktg_kode":"' + ktgKode + '", "sktg_kode":"' + sktgKode + '", "kode_brg":"' + kodeBrg + '","ket":"' + ket + '","uom":"' + uom + '","stspmeal":"' + stspmeal + '","price":"' + price + '"}]';
+        params = {etc: parameter};
+        Ext.Ajax.request({
+        url: '/logistic/logistic/insertmaterial',
+        method:'POST',
+        success: function(resp){
+            var returnData = Ext.util.JSON.decode(resp.responseText);
+            if (returnData.success)
+            {
+                Ext.Msg.alert('Success', 'Material has been saved');
+                myPanel = Ext.getCmp('abs-budget-panel');
+                myPanel.body.load({
+                    url: '/logistic/logistic/listmaterial',
+
+                    scripts : true
+                });
+            }
+        },
+        failure:function( action){
+        if(action.failureType == 'server'){
+          obj = Ext.util.JSON.decode(action.response.responseText);
+          Ext.Msg.alert('Error!', obj.errors.reason);
+        }else{
+          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+        }
+        },
+        params: params
+    });
+   
+}
+
+<?php echo $this->action('index','textfield',null); ?>
+Ext.onReady(function() {
+	Ext.QuickTips.init();
+    var form = new Ext.FormPanel({
+        id: 'mat-form',
+        labelAlign: 'right',
+        title: 'Input Material',
+        width: 550,
+		frame: true,
+        renderTo: 'user-form',
+        items:
+            [                
+                {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth:.31,
+                                    layout: 'form',
+                                    items: [{
+                                                 fieldLabel : 'Term of Supply',
+                                                 id:'tos_kode_text',
+                                                 name: 'tujuan',
+                                                 xtype : 'trigger',
+                                                 editable: false,
+                                                 allowBlank: false,
+                                                 width : 60,
+                                                 triggerClass: 'teropong',
+                                                    onTriggerClick:
+                                                         function ()
+                                                             {
+                                                               showtosList();
+                                                             },scope: this
+
+                                             }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.49,
+                                        layout: 'form',
+                                        items: [{
+                                                    id : 'tos_nama_text',
+                                                    xtype: 'textfield',
+                                                    hideLabel: true,
+                                                    disabled: true,
+                                                    width: 180
+                                                }
+                                                ]
+                                       }
+                                ]
+                        },
+                {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth:.31,
+                                    layout: 'form',
+                                    items: [{
+                                                 fieldLabel : 'Category',
+                                                 id:'ktg_kode_text',
+                                                 name: 'tujuan',
+                                                 xtype : 'trigger',
+                                                 editable: false,
+                                                 allowBlank: false,
+                                                 width : 60,
+                                                 triggerClass: 'teropong',
+                                                    onTriggerClick:
+                                                         function ()
+                                                             {
+                                                                if (Ext.getCmp('tos_kode_text').getValue != '')
+                                                                    showkategoriList();
+                                                                else
+                                                                {
+                                                                   Ext.MessageBox.show({
+                                                                   title: 'Error',
+                                                                   msg: 'Please Select Type Of Supply First!',
+                                                                   buttons: Ext.MessageBox.OK,
+                                                                   icon: Ext.MessageBox.ERROR
+                                                                   }); return false;
+                                                                }
+                                                             },scope: this
+
+                                             }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.49,
+                                        layout: 'form',
+                                        items: [{
+                                                    id : 'ktg_nama_text',
+                                                    xtype: 'textfield',
+                                                    hideLabel: true,
+                                                    disabled: true,
+                                                    width: 180
+                                                }
+                                                ]
+                                       }
+                                ]
+                        },
+                {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth:.31,
+                                    layout: 'form',
+                                    items: [{
+                                                 fieldLabel : 'Sub Category',
+                                                 id:'sktg_kode_text',
+                                                 name: 'tujuan',
+                                                 xtype : 'trigger',
+                                                 editable: false,
+                                                 allowBlank: false,
+                                                 width : 60,
+                                                 triggerClass: 'teropong',
+                                                    onTriggerClick:
+                                                         function ()
+                                                             {
+                                                                 if (Ext.getCmp('ktg_kode_text').getValue() != '')
+                                                                    showSktgList();
+                                                                 else
+                                                                 {
+                                                                       Ext.MessageBox.show({
+                                                                       title: 'Error',
+                                                                       msg: 'Please Select Category First!',
+                                                                       buttons: Ext.MessageBox.OK,
+                                                                       icon: Ext.MessageBox.ERROR
+                                                                   });
+                                                                 return false;
+                                                                 }
+                                                             },scope: this
+
+                                             }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.49,
+                                        layout: 'form',
+                                        items: [{
+                                                    id : 'sktg_nama_text',
+                                                    xtype: 'textfield',
+                                                    hideLabel: true,
+                                                    disabled: true,
+                                                    width: 180
+                                                }
+                                                ]
+                                       }
+                                ]
+                        },
+                  {
+                        fieldLabel: 'Product ID',
+                        xtype: 'textfield',
+                        width: 80,
+                        disabled: true,
+                        allowBlank: false,
+                        id: 'kode_brg_text'
+                },
+                {
+                        fieldLabel: 'Description',
+                        xtype: 'textarea',
+                        width: 200,
+                        allowBlank: false,
+                        id: 'ket_text'
+                },
+                {
+                            layout:'column',
+                            items:[
+                                   {
+                                    columnWidth:.31,
+                                    layout: 'form',
+                                    items: [{
+                                                 fieldLabel : 'Uom',
+                                                 id:'uom_kode_text',
+                                                 name: 'tujuan',
+                                                 xtype : 'trigger',
+                                                 editable: false,
+                                                 allowBlank: false,
+                                                 width : 60,
+                                                 triggerClass: 'teropong',
+                                                    onTriggerClick:
+                                                         function ()
+                                                             {
+                                                               showSatuanList();
+                                                             },scope: this
+
+                                             }
+                                            ]
+                                   },
+                                   {
+                                        columnWidth:.49,
+                                        layout: 'form',
+                                        items: [{
+                                                    id : 'uom_nama_text',
+                                                    xtype: 'textfield',
+                                                    hideLabel: true,
+                                                    disabled: true,
+                                                    width: 180
+                                                }
+                                                ]
+                                       }
+                                ]
+                        },
+                        {
+                                 fieldLabel : 'Status Piece Meal',
+                                 id:'sts_pmeal_text',
+                                 xtype:'combo',
+                                 store: new Ext.data.SimpleStore({
+                                     fields:['data', 'nilai']
+                                             ,data:[
+                                                    ['Y','Yes'],
+                                                    ['N','No']
+                                                   ]
+
+                                         }),
+                                 valueField:'data',
+                                 displayField:'nilai',
+                                 typeAhead: true,
+                                 mode: 'local',
+                                 triggerAction: 'all',
+                                 selectOnFocus:true,
+                                 forceSelection:false,
+                                 width: 55,
+                                 listeners:{
+                                     'select':function(combo,record,index)
+                                     {
+                                          var status = record.data.data;
+
+                                          if (status == 'N')
+                                          {
+                                              Ext.getCmp('price').disable();
+                                          }else
+                                          {
+                                              Ext.getCmp('price').enable()
+                                          }
+                                     }
+                                 }
+                        },new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    fieldLabel:'Price Piece Meal ',
+                                    id:'price',
+                                    priceDelemiter:',',
+                                    vtype:'numeric',
+                                    style:'text-align:right',
+                                    allowBlank: false
+                                })
+                
+            ],
+        buttons: [
+            {
+                text: 'Submit',
+                id: 'submit-button',
+                iconCls: 'silk-add',
+
+                handler: function() {
+                    submitButton();
+                },
+                scope: this
+           },
+           {
+                  text: 'Reset',
+                  handler: function(btn, ev){
+                      Ext.getCmp('supp-form').getForm().reset();
+
+                  },
+                  scope: this
+           },
+            {
+                   text: 'Cancel',
+                   handler: function(btn, ev){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/ligistic/logistic/listmaterial',
+                        scripts : true
+                    });
+                   },
+                   scope: this
+            }
+        ]
+    });
+
+    <?php
+    if ($this->json != '')
+    {
+    ?>
+		var data = <?php echo $this->json ?>;
+
+        Ext.getCmp('stat_supp').setValue(data[0].status);
+        Ext.getCmp('nama_text').setValue(data[0].nama);
+        Ext.getCmp('address_text').setValue(data[0].alamat);
+        Ext.getCmp('address2_text').setValue(data[0].alamat2);
+        Ext.getCmp('city_text').setValue(data[0].city);
+        Ext.getCmp('country_text').setValue(data[0].country);
+        Ext.getCmp('telp_text').setValue(data[0].telp);
+        Ext.getCmp('fax_text').setValue(data[0].fax);
+        Ext.getCmp('contact_text').setValue(data[0].contact);
+        Ext.getCmp('bank_text').setValue(data[0].bank);
+        Ext.getCmp('account_name_text').setValue(data[0].account_name);
+        Ext.getCmp('account_number_text').setValue(data[0].account_no);
+        Ext.getCmp('type_supp').setValue(data[0].type);
+        Ext.getCmp('ket_text').setValue(data[0].ket);
+	<?php
+    }
+    ?>
+
+});
+</script>
+
+<div id="user-form"></div>

@@ -1,0 +1,572 @@
+<script type="text/javascript">
+<?php echo $this->action('popupgrid','grid'); ?>
+
+//** Number **//
+Ext.apply(Ext.form.VTypes, {
+	'numeric': function(){
+
+			/*****************************************************************
+			DESCRIPTION: Validates that a string contains only valid numbers.
+			PARAMETERS:
+			   strValue - String to be tested for validity
+			RETURNS:
+			   True if valid, otherwise false.
+			******************************************************************/
+			  var objRegExp  =  /(^-?\d\d*\.\d*$)|(^-?\d\d*$)|(^-?\.\d\d*$)/;
+			  return function(strValue){
+				  //check for numeric characters
+				  return objRegExp.test(strValue);
+			  }
+	}(),
+	'numericText': 'Only numbers are allowed'
+});
+
+//var myGridSummary = Ext.extend(Ext.ux.grid.GridSummary, {
+//    renderSummary : function(o, cs, cm) {
+//        cs = cs || this.view.getColumnData();
+//        var cfg = cm.config,
+//            buf = [],
+//            last = cs.length - 1;
+//
+//        for (var i = 0, len = cs.length; i < len; i++) {
+//            var c = cs[i], cf = cfg[i], p = {};
+//
+//            p.id = c.id;
+//            p.style = c.style;
+//            p.css = i === 0 ? 'x-grid3-cell-first ' : (i == last ? 'x-grid3-cell-last ' : '');
+//
+//            if (cf.summaryType || cf.summaryRenderer) {
+//                p.value = (cf.summaryRenderer || c.renderer)(o.data[c.name], p, o);
+//            } else {
+//                p.value = '';
+//            }
+//            if (p.value === undefined || p.value === "") {
+//                p.value = "&#160;";
+//            }
+//            buf[buf.length] = this.cellTpl.apply(p);
+//        }
+//
+//        return this.rowTpl.apply({
+//            tstyle: 'width:' + (this.view.getTotalWidth() * 2) + ';',
+//            cells: buf.join('')
+//        });
+//    }
+//});
+
+
+//var summary = new Ext.ux.grid.GridSummary();
+//
+//Ext.ux.grid.GridSummary.Calculations = {
+//	    'jumlah': function(v, record, colName, data, rowIdx){
+//            return data[colName] + Ext.num(parseFloat(v.toString().replace(/\$|\,/g,'')), 0);
+//	    }
+//};
+
+function totals(t, params, data){
+
+     var total = [];
+     Ext.getCmp('boq3-grid').getStore().each(function (stores){
+
+        var val_kode = stores.data['val_kode'];
+        if (total[val_kode] == undefined)
+        {
+            total[val_kode] = Ext.num(parseFloat(stores.data['total'].toString().replace(/\$|\,/g,'')), 0);
+        }
+         else
+        {
+            total[val_kode] = Ext.num(total[val_kode],0) + Ext.num(parseFloat(stores.data['total'].toString().replace(/\$|\,/g,'')), 0);
+        }
+
+     });
+	 return CommaFormatted(total['IDR'].toFixed(2));
+
+}
+
+var msg = function(title, msg){
+    Ext.Msg.show({
+        title: title,
+        msg: msg,
+        minWidth: 200,
+        modal: true,
+        icon: Ext.Msg.INFO,
+        buttons: Ext.Msg.OK
+    });
+};
+
+var grid;
+
+var fp = new Ext.FormPanel({
+    renderTo: 'fi-form',
+    id: 'boq3-form',
+    fileUpload: true,
+    width: 500,
+    frame: true,
+    title: 'Edit File Overhead Project Budget Upload Form',
+    autoHeight: true,
+    bodyStyle: 'padding: 10px 10px 0 10px;',
+    labelWidth: 100,
+    defaults: {
+        anchor: '95%'
+    },
+    items: [
+//	{xtype:'trigger', name:'prj_kode',id: 'prj_kode_text',fieldLabel: 'Project Code', triggerClass: 'search-button',
+//		onTriggerClick: function( ){
+//		projectPopUphandler();
+//		},
+//		allowBlank: false,
+//		editable: false
+//	},
+//	{fieldLabel: '',
+//		xtype: 'textfield',
+//        id:'prj_nama_text',
+//        name: 'prj_nama',
+//        readOnly:true,
+//        style: { 'font-weight' : 'bold' }
+//    },
+//	{xtype:'trigger', name:'sit_kode',id: 'sit_kode_text',fieldLabel: 'Site Code',  triggerClass: 'search-button',
+//		onTriggerClick: function( ){
+//		if (Ext.getCmp('prj_kode_text').getValue() != '')
+//			sitePopUphandler();
+//		},
+//		editable: false,
+//		allowBlank: false
+//	},
+//	{fieldLabel: '',
+//		xtype: 'textfield',
+//        id:'sit_nama_text',
+//        name: 'sit_nama',
+//        readOnly:true,
+//        style: { 'font-weight' : 'bold' }
+//    },
+    {fieldLabel: 'Transaction Number',
+		xtype: 'textfield',
+        id:'trano_text',
+        disabled: true,
+        name: 'trano'
+    },
+	{
+        xtype: 'fileuploadfield',
+        id: 'form-file',
+        emptyText: 'Select a File',
+        fieldLabel: 'File Excel',
+        name: 'file-path',
+        buttonText: '',
+        buttonCfg: {
+            iconCls: 'upload-icon'
+        },
+        allowBlank: false
+    },
+//	{fieldLabel: 'USD Exchange Rate',
+//		xtype: 'textfield',
+//		vtype: 'numeric',
+//        id:'rateidr',
+//        name: 'rateidr',
+//        renderer: function(v){
+//	    return v ? Ext.util.Format.number(v, '0,0') : '';
+//  		}
+//    },
+	{fieldLabel: 'Description',
+		xtype: 'textfield',
+        id:'ket',
+        name: 'ket'
+    }],
+    buttons: [
+//        {
+//	        text: 'Download Sample Format of BOQ3',
+//	        handler: function(){
+//	        	window.open('/default/file/download/type/master_boq3','mywin',
+//	            'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+//	    		}
+//    	},
+        {
+        text: 'Upload',
+        handler: function(){
+            if(fp.getForm().isValid()){
+
+                fp.getForm().submit({
+                    url: '/humanresource/humanresource/uploadohp',
+                    waitMsg: 'Uploading your file...',
+                    success: function(fp, o){
+                        msg('Success', 'Processed file "'+ o.result.file +'" on the server');
+
+                        Ext.getCmp('boq3-form').disable();
+                        if (grid != undefined)
+                        {
+                            grid.enable();
+                        }
+                        var json = Ext.util.JSON.encode(o.result);
+                        var jsonDataPosts = '{"posts" : ' + Ext.util.JSON.encode(o.result.RESULT.posts) + '}';
+                        var jsonDataFields = Ext.util.JSON.encode(o.result.RESULT.fields);
+
+                        var Posts = Ext.util.JSON.decode(jsonDataPosts);
+
+                        var jsonData = Ext.util.JSON.decode(json);
+
+                        var reader = new Ext.data.JsonReader({
+                            idProperty: 'id',
+                            root: 'posts',
+                            fields: jsonData.RESULT.fields
+                        });
+
+                        var store = new Ext.data.Store({
+                            id: 'boq3-store',
+                            reader: reader
+                        });
+
+                        if(grid != undefined)
+                        {
+                            grid.destroy();
+                        }
+
+                        var theData = Ext.util.JSON.decode(jsonDataPosts);
+                        store.loadData(theData);
+
+                        var editor = new Ext.ux.grid.RowEditor({
+                            saveText: 'Update',
+                            clicksToEdit: 2,
+                            listeners: {
+                                'afteredit': function(ed,obj,rec,index){
+//                                    var recs = store.getAt(index);
+//                                    recs.data['total'] = parseFloat(rec.data['qty']) * parseFloat(rec.data['harga']);
+
+                                    ed.record.commit(); //Commit changes into store
+                                }
+                            }
+                        });
+
+                        var expander = new Ext.ux.grid.RowExpander({
+                            tpl : new Ext.Template(
+                                    '<div style="margin-left:45px;"><p><br>',
+                                    '<p><b>Project Name:</b> {prj_nama}</p><br>',
+                                    '<p><b>Site Name:</b> {sit_nama}</p><br>',
+                                    '<p><b>Work Name:</b> {workname}</p><br>',
+                                    '<p><b>Product Name:</b> {nama_brg}</p><br></div>'
+                                   )
+                        });
+
+                        var datas = new Ext.data.SimpleStore({
+                            fields:['type','name']
+                                    ,data:[['USD','USD'],['IDR','IDR']]
+                                });
+
+                        var totJum = 0;
+                        var totJumUSD = 0;
+
+                        grid = new Ext.grid.GridPanel({
+                            id: 'boq3-grid',
+                            store: store,
+                            width: 800,
+                            height: 400,
+                            frame: true,
+                            bbar: new Ext.Toolbar({
+                                    id: 'gtotal-bbar',
+                                    style:"text-align:right",
+                                    items: [
+                                            {
+                                             xtype: 'label',
+                                             id: 'gtotal-text'
+                                            },'-',
+                                            {
+                                             xtype: 'label',
+                                             id: 'gtotal-text2'
+                                            }
+                                        ],
+                                    layout: 'fit'
+                                }),
+                            renderTo:'fi-grid',
+                            tbar: [
+                                    {
+                                        text: 'Refresh',
+                                        iconCls: 'silk-table-refresh',
+                                        disabled: true,
+                                        handler: function(){
+                                            Ext.MessageBox.confirm('Confirm', 'This action will remove all changes on grid, Refresh data now?',
+                                                function(btn)
+                                                {
+                                                    if (btn == 'yes')
+                                                    {
+                                                        grid.getStore().removeAll();
+                                                        grid.getStore().loadData(Ext.util.JSON.decode(jsonDataPosts));
+                                                    }
+                                                }
+                                            );
+
+                                        },
+                                        scope: this
+                                    }
+                                   ],
+                                   buttons: [
+                                            {
+                                                text: 'Update Budget',
+                                                iconCls: 'icon-save',
+                                                handler: function(){
+                                                    if (grid.getStore().getCount() == 0)
+                                                        return false;
+                                                    Ext.MessageBox.confirm('Confirm', 'This action will submit Overhead Project Budget, Proceed?',
+                                                        function(btn)
+                                                        {
+                                                            if (btn == 'yes')
+                                                            {
+                                                                var json='';
+                                                                var parameter = '';
+                                                                grid.getStore().each(function(store){
+                                                                    var encode = Ext.util.JSON.encode(store.data);
+                                                                    if (encode != undefined)
+                                                                        json += encode + ',';
+                                                                });
+                                                                json = '[' + json.substring(0, json.length - 1) + ']';
+
+//                                                                var desc = '"' + Ext.getCmp('ket').getValue() + '"';
+                                                                var ket = Ext.getCmp('ket').getValue();
+                                                                var trano = Ext.getCmp('trano_text').getValue();
+                                                                var submitUrl = '';
+                                                                parameter = '[{"trano":"' + trano + '","ket":"' + ket + '"}]';
+
+                                                                params = {posts:json, etc:parameter};
+
+                                                                Ext.Ajax.request({
+                                                                    url: '/humanresource/humanresource/cekbarang',
+                                                                    method:'POST',
+                                                                    success: function(result, request){
+
+                                                                    var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                                                    if(returnData.success){
+
+                                                                    submitUrl = '/humanresource/humanresource/updateohp/uid/<?php echo $this->uid; ?>';
+
+                                                                    Ext.Ajax.request({
+                                                                        url: submitUrl,
+                                                                        method:'POST',
+                                                                        success: function(result, request){
+                                                                            var returnData = Ext.util.JSON.decode(result.responseText);
+                                                                            if( !returnData.success) {
+                                                                                Ext.Msg.alert('Error!', returnData.msg);
+                                                                                 return false;
+                                                                            } else {
+                                                                                Ext.Msg.alert('Success!', 'Your Temporary Overhead Project Budget has been Updated!<br>Transaction Number: <b>' + returnData.number + '</b><br>' + returnData.count + ' of ' + returnData.of + ' Row has been saved.');
+                                                                                Ext.getCmp('boq3-grid').getStore().removeAll();
+                                                                                Ext.getCmp('boq3-grid').disable();
+                                                                                Ext.getCmp('boq3-form').enable();
+                                                                                Ext.getCmp('boq3-form').getForm().reset();
+    //                                                                            getExchangeRate();
+                                                                                Ext.getCmp('gtotal-text').setText('');
+                                                                                Ext.getCmp('gtotal-text2').setText('');
+                                                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                                                myPanel.body.load({
+                                                                                    url: '/humanresource/humanresource/ohp',
+                                                                                    scripts : true
+                                                                                });
+                                                                            }
+                                                                        }
+                                                                        ,failure:function( action){
+                                                                        if(action.failureType == 'server'){
+                                                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                                                        }
+                                                                        },
+                                                                            params: params
+                                                                    });
+
+                                                                    }
+                                                                    else{
+                                                                        Ext.Msg.alert('Error!', '<br>There are Item that does not Exist in <b>BOQ3</b>');
+                                                                        var wrong = returnData.wrong;
+                                                                        Ext.each(wrong,function(items,indeks){
+                                                                           var col = grid.getStore().queryBy(function(record,id){
+
+                                                                                 return  record.get('prj_kode') == items['prj_kode']  &&  record.get('sit_kode') == items['sit_kode']  && record.get('workid') == items['workid']  && record.get('kode_brg') == items['kode_brg'];
+
+                                                                            });
+                                                                            if (col.length > 0)
+                                                                            {
+                                                                                col.items[0].markDirty();
+                                                                            }
+                                                                        });
+                                                                        grid.getView().refresh();
+                                                                        return false;
+                                                                    }
+                                                                    }
+                                                                    ,failure:function( action){
+                                                                        if(action.failureType == 'server'){
+                                                                        obj = Ext.util.JSON.decode(action.response.responseText);
+                                                                        Ext.Msg.alert('Error!', obj.errors.reason);
+                                                                        }
+                                                                        },
+                                                                            params: params
+                                                                    });
+                                                            }
+                                                        }
+                                                    );
+
+                                                },
+                                                scope: this
+                                            },
+                                            {
+                                                text: 'Cancel',
+                                                iconCls: 'icon-cancel',
+                                                handler: function(){
+                                                    Ext.getCmp('boq3-form').enable();
+                                                    Ext.getCmp('boq3-grid').getStore().removeAll();
+                                                    Ext.getCmp('boq3-grid').disable();
+                                                }
+                                            }
+                                           ],
+                            plugins: [editor,expander],
+                            columns: [
+                                      new Ext.grid.RowNumberer(),
+                                        expander,
+                                      {
+                                          header: 'Project Code',
+                                          dataIndex: 'prj_kode',
+                                          width: 100,
+                                          sortable: true,
+                                          editor: {
+                                              xtype: 'textfield',
+                                              allowBlank: false
+                                          }
+                                      },
+//                                      {
+//                                          header: 'Project Name',
+//                                          dataIndex: 'prj_nama',
+//                                          width: 100,
+//                                          sortable: true,
+//                                          editor: {
+//                                              xtype: 'textfield'
+//
+//                                          }
+//                                      },
+                                      {
+                                          header: 'Site Code',
+                                          dataIndex: 'sit_kode',
+                                          width: 100,
+                                          sortable: true,
+                                          editor: {
+                                              xtype: 'textfield',
+                                              allowBlank: false
+                                          }
+                                      },
+//                                      {
+//                                          header: 'Site Name',
+//                                          dataIndex: 'sit_nama',
+//                                          width: 100,
+//                                          sortable: true,
+//                                          editor: {
+//                                              xtype: 'textfield'
+//
+//                                          }
+//                                      },
+                                      {
+                                          header: 'Workid',
+                                          dataIndex: 'workid',
+                                          width: 100,
+                                          sortable: true,
+                                          editor: {
+                                              xtype: 'textfield',
+                                              allowBlank: false
+                                          }
+                                      },
+//                                      {
+//                                          header: 'Workname',
+//                                          dataIndex: 'workname',
+//                                          width: 100,
+//                                          sortable: true,
+//                                          editor: {
+//                                              xtype: 'textfield'
+//
+//                                          }
+//                                      },
+                                      {
+                                          header: 'Product ID',
+                                          dataIndex: 'kode_brg',
+                                          width: 100,
+                                          sortable: true,
+                                          editor: {
+                                              xtype: 'textfield',
+                                              allowBlank: false
+                                          }
+                                      },
+//                                      {
+//                                          header: 'Product Name',
+//                                          dataIndex: 'nama_brg',
+//                                          width: 100,
+//                                          sortable: true,
+//                                          editor: {
+//                                              xtype: 'textfield'
+//
+//                                          }
+//                                      },
+                                        {
+                                          xtype: 'numbercolumn',
+                                          header: 'Total',
+                                          dataIndex: 'total',
+                                          align: 'right',
+                                          width: 100,
+                                          renderer: function(v){
+                                            return v ? Ext.util.Format.number(v, '0,0') : '';
+                                            },
+                                          sortable: true,
+                                          editor: {
+                                              xtype: 'numberfield',
+                                              allowBlank: false,
+                                              minValue: 0
+                                          }
+                                      }
+                                       ]
+                                  });
+
+
+                    },
+                    failure: function(fp, o){
+                        msg('Error', 'File "'+o.result.file+'" cannot processed on the server! Please refresh (F5) Your browser or Try uploading again.');
+                    }
+                });
+            }
+        }
+    },{
+        text: 'Reset',
+        handler: function(){
+            fp.getForm().reset();
+//            getExchangeRate();
+        }
+    }, {
+        text: 'Cancel',
+        handler: function(btn, ev){
+        	myPanel = Ext.getCmp('abs-budget-panel');
+    	    myPanel.body.load({
+    	        url: '/projectmanagement/budget/showcreateboq3',
+    	        scripts : true
+            });
+        },
+        scope: this
+    }]
+});
+
+//function getExchangeRate()
+//{
+//	Ext.Ajax.request({
+//	    url: '/default/valuta/getexchangerate',
+//	    method:'POST',
+//	    success: function(result, request){
+//		   		var returnData = Ext.util.JSON.decode(result.responseText);
+//				if(returnData.success) {
+//					Ext.getCmp('rateidr').setValue(returnData.rate);
+//				}
+//			}
+//			,failure:function( action){
+//		if(action.failureType == 'server'){
+//	    obj = Ext.util.JSON.decode(action.response.responseText);
+//	    Ext.Msg.alert('Error!', obj.errors.reason);
+//		}
+//		}
+//	});
+//}
+
+Ext.getCmp('trano_text').setValue('<?php echo $this->trano; ?>');
+Ext.getCmp('ket').setValue('<?php echo $this->ket; ?>');
+
+</script>
+
+<div id="fi-form"></div>
+<br />
+<div id="fi-grid"></div>

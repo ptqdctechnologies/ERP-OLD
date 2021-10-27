@@ -1,0 +1,572 @@
+<style>
+
+    .last-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#EFEFEF;
+        /*color:#222222;*/
+        color: #C15119;
+        padding:4px;
+        text-align:left;
+    }
+    .all-reject{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        background:#F6CBCA;
+        color:#222222;
+        padding:4px;
+        text-align:left;
+    }
+    .all-approve{
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border:solid 1px #DEDEDE;
+        /*background:#CEE6C3;*/
+        color:#222222;
+        padding:4px;
+        text-align:left;
+        height: 200px;
+        overflow: auto;
+    }    
+    .body {
+        width: 750px;
+        overflow: auto;
+    }
+    .title {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .etc {
+        width: 100%;
+        height: 50px;
+    }
+    .kanan-etc {
+        float: right;
+        width: 48%;
+    }
+    .kiri-etc {
+        float: left;
+        width: 48%;
+    }
+    .blok {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .budgetTable {
+        width: 100%;
+        font-size: 12px;
+        font-weight: normal;
+    }
+
+    #approval {
+        width: 100%;
+        font-size: 12px;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .containerDetailTrans{
+        border: none;
+        width: 650px;
+        height: 100px;
+        overflow: auto;
+        font-size: 14px;
+    }
+
+
+</style>
+<style type="text/css">
+    .x-grid3-td-name b {
+        font-family:tahoma, verdana;
+        display:block;
+        color:#333;
+    }
+    .x-grid3-td-name b i {
+        font-weight:normal;
+        font-style: normal;
+        color:#000;
+    }
+    .x-grid3-td-name .personicon {
+        padding-left:20px;
+        background:transparent url(/images/engineer-icon.png) no-repeat 0 2px;
+    }
+    .x-grid3-td-name .x-grid3-cell-inner {
+        white-space:normal;
+    }
+
+    .x-grid3-row-body p {
+        margin:5px 20px 10px 25px !important;
+        color:#555;
+    }
+
+    .rolename {
+        color:#333;
+    }
+</style>
+
+
+
+<script type="text/javascript">
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var trano = '<?= $this->docsID ?>';
+        var uid = '<?= $this->uid ?>';
+        var user_id = '<?= $this->userID ?>';
+
+<?php if (!$this->preview && !$this->show) { ?>
+    <?php if ($this->approve) { ?>
+        <?php if (!$this->reject) { ?>
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showApproveButton: true,
+                        showRejectButton: true,
+                        showAskButton: true,
+                        showCancelButton: true,
+                        trano: '<?= $this->trano ?>',
+                        itemType: 'TBOQ',
+                        approveParams: {trans: trano, user: uid, user_id: user_id},
+                        rejectParams: {trans: trano, user: uid, user_id: user_id},
+                        approveSuccessCallback: function() {
+
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+
+                        },
+                        rejectSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        },
+                        cancelSuccessCallback: function() {
+                            getDocs();
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/default/home/showprocessdocument',
+                                scripts: true
+                            });
+                        }
+                    });
+
+                    wButt.on('beforeworkflowapprove', function(t) {
+
+                    });
+
+
+        <?php } else { ?>
+
+                    var wButt = new Ext.ux.workflowButton({
+                        renderTo: 'wButton',
+                        showEditButton: true,
+                        itemType: 'TBOQ',
+                        editSuccessCallback: function() {
+                            myPanel = Ext.getCmp('abs-budget-panel');
+                            myPanel.body.load({
+                                url: '/sales/sales/editransferbudget',
+                                params: {
+                                    trano: '<?php echo $this->trano; ?>',
+                                    item_type: 'TBOQ'
+                                },
+                                scripts: true
+                            });
+                        }
+                    });
+        <?php } ?>
+    <?php } ?>
+<?php } ?>
+    })
+</script>
+
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+
+<div class="body">
+    <div class="title">Transfer Budget</div>
+    <script>
+
+    </script>
+    <br /><br />
+    <br /><br />
+    <?php if ($this->ref_data) { ?>
+
+        <div class="etc">
+            <div class="kiri-etc">
+                <?//= $displayNum ?>
+
+                <div class="blok">Transcation No : <?= $this->trano ?></div>
+                <div class="blok">Ref No : <?= $this->ref_no ?></div>
+                <div class="blok">Project Code (From) : <?= $this->ref_data[0]['prj_kode'] ?></div>
+                <div class="blok">Site Code (From) : <?= $this->ref_data[0]['sit_kode'] ?></div>
+
+            </div>
+
+            <div class="kanan-etc">
+                <?//= $displayNum ?>
+
+                <div class="blok">Project Code (To) : <?= $this->prj_kode ?></div>
+                <div class="blok">Site Code (To) : <?= $this->sit_kode ?></div>
+                <div class="blok">Work ID : <?= $this->workid ?></div>
+                <div class="blok">Product ID : <?= $this->kode_brg ?> - <?= $this->nama_brg ?></div>
+
+            </div>
+
+        </div>
+    <?php } ?>
+    <br />
+    <br />
+    <br />
+
+    <?php if ($this->poData) { ?>
+        <h1>PO Data</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable4" class="budgetTable4">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>PO Number</b></center></th>
+                <th><center><b>Work ID</b></center></th>
+                <th><center><b>Work Name</b></center></th>
+                <th><center><b>Product Name</b></center></th>
+                <th><center><b>Qty</b></center></th>
+                <th><center><b>Price</b></center></th>
+                <th><center><b>Total</b></center></th>
+                </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $num = 0;
+                    foreach ($this->poData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['trano'] ?></td>
+                            <td><?= $val['workid'] ?></td>
+                            <td><?= $val['workname'] ?></td>
+                            <td><?= $val['nama_brg'] ?></td>
+                            <td><?= $val['qty'] ?></td>
+                            <td><?= $val['harga'] ?></td>
+                            <td align="right"><?= number_format($val['total'], 2) ?></td>
+                        </tr>
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+
+
+                </tbody>
+            </table>
+
+        </div>
+    <?php } ?>
+    <?php if ($this->rpiData) { ?>
+        <h1>RPI Data</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable5" class="budgetTable5">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>RPI Number</b></center></th>
+                <th><center><b>PO Number</b></center></th>
+                <th><center><b>Work ID</b></center></th>
+                <th><center><b>Work Name</b></center></th>
+                <th><center><b>Product Name</b></center></th>
+                <th><center><b>Qty</b></center></th>
+                <th><center><b>Price</b></center></th>
+                <th><center><b>Total</b></center></th>
+                </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $num = 0;
+                    foreach ($this->rpiData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['trano'] ?></td>
+                            <td><?= $val['po_no'] ?></td>
+                            <td><?= $val['workid'] ?></td>
+                            <td><?= $val['workname'] ?></td>
+                            <td><?= $val['nama_brg'] ?></td>
+                            <td><?= $val['qty'] ?></td>
+                            <td><?= $val['harga'] ?></td>
+                            <td align="right"><?= number_format($val['total'], 2) ?></td>
+                        </tr>
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+
+
+                </tbody>
+            </table>
+
+        </div>
+    <?php } ?>
+
+
+    <?php if ($this->bpvData) { ?>
+        <h1>BPV Data</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable2" class="budgetTable2">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>BPV Number</b></center></th>
+                <th><center><b>Date Transaction</b></center></th>
+                <th><center><b>Total BPV</b></center></th>
+                </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $num = 0;
+                    foreach ($this->bpvData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['bpv_no'] ?></td>
+                            <td><?= date("d - M - Y", strtotime($val['tgl_bpv'])) ?></td>
+                            <td align="right"><?= number_format($val['total_bpv'], 2) ?></td>
+                        </tr>
+
+
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+
+
+
+                </tbody>
+            </table>
+
+        </div>
+    <?php } ?>
+    <br />
+
+    <?php if ($this->payData) { ?>
+        <h1>Payment Data</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable3" class="budgetTable3">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>Payment Number</b></center></th>
+                <th><center><b>Date Transaction</b></center></th>
+                <th><center><b>Total Payment</b></center></th>
+                </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $num = 0;
+                    foreach ($this->payData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['payment_trano'] ?></td>
+                            <td><?= date("d - M - Y", strtotime($val['tgl_payment'])) ?></td>
+                            <td align="right"><?= number_format($val['total_payment'], 2) ?></td>
+                        </tr>
+
+
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+                </tbody>
+            </table>
+
+        </div>
+    <?php } ?>
+    <br />
+
+    <?php if ($this->asfData) { ?>
+        <h1>ASF Data (Expense Claim)</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable4" class="budgetTable4">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>ASF Number</b></center></th>
+                <th><center><b>ARF Number</b></center></th>
+                <th><center><b>Work ID</b></center></th>
+                <th><center><b>Work Name</b></center></th>
+                <th><center><b>Product Name</b></center></th>
+                <th><center><b>Qty</b></center></th>
+                <th><center><b>Price</b></center></th>
+                <th><center><b>Total</b></center></th>
+                </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $num = 0;
+                    foreach ($this->asfData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['asfno'] ?></td>
+                            <td><?= $val['arf_no'] ?></td>
+                            <td><?= $val['workidAsf'] ?></td>
+                            <td><?= $val['worknameAsf'] ?></td>
+                            <td><?= $val['nama_brgAsf'] ?></td>
+                            <td><?= $val['qtyAsf'] ?></td>
+                            <td><?= $val['hargaAsf'] ?></td>
+                            <td align="right"><?= number_format($val['total_asf'], 2) ?></td>
+                        </tr>
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+
+
+                </tbody>
+            </table>
+
+        </div>
+    <?php } ?>
+
+    <?php if ($this->asfCancelData) { ?>
+        <h1>ASF Data (Due to Company)</h1>
+        <div class="containerDetailTrans">
+
+            <table id="budgetTable5" class="budgetTable5">
+                <thead>
+                    <tr>
+                        <th><center><b>No</b></center></th>
+                <th><center><b>ASF Number</b></center></th>
+                <th><center><b>ARF Number</b></center></th>
+                <th><center><b>Work ID</b></center></th>
+                <th><center><b>Work Name</b></center></th>
+                <th><center><b>Product Name</b></center></th>
+                <th><center><b>Qty</b></center></th>
+                <th><center><b>Price</b></center></th>
+                <th><center><b>Total</b></center></th>
+                </tr>
+                </thead>
+
+                <tbody> 
+                    <?php
+                    $num = 0;
+
+                    foreach ($this->asfCancelData as $key => $val) {
+                        ?>
+
+                        <tr>
+                            <td><?= $num + 1 ?></td>
+                            <td><?= $val['asfcancelno'] ?></td>
+                            <td><?= $val['arfcancel_no'] ?></td>
+                            <td><?= $val['workidAsfCancel'] ?></td>
+                            <td><?= $val['worknameAsfCancel'] ?></td>
+                            <td><?= $val['nama_brgAsfCancel'] ?></td>
+                            <td><?= $val['qtyAsfCancel'] ?></td>
+                            <td><?= $val['hargaAsfCancel'] ?></td>
+                            <td align="right"><?= number_format($val['total_asfcancel'], 2) ?></td>
+                        </tr>
+
+                        <?php
+                        $num++;
+                    }
+                    ?>
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+    <?php } ?>
+
+</div>
+
+<?php
+if ($this->user_approval != '') {
+    ?>
+    <div class="all-approve">
+        <b>Approval History</b></br>
+        <ul>
+            <?php
+            foreach ($this->user_approval as $key => $val) {
+                ?>
+                <li><?php echo "<b>" . $val['approve'] . "</b> " . date('d-m-Y H:i:s', strtotime($val['date'])) . " : " . $val['displayname'] . " (" . $val['display_name'] . ")<br />Sign : " . $val['signature'] . "<br />Comment : " . $val['comment']; ?></li>
+                <?php
+            }
+            ?>
+        </ul>
+    </div>
+    <?php
+}
+?>
+<!--
+
+-->
+
+<script type="text/javascript">
+
+            (function() {
+<?php if ($this->bpvData) { ?>
+                    var mySt = new superTable("budgetTable2", {
+                        cssSkin: "sSky",
+                        fixedCols: 1,
+                        headerRows: 1
+                    });
+<?php } ?>
+
+<?php if ($this->payData) { ?>
+                    var myStx = new superTable("budgetTable3", {
+                        cssSkin: "sSky",
+                        fixedCols: 1,
+                        headerRows: 1
+                    });
+<?php } ?>
+<?php if ($this->asfData || $this->poData) { ?>
+                    var myStz = new superTable("budgetTable4", {
+                        cssSkin: "sSky",
+                        fixedCols: 1,
+                        headerRows: 1
+                    });
+<?php } ?>
+<?php if ($this->asfCancelData || $this->rpiData) { ?>
+                    var mySt_ = new superTable("budgetTable5", {
+                        cssSkin: "sSky",
+                        fixedCols: 1,
+                        headerRows: 1
+                    });
+<?php } ?>
+            })();
+
+</script>
+
+<?//php if (!$this->show) { ?>
+<div style="margin-top:15px;">
+    <div style="margin-top:15px; float:right;" id="wButton">
+    </div>
+    <?//php } ?>
+</div>

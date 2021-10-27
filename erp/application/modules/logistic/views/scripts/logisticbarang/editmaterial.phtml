@@ -1,0 +1,1111 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() { return this.numericRe.test(v)} ;
+                }
+        });
+
+    var type = '<?=$this->typematerial?>';
+
+
+    var materiallist = Ext.data.Record.create ([
+                {name:'id'},
+                {name:'kode_brg'},
+                {name:'nama_brg'}
+            ])
+
+    var proxy = new Ext.data.HttpProxy({
+        url : 'what ever'
+    });
+    var storematerial = new Ext.data.Store ({
+        id:'store-material',
+        proxy:proxy,
+        reader:new Ext.data.JsonReader({fields:materiallist})
+    })
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        var gridmaterial = new Ext.grid.GridPanel ({
+
+            store:storematerial,
+            viewConfig:{
+                forceFit:true
+            },
+            width:380,
+            height:140,
+            columns:[new Ext.grid.RowNumberer(),{
+                header:'Material Code',
+                dataIndex:'kode_brg',
+                align:'center',
+                sortable:true,
+                width:100
+            },{
+                header:'Material Name',
+                dataIndex:'nama_brg',
+                align:'center',
+                sortable:true,
+                width:300
+            }],tbar:['->',{
+                text:'Search',
+                xtype:'button',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    var nama_brg = Ext.getCmp('nama_material').getValue();
+
+                    if (nama_brg == '' || nama_brg == null || nama_brg == undefined)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry ,Please insert material name',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+
+                    if (nama_brg.toString().length <= 3)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry ,Please insert material name minimal 3 character ',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+
+                    ceksearch = 1;
+
+                    storematerial.proxy.setUrl('/logistic/logisticbarang/getmaterial/nama_brg/' + nama_brg);
+                    storematerial.reload();
+                }
+            }]
+
+
+        })
+
+        function windowinsert (temp)
+        {
+
+            var formpanel = undefined;
+
+            if (temp == 'bisnis')
+            {
+                formpanel = new Ext.form.FormPanel ({
+
+                    title:'Insert Bisnis',
+                    id:'insert-bisnis',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Bisnis Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'bisnis_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Bisnis Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'bisnis_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-bisnis').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertbisnis',
+                                success:function(thisForm,response){
+                                    windowinsert.close();
+
+                                    Ext.getCmp('bisnis').clearValue();
+                                    Ext.getCmp('bisnis').store.load();
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+                })
+            }else if (temp == 'subbisnis')
+            {
+                formpanel = new Ext.form.FormPanel ({
+
+                    title:'Insert Sub Bisnis',
+                    id:'insert-sub-bisnis',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Sub Bisnis Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'sub_bisnis_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Sub Bisnis Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'sub_bisnis_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-sub-bisnis').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertsubbisnis',
+                                success:function(thisForm,response){
+                                    windowinsert.close();
+
+                                    Ext.getCmp('subbisnis').clearValue();
+                                    Ext.getCmp('subbisnis').store.load();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+                })
+            }else if (temp == 'work')
+            {
+                formpanel = new Ext.form.FormPanel ({
+
+                    title:'Insert Work',
+                    id:'insert-work',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Work Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'work_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Work Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'work_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-work').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertwork',
+                                success:function(thisForm,response){
+                                    windowinsert.close();
+
+                                    Ext.getCmp('nama_work').clearValue();
+                                    Ext.getCmp('nama_work').store.load();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+                })
+            }else if (temp == 'type')
+            {
+                formpanel = new Ext.form.FormPanel ({
+
+                    title:'Insert Type Material',
+                    id:'insert-type-material',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Type Material Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'type_material_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Type Material Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'type_material_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-type-material').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinserttypematerial',
+                                success:function(thisForm,response){
+                                    windowinsert.close();
+
+                                    Ext.getCmp('nama_type').clearValue();
+                                    Ext.getCmp('nama_type').store.load();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+                })
+            }else if (temp == 'brand')
+            {
+                formpanel = new Ext.form.FormPanel ({
+
+                    title:'Insert Brand',
+                    id:'insert-brand',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Brand Code ',
+                        labelStyle:'width:140',
+//                        width:160,
+                        allowBlank: false,
+                        id:'brand-code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Brand Name ',
+                        labelStyle:'width:140',
+//                        width:160,
+                        allowBlank: false,
+                        id:'brand-name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-brand').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertbrand',
+                                success:function(thisForm,response){
+                                    windowinsert.close();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+                })
+            }
+
+
+
+            var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+        }
+
+        function showuomlist ()
+        {
+            var storeuom = new Ext.data.Store ({
+
+                id:'store-uom',
+                url:'/logistic/logisticbarang/getuom',
+                autoLoad:true,
+                    reader:new Ext.data.JsonReader ({
+                        root:'data',
+                        totalProperty:'total',
+                        fields:[{
+                            name:'sat_kode'
+                        },{
+                            name:'sat_nama'
+                        },{
+                            name:'id'
+                        }]
+                    })
+            })
+
+            var griduom = new Ext.grid.GridPanel ({
+
+                store:storeuom,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[new Ext.grid.RowNumberer(),{
+                    header:'Uom Code',
+                    dataIndex:'sat_kode',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                },{
+                    header:'Uom Name',
+                    dataIndex:'sat_nama',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-refnumber',
+                    pageSize: 20,
+                    store: storeuom,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option-uom',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['sat_nama','Uom Name'],
+                                ['sat_kode','Uom Code']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'sat_nama'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search-uom',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup': function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option-uom').getValue();
+                                var search = Ext.getCmp('search-uom').getValue();
+
+                                storeuom.proxy.url= '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.proxy.setUrl('/logistic/logisticbarang/getuom/search/' + search + '/option/' + option);
+                                storeuom.proxy.api.read['url']= '/logistic/logisticbarang/getuom/search/' + search + '/option/' + option;
+                                storeuom.load();
+                                griduom.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+
+                        var uom = gridaktif.getStore().getAt(rowIndex);
+
+                        var uomcode = uom.get('sat_kode');
+                        Ext.getCmp('uom').setValue(uomcode);
+
+                        windowuom.close();
+                    }
+                }
+
+
+
+
+            })
+
+            var windowuom = new Ext.Window ({
+
+                title:'Choose Brand',
+                id:'choose-brand',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask:true,
+                items:[griduom]
+
+            })
+
+            windowuom.show();
+        }
+
+        function showbrandlist ()
+        {
+            var storebrand = new Ext.data.Store ({
+
+                id:'store-brand',
+                url:'/logistic/logisticbarang/getbrand',
+                autoLoad:true,
+                    reader:new Ext.data.JsonReader ({
+                        root:'data',
+                        totalProperty:'total',
+                        fields:[{
+                            name:'mrk_kode'
+                        },{
+                            name:'mrk_nama'
+                        },{
+                            name:'id'
+                        }]
+                    })
+
+            })
+
+            var gridbrand = new Ext.grid.GridPanel ({
+
+                store:storebrand,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[new Ext.grid.RowNumberer(),{
+                    header:'Brand Code',
+                    dataIndex:'mrk_kode',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                },{
+                    header:'Brand Name',
+                    dataIndex:'mrk_nama',
+                    sortable:true,
+                    width:120,
+                    align:'center'
+                }],
+                bbar:new Ext.PagingToolbar ({
+                    id: 'paging-refnumber',
+                    pageSize: 20,
+                    store: storebrand,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option-brand',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['mrk_nama','Brand Name'],
+                                ['mrk_kode','Brand Code']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'mrk_nama'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search-brand',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup': function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option-brand').getValue();
+                                var search = Ext.getCmp('search-brand').getValue();
+
+                                storebrand.proxy.url= '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                                storebrand.proxy.setUrl('/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option);
+                                storebrand.proxy.api.read['url']= '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                                storebrand.load();
+                                gridbrand.getView().refresh();
+                            }
+                        }
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function (gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+
+                        var brand = gridaktif.getStore().getAt(rowIndex);
+
+                        var brandname = brand.get('mrk_nama');
+                        var brandcode = brand.get('mrk_kode');
+
+//                        console.log(brandcode);
+                        Ext.getCmp('nama_brand').setValue(brandname);
+                        Ext.getCmp('kode_brand').setValue(brandcode);
+
+                        windowbrand.close();
+                    }
+                }
+
+            })
+
+            var windowbrand = new Ext.Window ({
+
+            title:'Choose Brand',
+            id:'choose-brand',
+            layout:'absolute',
+            minHeight: 200,
+            stateful:false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 500,
+            height: 330,
+            loadMask:true,
+            items:[gridbrand]
+
+            })
+
+            windowbrand.show();
+        }
+
+        var productid = new Ext.form.FieldSet ({
+
+            collapsible:true,
+            items:[
+<!--                {-->
+<!--                layout:'column',-->
+<!--                items:[{-->
+<!--                    columnWidth:0.6,-->
+<!--                    layout:'form',-->
+<!--                    items:[{-->
+<!--                        xtype:'combo',-->
+<!--                        fieldLabel:'Bisnis ',-->
+<!--                        anchor:'90%',-->
+<!--                        store: new Ext.data.Store({-->
+<!--                            autoLoad: true,-->
+<!--                            fields:['name','nilai'],-->
+<!--                            proxy: new Ext.data.HttpProxy({-->
+<!--                                url: '/logistic/logisticbarang/getbisnis'-->
+<!--                            }),-->
+<!--                            reader: new Ext.data.JsonReader({-->
+<!--                                totalProperty: 'total',-->
+<!--                                root: 'data'-->
+<!--                            }, [{-->
+<!--                                    name: 'kode_bisnis'-->
+<!--                                },{-->
+<!--                                    name: 'nama_bisnis'-->
+<!--                                }])-->
+<!--                        }),-->
+<!--                        valueField:'kode_bisnis',-->
+<!--                        displayField:'nama_bisnis',-->
+<!--                        typeAhead: true,-->
+<!--                        forceSelection: true,-->
+<!--                        editable: true,-->
+<!--                        mode: 'remote',-->
+<!--                        triggerAction: 'all',-->
+<!--                        selectOnFocus: true,-->
+<!--                        id:'kode_bisnis',-->
+<!--                        name:'nama_bisnis',-->
+<!--                        allowBlank:false,-->
+<!--                        value:'--><?//=$this->bisnis['kode_bisnis']?><!--'-->
+<!--                    }]-->
+<!--                },{-->
+<!--                    columnWidth:0.4,-->
+<!--                    layout:'form',-->
+<!--                    items:[{-->
+<!--                        xtype:'button',-->
+<!--                        text:'Create Bisnis',-->
+<!--                        handler:function(btn,ev)-->
+<!--                        {-->
+<!--                            var temp = 'bisnis';-->
+<!---->
+<!--                            windowinsert (temp);-->
+<!--                        }-->
+<!--                    }]-->
+<!--                }]-->
+<!--            },-->
+<!--                {-->
+<!--                layout:'column',-->
+<!--                items:[{-->
+<!--                    columnWidth:0.6,-->
+<!--                    layout:'form',-->
+<!--                    items:[{-->
+<!--                        xtype:'combo',-->
+<!--                        fieldLabel:'Sub Bisnis ',-->
+<!--                        anchor:'90%',-->
+<!--                        store: new Ext.data.Store({-->
+<!--                            autoLoad: true,-->
+<!--                            fields:['name','nilai'],-->
+<!--                            proxy: new Ext.data.HttpProxy({-->
+<!--                                url: '/logistic/logisticbarang/getsubbisnis'-->
+<!--                            }),-->
+<!--                            reader: new Ext.data.JsonReader({-->
+<!--                                totalProperty: 'total',-->
+<!--                                root: 'data'-->
+<!--                            }, [{-->
+<!--                                    name: 'kode_bisnis_sub'-->
+<!--                                },{-->
+<!--                                    name: 'nama_bisnis'-->
+<!--                                }])-->
+<!--                        }),-->
+<!--                        valueField:'kode_bisnis_sub',-->
+<!--                        displayField:'nama_bisnis',-->
+<!--                        typeAhead: true,-->
+<!--                        forceSelection: true,-->
+<!--                        editable: true,-->
+<!--                        mode: 'remote',-->
+<!--                        triggerAction: 'all',-->
+<!--                        selectOnFocus: true,-->
+<!--                        id:'kode_subbisnis',-->
+<!--                        name:'nama_subbisnis',-->
+<!--                        allowBlank:false,-->
+<!--                        value:'--><?//=$this->subbisnis['kode_bisnis_sub']?><!--'-->
+<!--                    }]-->
+<!--                },{-->
+<!--                    columnWidth:0.4,-->
+<!--                    layout:'form',-->
+<!--                    items:[{-->
+<!--                        xtype:'button',-->
+<!--                        text:'Create Sub Bisnis',-->
+<!--                        handler:function(btn,ev)-->
+<!--                        {-->
+<!--                            var temp = 'subbisnis';-->
+<!---->
+<!--                            windowinsert (temp);-->
+<!--                        }-->
+<!--                    }]-->
+<!--                }]-->
+<!--            },-->
+                {
+                layout:'column',
+                items:[{
+                    columnWidth:0.6,
+                    layout:'form',
+                    items:[{
+                        xtype:'combo',
+                        fieldLabel:'Work ',
+                        anchor:'90%',
+                        store: new Ext.data.Store({
+                            autoLoad: true,
+                            fields:['name','nilai'],
+                            proxy: new Ext.data.HttpProxy({
+                                url: '/logistic/logisticbarang/getwork'
+                            }),
+                            reader: new Ext.data.JsonReader({
+                                totalProperty: 'total',
+                                root: 'data'
+                            }, [{
+                                    name: 'kode_pekerjaan'
+                                },{
+                                    name: 'nama_pekerjaan'
+                                }])
+                        }),
+                        valueField:'kode_pekerjaan',
+                        displayField:'nama_pekerjaan',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: true,
+                        mode: 'remote',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        id:'kode_work',
+                        name:'nama_work',
+                        allowBlank:false,
+                        value:'<?=$this->work['kode_pekerjaan']?>'
+                    }]
+                },{
+                    columnWidth:0.4,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Create Work',
+                        handler:function(btn,ev)
+                        {
+                            var temp = 'work';
+
+                            windowinsert (temp);
+                        }
+                    }]
+                }]
+            },{
+                layout:'column',
+                items:[{
+                    columnWidth:0.6,
+                    layout:'form',
+                    items:[{
+                        xtype:'combo',
+                        fieldLabel:'Type Material ',
+                        anchor:'90%',
+                        store: new Ext.data.Store({
+                            autoLoad: true,
+                            fields:['name','nilai'],
+                            proxy: new Ext.data.HttpProxy({
+                                url: '/logistic/logisticbarang/gettypebarang'
+                            }),
+                            reader: new Ext.data.JsonReader({
+                                totalProperty: 'total',
+                                root: 'data'
+                            }, [{
+                                    name: 'kode_type'
+                                },{
+                                    name: 'nama_type'
+                                }])
+                        }),
+                        valueField:'kode_type',
+                        displayField:'nama_type',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: true,
+                        mode: 'remote',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        id:'kode_type',
+                        name:'nama_type',
+                        allowBlank:false,
+                        value:'<?=$this->type['kode_type']?>'
+                    }]
+                },{
+                    columnWidth:0.4,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Create Type Material',
+                        handler:function(btn,ev)
+                        {
+                            var temp = 'type';
+
+                            windowinsert (temp);
+                        }
+                    }]
+                }]
+            }]
+
+        })
+
+
+        var FormInsert = new Ext.form.FormPanel ({
+
+            id:'form-insert',
+            renderTo:'form_insert',
+            title:'Edit Material',
+            frame:true,
+            layout:'form',
+            width:400,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Old Material Code',
+                labelStyle:'margin-left:10px;width:120',
+                id:'old_material_code',
+                value:'<?=$this->kode_brg?>',
+                readOnly:true
+            },productid,{
+                xtype:'textarea',
+                fieldLabel:'Material Name ',
+                labelStyle:'margin-left:10px;width:120',
+                width:160,
+                allowBlank: false,
+                id:'nama_material',
+                value:'<?=$this->material['nama_brg']?>'
+            },gridmaterial,{
+                xtype:'trigger',
+                fieldLabel:'Uom ',
+                labelStyle:'margin-left:10px;width:120',
+                width:60,
+                triggerClass: 'teropong',
+                allowBlank: false,
+                editable : false,
+                id:'uom',
+                value:'<?=$this->material['sat_kode']?>',
+                onTriggerClick:function(){
+                    showuomlist();
+                }
+            },{
+                layout:'column',
+                items:[{
+                    columnWidth:0.6,
+                    layout:'form',
+                    items:[{
+                        xtype:'trigger',
+                        fieldLabel:'Brand ',
+                        anchor:'85%',
+                        labelStyle:'margin-left:10px;width:120',
+                        triggerClass: 'teropong',
+                        allowBlank: false,
+                        editable : false,
+                        id:'nama_brand',
+                        name:'nama_brand',
+                        value:'<?=$this->brand?>',
+                        onTriggerClick:function(){
+
+                            showbrandlist();
+                        }
+                    },{
+                        xtype:'hidden',
+                        id:'kode_brand',
+                        name:'kode_brand'
+                    }]
+                },{
+                    columnWidth:0.4,
+                    layout:'form',
+                    items:[{
+                        xtype:'button',
+                        text:'Create New Brand',
+                        handler:function(btn,ev)
+                        {
+                            var temp = 'brand';
+
+                            windowinsert (temp);
+                        }
+                    }]
+                }]
+            },{
+                xtype:'combo',
+                fieldLabel:'Valuta ',
+                labelStyle:'margin-left:10px;width:120',
+                width:60,
+                store: new Ext.data.Store({
+                    autoLoad: true,
+                    fields:['name','nilai'],
+                    proxy: new Ext.data.HttpProxy({
+                        url: '/default/valuta/list'
+                    }),
+                    reader: new Ext.data.JsonReader({
+                        totalProperty: 'count',
+                        root: 'posts'
+                    }, [{
+                            name: 'val_kode'
+                        }])
+                }),
+                valueField:'val_kode',
+                displayField:'val_kode',
+                typeAhead: true,
+                forceSelection: true,
+                editable: true,
+                mode: 'remote',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                id:'val_kode',
+                name:'val_kode',
+                allowBlank:false
+                },{
+                xtype:'combo',
+                fieldLabel:'Piece Meal Status ',
+                labelStyle:'margin-left:10px;width:120',
+                width:60,
+                labelWidth:20,
+                allowBlank: false,
+                store: new Ext.data.SimpleStore({
+                    fields:['name','nilai'],
+                    data:[
+                            ['YES','YES'],
+                            ['NO','NO']
+                        ]
+                }),
+                valueField:'nilai',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                id:'piece_meal',
+                value:'<?=$this->stspmeal?>',
+                listeners:{
+                     'select':function(combo,record,index)
+                     {
+                          var status = record.data.name;
+
+                          if (status == 'NO')
+                          {
+                              Ext.getCmp('piece_meal_price').setValue('');
+                              Ext.getCmp('piece_meal_price').disable();
+                          }else
+                          {
+                              Ext.getCmp('piece_meal_price').enable()
+                          }
+                     }
+                 }
+            },
+                new Ext.ux.customRendererField({
+                    xtype:'textfield',
+                    fieldLabel:'Piece Meal Price ',
+                    labelStyle:'margin-left:10px;width:120',
+                    width:160,
+                    id:'piece_meal_price',
+                    vtype:'numeric',
+                    priceDelemiter:',',
+                    value:'<?=$this->price?>'
+                })
+            ],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    if (!Ext.getCmp('form-insert').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            Ext.getCmp('form-insert').getForm().submit({
+                                method:'POST',
+                                params: {
+//                                    kode_bisnis:Ext.getCmp('kode_bisnis').getValue(),
+//                                    kode_subbisnis:Ext.getCmp('kode_subbisnis').getValue(),
+                                    kode_work:Ext.getCmp('kode_work').getValue(),
+                                    kode_type: Ext.getCmp('kode_type').getValue(),
+                                    price:Ext.getCmp('piece_meal_price').getValue().toString().replace(/\$|\,/g,'')
+
+                                },
+                                url:'/logistic/logisticbarang/doupdatematerial/typematerial/' + type,
+                                success:function(thisForm,response){
+                                    Ext.Msg.alert('Success','New Material Ready to use');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                    url: '/logistic/logisticbarang/viewmaterial',
+                                    scripts : true
+                                    });
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+
+                    })
+
+
+                }
+            },{
+                text:'Reset'
+            }]
+
+        })
+
+        Ext.getCmp('kode_work').setRawValue('<?=$this->work['nama_pekerjaan']?>');
+<!--        Ext.getCmp('kode_bisnis').setRawValue('--><?//=$this->bisnis['nama_bisnis']?><!--');-->
+<!--        Ext.getCmp('kode_subbisnis').setRawValue('--><?//=$this->subbisnis['nama_bisnis']?><!--');-->
+        Ext.getCmp('kode_type').setRawValue('<?=$this->type['nama_type']?>');
+        Ext.getCmp('kode_brand').setValue('<?=$this->brand['mrk_kode']?>');
+        Ext.getCmp('val_kode').setRawValue('<?=$this->val_kode?>');
+
+        if (type == 'new')
+        {
+//            Ext.getCmp('kode_bisnis').disable();
+//            Ext.getCmp('kode_subbisnis').disable();
+            Ext.getCmp('kode_work').disable();
+            Ext.getCmp('kode_type').disable();
+//            Ext.getCmp('nama_brand').disable();
+        }
+    })
+
+
+</script>
+
+    <div id="form_insert"></div>

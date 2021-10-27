@@ -1,0 +1,191 @@
+<script type="text/javascript">
+    showPrint = function() {
+        prjKode = Ext.getCmp('prj_kode_text').getValue();
+        sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+        if (prjKode == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Insert/Select Project Code!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+
+        }
+
+        if (sitKode == '')
+        {
+            Ext.MessageBox.show({
+                title: 'Error',
+                msg: 'Please Insert/Select Site Code!',
+                buttons: Ext.MessageBox.OK,
+                icon: Ext.MessageBox.ERROR
+            });
+            return false;
+
+        }
+        window.open('/projectmanagement/report/general/print/true/prj_kode/' + prjKode + '/sit_kode/' + sitKode,'general-report','toolbar=0');
+    }
+
+    showReport = function(){
+        var myPanel = Ext.getCmp('abs-budget-panel'),
+        perKode = Ext.getCmp('periode_text').getValue(),
+        startdate = Ext.getCmp('startdt').getValue(),
+        enddate = Ext.getCmp('enddt').getValue();
+        warehouse = Ext.getCmp('warehouse_selector_id').getWarehouse();
+
+        myPanel.body.load({
+            url: '/logistic/report/show-current-inventory',
+            params: {
+                perkode: perKode,
+                start_date: startdate,
+                end_date: enddate,
+                gdg_kode: warehouse
+            },
+            scripts: true
+        });
+    };
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.apply(Ext.form.VTypes, {
+            daterange : function(val, field) {
+                var date = field.parseDate(val);
+
+                if(!date){
+                    return false;
+                }
+                if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                    var start = Ext.getCmp(field.startDateField);
+                    start.setMaxValue(date);
+                    start.validate();
+                    this.dateRangeMax = date;
+                }
+                else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                    var end = Ext.getCmp(field.endDateField);
+                    end.setMinValue(date);
+                    end.validate();
+                    this.dateRangeMin = date;
+                }
+                /*
+                * Always return true since we're only using this vtype to set the
+                * min/max allowed values (these are tested for after the vtype test)
+                */
+                return true;
+            }
+        });
+
+        var callbackFunc = function()
+        {
+            Ext.getCmp('startdt').setValue('');
+            Ext.getCmp('enddt').setValue('');
+        };
+
+        var windowForm = ({
+
+            title:'Current Inventory Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar:[
+                {
+                    xtype: 'tbtext',
+                    text: 'Periode'
+                },
+                {
+                    xtype: 'periodefinanceselector',
+                    id: 'perkode_text',
+                    Selectid: 'periode_text',
+                    inventory: true,
+                    width: 150,
+                    callbackFunc: callbackFunc
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'From'
+                },
+                {
+                    xtype:'datefield',
+                    name: 'startdt',
+                    id: 'startdt',
+                    vtype: 'daterange',
+                    endDateField: 'enddt', // id of the end date field
+                    msgTarget:'side',
+                    format:'d-m-Y',
+                    listeners: {
+                        'select': function (datef, datev){
+                            Ext.getCmp('periode_text').setValue('');
+                        }
+                    }
+                },
+                {
+                    xtype: 'tbtext',
+                    text: 'To'
+                },
+                {
+                    xtype:'datefield',
+                    name: 'enddt',
+                    id: 'enddt',
+                    vtype: 'daterange',
+                    startDateField: 'startdt',
+                    msgTarget:'side',
+                    format:'d-m-Y',
+                    listeners: {
+                        'select': function (datef, datev){
+                            Ext.getCmp('periode_text').setValue('');
+                        }
+                    }
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Warehouse'
+                },
+                {
+                    xtype: 'warehouseselector',
+                    Selectid: 'warehouse_text',
+                    width: 150,
+                    id: 'warehouse_selector_id'
+                },
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width:70,
+                    id: 'show_report',
+                    cls:"x-btn-text-icon" ,
+                    icon:"/images/icons/fam/control_rewind.png",
+                    handler: showReport
+                }
+//                {
+//                    xtype: 'button',
+//                    id: 'export_button',
+//                    cls:"x-btn-icon" ,
+//                    icon:"/images/print.png",
+//                    handler: showPrint
+//                }
+            ]
+
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+        centerRegionTab.add(windowForm);
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+
+
+    })
+
+
+</script>

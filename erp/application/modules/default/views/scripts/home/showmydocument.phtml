@@ -1,0 +1,173 @@
+<style type="text/css">
+.trano .x-tree-node-icon {
+	background-image:url(/images/icons/fam/page_attachment.gif);
+}
+.starter .x-tree-node-icon {
+    background-image:url(/images/icons/fam/copy.gif);
+}
+.next .x-tree-node-icon {
+    background-image:url(/images/icons/arrow-down.gif);
+}
+.ender .x-tree-node-icon {
+    background-image:url(/images/icons/fam/page_tick.gif);
+}
+</style>
+
+<script type="text/javascript">
+Ext.onReady(function(){
+
+function showDocs(trano,type,prjKode)
+{
+    var order = Ext.getCmp('order_by').getValue();
+    var trano = Ext.getCmp('trano_text').getValue();
+    var type = Ext.getCmp('combo-type').getRawValue();
+    var prjKode = Ext.getCmp('prj_kode_text').getValue();
+
+    var hideFinal = Ext.getCmp('finalapp').getValue();
+    var hideReject = Ext.getCmp('rejectapp').getValue();
+
+    myPanel = Ext.getCmp('result-panel');
+    myPanel.body.load({
+        url: '/default/home/showdocssubmit',
+        scripts : true,
+        params: {trano: trano,type: type, prj_kode: prjKode, orderby: order, hidefinal: hideFinal, hidereject: hideReject}
+    });
+}
+
+new Ext.Panel({
+
+    id: 'search-panel',
+    title: 'Search My Submitted Document',
+    renderTo: 'panels',
+    frame: true,
+    layout: 'form',
+    width: 500,
+    labelAlign: 'left',
+    labelWidth: 130,
+    items: [
+            {
+             layout : 'column',
+             items:[
+                 {
+                     columnWidth:.5,
+                     layout :'form',
+                     items:[
+                        {
+                             id: 'combo-type',
+                             fieldLabel: 'Transaction Type',
+                             hiddenName : 'workflow_item_type_id',
+                             width: 100,
+                             xtype: 'combo',
+                             triggerAction: 'all',
+                             mode: 'remote',
+                             editable: false,
+                             displayField: 'name',
+                             valueField: 'workflow_item_type_id',
+                             store: new Ext.data.JsonStore({
+                                 url: '/admin/workflow/listworkflowitemtype/all/true',
+                                 root: 'posts',
+                                  fields:[
+                                      { name: "name"},{ name: "workflow_item_type_id"}
+                                  ]
+                             }),
+                            listeners: {
+                                'select': function(t,n,o){
+                                    showDocs();
+                                }
+                            }
+                        },
+                        {
+                            xtype: 'textfield',
+                            id: 'trano_text',
+                            fieldLabel: 'Trano',
+                            width: 120
+                        },
+                         {
+                             xtype: 'projectselector',
+                             anchor: '100%',
+                             id: 'project-select',
+                             Selectid: 'prj_kode_text',
+                             ShowName: false,
+                             fieldLabel:'Project Code ',
+                             callback: function(rec){
+                                 showDocs('','',rec.prj_kode);
+                             }
+                         },
+                        {
+                             fieldLabel : 'Order By',
+                             id:'order_by',
+                             xtype:'combo',
+                             store: new Ext.data.SimpleStore({
+                                        fields:['field', 'value']
+                                                ,data:[
+                                                       ['Project Code','prj_kode'],
+                                                       ['Submit Date','date'],
+                                                       ['Approval Date (All)','date_approve'],
+                                                       ['Approval Date (Final)','date_approve_final'],
+                                                       ['Trano','item_id']
+                                                   ]
+
+                                            }),
+                             valueField:'value',
+                             displayField:'field',
+                             typeAhead: true,
+                             mode: 'local',
+                             triggerAction: 'all',
+                             allowBlank: false,
+                             selectOnFocus:true,
+                             forceSelection:false,
+                             width: 140
+
+                         }
+                     ]
+                 },{
+                     columnWidth:.5,
+                     layout: 'form',
+                     items :[
+                        {
+                             xtype:'checkbox',
+                             id:'finalapp',
+                             name:'finalapp',
+                             fieldLabel:'Hide Final Approval',
+                             trueText: '1',
+                             falseText: '0'
+                        },
+                        {
+                             xtype:'checkbox',
+                             id:'rejectapp',
+                             name:'rejectapp',
+                             fieldLabel:'Hide Rejected',
+                             trueText: '1',
+                             falseText: '0'
+                        }
+                     ]
+                 }
+             ]
+            }
+    ],
+    buttons: [
+        {
+            text: 'Search',
+            id: 'btn-search',
+            icon:"/images/g_rec_src.png",
+            handler: function(){ showDocs()}
+
+        }
+    ]
+
+});
+
+new Ext.Panel({
+
+    id: 'result-panel',
+    renderTo: 'panels2',
+    border: false,
+    layout: 'fit'
+});
+}); 
+</script>
+
+<!--<div id="grids"></div>-->
+<div id="panels"></div><br />
+<div id="panels2"></div>
+

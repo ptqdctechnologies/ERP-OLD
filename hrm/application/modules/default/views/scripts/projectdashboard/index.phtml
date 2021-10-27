@@ -1,0 +1,89 @@
+<script type="text/javascript">
+Ext.onReady(function(){
+
+    var projectTree = new Ext.tree.TreePanel({
+        animate:true,
+        rootVisible: false,
+        region: 'west',
+        autoScroll:true,
+        containerScroll: true,
+        width: 250,
+        layout: 'fit'
+    });
+
+    var root = new Ext.tree.AsyncTreeNode({
+        draggable:false, // disable root node dragging
+        id:'prj_kode',
+        loader: new Ext.tree.TreeLoader({
+            dataUrl: '/default/projectdashboard/listproject'
+        })
+    });
+    projectTree.setRootNode(root);
+    projectTree.on('click', function(n){
+
+    	var sn = this.selModel.selNode || {};
+        if(!n.leaf){
+        	detailPanel = Ext.getCmp('detail');
+			detailPanel.setHeight('100%');
+	        detailPanel.load({
+                url: '/default/projectdashboard/tab',
+                params: {prj_kode: n.attributes.text},
+                scripts: true
+	        });
+    	}
+//        else
+//        {
+//			n.expand();
+//        }
+    });
+    root.expand(true, /*no anim*/ false);
+
+    var viewports = ({
+    layout: 'border',
+    stateful: false,
+    title: 'Project Dashboard',
+    loadMask: true,
+    id: 'project-dashboard-viewport',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+  	bodyStyle: 'padding:15px;',
+    items: [
+            projectTree,
+//			{
+//			    region: 'west',
+//			    id: 'workid', // see Ext.getCmp() below
+//			    title: 'BOQ3 Current',
+//			    split: true,
+//			    stateful: false,
+//			    layout: 'fit',
+//			    width: 300,
+//			    minSize: 175,
+//			    maxSize: 400,
+//			    items: grid,
+//			    listeners: {
+//                	   resize: function (p,w,h,rw,rh) {
+//							grid.setWidth(w);
+//                   		}
+//                   }
+//			},
+			{
+			    region: 'center',
+			    id: 'detail', // see Ext.getCmp() below
+			    title: '',
+                layout: 'card',
+			    margins: '0 0 0 0'
+//			    items: griddetail
+			}
+
+            ]
+
+});
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(viewports);
+panelBaru = Ext.getCmp('project-dashboard-viewport');
+centerRegionTab.layout.setActiveItem('project-dashboard-viewport');
+
+});
+</script>    

@@ -1,0 +1,187 @@
+<script type="text/javascript">
+
+var count=1;
+var people=1;
+var table=2;
+
+function addNewPeople(tableRef){
+	var myTable = document.getElementById(tableRef);
+	var tBody = myTable.getElementsByTagName('tbody')[0];
+
+	indeks = tableRef.split('-');
+	
+	rowCount = myTable.rows.length -1;
+	newTR = document.createElement('tr');
+	newTD1 = document.createElement('td');
+	newTR.id = 'people-' + people;
+	newTR.appendChild (newTD1);
+	tBody.appendChild(newTR);
+	newTD1.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (indeks[2] - 1) + '][]">';
+
+	people++;
+}
+
+function addNewRow(tableRef){
+    var myTable = document.getElementById(tableRef);
+    var tBody = myTable.getElementsByTagName('tbody')[0];
+
+    var rowCount = myTable.rows.length -1;
+
+    var endValue = document.getElementById('node-end').value;
+    var endValue2 = document.getElementById('node-end-value').value;
+
+    if (rowCount > 1)
+    {
+        myTable.deleteRow(rowCount);
+    }
+
+    count++;
+    var newTR = document.createElement('tr');
+    var newTD1 = document.createElement('td');
+    var newTD2 = document.createElement('td');
+    newTD2.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (table-1) + '][]"><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+    newTD1.innerHTML = 'Next ' + (count-1);
+    newTD1.id = 'caption-'+ (count-1);
+    newTR.id = 'Next-'+ (count-1);
+    newTR.appendChild (newTD1);
+    newTR.appendChild (newTD2);
+    tBody.appendChild(newTR);
+    var newTR2 = document.createElement('tr');
+    var newTD3 = document.createElement('td');
+    newTD3.innerHTML = '<img src="/images/icons/fam/arrow_down.gif"></img>';
+    newTR2.appendChild (newTD3);
+    tBody.appendChild(newTR2);
+
+    people++;
+    table++;
+
+    var endTR = document.createElement('tr');
+    var endTD1 = document.createElement('td');
+    var endTD2 = document.createElement('td');
+    endTD2.innerHTML = '<input id="node-end" type="text" readonly><input type="hidden" id="node-end-value" name="id_person[' + (table-1) + '][]"><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+    endTD1.innerHTML = 'End';
+    endTR.appendChild (endTD1);
+    endTR.appendChild (endTD2);
+    tBody.appendChild(endTR);
+    document.getElementById('node-end').value = endValue;
+    document.getElementById('node-end-value').value = endValue2;
+
+    var j=1;
+    for (i=1;i < myTable.rows.length ;i++)
+    {
+        searchRow = myTable.rows[i].cells[0].id;
+
+        if (searchRow !== null && searchRow !== '')
+        {
+            myTable.rows[i].cells[0].innerHTML = 'Next ' + j;
+            j++;
+        }
+    }
+
+}
+
+</script>
+
+<style>
+    input {
+        width: 200px;
+    }
+</style>
+
+<table id="table-process">
+<tbody id="tbody-process">
+<tr id="pos-start">
+	<td>Start</td>
+	<td >
+	<input type="text" id="node-start" readonly>
+	<input type="hidden" id="node-start-value" name="id_person[0][]">
+
+		<table id="table-people-1">
+		<tbody id="tbody-people-1">
+		</tbody>
+		</table>
+	</td>
+</tr>
+<tr>
+<td><img src="/images/icons/fam/arrow_down.gif"></img></td>
+</tr>
+<tr id="pos-end">
+	<td>End</td>
+	<td >
+	<input type="text" id="node-end" readonly>
+	<input type="hidden" id="node-end-value" name="id_person[1][]">
+		<table id="table-people-2">
+		<tbody id="tbody-people-2">
+		</tbody>
+		</table>
+	</td>
+</tr>
+</tbody>
+</table>
+
+<?php 
+
+$javascript = '';
+$count = 1;
+if (count($this->dataWorkflow)>0)
+{
+	foreach($this->dataWorkflow as $key => $val)
+	{
+		if ($key == 0)
+		{
+			foreach($val as $key2 => $val2)
+			{
+				if ($key2 == 0 && $val2['master_role_id'] != '')
+				{
+					$javascript .= "document.getElementById('node-start').value='" . $val2['displayname'] . "';\n";
+					$javascript .= "document.getElementById('node-start-value').value='" . $val2['master_role_id'] . "';\n";
+				}
+				else 
+				{
+					$people = $key2;
+					$javascript .= "addNewPeople('table-people-1');\n idIsi = 'node-people-' + (people-1);";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['displayname'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['master_role_id'] . "';\n";
+				
+					
+				}
+			}
+		}
+		else 
+		{
+			if ($key == (count($this->dataWorkflow)-1) )
+			{
+				foreach($val as $key2 => $val2)
+				{
+					if ($key2 == 0)
+					{
+						$javascript .= "document.getElementById('node-end').value='" . $val2['displayname'] . "';\n";
+						$javascript .= "document.getElementById('node-end-value').value='" . $val2['master_role_id'] . "';\n";
+					}
+					else
+					{
+						$javascript .= "addNewPeople('table-people-' + (table-1));\n";
+						$javascript .= "idIsi = 'node-people-' + (people-1);\n";
+						$javascript .= "document.getElementById(idIsi).value='" . $val2['displayname'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+						$javascript .= "document.getElementById(idIsi).value='" . $val2['master_role_id'] . "';\n";
+					}
+				}
+			}
+			else
+			{
+				$javascript .= "addNewRow('table-process');\n";
+				foreach($val as $key2 => $val2)
+				{
+					if ($key2 > 0)
+						$javascript .= "addNewPeople('table-people-' + (table-1));\n";
+						
+					$javascript .= "idIsi = 'node-people-' + (people-1);\n";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['displayname'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['master_role_id'] . "';\n";
+				}
+			}
+		}
+	}
+}
+echo "<script type=\"text/javascript\">" .  $javascript . "</script>";
+?>

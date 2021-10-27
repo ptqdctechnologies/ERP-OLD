@@ -1,0 +1,240 @@
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var editengineerwork = new Ext.form.FormPanel ({
+
+            id:'edit-new-engineer-work',
+            title:'Edit Existing Engineer Work',
+            renderTo:'engineerworkform',
+            frame:true,
+            iconCls: 'silk-user',
+            width:400,
+            height:120,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'Work ID',
+                    name:'workid',
+                    msgTarget:'side',
+                    width:100,
+                    allowBlank:false
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'Work Name',
+                    name:'workname',
+                    msgTarget:'side',
+                    width:260,
+                    allowBlank:false
+                },{
+                    xtype:'hidden',
+                    name:'id'
+                }
+            ],
+            buttons:[
+                {
+                    text:'Edit',
+                    handler:function(btn,ev)
+                    {
+                        if (!Ext.getCmp('edit-new-engineer-work').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }else
+                        {
+                            Ext.MessageBox.confirm(
+                                    'Confirm',
+                                    'Are you sure you want to do that?',
+                                    function(btn)
+                                    {
+                                        if (btn == 'yes')
+                                        {
+                                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                                            Ext.getCmp('edit-new-engineer-work').getForm().submit({
+                                                method:'POST',
+                                                url:'/projectmanagement/engineerwork/geteditengineerwork',
+                                                success:function(thisform,response){
+                                                    Ext.getBody().unmask();
+                                                    Ext.Msg.alert('success','Edit Engineer Work Success');
+                                                    Panel = Ext.getCmp('abs-budget-panel');
+                                                    Panel.body.load ({
+                                                        url:'/projectmanagement/engineerwork/viewengineerwork',
+                                                        scripts:true
+                                                    })
+                                                },
+                                                failure:function(thisfoem, response)
+                                                {
+                                                    Ext.getBody().unmask();
+                                                    if (response.failureType == 'server')
+                                                    {
+                                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                                        Ext.Msg.alert('Error',resp.pesan);
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    });
+                        }
+                    }
+                },{
+                    text:'Reset',
+                    handler:function (btn,ev)
+                    {
+                        editengineerwork.form.reset();
+                    }
+                },{
+                    text:'Cancel',
+                    handler:function (btn,ev)
+                    {
+                        Panel = Ext.getCmp('abs-budget-panel');
+                        Panel.body.load ({
+                            url:'/projectmanagement/engineerwork/viewengineerwork',
+                            scripts:true
+                        })
+                    }
+                }
+            ]
+
+        })
+
+        function refreshData ()
+        {
+            workstore.clearFilter();
+            Ext.getCmp('search').setValue('');
+            Ext.getCmp('paging').doRefresh();
+        }
+
+        var datas = [
+                ['Work ID',1],
+                ['Work Name',2]
+            ];
+
+        var store = new Ext.data.ArrayStore({
+            fields: ['a', 'b'],
+            data : datas
+        });
+
+        var combo = new Ext.form.ComboBox({
+            store: store,
+            displayField:'a',
+            valueField: 'b',
+            typeAhead: true,
+            mode: 'local',
+            triggerAction: 'all',
+            selectOnFocus:true,
+            name:'option',
+            width:100,
+            style: 'margin-left: 5px',
+            value:1,
+            id:'option'
+        });
+
+        var workstore = new Ext.data.Store({
+
+            url:'/projectmanagement/engineerwork/getviewengineerwork',
+            autoLoad:true,
+            reader: new Ext.data.JsonReader({
+                root:'data',
+                totalProperty:'total'
+            },[
+                {name:'workid',type:'String'},
+                {name:'workname',type:'String'},
+                {name:'id',type:'int'}
+            ])
+
+        })
+
+        var grid = new Ext.grid.GridPanel ({
+
+            store:workstore,
+
+            viewConfig:{
+              forceFit:true
+            },
+
+            title:'View Engineer Work',
+            renderTo:'viewengineerwork',
+            width:440,
+            height:400,
+            frame:true,
+            listeners:{
+                'rowdblclick':function(grid,row,e){
+                    isDblClick = true;
+
+                    var row = grid.getStore().getAt(row);
+                    Ext.getCmp('edit-new-engineer-work').getForm().loadRecord(row);
+                    
+                }
+            },
+            columns:[
+                {
+                    header:'Work ID',
+                    dataIndex:'workid',
+                    align:'center',
+                    width:60,
+                    sortable:true
+                },
+                {
+                    header:'Work Name',
+                    dataIndex:'workname',
+                    align:'center',
+                    width:200,
+                    sortable:true
+                }
+            ],
+            bbar: new Ext.PagingToolbar ({
+                id:'paging',
+                pagesize:20,
+                store:workstore,
+                displayInfo:true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[
+                {
+                    xtype:'tbtext',
+                    text:'Search',
+                    style: 'margin-left: 5px'
+                },'-',
+                combo,
+                {
+                    xtype: 'textfield',
+					id: 'search',
+                    style: 'margin-left: 10px;margin-right:10px',
+                    enableKeyEvents: true,
+                    listeners:{
+                        'keyup' : function (textfieldIni,event) {
+                            var isiTeks = textfieldIni.getValue();
+                            if (isiTeks != "" && isiTeks.toString().length >= 3)
+                            {
+                                var search = Ext.getCmp('search').getValue();
+                                var option = Ext.getCmp('option').getValue();
+                                workstore.proxy.setUrl('/projectmanagement/engineerwork/getviewengineerwork/search/' + search + '/option/' + option);
+                                workstore.reload();
+                                grid.getView().refresh();
+                            }
+                        }
+                    }
+                },'-',{
+				    text: 'refresh',
+				    iconCls: 'icon-refresh',
+				    handler: refreshData,
+				    scope: this
+                }
+            ]
+
+        })
+
+        
+
+
+    })
+
+
+</script>
+
+    <div id="engineerworkform" style="float:left"></div>
+    <div id="viewengineerwork" style="margin-left: 20px;float:left"></div>
+

@@ -1,0 +1,488 @@
+<script>
+    Ext.onReady(function() {
+
+        Ext.apply(Ext.form.VTypes, {
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() {
+                    return this.numericRe.test(v)
+                };
+            }
+        });
+
+//        var editor = new Ext.ux.grid.RowEditor({
+//            saveText: 'Update',
+//            clicksToEdit: 1,
+//            listeners: {
+//                'canceledit': function(ed,close){
+//                    ed.record.cancelEdit();
+//                },
+//                'stopedit': function(ed,fields,rec) {
+//
+//                },
+//                'beforeedit': function(ed, index) {
+//
+//                },
+//                'afteredit': function(ed,obj,rec,index){
+//                    var recs = store.getAt(index);
+//                    var coas = ed.getAddData();
+//
+//                    if (coas != null)
+//                    {
+//                        recs.data['coa_kode'] = coas.coa_kode;
+//                        recs.data['coa_nama'] = coas.coa_nama;
+//                    }
+//
+//                    ed.record.commit();
+//                },
+//                'filtercell' : function(ed, fields, record){
+//                },
+//                'canceledit' : function(roweditor, forced){
+//                }
+//            }
+//        });
+
+        var record = new Ext.data.Record.create([
+            {name: 'coa_kode'},
+            {name: 'coa_nama'},
+            {name: 'memo'},
+            {name: 'hargaavg'},
+            {name: 'val_kode'},
+            {name: 'kode_brg'},
+            {name: 'nama_brg'},
+            {name: 'balance'},
+            {name: 'actual'},
+            {name: 'diff_qty'},
+            {name: 'diff_total'},
+        ]);
+
+        var store = new Ext.data.Store({
+            id: 'store',
+            reader: new Ext.data.JsonReader({
+                fields: record
+            })
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions: [
+                {
+                    iconCls: 'silk-add',
+                    qtip: 'Add',
+                    id: 'add',
+                    callback: function(grid, record, action, row, col)
+                    {
+                        var diff = parseFloat(record.get("actual")) - parseFloat(record.get("balance")),
+                                diffTotal = Ext.util.Format.round(diff * parseFloat(record.get("hargaavg")), 2);
+                        record.set("diff_qty", diff);
+                        record.set("diff_total", diffTotal);
+                        record.set("debits", diffTotal);
+                        record.set("credits", diffTotal);
+                        formCoa.getForm().loadRecord(record);
+                        formCoa.recs = record;
+                    }
+                },
+            ]
+        });
+
+        var grid = new Ext.grid.GridPanel({
+            store: store,
+            border: true,
+            frame: true,
+            height: 300,
+            viewConfig: {
+                forceFit: true
+            },
+            renderTo: 'grids',
+            plugins: [rowactions],
+//            plugins: [editor],
+            columns: [
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header: 'Product ID',
+                    dataIndex: 'kode_brg',
+                    sortable: true,
+                },
+                {
+                    header: 'Product Name',
+                    dataIndex: 'nama_brg',
+                    sortable: true,
+                },
+                {
+                    header: 'AVG Price',
+                    dataIndex: 'hargaavg',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Saldo in ERP',
+                    dataIndex: 'balance',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.0000') : '';
+                    },
+                    align: 'right'
+                },
+                {
+                    header: 'Actual',
+                    dataIndex: 'actual',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.0000') : '';
+                    },
+                    align: 'right'
+                },
+//                {
+//                    header:'COA Code',
+//                    dataIndex:'coa_kode',
+//                    sortable:true,
+//                    editor: {
+//                        xtype: 'coaselector',
+////                        id: 'coa-select',
+////                        Selectid: 'coa_kode_text',
+////                        Nameid: 'coa_nama_text',
+//                        showName: false,
+//                        editorInstance: editor,
+//                        SelectWidth: 100
+//                    }
+//                },{
+//                    header:'COA Name',
+//                    dataIndex:'coa_nama',
+//                    sortable:true,
+//                    editor: {
+//                        xtype: 'textfield',
+//                        id: 'coa_nama_text',
+//                        readOnly: true
+//                    }
+//                },
+//                {
+//                    header:'Memo',
+//                    dataIndex:'memo',
+//                    editor: {
+//                        xtype: 'textfield'
+//                    }
+//                }
+            ]
+        });
+
+        var hitungNilai = function(trano)
+        {
+            var qty_diff = Ext.getCmp('diff_qty').getValue().toString().replace(/\$|\,/g, '');
+            var hargaavg = Ext.getCmp('hargaavg').getValue().toString().replace(/\$|\,/g, '');
+
+            total = parseFloat(qty_diff * hargaavg);
+            Ext.getCmp('debits').setValue(total);
+            Ext.getCmp('credits').setValue(total);
+        }
+
+        var loadForm = function(trano)
+        {
+            Ext.Ajax.request({
+                url: '/logistic/inventory/get-inventory-adjustment',
+                params: {
+                    trano: trano
+                },
+                method: 'POST',
+                success: function(result)
+                {
+                    obj = Ext.util.JSON.decode(result.responseText);
+                    if (obj.success)
+                    {
+                        store.loadData(obj.data);
+                        Ext.getCmp('periode').setValue(obj.periode);
+                        Ext.getCmp('warehouse').setValue(obj.warehouse);
+                        Ext.getCmp('upload').setValue(obj.upload);
+                        Ext.getCmp('pic-upload').setValue(obj.pic);
+                    }
+                    else
+                    {
+                        Ext.Msg.alert('Error', 'Sorry,' + obj.msg);
+                        return false;
+                    }
+
+                }, failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    } else {
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                    }
+                }
+
+            })
+        }
+
+        var form = new Ext.form.FormPanel({
+            title: 'Posting Inventory Adjustment',
+            frame: true,
+            height: 210,
+            width: 400,
+            items: [
+                {
+                    fieldLabel: 'Inventory Adjustment Number',
+                    xtype: 'tranoselector',
+                    Selectid: 'trano_text',
+                    width: 120,
+                    Tranotype: ['IA'],
+                    Disabletype: true,
+                    callbackFunc: function(trano) {
+                        loadForm(trano);
+                    }
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'periode',
+                    readOnly: true,
+                    width: 150,
+                    fieldLabel: 'Periode'
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'warehouse',
+                    readOnly: true,
+                    width: 250,
+                    fieldLabel: 'Warehouse'
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'upload',
+                    readOnly: true,
+                    width: 150,
+                    fieldLabel: 'Upload Date'
+                },
+                {
+                    xtype: 'textfield',
+                    id: 'pic-upload',
+                    readOnly: true,
+                    width: 250,
+                    fieldLabel: 'Upload By'
+                }
+            ],
+            renderTo: 'form'
+        });
+
+        var formCoa = new Ext.form.FormPanel({
+            recs: null,
+            title: 'Adjustment',
+            frame: true,
+            height: 330,
+            width: 400,
+            renderTo: 'formadj',
+            items: [
+                {
+                    xtype: 'displayfield',
+                    fieldLabel: 'Product ID',
+                    name: 'kode_brg',
+                    id: 'kode_brg',
+                    value: ' '
+                },
+                {
+                    xtype: 'displayfield',
+                    fieldLabel: 'Product Name',
+                    name: 'nama_brg',
+                    id: 'nama_brg',
+                    value: ' '
+                },
+                {
+                    xtype: 'textfield',
+                    fieldLabel: 'Diff QTY',
+                    name: 'diff_qty',
+                    id: 'diff_qty',
+                    value: ' ',
+                    width: 75,
+                    enableKeyEvents: true,
+                    listeners: {
+                        'keyup': function(t) {
+                            hitungNilai();
+                        }
+                    }
+                },
+                new Ext.ux.customRendererField(
+                        {
+                            xtype: 'textfield',
+                            id: 'hargaavg',
+                            name: 'hargaavg',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            fieldLabel: 'AVG Price',
+                            value: '0.00',
+                            enableKeyEvents: true,
+                            listeners: {
+                                'keyup': function(t) {
+                                    hitungNilai();
+                                }
+                            }
+                        }),
+                {
+                    xtype: 'coaselector',
+                    id: 'coa-select',
+                    Selectid: 'coa_kode_text',
+                    Nameid: 'coa_nama',
+                    ShowName: true,
+                    SelectWidth: 100,
+                    fieldLabel: 'COA Debit'
+                },
+                new Ext.ux.customRendererField(
+                        {
+                            xtype: 'textfield',
+                            id: 'debits',
+                            name: 'debits',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            fieldLabel: 'Total Debit ',
+                            value: '0.00'
+                        }),
+                {
+                    xtype: 'coaselector',
+                    id: 'coa-select2',
+                    Selectid: 'coa_kode2_text',
+                    Nameid: 'coa_nama2',
+                    ShowName: true,
+                    SelectWidth: 100,
+                    fieldLabel: 'COA Credit'
+                },
+                new Ext.ux.customRendererField(
+                        {
+                            xtype: 'textfield',
+                            id: 'credits',
+                            name: 'credits',
+                            style: 'text-align:right',
+                            priceDelemiter: ',',
+                            fieldLabel: 'Total Credit ',
+                            value: '0.00'
+                        }),
+                {
+                    xtype: 'textarea',
+                    name: 'memo',
+                    id: 'memo',
+                    width: 250,
+                    fieldLabel: 'Memo'
+                }
+
+            ],
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function()
+                    {
+                        var rec = formCoa.getForm().getValues(),
+                                recs = formCoa.recs;
+
+                        if (jurnal.findByRefNumber(recs.get("kode_brg")))
+                        {
+                            Ext.Msg.alert('Error', "This item exist on Jurnal");
+                            return false;
+                        }
+
+                        var addInfo = {
+//                            prj_kode: prj_kode,
+//                            sit_kode: sit_kode,
+//                            job_number: job_number,
+//                            val_kode: val_kode,
+//                            trano: '',
+//                            ket: ket,
+//                            ref_number: ref_number,
+//                            ref_number2: ref_number2,
+//                            ref_number3: ref_number3,
+//                            rateidr: rate,
+//                            tipe_jurnal: type
+                            ref_number: recs.get("kode_brg"),
+                            memo: rec.memo
+                        };
+
+                        coas = [{
+                                coa_kode: Ext.getCmp('coa_kode2_text').getValue(),
+                                value: parseFloat(Ext.getCmp('credits').getOriginalValue()),
+                                side: 'credit',
+                                tipe: ''
+                            }, {
+                                coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                                value: parseFloat(Ext.getCmp('debits').getOriginalValue()),
+                                side: 'debit',
+                                tipe: ''
+                            }];
+
+                        jurnal.getCoa(coas, addInfo);
+
+                        Ext.getCmp('kode_brg').setValue('');
+                        Ext.getCmp('nama_brg').setValue('');
+                        Ext.getCmp('diff_qty').setValue('');
+                        Ext.getCmp('memo').setValue('');
+                        Ext.getCmp('credits').setValue('');
+                        Ext.getCmp('debits').setValue('');
+                        Ext.getCmp('hargaavg').setValue('');
+                    }
+                }
+            ]
+        });
+
+        var jurnal = new Ext.ux.grid.gridJurnal({
+            height: 300,
+            autoWidth: true,
+            id: 'grid-jurnal',
+            hideRefNumber: false,
+            disableNewJournal: true
+        });
+
+        var panel = new Ext.Panel({
+            items: [
+                jurnal
+            ],
+            frame: true,
+            renderTo: 'gridjurnal',
+            buttons: [
+                {
+                    text: 'Submit',
+                    handler: function() {
+                        var json = jurnal.getJSONFromStore(),
+                                trano = Ext.getCmp('trano_text').getValue();
+
+                        if (json == '[]' || trano == '')
+                            return false;
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.Ajax.request({
+                            url: '/logistic/inventory/do-posting-adjustment',
+                            method: 'POST',
+                            params: {
+                                jurnal: json,
+                                trano: trano
+                            },
+                            success: function(result, request) {
+                                Ext.getBody().unmask();
+                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                if (returnData.success) {
+                                    Ext.Msg.alert('Success', returnData.msg);
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/logistic/inventory/adjustment-menu',
+                                        scripts: true
+                                    });
+                                }
+                                else
+                                    Ext.Msg.alert('Error!', returnData.msg);
+                            },
+                            failure: function(action) {
+                                Ext.getBody().unmask();
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            ]
+        })
+
+    });
+</script>
+<div id="form"></div><br />
+<div id="grids"></div><br />
+<div id="formadj"></div><br />
+<div id="gridjurnal"></div>

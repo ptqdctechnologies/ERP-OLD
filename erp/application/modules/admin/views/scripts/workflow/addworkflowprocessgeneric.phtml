@@ -1,0 +1,756 @@
+<script type="text/javascript">
+
+var winPopUp = function(idName)
+{
+
+	var proxy = new Ext.data.HttpProxy({
+		api: {
+        	read : '/admin/workflow/listrole'
+		}
+	});
+
+	var reader = new Ext.data.JsonReader({
+	    totalProperty: 'count',
+	    idProperty: 'id',
+	    root: 'posts'
+	}, [
+	    {name: 'id'},
+	    {name: 'role_name'},
+	    {name: 'display_name'}
+	]);
+
+
+
+	var store = new Ext.data.Store({
+	    id: 'user',
+	    proxy: proxy,
+	    reader:reader
+    });
+
+
+	store.load();
+
+//	var datas = new Ext.data.SimpleStore({
+//	    fields:['type','name']
+//	            ,data:[['project','Project'],
+//                       ['procurement','Procurement'],
+//                       ['sitac','Sitac'],
+//                       ['sales','Sales'],
+//                       ['humanresource','Human Resource'],
+//                       ['it','IT'],
+//                       ['finance','Finance'],
+//                       ['manager','Manager']]
+//               });
+
+    var proxy2 = new Ext.data.HttpProxy({
+        url: '/default/home/getroletypelist'
+    });
+
+    var store2 = new Ext.data.Store({
+        proxy: proxy2,
+        reader: new Ext.data.JsonReader({
+            id: 'id_role',
+            totalProperty: 'count',
+            root: 'posts'
+        }, [{
+            name: 'role_name'
+        },{
+            name: 'id_role'
+        }
+        ])
+    });
+
+    store2.load();
+
+    var combobox2 = new Ext.form.ComboBox({
+        	x : 90,
+        	y : 10,
+    		name:'selectAlamat'
+            ,store: store2
+                ,valueField:'id_role'
+                ,displayField:'role_name'
+                ,typeAhead: true,
+                forceSelection: true,
+                mode: 'remote',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                emptyText: 'Select Role Type',
+    			width: 200
+        });
+
+
+	var userColumns =  [
+	                    new Ext.grid.RowNumberer(),
+	                    {header: "Role Name", width: 250,sortable: true, dataIndex: 'display_name'}
+	                ];
+
+	var userGrid = new Ext.grid.GridPanel({
+	        store: store,
+	        columns: userColumns,
+	        x:0,
+	        y:50,
+	        id:'role_grid',
+	        loadMask: true,
+	        forceFit: true,
+            stateful: false,
+	        bbar:[ new Ext.PagingToolbar({
+	            pageSize: 100,
+	            store: store,
+	            displayInfo: true,
+	            displayMsg: 'Displaying data {0} - {1} of {2}',
+	            emptyMsg: "No data to display"
+	        })],
+	        height:250,
+	        listeners: {
+	                    'rowdblclick': function(g, rowIndex, e){
+	                            isDblClick = true;
+	                            var userfullname = g.getStore().getAt(rowIndex).get('display_name');
+	                            var idrole = g.getStore().getAt(rowIndex).get('id');
+	                            document.getElementById(idName).value =userfullname;
+	                            idValue = idName + '-value';
+	                            document.getElementById(idValue).value =idrole;
+	                            Ext.getCmp('form-pic').close();
+							}
+						}
+	});
+
+
+//	var combo=new Ext.form.ComboBox({
+//	    fieldLabel: 'Export'
+//	    ,name:'showPIC'
+//	    ,store: datas
+//	    ,valueField:'type'
+//	    ,displayField:'name'
+//	    ,typeAhead: true
+//	    ,mode: 'local'
+//	    ,triggerAction: 'all'
+//	    ,value:'project'
+//	    ,selectOnFocus:true
+//	    ,hiddenName:'type'
+//		,width: 150
+//        ,x: 70
+//        ,y: 5
+//	});
+
+	combobox2.addListener('select', function (combo,selected) {
+		proxies = userGrid.getStore();
+	    proxies.proxy = new Ext.data.HttpProxy({
+	          url: '/admin/workflow/listrole/role_name/' + combo.getRawValue()
+	           });
+	    userGrid.getStore().reload();
+	});
+
+	winPopUp.superclass.constructor.call(this, {
+	title: 'Choose Role',
+    id: 'form-pic',
+    layout: 'absolute',
+    width: 450,
+    height: 330,
+    stateful:false,
+    modal: true,
+    resizable: false,
+    items : [
+             {
+                 xtype:'label'
+                 ,text:'Role Type'
+                 ,x: 10
+                 ,y: 13
+             }
+         	 ,combobox2
+         	 ,userGrid
+
+         	 ]
+	});
+};
+Ext.extend(winPopUp, Ext.Window);
+function showWinPopUp(idName){
+
+	win = new winPopUp(idName);
+	win.show();
+}
+
+
+var count=1;
+var people=1;
+var table=2;
+var submit = [];
+
+function addNewPeople(tableRef){
+	var myTable = document.getElementById(tableRef);
+	var tBody = myTable.getElementsByTagName('tbody')[0];
+
+	indeks = tableRef.split('-');
+	rowCount = myTable.rows.length -1;
+	newTR = document.createElement('tr');
+	newTD1 = document.createElement('td');
+	newTR.id = 'people-' + people;
+	newTR.appendChild (newTD1);
+	tBody.appendChild(newTR);
+    if ((indeks[2] - 1) > 0)
+    {
+        var now = indeks[2] - 1;
+        var submitIndeks = submit[now] + 1;
+        submit[now] += 1;
+        var submitter = '<font style="font-size:10px;">Can Submit&nbsp;:</font>&nbsp;<input type="checkbox" name="is_start[' + now + '][' + submitIndeks + ']" id="is_start-' + submitIndeks + '"></input>';
+    }
+    else
+        var submitter = '';
+	//newTD1.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly>' + submitter + '<input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (indeks[2] - 1) + '][]"><a href="#" onclick="delPeople(\'' + tableRef + '\',\'people-' + people + '\');"><img src="/images/icons/fam/page_cross.gif"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a>';
+	newTD1.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly>' + submitter + '<input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (indeks[2] - 1) + ']"><a href="#" onclick="delPeople(\'' + tableRef + '\',\'people-' + people + '\');"><img src="/images/icons/fam/page_cross.gif"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a>';
+
+
+	people++;
+}
+
+function delPeople(tableRef,row)
+{
+	var myRow = document.getElementById(row);
+
+	myRow.parentNode.removeChild(myRow);
+}
+
+function addNewRow(tableRef){
+	var myTable = document.getElementById(tableRef);
+	var tBody = myTable.getElementsByTagName('tbody')[0];
+
+	var rowCount = myTable.rows.length -1;
+
+	var endValue = document.getElementById('node-end').value;
+	var endValue2 = document.getElementById('node-end-value').value;
+
+	if (rowCount > 1)
+	{
+		myTable.deleteRow(rowCount);
+	}
+
+	count++;
+	var newTR = document.createElement('tr');
+	var newTD1 = document.createElement('td');
+	var newTD2 = document.createElement('td');
+
+    submit[table-1] = 0;
+
+	//newTD2.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly><font style="font-size:10px;">Can Submit&nbsp;:</font>&nbsp;<input type="checkbox" name="is_start[' + (table-1) + '][0]" id="is_start-' + (table-1) + '"></input><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (table-1) + '][]"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onclick="delRowByNumber(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/delete.gif"></img></a><a href="#" onclick="insertNewRow(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/add.png"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	newTD2.innerHTML =  '<input type="text" id="node-people-' + (people) + '" readonly><font style="font-size:10px;">Can Submit&nbsp;:</font>&nbsp;<input type="checkbox" name="is_start[' + (table-1) + '][0]" id="is_start-' + (table-1) + '"></input><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (table-1) + ']"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onclick="delRowByNumber(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/delete.gif"></img></a><a href="#" onclick="insertNewRow(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/add.png"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	newTD1.innerHTML = 'Next ' + (count-1);
+	newTD1.id = 'caption-'+ (count-1);
+	newTR.id = 'Next-'+ (count-1);
+	newTR.appendChild (newTD1);
+	newTR.appendChild (newTD2);
+	tBody.appendChild(newTR);
+	var newTR2 = document.createElement('tr');
+	var newTD3 = document.createElement('td');
+	newTD3.innerHTML = '<img src="/images/icons/fam/arrow_down.gif"></img>';
+	newTR2.appendChild (newTD3);
+	tBody.appendChild(newTR2);
+
+	people++;
+	table++;
+
+	var endTR = document.createElement('tr');
+	var endTD1 = document.createElement('td');
+	var endTD2 = document.createElement('td');
+	//endTD2.innerHTML = '<input id="node-end" type="text" readonly><font style="font-size:10px;">Executor&nbsp;:</font>&nbsp;<input type="checkbox" name="is_executor" id="is_executor"></input><input type="hidden" id="node-end-value" name="id_person[' + (table-1) + '][]"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onClick="showWinPopUp(\'node-end\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	endTD2.innerHTML = '<input id="node-end" type="text" readonly><font style="font-size:10px;">Executor&nbsp;:</font>&nbsp;<input type="checkbox" name="is_executor" id="is_executor"></input><input type="hidden" id="node-end-value" name="id_person[' + (table-1) + ']"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onClick="showWinPopUp(\'node-end\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	endTD1.innerHTML = 'End';
+	endTR.appendChild (endTD1);
+	endTR.appendChild (endTD2);
+	tBody.appendChild(endTR);
+	document.getElementById('node-end').value = endValue;
+	document.getElementById('node-end-value').value = endValue2;
+
+	var j=1;
+	for (i=1;i < myTable.rows.length ;i++)
+	{
+		searchRow = myTable.rows[i].cells[0].id;
+
+		if (searchRow !== null && searchRow !== '')
+		{
+			myTable.rows[i].cells[0].innerHTML = 'Next ' + j;
+			j++;
+		}
+	}
+
+}
+
+function insertNewRow(tableRef,rowsRef){
+	var myTable = document.getElementById(tableRef);
+	var rows = document.getElementById(rowsRef).rowIndex;
+
+	count++;
+	table++;
+	newRow = myTable.insertRow(rows+1);
+	newRow.id = 'Next-' + (count-1);
+	newCell1 = newRow.insertCell(0);
+	newCell1.id = 'caption-'+ (count-1);
+	newCell1.innerHTML = 'Next ' + (count-1) ;
+	newCell2 = newRow.insertCell(1);
+
+    submit[table-1] = 0;
+
+	//newCell2.innerHTML = '&nbsp;<input type="text" id="node-people-' + (people) + '" readonly><font style="font-size:10px;">Can Submit&nbsp;:</font>&nbsp;<input type="checkbox" name="is_start[' + (table-1) + '][0]" id="is_start-' + (table-1) + '"></input><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (table-1) + '][]"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onclick="delRowByNumber(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/delete.gif"></img></a><a href="#" onclick="insertNewRow(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/add.png"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	newCell2.innerHTML = '&nbsp;<input type="text" id="node-people-' + (people) + '" readonly><font style="font-size:10px;">Can Submit&nbsp;:</font>&nbsp;<input type="checkbox" name="is_start[' + (table-1) + '][0]" id="is_start-' + (table-1) + '"></input><input type="hidden" id="node-people-' + (people) + '-value" name="id_person[' + (table-1) + ']"><a href="#" onclick="addNewPeople(\'table-people-' + (table) + '\');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onclick="delRowByNumber(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/delete.gif"></img></a><a href="#" onclick="insertNewRow(\'table-process\',\'Next-' + (count-1) + '\');"><img src="/images/icons/fam/add.png"></img></a><a href="#" onClick="showWinPopUp(\'node-people-' + (people) + '\');"><img src="/images/icons/fam/user_add.png"></img></a><table id="table-people-' + (table) + '"><tbody id="tbody-people-' + (table) + '"></tbody></table>';
+	newRow = myTable.insertRow(rows+1);
+	newCell3 = newRow.insertCell(0);
+	newCell3.innerHTML = '<img src="/images/icons/fam/arrow_down.gif"></img>';
+	people++;
+	var j=1;
+	for (i=1;i < myTable.rows.length ;i++)
+	{
+		searchRow = myTable.rows[i].cells[0].id;
+
+		if (searchRow !== null && searchRow !== '')
+		{
+			myTable.rows[i].cells[0].innerHTML = 'Next ' + j;
+			j++;
+		}
+	}
+
+
+}
+
+function delRow(tableRef){
+	var myTable = document.getElementById(tableRef);
+	var rowCount = myTable.rows.length -1;
+	if (rowCount > 1)
+	{
+	myTable.deleteRow(rowCount);
+	count = count-1;
+	}
+	var j=1;
+	for (i=1;i < myTable.rows.length ;i++)
+	{
+		searchRow = myTable.rows[i].cells[0].id;
+
+		if (searchRow !== null && searchRow !== '')
+		{
+			myTable.rows[i].cells[0].innerHTML = 'Next ' + j;
+			j++;
+		}
+	}
+}
+
+function delRowByNumber(tableRef,rowID){
+	var myTable = document.getElementById(tableRef);
+//	var rowCount = myTable.rows.length -1;
+//	if (rowCount > 1)
+//	{
+//		myTable.removeChild(row);
+//	}
+	var row = document.getElementById(rowID);
+	var rowIndeks = row.rowIndex;
+	row.parentNode.removeChild(row);
+	myTable.deleteRow(rowIndeks);
+	var j=1;
+	for (i=1;i < myTable.rows.length ;i++)
+	{
+		searchRow = myTable.rows[i].cells[0].id;
+
+		if (searchRow !== null && searchRow !== '')
+		{
+			myTable.rows[i].cells[0].innerHTML = 'Next ' + j;
+			j++;
+		}
+	}
+}
+
+</script>
+
+<?php
+if ($this->byone)
+{
+    $url = "/admin/workflow/submitworkflowprocessgeneric/byone/true/workflow_item_id/" . urlencode($this->workflow_item_id);
+}
+else
+{
+    $url = "/admin/workflow/submitworkflowprocessgeneric/workflow_item_name/" . urlencode($this->workflow_item_name);
+}
+
+?>
+
+<form name="dummy" id="dummy"></form>
+<!--<form id="workflowform" name="workflowform" action="--><?//=$url?><!--" method="POST" onsubmit="return checkValidation();">-->
+<form id="workflowform" name="workflowform" action="#">
+
+<table id="table-process">
+<tbody id="tbody-process">
+<tr id="pos-start">
+	<td>Start</td>
+	<td >
+	<input type="text" id="node-start" readonly>
+	<input type="hidden" id="node-start-value" name="id_person[0]">
+		<a href="#" onclick="addNewPeople('table-people-1');"><img src="/images/icons/fam/page_down.gif"></img></a><a href="#" onclick="addNewRow('table-process');"><img src="/images/icons/fam/add.png"></img></a><a href="#" onClick="showWinPopUp('node-start');"><img src="/images/icons/fam/user_add.png"></img></a>
+		<table id="table-people-1">
+		<tbody id="tbody-people-1">
+		</tbody>
+		</table>
+	</td>
+</tr>
+<tr>
+<td><img src="/images/icons/fam/arrow_down.gif"></img></td>
+</tr>
+<tr id="pos-end">
+	<td>End</td>
+	<td >
+	<input type="text" id="node-end" readonly></input>
+    <font style="font-size:10px;">Executor&nbsp;:</font>&nbsp;<input type="checkbox" name="is_executor" id="is_executor"></input>
+	<input type="hidden" id="node-end-value" name="id_person[1]">
+	<a href="#" onclick="addNewPeople('table-people-2');"><img src="/images/icons/fam/page_down.gif" alt="Add Person to this Node"></img></a><a href="#" onClick="showWinPopUp('node-end');"><img src="/images/icons/fam/user_add.png"></img></a>
+		<table id="table-people-2">
+		<tbody id="tbody-people-2">
+		</tbody>
+		</table>
+	</td>
+</tr>
+</tbody>
+</table>
+<br></br>
+<!--    <input type="submit" name="submitProcess" id = "submitProcess" value="Submit Process" ></input>-->
+    <input type="button" name="submitProcess" id = "submitProcess" value="Submit Process" onclick="checkValidation(); return false;" ></input>
+
+</form>
+
+<?php
+
+$javascript = '';
+$count = 1;
+if (count($this->dataWorkflow)>0)
+{
+	foreach($this->dataWorkflow as $key => $val)
+	{
+		if ($key == 0)
+		{
+			foreach($val as $key2 => $val2)
+			{
+				if ($key2 == 0 && $val2['role_id'] != '')
+				{
+					$javascript .= "document.getElementById('node-start').value='" . $val2['role_name'] . "';\n";
+					$javascript .= "document.getElementById('node-start-value').value='" . $val2['role_id'] . "';\n";
+				}
+				else
+				{
+					$people = $key2;
+					$javascript .= "addNewPeople('table-people-1');\n idIsi = 'node-people-' + (people-1);";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['role_name'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['role_id'] . "';\n";
+
+
+				}
+			}
+		}
+		else
+		{
+            $done = false;
+			if ($key == (count($this->dataWorkflow)-1) )
+			{
+				foreach($val as $key2 => $val2)
+				{
+                    if (!$done)
+                    {
+                        $javascript .= "people++;table++;\n";
+                        $done = !$done;
+                    }
+					if ($key2 == 0)
+					{
+						$javascript .= "document.getElementById('node-end').value='" . $val2['role_name'] . "';\n";
+						$javascript .= "document.getElementById('node-end-value').value='" . $val2['role_id'] . "';\n";
+					}
+					else
+					{
+						$javascript .= "addNewPeople('table-people-' + (table-1));\n";
+						$javascript .= "idIsi = 'node-people-' + (people-1);\n";
+						$javascript .= "document.getElementById(idIsi).value='" . $val2['role_name'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+						$javascript .= "document.getElementById(idIsi).value='" . $val2['role_id'] . "';\n";
+					}
+				}
+			}
+			else
+			{
+				$javascript .= "addNewRow('table-process');\n";
+				foreach($val as $key2 => $val2)
+				{
+					if ($key2 > 0)
+						$javascript .= "addNewPeople('table-people-' + (table-1));\n";
+
+					$javascript .= "idIsi = 'node-people-' + (people-1);\n";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['role_name'] . "';\n idIsi = 'node-people-' + (people-1) + '-value';";
+					$javascript .= "document.getElementById(idIsi).value='" . $val2['role_id'] . "';\n";
+				}
+			}
+		}
+	}
+}
+echo "<script type=\"text/javascript\">" .  $javascript . "</script>";
+?>
+
+<script type="text/javascript">
+
+    function showUserDocument(rec)
+    {
+        var user = rec.person_list;
+
+        var userField = Ext.data.Record.create([
+            {
+                name: 'name'
+            },
+            {
+                name: 'uid'
+            },
+            {
+                name: 'role'
+            }
+        ]);
+
+        var storeUser = new Ext.data.Store ({
+            reader:new Ext.data.JsonReader ({
+                fields: userField
+            })
+        });
+
+        Ext.each(user,function(e){
+            e.name = "<b>" + e.name + "</b><br>" + e.role;
+            storeUser.add(new userField(e));
+        });
+
+        var formUser = new Ext.form.FormPanel({
+            height: 50,
+            width: 400,
+            frame: true,
+            items: [
+                {
+                    fieldLabel:'Assign To',
+                    xtype:'combo',
+                    allowBlank: false,
+                    store: storeUser,
+                    valueField:'uid',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    width: 250
+                }
+            ]
+        });
+
+        var winUser = new Ext.Window({
+            title:'Person List',
+            autoHeight: true,
+            width: 410,
+            items: [
+                formUser
+            ],
+            modal: true,
+            buttons: [
+                {
+                    text: 'OK',
+                    handler: function(){
+                        Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+                            if (btn == 'yes')
+                            {
+
+                                var combo = formUser.findByType('combo'),
+                                    uid = combo[0].getValue(),
+                                    uid_replace = rec.uid_replace,
+                                    workflow_item_id = rec.workflow_item_id;
+
+                                showLoadingScreen();
+
+                                Ext.Ajax.request({
+                                    url:'/admin/workflow/assign-document-workflow-generic',
+                                    method:'POST',
+                                    params:{
+                                        uid: uid,
+                                        uid_replace: uid_replace,
+                                        workflow_item_id: workflow_item_id
+                                    },
+                                    success:function(result){
+                                        hideLoadingScreen();
+                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                        if (obj.success)
+                                        {
+                                            Ext.Msg.alert("Success","Document has been Reassign");
+
+                                            if(Ext.getCmp('grid-docs-error'))
+                                            {
+                                                var grid = Ext.getCmp('grid-docs-error'),
+                                                    gridStore = grid.getStore();
+                                                gridStore.remove(rec.grid_record);
+                                                grid.getView().refresh();
+                                                winUser.close();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Ext.Msg.alert('Error', obj.msg);
+                                        }
+                                    },
+                                    failure:function( action){
+                                        hideLoadingScreen();
+                                        if(action.failureType == 'server'){
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        }else{
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+
+                                });
+
+                            }
+
+                        });
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    handler: function(){
+                        winUser.close();
+                    }
+                }
+            ]
+        });
+
+        winUser.show();
+    }
+
+    function showErrorDocument(rec)
+    {
+        var error = rec.error_document;
+
+        var errorField = Ext.data.Record.create([
+            {
+                name: 'msg'
+            },
+            {
+                name: 'person'
+            },
+            {
+                name: 'total'
+            },
+            {
+                name: 'uid'
+            }
+        ]);
+
+        var storeError = new Ext.data.Store ({
+            reader:new Ext.data.JsonReader ({
+                fields: errorField
+            })
+        });
+
+        Ext.each(error,function(e){
+            storeError.add(new errorField(e));
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions:[
+                {
+                    iconCls:'icon-edit',
+                    qtip:'Assign',
+                    id: 'assign',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        rec.uid_replace = record.get("uid");
+                        rec.grid_record = record;
+                        showUserDocument(rec);
+                    }
+                },
+
+            ]
+            ,index: 'actions'
+            ,header: ''
+        });
+
+        var grid = new Ext.grid.GridPanel ({
+            id: 'grid-docs-error',
+            frame:true,
+            store:storeError,
+            viewConfig:{
+//                forceFit:true
+            },
+            height:400,
+            width:400,
+            plugins: [rowactions],
+            columns:[
+                new Ext.grid.RowNumberer(),
+                rowactions,
+                {
+                    header:'Person',
+                    dataIndex:'person',
+                    sortable:true,
+                    width: 120
+                },
+                {
+                    header: 'Msg',
+                    dataIndex: 'msg',
+                    width: 300
+                }
+            ]
+        });
+
+        var winGrid = new Ext.Window({
+            title:'Document Error List',
+            autoHeight: true,
+            width: 410,
+            items: [
+                grid
+            ],
+            modal: true,
+        });
+
+        winGrid.show();
+    }
+
+    function checkValidation()
+    {
+        var formId = "workflowform",
+            theForm = document.getElementById(formId),
+            id_person = [];
+
+        for(var i = 0; i < theForm.length; i++) {
+            if (theForm.elements[i].type == 'hidden')
+            {
+                var name = theForm.elements[i].name;
+                eval("if (" + name + " == undefined) " + name + " = [];");
+                eval(name + ".push(" + theForm.elements[i].value + ");");
+            }
+        }
+
+        showLoadingScreen();
+        Ext.Ajax.request({
+            url: '<?=$url?>',
+            method:'POST',
+            params: {
+                id_person: Ext.util.JSON.encode(id_person)
+            },
+            success: function(result, request){
+                hideLoadingScreen();
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if( returnData.success) {
+                    Ext.Msg.alert("Success","Workflow Generic has been saved");
+                }
+                else
+                {
+                    if (returnData.error_document)
+                    {
+                        showErrorDocument(returnData);
+                    }
+                }
+            },
+            failure:function( action){
+                hideLoadingScreen();
+                console.log(action);return false;
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }else{
+                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                }
+            }
+        });
+    }
+</script>

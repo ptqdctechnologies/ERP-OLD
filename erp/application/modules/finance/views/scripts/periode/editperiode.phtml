@@ -1,0 +1,273 @@
+<script type="text/javascript">
+
+
+    Ext.apply(Ext.form.VTypes, {
+    daterange : function(val, field) {
+        var date = field.parseDate(val);
+
+        if(!date){
+            return false;
+        }
+        if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+            var start = Ext.getCmp(field.startDateField);
+            start.setMaxValue(date);
+            start.validate();
+            this.dateRangeMax = date;
+        }
+        else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+            var end = Ext.getCmp(field.endDateField);
+            end.setMinValue(date);
+            end.validate();
+            this.dateRangeMin = date;
+        }
+        /*
+         * Always return true since we're only using this vtype to set the
+         * min/max allowed values (these are tested for after the vtype test)
+         */
+        return true;
+    },
+
+    numericText: "Only numbers are allowed.",
+    numericMask: /[0-9]/,
+    numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+    numeric: function(v) {
+        return function() { return this.numericRe.test(v)} ;
+    }
+
+});
+
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var i = 1;
+
+        var monthArray = Date.monthNames.map(function (e) { return [e,i++]; });
+
+        var setperiodepanel = new Ext.form.FormPanel ({
+            idEdit: '',
+            title:'Edit Periode',
+            id:'edit-periode',
+            renderTo:'edit_periode',
+            frame:true,
+            width:240,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Periode Code',
+                width:104,
+                id:'perkode',
+                allowBlank:false,
+                msgTarget:'side'
+            },{
+                xtype:'textfield',
+                fieldLabel:'Year',
+                width:104,
+                id:'tahun',
+                allowBlank:false,
+                msgTarget:'side'
+            },{
+                id:'bulan',
+                xtype:'combo',
+                fieldLabel:'Month',
+                width:104,
+                store: new Ext.data.ArrayStore ({
+                    fields:['name','value'],
+                    data:monthArray
+                }),
+                valueField:'value',
+                displayField:'name',
+                typeAhead: true,
+                forceSelection: true,
+                editable: false,
+                mode: 'local',
+                triggerAction: 'all',
+                selectOnFocus: true,
+                emptyText: 'Select ... ',
+                allowBlank:false,
+                msgTarget:'side'
+            },{
+                xtype:'datefield',
+                fieldLabel: 'Start Date',
+                name: 'tgl_awal',
+                id: 'tgl_awal',
+                vtype: 'daterange',
+                endDateField: 'tgl_akhir', // id of the end date field
+                allowBlank:false,
+                msgTarget:'side',
+                format:'d-m-Y'
+            },{
+                xtype:'datefield',
+                fieldLabel: 'End Date',
+                name: 'tgl_akhir',
+                id: 'tgl_akhir',
+                vtype: 'daterange',
+                startDateField: 'tgl_awal',
+                allowBlank:false,
+                msgTarget:'side',
+                format:'d-m-Y'
+            }
+            ],
+            buttons:[{
+                text:'Edit',
+                handler:function (btn,ev)
+                {
+//                    var id = Ext.getCmp('id');
+//                    console.log(id);false;
+
+                    if(!Ext.getCmp('edit-periode').getForm().isValid())
+                    {
+                        Ext.Msg.alert('Error','Please cek your field');
+                        return false;
+                    }
+                    Ext.getBody().mask('Loading..','x-mask-loading',false);
+                    Ext.getCmp('edit-periode').getForm().submit({
+                        params: {
+                            id: Ext.getCmp('edit-periode').idEdit
+                        },
+                        method:'POST',
+                        url:'/finance/periode/edit',
+                        success:function(thisForm,response)
+                        {
+                            Ext.getBody().unmask();
+                            Ext.Msg.alert('Message','Success, Finance Periode has been Update');
+                            panel = Ext.getCmp('abs-budget-panel');
+                            panel.body.load ({
+                                url: '/finance/periode/financeperiode',
+                                scripts: true
+                            })
+                        },
+                        failure:function(thisForm,response){
+                            Ext.getBody().unmask();
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+
+                    })
+                }
+            },{
+                text:'Cancel',
+                style:'margin-right:10px',
+                handler:function(btn,ev)
+                {
+                    panel = Ext.getCmp('abs-budget-panel');
+                        panel.body.load ({
+                        url: '/finance/periode/viewperiode',
+                        scripts: true
+                    })
+                }
+            }]
+
+        })
+
+
+
+        var periodeStore = new Ext.data.Store ({
+
+            autoLoad:true,
+            url:'/finance/periode/getviewperiode',
+            reader: new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[
+                {
+                    name: 'id'
+                },{
+                    name:'tahun',type:'String'
+                },{
+                    name:'perkode'
+                },{
+                    name:'tgl_awal'
+                },{
+                    name:'tgl_akhir'
+                },{
+                    name:'bulan'
+                },{
+                    name:'aktif'
+                }]
+            })
+
+        })
+
+        var periodeGrid = new Ext.grid.GridPanel({
+
+            store:periodeStore,
+            renderTo:'view_periode',
+            frame:true,
+            height:170,
+            width:620,
+            viewConfig:{
+
+                forceFit:true
+            },
+            listeners:{
+                'rowdblclick':function (gridaktif,rowIndex,e)
+                {
+                    isDbclick = true;
+
+                    var barisgrid = gridaktif.getStore().getAt(rowIndex);
+                    Ext.getCmp('edit-periode').getForm().loadRecord(barisgrid);
+                    Ext.getCmp('edit-periode').idEdit = barisgrid.data['id'];
+                },
+                'rowclick':function (gridaktif,rowIndex,e)
+                {
+                    isDbclick = true;
+
+                    var barisgrid = gridaktif.getStore().getAt(rowIndex);
+                    Ext.getCmp('edit-periode').getForm().loadRecord(barisgrid);
+                    Ext.getCmp('edit-periode').idEdit = barisgrid.data['id'];
+                }
+            },
+            columns:[{
+                header:'Periode Code',
+                dataIndex:'perkode',
+                sortable:true,
+                align:'center'
+            },{
+                header:'Year',
+                dataIndex:'tahun',
+                sortable:true,
+                align:'center'
+            },{
+                header:'Month',
+                dataIndex:'bulan',
+                sortable:true,
+                align:'center'
+            },{
+                header:'Start Date',
+                dataIndex:'tgl_awal',
+                sortable:true,
+                align:'center'
+            },{
+                header:'End Date',
+                dataIndex:'tgl_akhir',
+                sortable:true,
+                align:'center'
+            },{
+                header:'Active',
+                dataIndex:'aktif',
+                sortable:true,
+                align:'center'
+            }],
+            bbar:new Ext.PagingToolbar ({
+                pageSize:20,
+                store:periodeStore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+
+
+        })
+
+
+    })
+
+</script>
+
+
+    <div id="edit_periode" style="margin-bottom:10px"></div>
+    <div id="view_periode"></div> 

@@ -1,0 +1,98 @@
+
+<script type="text/javascript">
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        var addsatuan = new Ext.FormPanel ({
+
+            title:'Add New Satuan',
+            id:'addnewsatuan',
+            width:400,
+            height:180,
+            renderTo:'addsatuan',
+            iconCls: 'silk-user',
+            frame: true,
+            labelWidth:140,
+            items:[
+                {
+                    xtype:'textfield',
+                    fieldLabel:'UOM Code',
+                    name:'sat_kode',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false
+                },{
+                    xtype:'textfield',
+                    fieldLabel:'UOM Name',
+                    name:'sat_name',
+                    msgTarget:'side',
+                    width:180,
+                    allowBlank:false
+                },{
+                    xtype:'textarea',
+                    fieldLabel:'UOM Description',
+                    name:'sat_desc',
+                    width:180
+                }
+            ],
+            buttons:[
+                {
+                    text:'Submit',
+                    handler:function(btn, ev)
+                    {
+                        if(!Ext.getCmp('addnewsatuan').getForm().isValid())
+                        {
+                            Ext.Msg.alert('Error','Please fill in all required fields');
+                            return false;
+                        }
+                        Ext.getCmp('addnewsatuan').getForm().submit({
+                            method:'POST',
+                            url:'/logistic/logisticsatuan/getaddsatuan',
+                            success:function(thisForm,response){
+                                Ext.Msg.alert('Success','New Satuan Ready to use');
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+                                url: '/logistic/logisticsatuan/satuan',
+                                scripts : true
+                                });
+                            },
+                            failure:function(thisForm,response){
+                                if (response.failureType == 'server')
+                                {
+                                    var resp = Ext.util.JSON.decode(response.response.responseText);
+                                    Ext.Msg.alert('Error',resp.pesan);
+                                }
+                            }
+                        })
+                    }
+                },{
+                    text:'Reset',
+                    handler:function(btn, ev)
+                    {
+                        addsatuan.form.reset()
+                    }
+                },{
+                    text:'Cancel',
+                    handler: function(btn, ev){
+                    myPanel = Ext.getCmp('abs-budget-panel');
+                    myPanel.body.load({
+                        url: '/logistic/logisticsatuan/satuan',
+                        scripts : true
+                    });
+           }
+                }
+            ]
+
+
+
+        })
+
+
+    })
+
+
+</script>
+
+    <div id="addsatuan"></div>

@@ -1,0 +1,522 @@
+<?php
+/*
+Created @ May 21, 2010 by Haryadi
+ */
+?>
+
+<script type="text/javascript">
+
+var App = new Ext.App({});
+
+var proxy = new Ext.data.HttpProxy({
+    api: {
+        read : '/procurement/procurement/list/type/prd'   
+         }
+});
+
+var proxy3 = new Ext.data.HttpProxy({
+    api: {
+        read : '/procurement/procurement/list/type/noprd'
+         }
+});
+
+var proxy2 = new Ext.data.HttpProxy({
+    api: {
+        create : '/procurement/procurement/insertpr',
+       //update: '/procurement/procurement/list/type/prd',
+        destroy: '/procurement/procurement/list/type/prd'
+         }
+});
+
+var reader2 = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    idProperty: 'trano',
+    root: 'posts'
+}, [
+    {name: 'trano'}
+]);
+var reader = new Ext.data.JsonReader({
+    totalProperty: 'count',
+    //successProperty: 'success',
+    //idProperty: 'trano',
+    root: 'posts',
+    messageProperty: 'message'  
+}, [
+    {name: 'trano'},
+    {name: 'tgl', allowBlank: false},
+    {name: 'prj_kode', allowBlank: false},
+    {name: 'prj_nama', allowBlank: false},
+    {name: 'sit_kode', allowBlank: false},
+    {name: 'sit_nama', allowBlank: false},
+    //{name: 'cus_kode', allowBlank: false},
+    //{name: 'cus_nama', allowBlank: false},
+    {name: 'workid', allowBlank: false},
+    {name: 'workname', allowBlank: false},
+    {name: 'kode_brg', allowBlank: false},
+    {name: 'nama_brg', allowBlank: false},
+    {name: 'qty_budget', allowBlank: false},
+    {name: 'qty_pr', allowBlank: false},
+    {name: 'harga', allowBlank: false},
+    {name: 'val_kode', allowBlank: false},
+    {name: 'balance', allowBlank: false},
+    {name: 'qty', allowBlank: false}
+]);
+
+var writer = new Ext.data.JsonWriter({
+    encode: true,
+    writeAllFields: false
+});
+
+//var store3 = new Ext.data.Store({
+//    id: 'user3',
+//    proxy: proxy3,
+//    reader: reader2,
+//     listeners: {
+//		   'load' : function(stores,records,options) {
+//                       var tranoGet = this.getAt(0).data.trano;
+//                        Ext.getCmp('trano_text').setValue(tranoGet);
+//
+//                   }
+//     }
+//});
+
+var store3 = new Ext.data.Store({
+    id: 'user3',
+    proxy: proxy3,
+    reader: reader2,
+     listeners: {
+		   'load' : function(stores,records,options){
+                                var myString = this.getAt(0).data.trano;
+                                var mySplit = myString.split("-");                         
+                                var myTrano = parseInt(mySplit[1]) + 1;
+                                var a = "PRF-";
+                                var noTrans = a.toString() + myTrano;
+                                Ext.getCmp('trano_text').setValue(noTrans);
+                   }
+     }
+});
+
+var store = new Ext.data.Store({
+    id: 'user',
+    proxy: proxy2,
+    reader: reader,
+    writer: writer,  
+    autoSave: false,
+    batch:true
+});
+
+var store2 = new Ext.data.Store({
+    id: 'user2',
+    proxy: proxy,
+    reader: reader,
+    listeners: {
+		   'load' : function(stores,records,options) {
+
+                    var tranoGanti = Ext.getCmp('trano_text').getValue();
+                    var tglGanti = Ext.getCmp('tgl_text').getValue();
+                    store.insert(0,records);
+                    store.each(function(store){
+                            store.data.trano = tranoGanti;
+                            store.data.tgl = tglGanti;
+                 });
+
+               }
+    }
+});
+
+//store2.load();
+
+Ext.data.DataProxy.addListener('beforewrite', function(proxy, action) {
+    App.setAlert(App.STATUS_NOTICE, "Before " + action);
+});
+
+Ext.data.DataProxy.addListener('write', function(proxy, action, result, res, rs) {
+    App.setAlert(true, action + ':' + res.message);
+});
+
+// all exception events
+Ext.data.DataProxy.addListener('exception', function(proxy, type, action, options, res) {
+    if (type === 'remote') {
+        Ext.Msg.show({
+            title: 'REMOTE EXCEPTION',
+            msg: res.message,
+            icon: Ext.MessageBox.ERROR,
+            buttons: Ext.Msg.OK
+        });
+    }
+});
+
+var textField =  new Ext.form.TextField();
+
+var userColumns =  [
+    {header: "Work Id", width: 100, sortable: true, dataIndex: 'workid'},
+    {header: "Work Name", width: 200, sortable: true, dataIndex: 'workname'},
+    {header: "Product Id", width: 100, sortable: true, dataIndex: 'kode_brg'},
+    {header: "Description", width: 200, sortable: true, dataIndex: 'nama_brg'},
+    {header: "Qty Budget", width: 100, sortable: true, dataIndex: 'qty_budget'},
+    {header: "Qty PR", width: 100, sortable: true, dataIndex: 'qty_pr'},
+    //{header: "Unit Price", width: 100, sortable: true, dataIndex: 'harga'},
+    //{header: "Curr", width: 50, sortable: true, dataIndex: 'val_kode'},
+    {header: "Qty Balance", width: 150, sortable: true, dataIndex: 'balance'},
+    {header: "New Qty", width: 150, sortable: true, dataIndex: 'qty',editor:new Ext.form.TextField({})}
+];
+
+var editor = new Ext.ux.grid.RowEditor({
+        saveText: 'Update'
+});
+
+
+userForm = Ext.extend(Ext.form.FormPanel, {
+    renderTo: 'user-form',
+    iconCls: 'silk-user',
+    labelAlign: 'right',
+    title: 'Procurement Request (PR)',
+    frame: true,
+    width: 300,
+    defaultType: 'textfield',
+    defaults: {
+        anchor: '100%'
+    },
+
+    // private A pointer to the currently loaded record
+    record : null,
+
+    initComponent : function() {
+
+        this.items = this.buildForm();
+
+        this.buttons = this.buildUI();
+
+        this.addEvents({
+
+            create : true
+        });
+
+          userForm.superclass.initComponent.call(this);
+    },
+
+// Building Form
+    buildForm : function(){
+        return [
+            {fieldLabel: 'No Trans',
+             id: 'trano_text',
+             name:"trano",
+             allowBlank: false,
+             xtype:"trigger",
+             onTriggerClick:
+                 function ()
+                   {
+                      prPopUphandler();
+                   }
+            },
+            {fieldLabel:"Date",
+             id:"tgl_text",
+             name:"tgl",
+             xtype: 'datefield'     
+            },
+            {fieldLabel: 'Project Code',
+             id:'prj_kode_text',
+             name:'prj_kode',
+             allowBlank: false,
+             xtype:"trigger",
+             onTriggerClick:
+                  function ()
+                    {
+                      projectPopUphandler();
+                    }
+             },
+            {fieldLabel: '',
+             id:'prj_nama_text',
+             name: 'prj_nama',
+             allowBlank: false,     
+             disabled:true
+            },
+            {fieldLabel: 'Site Code',
+             id:'sit_kode_text',
+             name:'sit_kode',
+             allowBlank: false,
+             xtype:"trigger",    
+             onTriggerClick:
+                 function ()
+                    {
+                      sitePopUphandler();
+                    }
+            },
+            {fieldLabel: '',
+             id:'sit_nama_text',
+             name: 'sit_nama',
+             allowBlank: false,
+             disabled: true
+            },
+             {fieldLabel: 'Work Id',
+             id:'workid_text',
+             name:'workid',
+             allowBlank: false,
+             xtype:"trigger",
+             onTriggerClick:
+                 function ()
+                    {
+                        workprPopUphandler();
+                    }
+             },
+             {fieldLabel: '',
+             id:'workname_text',
+             name: 'workname',
+             allowBlank: false,
+             disabled: true
+             },
+            {fieldLabel: 'Material Code',
+             id:'kode_brg_text',
+             name:'kode_brg',
+             allowBlank: false,
+             xtype:"trigger",
+             onTriggerClick:
+                 function ()
+                    {
+                      productPopUphandler();
+                    }
+            },
+            {fieldLabel: '',
+             id:'nama_brg_text',
+             name: 'nama_brg',
+             allowBlank: false,
+             disabled: true
+            }
+        ];
+    },
+
+
+// Build UI
+    buildUI: function(){
+        return[
+        {
+          text: 'New Trans',
+         //iconCls: 'silk-new',
+          handler: this.onNew,
+          scope: this
+        },
+       // {
+       //     text: 'Update',
+       //     iconCls: 'icon-save',
+       //     handler: this.onUpdate,
+       //     scope: this
+       // },
+        {
+            text: 'New Detail',
+         // iconCls: 'silk-user-add',
+            iconCls: 'silk-add',
+            handler: this.onCreate,
+            scope: this
+        },
+        {
+            text: 'Reset',
+            handler: function(btn, ev){
+                this.getForm().reset();
+            },
+            //iconCls: 'silk-reset',
+            scope: this
+         } ];
+    },
+
+    loadRecord : function(rec) {
+        this.record = rec;
+        this.getForm().loadRecord(rec);
+    },
+
+//    onUpdate : function(btn, ev) {
+//        if (this.record == null) {
+//            return;
+//        }
+//        if (!this.getForm().isValid()) {
+//            App.setAlert(false, "Form is invalid.");
+//            return false;
+//        }
+//        this.getForm().updateRecord(this.record);
+//    },
+
+    onCreate : function(btn, ev) {
+        if (!this.getForm().isValid()) {
+            App.setAlert(false, "Form is invalid");
+            return false;
+        }
+
+        var prjKode = Ext.getCmp('prj_kode_text').getValue();
+        var sitKode = Ext.getCmp('sit_kode_text').getValue();
+        var workId = Ext.getCmp('workid_text').getValue();
+        var kodeBrg = Ext.getCmp('kode_brg_text').getValue();
+
+        if ((prjKode == '' || prjKode == undefined) && (sitKode == '' || sitKode == undefined) && (workId =='' || workId == undefined) && (kodeBrg=='' || kodeBrg==undefined))
+        {
+            Ext.msg.alert('Error!', 'Please fill Project Code & Site Code');
+            return false;
+        }
+        store2.proxy.setApi('read',  '/procurement/procurement/list/type/prd/prj_kode/' + prjKode + '/sit_kode/' + sitKode + '/workid/' + workId + '/kode_brg/' + kodeBrg);
+        store2.reload();
+        Ext.getCmp('boq3-grid').getStore().loadData(store);       
+
+//      this.fireEvent('create', this, this.getForm().getValues());
+//      this.getForm().reset();
+    },
+
+
+      onReset : function(btn, ev) {
+        this.fireEvent('update', this, this.getForm().getValues());
+        this.getForm().reset();
+    },
+
+
+      onNew : function(btn, ev) {
+        this.fireEvent('update', this, this.getForm().getValues());
+        cPanel = Ext.getCmp('content-panel');
+	cPanel.load( {
+	                 url:'/procurement/procurement/pr',
+	                 scripts: true
+	        } );
+    }
+
+});
+
+
+userGrid = Ext.extend(Ext.grid.EditorGridPanel, {
+    renderTo: 'user-grid',
+    iconCls: 'silk-grid',
+    id: 'boq3-grid',
+    frame: true,
+    title: 'PR Detail',
+    height: 300,
+    width: 800,
+    style: 'margin-top: 10px',
+    plugins: [editor],    
+
+    initComponent : function() {
+
+        // typical viewConfig
+        this.viewConfig = {
+            forceFit: true
+        };
+
+        this.relayEvents(this.store, ['destroy', 'save', 'update']);
+
+        this.tbar = this.buildTopToolbar();
+        this.buttons = this.buildUI();
+
+        userGrid.superclass.initComponent.call(this);
+    },
+
+ 
+    buildTopToolbar : function() {
+       return [
+      // {
+      //     text: 'New',
+      //     iconCls: 'silk-add',
+      //     handler: this.onAdd,
+      //     scope: this
+      //  },
+        '-',
+        {
+            text: 'Delete',
+            //iconCls: 'silk-cross',
+            handler: this.onDelete,
+            scope: this
+        },'-' 
+              ];
+    },
+
+    buildUI : function() {
+        return [
+           {
+           text: 'Save',
+           iconCls: 'icon-save',
+           handler: this.onSave,
+           scope: this
+           },
+           {
+           text: 'Browse',
+           //iconCls: 'icon-save',
+           handler: this.onBrowse,
+           scope: this
+           }
+               ];
+    },
+
+    onSave : function(btn, ev) {
+       //this.store.save();
+        var json = '';
+    	this.store.each(function(store){
+    	json += Ext.util.JSON.encode(store.data) + ',';
+    	});
+    	json = json.substring(0, json.length - 1);
+    	params = {posts:[json]};
+    	Ext.Ajax.request({
+            url: '/procurement/procurement/insertpr',
+            method:'POST',
+            success: function(resp){
+    		Ext.Msg.alert('Success', 'Data has been saved!');
+    		isEdited = false;
+            },
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+          	}
+          	},
+            params: params
+        });
+    },
+
+    onBrowse : function(btn, ev) 
+                      {          
+                           browsePopUphandler();
+                      },
+
+
+    onDelete : function(btn, ev) {
+        var index = this.getSelectionModel().getSelectedCell();
+        if (!index) {
+            return false;
+        }
+        var rec = this.store.getAt(index[0]);
+        this.store.remove(rec);
+    }
+});
+
+Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    var userForms = new userForm({
+        renderTo: 'user-form',
+        listeners: {
+            create : function(fpanel, data) {   
+                var rec = new userGrids.store.recordType(data);
+                userGrids.store.insert(0, rec);
+            }
+        }
+    });
+
+    var userGrids = new userGrid({
+        renderTo: 'user-grid',
+        store: store,
+        columns : userColumns,
+        listeners: {
+        destroy :function() {
+                 userForms.getForm().reset();
+            }
+        }
+    });
+
+var tglSekarang = new Date();
+
+Ext.getCmp('tgl_text').setValue(tglSekarang.format('Y-m-d'));
+store3.load();
+
+});
+
+<?php echo $this->action('popupgrid','grid'); ?>    
+
+</script>
+
+<div id="user-form"></div>
+
+<div id="user-grid"></div>

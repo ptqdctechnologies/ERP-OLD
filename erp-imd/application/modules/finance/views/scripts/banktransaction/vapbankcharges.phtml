@@ -1,0 +1,520 @@
+<script type="text/javascript">
+
+    var posted;
+
+    Ext.apply(Ext.form.VTypes, {
+        daterange: function(val, field) {
+            var date = field.parseDate(val);
+
+            if (!date) {
+                return false;
+            }
+            if (field.startDateField && (!this.dateRangeMax || (date.getTime() != this.dateRangeMax.getTime()))) {
+                var start = Ext.getCmp(field.startDateField);
+                start.setMaxValue(date);
+                start.validate();
+                this.dateRangeMax = date;
+            }
+            else if (field.endDateField && (!this.dateRangeMin || (date.getTime() != this.dateRangeMin.getTime()))) {
+                var end = Ext.getCmp(field.endDateField);
+                end.setMinValue(date);
+                end.validate();
+                this.dateRangeMin = date;
+            }
+            /*
+             * Always return true since we're only using this vtype to set the
+             * min/max allowed values (these are tested for after the vtype test)
+             */
+            return true;
+        }
+    });
+
+    var validatestore = new Ext.data.Store({
+        autoLoad: true,
+        id: 'bchstore',
+        url: '/finance/banktransaction/getlistverify',
+        reader: new Ext.data.JsonReader({
+            root: 'data',
+            totalProperty: 'total',
+            fields: [
+                {name: 'trano'},
+                {name: 'ref_number'},
+                {name: 'tgl'},
+                {name: 'uid'},
+                {name: 'prj_kode'},
+                {name: 'sit_kode'},
+                {name: 'job_number'},
+                {name: 'coa_kode'},
+                {name: 'coa_nama'},
+                {name: 'val_kode'},
+                {name: 'debit'},
+                {name: 'credit'},
+                {name: 'total'},
+                {name: 'trans'}]
+        })
+
+    })
+
+//    exportReport = function() {
+//
+//        if (posted)
+//        {
+//            Ext.MessageBox.show({
+//                title: 'Error',
+//                msg: 'This Transaction has not been validated!<br /> Please Select another Transaction',
+//                buttons: Ext.MessageBox.OK,
+//                icon: Ext.MessageBox.ERROR
+//            });
+//            return false;
+//        }
+//
+//        myPanel = Ext.getCmp('abs-budget-panel');
+//
+//
+//        var tranoprint = Ext.getCmp('trano_id').getValue();
+//        if (tranoprint == '' || tranoprint == undefined)
+//        {
+//            Ext.MessageBox.show({
+//                title: 'Error',
+//                msg: 'Please Select Transaction Number!',
+//                buttons: Ext.MessageBox.OK,
+//                icon: Ext.MessageBox.ERROR
+//            });
+//            return false;
+//        }
+//
+//        tranoprint = Ext.util.JSON.encode(tranoprint);
+//        urlLoad = '/jasper/bankcharges/trano/' + tranoprint;
+//
+//        window.open(urlLoad, 'mywin',
+//                'left=20,top=20,width=100,height=20,toolbar=0,resizable=0');
+//    };
+
+    function showjurnalbch(idItem)
+    {
+        var store = validatestore;
+        var dat = store.getById(idItem);
+
+        var trano = dat.data['trano'];
+        var ref_number = dat.data['ref_number'];
+        
+        trano = trano.replace("/","_");
+
+        var jurnalbchstore = new Ext.data.GroupingStore({
+            autoLoad: true,
+            groupField: 'ref_number',
+            url: '/finance/banktransaction/getlistverify/trano/' + trano + '/jurnal/true',
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'id'
+                    }, {
+                        name: 'trano'
+                    }, {
+                        name: 'trans'
+                    }, {
+                        name: 'ref_number'
+                    }, {
+                        name: 'tgl'
+                    }, {
+                        name: 'uid'
+                    }, {
+                        name: 'coa_kode'
+                    }, {
+                        name: 'coa_kode_old', mapping: 'coa_kode'
+                    }, {
+                        name: 'coa_nama'
+                    }, {
+                        name: 'coa_nama_old', mapping: 'coa_nama'
+                    }, {
+                        name: 'debit', type: 'float'
+                    }, {
+                        name: 'credit', type: 'float'
+                    }]
+            })
+
+        })
+
+        var jurnalbch = new Ext.grid.ColumnModel({
+            columns: [{
+                    header: 'ref_number',
+                    dataIndex: 'ref_number'
+                }, {
+                    header: 'ID#',
+                    dataIndex: 'trano',
+                    sortable: true,
+                    width: 50
+                }, {
+                    header: 'Acct#',
+                    dataIndex: 'coa_kode',
+                    sortable: true,
+                    align: 'center'
+                }, {
+                    header: 'Account Name',
+                    dataIndex: 'coa_nama',
+                    sortable: true,
+                    width: 130
+                }, {
+                    header: 'Debit',
+                    dataIndex: 'debit',
+                    align: 'right',
+                    sortable: true,
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                }, {
+                    header: 'Credit',
+                    dataIndex: 'credit',
+                    align: 'right',
+                    sortable: true,
+                    summaryType: 'sum',
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                }]
+
+        })
+        var summary = new Ext.ux.grid.GroupSummary();
+
+        var jurnalgridbch = new Ext.grid.EditorGridPanel({
+            store: jurnalbchstore,
+            cm: jurnalbch,
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect: true
+            }),
+            id: 'the-grid',
+            clicksToEdit: 1,
+            height: 300,
+            buttons: [{
+                    text: 'Close',
+                    handler: function(btn, ev)
+                    {
+                        jurnalbchwindow.close();
+                    }
+                }],
+            view: new Ext.grid.GroupingView({
+                forceFit: true,
+                showGroupName: false,
+                enableNoGroups: false,
+                enableGroupingMenu: false,
+                hideGroupedColumn: true
+            }),
+            plugins: summary
+
+
+        })
+
+        var jurnalbchwindow = new Ext.Window({
+            title: 'Payables Journal',
+            id: 'jurnal-bch',
+            layout: 'absolute',
+            minHeight: 200,
+            stateful: false,
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 680,
+            height: 330,
+            loadMask: true,
+            items: [
+                jurnalgridbch
+            ]
+
+        })
+
+        jurnalbchwindow.show();
+
+    }
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var cekgrid = new Ext.grid.CheckboxSelectionModel();
+
+        var columnmodel = new Ext.grid.ColumnModel({
+            columns: [new Ext.grid.RowNumberer(), {
+                    header: "Jurnal",
+                    width: 60,
+                    dataIndex: 'id',
+                    css: 'text-align:center;',
+                    renderer: function(v, p, r) {
+                        return '<a href="#" onclick="showjurnalbch(\'' + r.id + '\')"><img src="/images/money.png"></a>&nbsp;';
+                    }
+                }, {
+                    header: 'Bank Charges',
+                    dataIndex: 'trano',
+                    width: 80,
+                    sortable: true
+                }, {
+                    header: 'Transaction Type',
+                    dataIndex: 'trans',
+                    width: 80,
+                    sortable: true
+                }, {
+                    header: 'Date',
+                    dataIndex: 'tgl',
+                    width: 80,
+                    sortable: true
+                }, {
+                    header: 'Total Payment',
+                    dataIndex: 'total',
+                    width: 80,
+                    align: 'right',
+                    sortable: true,
+                    renderer: function(v) {
+                        return v ? Ext.util.Format.number(v, '0,0.00') : '';
+                    }
+                },
+                {
+                    xtype: 'checkcolumn',
+                    header: 'Close',
+                    dataIndex: 'stspost',
+                    width: 55
+
+                }]
+
+        })
+
+
+
+        var grid = new Ext.grid.EditorGridPanel({
+            store: validatestore,
+            id: 'ap-grid',
+            cm: columnmodel,
+            renderTo: 'editor-grid',
+            height: 400,
+            width: 1000,
+            frame: true,
+            clicksToEdit: 1,
+            sm: cekgrid,
+            iconCls: 'icon-grid',
+            columnLines: true,
+            viewConfig: {
+                forceFit: true
+            },
+            tbar: [{
+                    xtype: 'label',
+                    text: 'Start Date',
+                    style: 'margin-left:10px;'
+                }, '-', {
+                    xtype: 'datefield',
+                    fieldLabel: 'Start Date',
+                    name: 'startdt',
+                    id: 'startdt',
+                    vtype: 'daterange',
+                    endDateField: 'enddt', // id of the end date field
+                    allowBlank: false,
+                    msgTarget: 'side',
+                    format: 'd-m-Y'
+                }, '-', {
+                    xtype: 'label',
+                    text: 'End Date',
+                    style: 'margin-left:20px;'
+                }, '-', {
+                    xtype: 'datefield',
+                    fieldLabel: 'End Date',
+                    name: 'enddt',
+                    id: 'enddt',
+                    vtype: 'daterange',
+                    startDateField: 'startdt',
+                    allowBlank: false,
+                    msgTarget: 'side',
+                    format: 'd-m-Y'
+                }, '-',
+                {
+                    xtype: 'label',
+                    text: 'Trano',
+                    style: 'margin-left:20px;'
+                }, '-', {
+                    xtype: 'textfield',
+                    id: 'trano'
+                }, '-', {
+                    xtype: 'button',
+                    text: 'Search',
+                    width: 70,
+                    id: 'show_ap',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    style: 'margin-left:10px;',
+                    handler: function()
+                    {
+
+
+                        var startdate = Ext.getCmp('startdt').getValue();
+
+                        if (startdate != null && startdate != "" && startdate != undefined)
+                        {
+                            startdate = startdate.toDateString();
+                        }
+
+                        var enddate = Ext.getCmp('enddt').getValue();
+
+                        if (enddate != null && enddate != "" && enddate != undefined)
+                        {
+                            enddate = enddate.toDateString();
+                        }
+
+//                        var type = Ext.getCmp('option-type').getValue();
+                        var trano = Ext.getCmp('trano').getValue();
+                        trano = trano.replace("/","_");
+                        var etc = '';
+//                        if (type != 'ALL')
+//                        {
+//                            etc = '/type/' + type;
+//                        }
+
+                        if (trano != '' || trano != null || trano != undefined)
+                        {
+                            etc = etc + '/trano/' + trano;
+                        }
+
+                        validatestore.proxy.setUrl('/finance/banktransaction/getlistverify/start/' + startdate + '/end/' + enddate + etc);
+                        validatestore.reload();
+
+                        grid.getBottomToolbar().store.proxy.url = '/finance/banktransaction/getlistverify/start/' + startdate + '/end/' + enddate + etc;
+                        grid.getBottomToolbar().store.proxy.setUrl('/finance/banktransaction/getlistverify/start/' + startdate + '/end/' + enddate + etc);
+                        grid.getBottomToolbar().store.proxy.api.read['url'] = '/finance/banktransaction/getlistverify/start/' + startdate + '/end/' + enddate + etc;
+
+                        grid.getView().refresh();
+                    }
+                }, '-'
+//                {
+//                    xtype: 'tbtext',
+//                    text: 'Transaction No: ',
+//                    style: 'margin-right: 5'
+//                },
+//                {
+//                    xtype: 'tranoalljurnalselector',
+//                    width: 120,
+//                    id: 'trano_jurnal',
+//                    Selectid: 'trano_id',
+//                    labelWidth: 50,
+//                    style: 'margin-right: 20',
+//                    jurnalType: ["bank_out"],
+//                    callbackFunc: function(trano) {
+//                        Ext.Ajax.request({
+//                            url: '/finance/banktransaction/checkpostbank',
+//                            method: 'POST',
+//                            params: {
+//                                trano: trano,
+//                            },
+//                            success: function(result) {
+//                                obj = Ext.util.JSON.decode(result.responseText);
+//
+//                                if (obj.success)
+//                                {
+//                                    posted = true;
+//                                } else
+//                                    posted = false;
+//                            },
+//                            failure: function(action) {
+//                                if (action.failureType == 'server') {
+//                                    obj = Ext.util.JSON.decode(action.response.responseText);
+//                                    Ext.Msg.alert('Error!', obj.errors.reason);
+//                                } else {
+//                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+//                                }
+//                            }
+//
+//                        });
+//                    }
+//                    ,
+//                }, {
+//                    xtype: 'button',
+//                    text: 'Print',
+//                    width: 70,
+//                    id: 'show_report',
+//                    cls: "x-btn-text-icon",
+//                    icon: "/images/print.png",
+//                    handler: exportReport
+//                }
+            ],
+            bbar: new Ext.PagingToolbar({
+                id: 'paging-ap',
+                pageSize: 20,
+                store: validatestore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            buttons: [{
+                    text: 'Submit',
+                    handler: function()
+                    {
+                        var json = '';
+                        var x = 0;
+
+                        grid.getStore().each(function(item) {
+
+                            if (item.data['stspost'] == true)
+                            {
+                                x++;
+
+                                json += Ext.util.JSON.encode(item.data) + ',';
+
+                            }
+
+                        });
+
+                        if (x == 0)
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please Check transaction',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        json = '[' + json.substring(0, json.length - 1) + ']';
+
+
+                        var params = {
+                            jsonData: json
+                        }
+
+                        Ext.Ajax.request({
+                            url: '/finance/banktransaction/dopostbankcharges',
+                            method: 'POST',
+                            params: params,
+                            success: function(result) {
+                                obj = Ext.util.JSON.decode(result.responseText);
+
+                                if (obj.success)
+                                {
+                                    Ext.Msg.alert('Message', 'Success, Data has been saved');
+                                    myPanel = Ext.getCmp('abs-budget-panel');
+                                    myPanel.body.load({
+                                        url: '/finance/banktransaction/vapbankcharges',
+                                        scripts: true
+                                    });
+                                } else
+                                {
+                                    Ext.Msg.alert('Error', obj.msg);
+                                }
+                            },
+                            failure: function(action) {
+                                if (action.failureType == 'server') {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                } else {
+                                    Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                }
+                            }
+                        })
+
+                    }
+                }]
+        })
+
+
+    })
+
+
+</script>
+
+<div id="editor-grid"></div>

@@ -1,0 +1,791 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+    var polist = Ext.data.Record.create([{
+        name: 'workid',
+        type: 'string'
+    }, {
+        name: 'trano',
+        type: 'string'
+    },{
+        name: 'workname',
+        type: 'string'
+    }, {
+        name: 'prj_kode',
+        type: 'string'
+    },{
+        name: 'prj_nama',
+        type: 'string'
+    },{
+        name: 'sit_kode',
+        type: 'string'
+    },{
+        name: 'sit_nama',
+        type: 'string'
+    },{
+        name: 'nama_brg',
+        type: 'string'
+    },{
+        name: 'kode_brg',
+        type: 'string'
+    },{
+        name: 'tgl',
+        type: 'date',
+        dateFormat: 'Y-m-d'
+    },{
+        name: 'qty',
+        type: 'string'
+    },{
+        name: 'id',
+        type: 'string'
+    },{
+        name: 'ket',
+        type: 'string'
+    },{
+        name: 'hargaIDR',
+        type: 'float'
+    },{
+        name: 'hargaUSD',
+        type: 'float'
+    },{
+        name: 'totalIDR',
+        type: 'float'
+    },{
+        name: 'totalPrice',
+        type: 'float'
+    },{
+        name: 'totalPriceRPI',
+        type: 'float'
+    },{
+        name: 'totalUSD',
+        type: 'float'
+    },{
+        name: 'val_kode',
+        type: 'string'
+    },{
+        name: 'status',
+        type: 'string'
+    },{
+        name: 'net_act',
+        type: 'string'
+    },{
+        name: 'urut',
+        type: 'integer'
+    },{
+        name: 'uom',
+        type: 'string'
+    }]);
+
+    function showPaymentVoucherChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Payment Number',
+								    id : 'payment_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showPaymentVoucherRemList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save-to-pr',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var payno = Ext.getCmp('payment_no_text').getValue();
+		 			        if (payno != undefined)
+		 			        {
+                                                    payno = payno.replace("/", "_");
+                                myPanel = Ext.getCmp('abs-budget-panel');
+                                myPanel.body.load({
+//                                    url: '/finance/payment/editpaymentrpi/trano/' + payno,
+                                    url: '/finance/paymentreimbursement/editpaymentvoucherrem/trano/' + payno,
+                                    scripts : true
+                                  });
+
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showPaymentVoucherRemList()
+    {
+        var columns = [ {header:'Payment Number',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Document Number',width:100,sortable:true,dataIndex:'rem_no'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        urlJson = '/finance/paymentreimbursement/getpaymentremlist';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'rem_no', mapping: 'rem_no'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showPaymentVoucherChoose(trano);
+                                Ext.getCmp('payment_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            newUrl = '/finance/paymentreimbursement/getpaymentremlistbyparam/name/trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+         searchDocNo = function(field,e){
+            newUrl = '/finance/paymentreimbursement/getpaymentremlistbyparam/name/doc_trano/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+        };
+        searchPrj_kode = function(field,e){
+            newUrl = '/finance/paymentreimbursement/getpaymentremlistbyparam/name/prj_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+        searchSit_kode = function(field,e){
+            newUrl = '/finance/paymentreimbursement/getpaymentremlistbyparam/name/sit_kode/nilai/' + field.getValue(); prox = Pk+'_proxy';
+            gri = Pk+'_grid';
+            proxies = Ext.getCmp(gri).getStore();
+            proxies.proxy = new Ext.data.HttpProxy( {
+                url: newUrl
+                 });
+            Ext.getCmp(gri).getStore().reload();
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+            {
+                 x: 165,
+                 y: 12,
+            	xtype: 'label',
+                text: 'No Document'
+                  },
+                 new txtboks(240,10,80,'doc_trano',searchDocNo),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+
+	function showPrChoose(prNum)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 110,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+						items: [{
+								    fieldLabel : 'Reimburs Number',
+								    id : 'pr_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: prNum,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showPrList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+                        buttons: [
+                                 {
+                                        text: 'Edit',
+                                        id: 'save-to-pr',
+                                        iconCls: 'silk-upd',
+                                        handler: function(btn, ev) {
+                                        var prno = Ext.getCmp('pr_no_text').getValue();
+                                        if (prno != undefined){
+
+                                        Ext.Ajax.request({
+                                        url: '/procurement/procurement/cek-workflow',
+                                        method:'POST',
+                                        params: {
+                                            trano: prno
+                                        },
+                                        success: function(result, request){
+                                            var returnData = Ext.util.JSON.decode(result.responseText);
+                                            if(returnData.success) {
+                                                myPanel = Ext.getCmp('abs-budget-panel');
+                                                myPanel.body.load({
+                                                    url: '/procurement/procurement/editreimburs/trano/' + prno,
+                                                    scripts : true,
+                                                    params: {
+                                                        trano: prno
+                                                    }
+                                                });
+                                                bForm.close();
+                                            }
+                                            else
+                                            {
+                                                Ext.Msg.alert("Error",returnData.msg);
+                                                return false;
+                                            }
+                                        },
+                                        failure:function( action){
+                                            if(action.failureType == 'server'){
+                                                obj = Ext.util.JSON.decode(action.response.responseText);
+                                                Ext.Msg.alert('Error!', obj.errors.reason);
+                                            }
+                                        }
+                                        });
+                                        }
+                                        }
+
+                                },
+                                {
+                                        text: 'Cancel',
+                                        id: 'cancel',
+                                        handler: function(btn, ev) {
+                                                bForm.close();
+                                        }
+
+                                }
+
+
+                                ]
+                });
+
+                bForm.show();
+        }
+
+    function showPrList()
+    {
+        var columns = [ {header:'Trano',width:100,sortable:true,dataIndex:'trano'},
+                        {header:'Project ID',width:100,sortable:true,dataIndex:'prj_kode'},
+                        {header:'Project Name',width:150,sortable:true,dataIndex:'prj_nama'},
+                        {header:'Site Code',width:100,sortable:true,dataIndex:'sit_kode'},
+                        {header:'Site Name',width:100,sortable:true,dataIndex:'sit_nama'}
+                    ];
+
+        urlJson = '/default/reimburs/list';
+        data =  [
+                {name: 'trano', mapping: 'trano'},
+                {name: 'prj_kode', mapping: 'prj_kode'},
+                {name: 'prj_nama', mapping: 'prj_nama'},
+                {name: 'sit_kode', mapping: 'sit_kode'},
+                {name: 'sit_nama', mapping: 'sit_nama'},
+                {name: 'prj_nama', mapping: 'prj_nama'}];
+        primaryKey = 'trano';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'trano';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-trano_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showPrChoose(trano);
+                                Ext.getCmp('pr_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchTrano = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/reimburs/listByParams/name/trano/data/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+        };
+        searchPrj_kode = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/reimburs/listByParams/name/prj_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+    };
+        searchSit_kode = function(field,e){
+            if (field.getValue().toString().length >= 2)
+            {
+                newUrl = '/reimburs/listByParams/name/sit_kode/data/' + field.getValue(); prox = Pk+'_proxy';
+                gri = Pk+'_grid';
+                proxies = Ext.getCmp(gri).getStore();
+                proxies.proxy = new Ext.data.HttpProxy( {
+                    url: newUrl
+                     });
+                Ext.getCmp(gri).getStore().reload();
+            }
+    };
+
+        var aForm =  new Ext.Window({
+        id: 'a-form-panel-trano_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'No Trans'
+            },
+           new txtboks(80,10,80,'trans_no',searchTrano),
+           {
+               x : 6,
+               y: 52,
+               xtype: 'label',
+               text: 'Project Code'
+               },
+              new txtboks(80,50,80,'prj_kode',searchPrj_kode),
+           {
+                 x: 165,
+                 y: 52,
+            	xtype: 'label',
+                text: 'Site Code'
+                  },
+                 new txtboks(240,50,80,'sit_kode',searchSit_kode),
+             {
+            x: 384,
+            y: 12,
+            xtype: 'label',
+            text: ''
+            }
+            ,new grids('pr_list')
+        ]
+
+      });
+      aForm.title = 'Choose No Trans';
+      aForm.show();
+
+
+    }
+
+    showAddReimburs = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/procurement/procurement/addreimburs',
+	        scripts : true
+        });
+	};
+
+	showEditReimburs = function(){
+			showPrChoose();
+	};
+
+	showAppReimburs = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/REM',
+	        scripts : true
+        });
+	};
+
+    showEditPaymentReimburs = function ()
+    {
+        showPaymentVoucherChoose();
+    };
+
+
+    var windowForm =  ({
+
+    title: 'Reimbursment To Customer Transaction',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [/*{
+						    id: 'reimburs_app_button',
+						    text: 'Verify & Approval',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_script.gif",
+						    handler:showAppReimburs
+                                    },*/{
+						    id: 'reimburs_add_button',
+						    text: 'Create Reimbursement to Customer',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddReimburs
+                                    },{
+						    id: 'reimburs_edit_button',
+						    text: 'Edit Existing Reimbursement to Customer',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditReimburs
+                                    },
+                                    {
+                                                    id: 'payment-reimburs',
+                                                    text: 'Create Payment Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/action_paste.gif",
+                                                    handler:function ()
+                                                    {
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/paymentreimbursement/paymentvoucherrem',
+                                                            scripts : true
+                                                        });
+                                                    }
+                                    },{
+                                                    id: 'edit_button',
+                                                    text: 'Edit Existing Payment Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/page_edit.gif",
+                                                    handler:showEditPaymentReimburs
+//                                        function ()
+//                                {
+//                                    myPanel = Ext.getCmp('abs-budget-panel');
+//                                    myPanel.body.load({
+//                                        url: '/finance/paymentreimbursement/editpaymentreimbursement',
+//                                        scripts : true
+//                                    });
+//                                }
+                                    },{
+                                                    id: 'debit-note-reimburs',
+                                                    text: 'Create Debit Note Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/action_paste.gif",
+                                                    handler:function ()
+                                                    {
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/paymentreimbursement/debitnotereimbursement',
+                                                            scripts : true
+                                                        });
+                                                    }
+                                    },{
+                                                    id: 'edit-debit-note-reimburs',
+                                                    text: 'Edit Existing Debit Note Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/page_edit.gif",
+                                                    handler:function ()
+                                                    {
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/paymentreimbursement/editdebitnotereimburs',
+                                                            scripts : true
+                                                        });
+                                                    }
+                                    },{
+                                                    id: 'payment-debit-note-reimburs',
+                                                    text: 'Create Paid Debit Note Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/action_paste.gif",
+                                                    handler:function ()
+                                                    {
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/paymentreimbursement/paymentdebitnotereimbursement',
+                                                            scripts : true
+                                                        });
+                                                    }
+                                    },{
+                                                    id: 'edit-payment-debit-note-reimburs',
+                                                    text: 'Edit Existing Paid Debit Note Reimbursement',
+                                                    cls:"x-btn-text-icon" ,
+                                                    icon:"/images/icons/fam/page_edit.gif",
+                                                    handler:function ()
+                                                    {
+                                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                                        myPanel.body.load({
+                                                            url: '/finance/paymentreimbursement/editpaymentdebitnotereimburs',
+                                                            scripts : true
+                                                        });
+                                                    }
+                                    }
+//                    ,{
+//                            id: 'payment-voucher-reimburs',
+//                            text: 'Payment Voucher Reimbursement',
+//                            cls:"x-btn-text-icon" ,
+//                            icon:"/images/icons/fam/action_paste.gif",
+//                            handler:function ()
+//                            {
+//                                myPanel = Ext.getCmp('abs-budget-panel');
+//                                myPanel.body.load({
+//                                    url: '/finance/paymentreimbursement/paymentvoucherrem',
+//                                    scripts : true
+//                                });
+//                            }
+//                        },{
+//                            id:'edit-payment-voucher-reimburs',
+//                            text:'Edit Payment Voucher Reimbursement',
+//                            cls:"x-btn-text-icon" ,
+//                            icon:"/images/icons/fam/page_edit.gif",
+//                            handler:showEditPaymentReimburs
+//                        }
+                ]
+				}
+			}
+         ]
+    });
+    
+//    function getExchangeRate()
+//    {
+//        Ext.Ajax.request({
+//            url: '/default/valuta/getexchangerate/val_kode/USD',
+//            method: 'POST',
+//            success: function(result, request) {
+//                var returnData = Ext.util.JSON.decode(result.responseText);
+//                if (returnData.success) {
+//                    if(returnData.rate == 0)
+//                    {
+//                        Ext.MessageBox.show({
+//                            title: 'Error',
+//                            msg: 'Please Call Accounting Staffs (Ext. 1101 - 1104). Ask Them to Input Current IDR Rate. Thank You.',
+//                            buttons: Ext.MessageBox.OK,
+//                            icon: Ext.MessageBox.ERROR,
+//                            fn:function(){window.location='';}
+//                        });
+//                    }
+//                    
+//                        Ext.getCmp('rateidr').setValue(returnData.rate);
+//                    }
+//            },
+//                failure: function(action) {
+//                    if (action.failureType == 'server') {
+//                        obj = Ext.util.JSON.decode(action.response.responseText);
+//                        Ext.Msg.alert('Error!', obj.errors.reason);
+//                    }
+//                }
+//        });
+//    }
+//    getExchangeRate();
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+        showSubmenu('abs-budget-panel');
+});
+</script>

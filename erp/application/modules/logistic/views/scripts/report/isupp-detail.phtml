@@ -1,0 +1,129 @@
+<?php if ($this->popup) { ?>
+<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+<? } ?>
+<?php
+if (count($this->result) == 0)
+{
+	echo "No Data to display...";
+	die();
+}
+
+?>
+<?php if ($this->popup && !$this->isprinted) {?>
+<div id="print-button"><input type=button name=print value="Print" onClick="prints()"></div>
+<? } ?>
+<style type="text/css">
+<?php if (!$this->isprinted) {?>
+.parentContainer{ 
+    margin: 5px;
+    padding: 0px;
+    border: none;
+    width: 740px;
+    height: 355px;
+    overflow: auto; 
+    font-size: 14px;
+}
+
+.parentContainer2{
+    font-size: 12px;
+}
+
+<?php } ?>
+</style>
+<h3>MATERIAL FROM SUPPLIER REPORT</h3>
+<table class="parentContainer2">
+        <tr>
+            <td>Project</td><td> :</td>
+            <td><? echo $this->result[0]['prj_kode'];?>-
+            <?=$this->result[0]['prj_nama'];?></td>
+            <td></td>
+            <td>Vendor</td><td> :</td>
+            <td><?=$this->result[0]['sup_kode'];?>-
+            <?=$this->result[0]['sup_nama'];?></td>
+        </tr>   
+        <tr>
+            <td>PO No</td><td> :</td>
+            <td><?=$this->result[0]['trano'];?></td>
+            <td></td>
+            <td>Date</td><td> :</td>
+            <td><?=date("d M Y",strtotime($this->result[0]['tgl']));?></td>
+        </tr>
+        <tr>
+            <td>PIC</td><td> :</td>
+            <td><?=QDC_User_Ldap::factory(array("uid" => $this->result[0]['petugas']))->getName();?></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+</table>
+
+<div class="parentContainer">
+<table id="budgetTable" class="budgetTable">
+    <thead id="fixed">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Site Code</center></th>
+            <th scope="col"><center>Site Name</center></th>
+            <th scope="col"><center>Work Id</center></th>
+            <th scope="col"><center>Work Name</center></th>
+            <th scope="col"><center>Product Id</center></th>
+            <th scope="col"><center>Description</center></th>
+            <th scope="col"><center>Uom</center></th>
+            <th scope="col"><center>Qty</center></th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+            for($i=0; $i<count($this->result); $i++)
+            {
+    	?>
+    	<tr>
+            <td><?=$i+1;?></td>
+            <td><?=$this->result[$i]['sit_kode'];?></td>
+            <td><?=$this->result[$i]['sit_nama'];?></td>
+            <td><?=$this->result[$i]['workid'];?></td>
+            <td><?=$this->result[$i]['workname'];?></td>
+            <td><?=$this->result[$i]['kode_brg'];?></td>
+            <td><?=$this->result[$i]['nama_brg'] . $ket;?></td>
+            <td align="right"><?=$this->result[$i]['oum']?></td>
+            <td align="right"><?=number_format($this->result[$i]['qty'],4);?></td>
+        </tr>
+
+        <?php        
+                $totalQty = $this->result[$i]['qty'];
+            }
+
+        ?>
+            <tr style="background: #4C6891;">
+                <td colspan="7" style="color:#FFFFFF;" align="right">Total Qty: </td>
+                <td colspan="1" style="color:#FFFFFF;"> --------> </td>
+                <td style="color:#FFFFFF;" align="right"><?=number_format($totalQty,4)?></td>
+            </tr>
+</table>
+</div>
+
+<script type="text/javascript">
+    var printed = false;
+    <?php if ($this->isprinted) {?>
+    printed  = true;
+    <? } ?>
+(function() {
+	var mySt = new superTable("budgetTable", {
+		cssSkin : "sSky",
+		fixedCols : 3,
+		headerRows : 1
+	},printed);
+})();
+
+    function prints()
+    {
+        var win = window.open(document.URL + '/isprinted/true','iSupp Detail');
+        //Print after a timeout to be cross-browser compatible.
+        setTimeout(function() {
+
+            win.print();
+            win.close();
+        }, 1000);
+    }
+</script>

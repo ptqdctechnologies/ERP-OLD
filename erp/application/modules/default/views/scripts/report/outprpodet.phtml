@@ -1,0 +1,222 @@
+
+<script type="text/javascript">
+
+var App = new Ext.App({});
+
+	var proxy = new Ext.data.HttpProxy({
+	    url : '/default/report/getdataprpodet/prj_kode/<?php echo $this->prjKode ?>/sit_kode/<?php echo $this->sitKode ?>'
+	});
+
+        var reader = new Ext.data.JsonReader({
+        //idProperty: 'po_no',
+        totalProperty: 'count',
+        successProperty: 'success',
+        root : 'posts'},
+         [
+            {name: 'trano', type: 'string'},
+            {name: 'workid', type: 'string'},
+            {name: 'tgl', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'kode_brg', type: 'string'},
+            {name: 'nama_brg', type: 'string'},
+            {name: 'po_no', type: 'string'},
+            {name: 'tglpo', type: 'date', dateFormat: 'Y-m-d'},
+            {name: 'qtypr',type:'float'},
+            {name: 'qtypo',type:'float'},
+            {name: 'balance',type:'float'},
+            {name: 'delay'}
+         ]
+    );
+
+		var a;
+
+        Ext.grid.GroupSummary.Calculations['totalBalanceIDR'] = function(v, record, field){
+  	        return v + (record.data.totalPO_IDR - record.data.totalRPI_IDR);
+  	    };
+    	  Ext.grid.GroupSummary.Calculations['totalBalanceUSD'] = function(v, record, field){
+  	        return v + (record.data.totalPO_USD - record.data.totalRPI_USD);
+  	    };
+
+        var summary = new Ext.grid.GroupSummary();
+
+var store = new Ext.ux.MultiGroupingStore({
+        proxy: proxy
+       ,reader: reader
+       ,sortInfo: {field: 'trano', direction: 'ASC'}
+       ,groupField: ['trano','workid']
+     });
+
+
+	  store.on('load', function(s,r,o) {
+//	  	totalPO_IDR = Ext.util.Format.number(r[0].data['gtotalPO_IDR'], '?0,000.00?');
+//	  	totalRPI_IDR = Ext.util.Format.number(r[0].data['gtotalRPI_IDR'], '?0,000.00?');
+//	  	totalRPI_USD = Ext.util.Format.number(r[0].data['gtotalRPI_USD'], '?0,000.00?');
+//	  	totalPO_USD = Ext.util.Format.number(r[0].data['gtotalPO_USD'], '?0,000.00?');
+//	  	totalBalance_IDR = Ext.util.Format.number(r[0].data['gtotalBalance_IDR'], '?0,000.00?');
+//	  	totalBalance_USD = Ext.util.Format.number(r[0].data['gtotalBalance_USD'], '?0,000.00?');
+
+//		document.getElementById(Ext.getCmp('po').items.items[0].id).innerHTML = '<b>Grand Total PO (IDR) = ' + totalPO_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('po').items.items[2].id).innerHTML = '<b>Grand Total PO (USD) = ' + totalPO_USD + '</b>';
+//		document.getElementById(Ext.getCmp('rpi').items.items[0].id).innerHTML = '<b>Grand Total RPI (IDR) = ' + totalRPI_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('rpi').items.items[2].id).innerHTML = '<b>Grand Total RPI (USD) = ' + totalRPI_USD + '</b>';
+//		document.getElementById(Ext.getCmp('balance').items.items[0].id).innerHTML = '<b>Grand Total Balance (IDR) = ' + totalBalance_IDR + '</b>';
+//		document.getElementById(Ext.getCmp('balance').items.items[2].id).innerHTML = '<b>Grand Total Balance (USD) = ' + totalBalance_USD + '</b>';
+	});
+	  store.load();
+
+    var groupView = new Ext.ux.MultiGroupingView({
+        hideGroupedColumn :true
+       ,startCollapsed: true
+       ,emptyGroupText: 'All Group Fields Empty'
+       ,displayEmptyFields: true //you can choose to show the group fields, even when they have no values
+		,groupTextTpl: '{text} {gvalue} ({[values.rs.length]} {[values.rs.length == 1 ? "Record" : "Records"]})'
+       ,displayFieldSeperator: ', ' //you can control how the display fields are seperated
+       });
+
+
+    var grid = new Ext.ux.MultiGroupingPanel({
+        stateful: false,
+        id: 'multi-grid',
+        store: store,
+        columns: [
+            {
+                id: 'trano',
+                header: 'PR No',
+                width: 100,
+                sortable: true,
+                dataIndex: 'trano',
+                hideable: false
+            },{
+                id: 'workid',
+                header: 'Work ID',
+                width: 60,
+                sortable: true,
+                dataIndex: 'workid',
+                hideable: false
+            },
+            {
+                header: 'Date',
+                width: 80,
+                sortable: true,
+                dataIndex: 'tgl',
+                renderer: Ext.util.Format.dateRenderer('d/m/Y')
+            },
+            {
+                header: 'Product Id',
+                width: 80,
+                sortable: true,
+                dataIndex: 'kode_brg'
+            },
+            {
+                header: 'Description',
+                width: 200,
+                sortable: true,
+                dataIndex: 'nama_brg'
+            },{
+                header: 'PO No',
+                width: 100,
+                sortable: true,
+                dataIndex: 'po_no'
+            },
+            {
+                header: 'Date PO',
+                width: 80,
+                sortable: true,
+                dataIndex: 'tglpo',
+                renderer: Ext.util.Format.dateRenderer('d/m/Y')
+            },
+            {
+                header: 'QTY PR',
+                width: 80,
+                sortable: true,
+                dataIndex: 'qtypr',
+                align: 'right',
+                renderer: change           
+            },
+            {
+                header: 'QTY PO',
+                width: 80,
+                sortable: true,
+                dataIndex: 'qtypo',
+                align: 'right',
+                renderer: change
+            },
+            {
+                header: 'Balance',
+                width: 80,
+                sortable: true,
+                dataIndex: 'balance',
+                renderer: change,
+                align: 'right'
+            },
+            {
+                header: 'Delay Time',
+                width: 80,
+                sortable: true,
+                dataIndex: 'delay',
+                renderer: function (v,p,r) {
+                    if (v > 0)
+                        return v + ' days';
+                },
+                align: 'right'
+            }
+
+        ],
+
+        view : groupView,
+        plugins: summary,
+		loadMask: true,
+        bbar:[
+
+              ],
+        frame: true,
+        width: 935,
+        height: 450,
+        trackMouseOver: false,
+        title: '',
+        iconCls: 'icon-grid',
+        renderTo: 'list-timesheet'
+    }
+    );
+    grid.loadMask.el.mask();
+    var tb1 = new Ext.Toolbar({
+        id: 'po',
+		renderTo : grid.bbar,
+		items: [
+				]
+		});
+
+    var tb3 = new Ext.Toolbar({
+        id: 'rpi',
+		renderTo : grid.bbar,
+		items: [
+
+			]
+
+        });
+    var tb4 = new Ext.Toolbar({
+        id: 'balance',
+		renderTo : grid.bbar,
+		items: [
+
+			]
+
+        });
+
+    var tb2 = new Ext.PagingToolbar({
+
+	        id: 'paging',
+        	renderTo: grid.bbar,
+            pageSize: 100,
+            store: store,
+            displayInfo: true,
+            displayMsg: 'Displaying data {0} - {1} of {2}',
+            emptyMsg: "No data to display"
+        });
+    function change(val)
+    {
+        return '<div style="text-align:right;">' + Ext.util.Format.number(val, '?0,000.00?') + '</div>';
+    }
+
+</script>
+
+<div id='list-timesheet'></div>

@@ -1,0 +1,1139 @@
+<title>QDC ERP</title>
+<!-- ** CSS ** -->
+	<link REL="SHORTCUT ICON" HREF="/images/favicon.ico">
+    <!-- base library -->
+    <link rel="stylesheet" type="text/css" href="/css/ext-all.css" />
+    <link rel="stylesheet" type="text/css" href="/css/loading.css"/>
+    <!-- overrides to base library -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/CenterLayout.css" />
+
+    <!-- page specific -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/base/layout-browser.css">
+	<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowEditor.css" />
+	<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/RowActions.css" />
+	<link rel="stylesheet" type="text/css" href="/images/icons/silk.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GroupSummary.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GridSummary.css" />
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/gridsummary.css" />
+	<link rel="stylesheet" href="/css/paging.css" charset="utf-8">
+	<link rel="stylesheet" href="/css/box.css" charset="utf-8">
+
+    <!-- ** Javascript ** -->
+
+    <script type="text/javascript" src="/js/layout/base/config.js"></script>
+
+    <!-- ExtJS library: all widgets -->
+    <script type="text/javascript" src="/js/ext-base.js"></script>
+    <script type="text/javascript" src="/js/ext-all.js"></script>
+    <script type="text/javascript" src="/js/layout/base/patchforextjs3-firefoxbugs.js"></script>
+    <script type="text/javascript" src="/js/layout/base/BigDecimal-all-last.min.js"></script>
+    <!-- overrides to base library -->
+
+
+    <script type="text/javascript">
+    //General config
+    var MSC_WORKID = '1100,2100,3100,4100,5100,6100,7100';
+
+    //Common Function
+    function isMscWorkid(cekWorkid)
+    {
+        if (cekWorkid == undefined)
+            return false;
+        var found = false;
+        var cek = MSC_WORKID.search(cekWorkid.toString());
+        if (cek >= 0)
+        {
+            found = true;
+        }
+        return found;
+    }
+
+    function isServiceKdbrg(cekKdbrg)
+    {
+        if (cekKdbrg == undefined)
+            return false;
+
+        if (cekKdbrg.substr(0,1) == 2)
+        {
+            var found = true;
+        }
+        else
+            var found = false;
+        return found;
+    }
+
+    function CommaFormatted(amount)
+    {
+        amount = parseFloat(amount);
+        amount = amount.toString();
+        var delimiter = ","; // replace comma if desired
+        if (amount.search("[.]")>0)
+        {
+            var a = amount.split('.',2);
+            var d = a[1];
+            var i = parseInt(a[0]);
+        }
+        else
+        {
+            var d = '';
+            var i = parseInt(amount);
+        }
+        if(isNaN(i)) { return ''; }
+        var minus = '';
+        if(i < 0) { minus = '-'; }
+        i = Math.abs(i);
+        var n = new String(i);
+        var a = [];
+        while(n.length > 3)
+        {
+            var nn = n.substr(n.length-3);
+            a.unshift(nn);
+            n = n.substr(0,n.length-3);
+        }
+        if(n.length > 0) { a.unshift(n); }
+        n = a.join(delimiter);
+        if(d.length < 1) { amount = n; }
+        else
+        {
+            if (amount.search("[.]")>0)
+            {
+                amount = n + '.' + d;
+            }
+            else
+            {
+                amount = n;
+            }
+        }
+        amount = minus + amount;
+        return amount;
+    }
+
+    function goToDocs(docsType,idDocs,finalDate)
+    {
+        if (Ext.getCmp('result-panel') != undefined)
+            var myPanel = Ext.getCmp('result-panel');
+        else
+            var myPanel = Ext.getCmp('abs-budget-panel');
+
+        var url = '';
+
+        if (docsType == 'PR')
+        {
+            url= '/procurement/procurement/apppr/approve/' + idDocs;
+        }
+
+        if (docsType == 'PO')
+        {
+            url= '/procurement/procurement/apppo/approve/' + idDocs;
+        }
+        else if (docsType == 'DOR')
+        {
+            url= '/logistic/logistic/appdor/approve/' + idDocs;
+        }
+        else if (docsType == 'ARF')
+        {
+            url= '/procurement/procurement/apparf/approve/' + idDocs;
+        }
+        else if (docsType == 'ASF')
+        {
+            url= '/procurement/procurement/appasf/approve/' + idDocs;
+        }
+        else if (docsType == 'PMEAL')
+        {
+            url= '/procurement/procurement/apppmeal/approve/' + idDocs;
+        }
+        else if (docsType == 'iLOV')
+        {
+            url= '/logistic/logistic/appilov/approve/' + idDocs;
+        }
+        else if (docsType == 'iCAN')
+        {
+            url= '/logistic/logistic/appican/approve/' + idDocs;
+        }
+        else if (docsType == 'iSUP')
+        {
+            url= '/logistic/logistic/appisupp/approve/' + idDocs;
+        }
+        else if (docsType == 'SUPP')
+        {
+            url= '/logistic/logistic/appsupp/approve/' + idDocs;
+        }
+        else if (docsType == 'AFE')
+        {
+            url= '/projectmanagement/afe/appafe/approve/' + idDocs +'/finalDate/'+finalDate;
+        }
+        else if (docsType == 'RPI')
+        {
+            url= '/procurement/procurement/apprpi/approve/' + idDocs;
+        }
+        else if (docsType == 'RPIO')
+        {
+            url= '/procurement/procurement/apprpibudget/approve/' + idDocs;
+        }
+        else if (docsType == 'PBOQ3')
+        {
+            url= '/procurement/procurement/apppmeal/approve/' + idDocs;
+        }
+        else if (docsType == 'PRABOQ3')
+        {
+            url= '/projectmanagement/budget/apppraboq/approve/' + idDocs;
+        }
+        else if (docsType == 'REM')
+        {
+            url= '/procurement/procurement/appreimburs/approve/' + idDocs;
+        }
+        else if (docsType == 'PRO')
+        {
+            url= '/procurement/procurement/appprbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'ARFO')
+        {
+            url= '/procurement/procurement/apparfbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'POO')
+        {
+            url= '/procurement/procurement/apppobudget/approve/' + idDocs;
+        }
+        else if (docsType == 'ASFO')
+        {
+            url= '/procurement/procurement/appasfbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'TSHEET')
+        {
+            url= '/projectmanagement/timesheet/apptimesheet/approve/' + idDocs;
+        }
+        else if (docsType == 'PRABGO')
+        {
+            url= '/projectmanagement/budget/apptemporaryohbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'RINV')
+        {
+            url= '/finance/invoice/apprequestinvoice/approve/' + idDocs;
+        }
+        else if (docsType == 'PRACO')
+        {
+            url= '/sales/sales/appco/approve/' + idDocs;
+        }
+        else if (docsType == 'APRACO')
+        {
+            url= '/sales/sales/appaddco/approve/' + idDocs;
+        }
+        else if (docsType == 'ARFP')
+        {
+            url= '/procurement/arf-pulsa/app-arf-pulsa/approve/' + idDocs;
+        }
+        else if (docsType == 'ASFP')
+        {
+            url= '/procurement/asf-pulsa/app-asf-pulsa/approve/' + idDocs;
+        }
+        else if (docsType == 'BRF')
+        {
+            url= '/procurement/bt-request/app/approve/' + idDocs;
+        }
+        else if (docsType == 'BRFP')
+        {
+            url= '/procurement/bt-request/app/payment/true/approve/' + idDocs;
+        }
+        else if (docsType == 'BSF')
+        {
+            url= '/procurement/bt-settlement/app/approve/' + idDocs;
+        }
+        else if (docsType == 'IA')
+        {
+            url= '/logistic/inventory/app-inventory-adjustment/approve/' + idDocs;
+        }
+        else if (docsType == 'OCA')
+        {
+            url= '/finance/charging/app-charging/approve/' + idDocs;
+        }
+        else if (docsType == 'ERF')
+        {
+            url= '/procurement/erf/apperf/approve/' + idDocs;
+        }
+        else if (docsType == 'ERFS')
+        {
+            url= '/procurement/erf/apperfsales/approve/' + idDocs;
+        }
+        else if (docsType == 'CRPI')
+        {
+            url= '/finance/cancelrpi/appcancelrpi/approve/' + idDocs;
+        }
+        else if (docsType == 'UHB')
+        {
+            url= '/logistic/logisticbarang/appupdatebarang/approve/' + idDocs;
+        }
+        else if (docsType == 'TBOQ')
+        {
+            url= '/sales/sales/apptransferbudget/approve/' + idDocs;
+        }
+        else if (docsType == 'PPNREM')
+        {
+            url= '/finance/ppn/app-ppn-rem/approve/' + idDocs;
+        }
+        if (docsType == 'AFE')
+        {
+            Ext.Ajax.request({
+                url: '/projectmanagement/afe/check-afe-switching',
+                method:'POST',
+                success: function(resp){
+                    var returnData = Ext.util.JSON.decode(resp.responseText);
+                    if (returnData.success)
+                    {
+                        url = '/projectmanagement/afe/app-afe-idr-usd/approve/' + idDocs +'/finalDate/'+finalDate;
+                    }
+                    myPanel.body.load({
+                        url: url + '/show/true',
+                        scripts : true
+                    });
+                },
+                failure:function( action){
+                    if(action.failureType == 'server'){
+                        obj = Ext.util.JSON.decode(action.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    }else{
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.responseText);
+                    }
+                },
+                params: {
+                    workflow_id: idDocs
+                }
+            });
+        }
+        else
+            myPanel.body.load({
+                url: url + '/show/true',
+                scripts : true
+            });
+
+    }
+
+    function loadjscssfile(filename, filetype)
+    {
+        if (filetype=="js"){ //if filename is a external JavaScript file
+            var fileref=document.createElement('script')
+            fileref.setAttribute("type","text/javascript")
+            fileref.setAttribute("src", filename)
+        }
+        else if (filetype=="css"){ //if filename is an external CSS file
+            var fileref=document.createElement("link")
+            fileref.setAttribute("rel", "stylesheet")
+            fileref.setAttribute("type", "text/css")
+            fileref.setAttribute("href", filename)
+        }
+        if (typeof fileref!="undefined")
+            document.getElementsByTagName("head")[0].appendChild(fileref)
+    }
+
+    function popup(url,winName)
+    {
+
+        if (winName == "")
+        {
+            var acak = 'myWin-' + Math.floor(Math.random()*100).toString();
+            winName = acak;
+        }
+        var width  = 800;
+        var height = 600;
+        var left   = (screen.width  - width)/2;
+        var top    = (screen.height - height)/2;
+        var params = 'width='+width+', height='+height;
+        params += ', top='+top+', left='+left;
+        params += ', directories=no';
+        params += ', location=no';
+        params += ', menubar=no';
+        params += ', resizable=no';
+        params += ', scrollbars=1';
+        params += ', status=no';
+        params += ', toolbar=no';
+        newwin=window.open(url,winName, params);
+        if (window.focus) {newwin.focus()}
+        return false;
+    }
+
+
+    function moneycomp(a,comp,b,decimals) {
+        if (!decimals)
+            decimals = 2;
+//        var multiplier = Math.pow(10,decimals);
+//        a = Math.round(a * multiplier); // multiply to do integer comparison instead of floating point
+//        b = Math.round(b * multiplier);
+
+//        a = new BigDecimal(a.toString()).setScale(decimals,BigDecimal.prototype.ROUND_CEILING);
+        a = new BigDecimal(a.toString()).setScale(decimals,BigDecimal.prototype.ROUND_DOWN);
+//        b = new BigDecimal(b.toString()).setScale(decimals,BigDecimal.prototype.ROUND_CEILING);
+        b = new BigDecimal(b.toString()).setScale(decimals,BigDecimal.prototype.ROUND_DOWN);
+        switch (comp) {
+            case ">":
+//                return (a > b);
+                return a.isGreaterThan(b);
+            case ">=":
+//                return (a >= b);
+                return a.isGreaterThanOrEqualTo(b);
+            case "<":
+//                return (a < b);
+                return a.isLessThan(b);
+            case "<=":
+//                return (a <= b);
+                return a.isLessThanOrEqualTo(b);
+            case "==":
+//                return (a == b);
+                return (a.compareTo(b) == 0) ? true : false;
+        }
+        return null;
+    }
+
+    function goToPage(url,params,loadContentPanel)
+    {
+        if (url == undefined)
+            return false;
+
+        if (loadContentPanel != undefined)
+        {
+            cPanel = Ext.getCmp('content-panel');
+            cPanel.setHeight('100%');
+            cPanel.load({
+                url: url,
+                scripts: true
+            });
+        }
+        else
+        {
+            myPanel = Ext.getCmp('abs-budget-panel');
+            myPanel.body.load({
+                url: url,
+                params: params,
+                scripts : true
+            });
+        }
+    };
+
+    Array.prototype.has=function(v){
+        for (i=0;i<this.length;i++){
+            var chars = this[i];
+            if (v.toString().match(chars))
+                return true;
+        }
+        return false;
+    };
+
+    function isFunction(functionToCheck) {
+        var getType = {};
+        return functionToCheck && getType.toString.call(functionToCheck) == '[object Function]';
+    }
+
+    Ext.apply(Ext.form.VTypes, {
+        'alphanumericonly': function(){
+            var objRegExp  =  /^[a-z0-9.]+$/i;
+            return function(strValue){
+                return objRegExp.test(strValue);
+            }
+        }(),
+        'alphanumericonlyText': 'Only Alphabet (A-Z), Numeric (0-9) and Dot (.) are allowed, No Spaces or Special Character'
+    });
+
+    Ext.apply(Ext.form.VTypes, {
+        'numericonly': function(){
+            var objRegExp  =  /^[0-9]+$/i;
+            return function(strValue){
+                return objRegExp.test(strValue);
+            }
+        }(),
+        'numericonlyText': 'Only Numeric (0-9) is allowed, No other Character'
+    });
+
+    var alphanumericonlyValidator = function( value, custom ) {
+        var regex = /^[a-z0-9.]+$/i;
+        if ( regex.test(v) ) {
+            return true;
+        }
+        else {
+            return 'Only Alphabet (A-Z), Numeric (0-9) and Dot (.) are allowed, No Spaces or Special Character';
+        }
+    };
+
+    var parseProjectCode = function(prjKode){
+        prjKode = prjKode.toString();
+        var substring = '';
+        if (prjKode.substr(0,1) == 'Q') //Cari huruf pertama, jika Q maka kode project
+        {
+            var len = 0;
+//            if (prjKode.indexOf("-") > 0)
+//            {
+//                substring = prjKode.substr(prjKode.indexOf("-")-3,3);
+//            }
+//            else
+//            {
+//                len = prjKode.length;
+//                substring = prjKode.substr(len-3);
+//            }
+            return prjKode;
+        }
+
+        return substring;
+    }
+
+    var showLastRejectItems = function(trano,grid)
+    {
+        var proxy = new Ext.data.HttpProxy({
+            url: ''
+        });
+
+        var itemType = '';
+
+        var reader = new Ext.data.JsonReader({
+            totalProperty: 'count',
+            idProperty: 'id',
+            root: 'data'
+        }, [
+            {name: 'prj_kode'},
+            {name: 'sit_kode'},
+            {name: 'prj_nama'},
+            {name: 'sit_nama'},
+            {name: 'kode_brg', mapping: 'kode_brg'},
+            {name: 'nama_brg', mapping: 'nama_brg'},
+            {name: 'workid', mapping: 'workid'},
+            {name: 'workname', mapping: 'workname'},
+            {name: 'val_kode', mapping: 'val_kode'},
+            {name: 'qty', mapping: 'qty'},
+            {name: 'harga', mapping: 'harga'},
+            {name: 'total', mapping: 'total'},
+            {name: 'id'}
+        ]);
+
+        var itemStore = new Ext.data.Store({
+            proxy: proxy,
+            reader: reader,
+            id: 'last-reject-store'
+        });
+
+        var gridItems = new Ext.grid.GridPanel({
+            store: itemStore,
+            loadMask: true,
+            height: 250,
+            id: 'item-grid',
+            columns: [
+                new Ext.grid.RowNumberer({width: 30}),
+                {header: 'Project Code', width: 90, dataIndex: 'prj_kode', sortable: true},
+                {header: 'Project Name', width: 120, dataIndex: 'prj_nama', sortable: true},
+                {header: 'Site Code', width: 70, dataIndex: 'sit_kode', sortable: true},
+                {header: 'Site Name', width: 120, dataIndex: 'sit_nama', sortable: true},
+                {header: 'Workid', width: 70, dataIndex: 'workid', sortable: true},
+                {header: 'Work Name', width: 120, dataIndex: 'workname', sortable: true},
+                {header: 'Product ID', width: 90, dataIndex: 'kode_brg', sortable: true},
+                {header: 'Name', width: 120, dataIndex: 'nama_brg', sortable: true},
+                {header: 'Curr.', width: 50, dataIndex: 'val_kode', sortable: true},
+                {header: 'Qty', width: 120, dataIndex: 'qty', sortable: true, align: 'right',renderer: function(v){
+                    return Ext.util.Format.number(v, '?0,000.0000?');
+                }},
+                {header: 'Price', width: 120, dataIndex: 'harga', sortable: true, align: 'right',renderer: function(v,p,r){
+                    return Ext.util.Format.number(v, '?0,000.00?');
+                }},
+                {header: 'Total', width: 120, dataIndex: 'total', sortable: true, align: 'right',renderer: function(v){
+                    return Ext.util.Format.number(v, '?0,000.00?');
+                }}
+            ],
+            listeners: {
+                'rowclick': function(g, index, ev) {
+                    var rec = g.store.getAt(index);
+                    Ext.getCmp('item-qty-reject').setValue(rec.get("qty"));
+                    if (itemType == 'PO' || itemType == 'POO')
+                    {
+                        Ext.getCmp('item-qtyanother-reject').setValue(rec.get("qtysupp"));
+                    }
+                }
+            }
+        });
+
+        var pwindow = new Ext.Window({
+            modal: true,
+            resizable: false,
+            closeAction: 'close',
+            width: 400,
+            height: 400,
+            title: 'Last Rejected Items',
+            items: [
+                new Ext.form.FormPanel({
+                    frame: true,
+                    items: [
+                        {
+                            id: 'combo-history',
+                            fieldLabel: 'Rejection Date',
+                            width: 150,
+                            xtype: 'combo',
+                            triggerAction: 'all',
+                            mode: 'remote',
+                            editable: false,
+                            displayField: 'name',
+                            valueField: 'id',
+                            store: new Ext.data.JsonStore({
+                                url: '/default/log-reject/get-date/trano/' + trano,
+                                root: 'data',
+                                fields:[
+                                    { name: "name"},{ name: "id" },{name: "uid_reject"},{name: "reconfigure"},{name: "item_type"}
+                                ]
+                            }),
+                            listeners: {
+                                'select': function(t,n,o){
+                                    var rec = n;
+                                    itemType = rec.get("item_type");
+
+                                    if (rec.get("reconfigure") == true)
+                                    {
+                                        Ext.Ajax.request({
+                                            url: '/default/log-reject/get-reconfigure',
+                                            method:'POST',
+                                            params: {
+                                                item_type: rec.get("item_type")
+                                            },
+                                            success: function(result, request){
+                                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                                if(returnData.success) {
+                                                    var colmodels = new Ext.grid.ColumnModel(
+                                                            Ext.util.JSON.decode(returnData.COLMODELS)
+                                                    );
+                                                    var storemodels =Ext.util.JSON.decode(returnData.STOREMODELS);
+
+                                                    itemStore.reader = new Ext.data.JsonReader({
+                                                            totalProperty: 'count',
+                                                            idProperty: 'id',
+                                                            root: 'data'
+                                                        },storemodels
+                                                    );
+
+                                                    gridItems.reconfigure(itemStore,colmodels);
+                                                    itemStore.proxy = new Ext.data.HttpProxy({
+                                                        url : '/default/log-reject/get-data/trano/' + trano + '/id_log/' + rec.get("id")
+                                                    });
+                                                    itemStore.reload();
+                                                    Ext.getCmp('item-uid-reject').setValue(rec.get("uid_reject"));
+
+                                                }
+                                                else
+                                                    Ext.Msg.alert('Error!',returnData.msg);
+                                            },
+                                            failure:function( action){
+                                                if(action.failureType == 'server'){
+                                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                                }
+                                            },
+                                            scope: this
+                                        });
+                                    }
+                                    else
+                                    {
+                                        itemStore.proxy = new Ext.data.HttpProxy({
+                                            url : '/default/log-reject/get-data/trano/' + trano + '/id_log/' + rec.get("id")
+                                        });
+                                        itemStore.reload();
+                                        Ext.getCmp('item-uid-reject').setValue(rec.get("uid_reject"));
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            xtype: 'textfield',
+                            readOnly: true,
+                            fieldLabel: 'Rejected By',
+                            id: 'item-uid-reject'
+                        },
+                        gridItems,
+                        {
+                            xtype: 'compositefield',
+                            fieldLabel: 'Qty',
+                            msgTarget : 'under',
+                            anchor    : '-20',
+                            defaults: {
+//                                flex: 1
+                            },
+                            items: [
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    id: 'item-qty-reject',
+                                    width: 100,
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    readOnly: true,
+                                    width: 100,
+                                    id: 'item-qtyanother-reject'
+                                }
+                            ]
+                        }
+
+                    ]
+                })
+
+            ],
+            buttons: [
+                {
+                    text: 'Close',
+                    handler: function()
+                    {
+                        pwindow.close();
+                    }
+                }
+            ]
+        });
+
+        pwindow.show();
+    };
+
+    var checkNominalWorkflow = function(uid,docsID,trano, callback)
+    {
+        Ext.Ajax.request({
+            url: '/admin/workflow/check-nominal-workflow',
+            method:'POST',
+            params: {
+                uid: uid,
+                workflow_trans_id : docsID,
+                trano: trano
+            },
+            success: function(result, request){
+                var returnData = Ext.util.JSON.decode(result.responseText);
+                if(returnData.success) {
+                    var msg = currMsg = '';
+                    if (returnData.final)
+                        msg = 'Final approval by You';
+                    else
+                        msg = 'automatically approved by System on behalf of Your up level';
+
+                    if (returnData.currency == '' || returnData.currency == undefined)
+                        returnData.currency = 'IDR';
+
+                    if (returnData.currency != 'IDR')
+                    {
+                        currMsg = 'Transaction value : <b>' + returnData.currency + ' ' + Ext.util.Format.number(returnData.total,'0,000.00') + '</b>';
+                        currMsg += '<br>Transaction value in IDR : <b>IDR ' + Ext.util.Format.number(returnData.total_in_idr,'0,000.00') + '</b>';
+                    }
+                    else
+                        currMsg = 'Transaction value : <b>IDR ' + Ext.util.Format.number(returnData.total,'0,000.00') + '</b>';
+
+                    Ext.Msg.show({
+                        title:'Confirmation',
+                        msg: 'Total for this Transaction is below than <b>IDR ' + Ext.util.Format.number(parseFloat(returnData.nominal),'0,000.00') + '</b>' +
+                            '<br>' +
+                            currMsg +
+                            '<br><br>' +
+                            'Do You want to pass this Document to Your Upper Level, <b>' +
+                            returnData.next_person +
+                            '</b> ?' +
+                            '<br>Info: If You dont want to pass this document, then It will be ' + msg + '.',
+                        buttons:
+                            {
+                                yes: 'Pass to ' + returnData.next_person,
+                                no: 'Final Approval by You'
+                            },
+                        animEl: 'elId',
+                        fn:function(btn) {
+                            if (btn == 'no') {
+                                callback(true);
+                            }
+                            else
+                                callback(false);
+                        },
+                        icon: Ext.MessageBox.QUESTION
+                    });
+
+//                    Ext.MessageBox.confirm('Confirmation', 'Total for this Transaction is below than ' + Ext.util.Format.number(parseFloat(returnData.nominal),'0,000.00') +
+//                        '<br>' +
+//                        'Do You want to pass this Document to Your Up Level, <b>' +
+//                        returnData.next_person +
+//                        '</b> ?' +
+//                        '<br>Info: If You dont want to pass this document, then It will be ' + msg + '.',
+//                        function(btn) {
+//                            if (btn == 'no') {
+//                                callback(true);
+//                            }
+//                            else
+//                                callback(false);
+//                        }
+//                    );
+                }
+                else
+                    callback(false);
+            },
+            failure:function( action){
+                if(action.failureType == 'server'){
+                    obj = Ext.util.JSON.decode(action.response.responseText);
+                    Ext.Msg.alert('Error!', obj.errors.reason);
+                }
+            },
+            scope: this
+        });
+    }
+
+    //Temporary storage untuk Ux.gridJurnal
+    var jurnalCollection = new Ext.util.MixedCollection();
+
+    //Cek job number sesuai dengan patter Qxxx.yyy (xxx == kode project, yyy == cfs kode)
+    var regexJobNumber = /^[a-zA-Z0-9]+\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+$/
+
+    //Cek Ref Number untuk AP Journal dengan pattern (xx-yyyy), misal AP-120000
+    var regexAPRefNumber = /^[a-zA-Z0-9]+\-[a-zA-Z0-9]+$/;
+
+    //Cek Site Code apakah mengandung karakter khusus (hanya project)
+    var regexSiteCodeProject = /^[_a-zA-Z0-9-]+$/;
+
+    //Cek Site Code apakah mengandung karakter khusus (hanya overhead, boleh spasi)
+    var regexSiteCodeOverhead = /^[_a-zA-Z0-9- ]*$/;
+
+    //Extend Ext
+    Ext.util.urlEncodeZend = function(o, pre) {
+            var empty,
+                buf = [],
+                e = encodeURIComponent;
+
+            Ext.iterate(o, function(key, item){
+                empty = Ext.isEmpty(item);
+                Ext.each(empty ? key : item, function(val){
+                    buf.push('/', e(key), '/', (!Ext.isEmpty(val) && (val != key || !empty)) ? (Ext.isDate(val) ? Ext.encode(val).replace(/"/g, '') : e(val)) : '');
+                });
+            });
+            if(!pre){
+                buf.shift();
+                pre = '';
+            }
+            return pre + buf.join('');
+    };
+
+    var resizeTable = function(classId,height,width)
+    {
+//        var wMenu = Ext.getCmp('layout-browser').getWidth();
+        var wMenu = 0,
+            hMenu = 0;
+
+        if (Ext.getCmp('abs-budget-panel') != undefined)
+        {
+            wMenu = Ext.getCmp('abs-budget-panel').getWidth();
+            hMenu = Ext.getCmp('abs-budget-panel').getHeight();
+        }
+        if (height == undefined)
+        {
+//            height = window.innerHeight;
+            if (hMenu > 0)
+                height = hMenu;
+            else
+                height = document.body.clientHeight;
+            height -= 150;
+        }
+
+        if (width == undefined)
+        {
+//            width = window.innerWidth;
+            if (wMenu > 0)
+                width = wMenu;
+            else
+                width = document.body.clientWidth;
+            width -= 100;
+        }
+
+        var containers = document.getElementsByClassName(classId),
+            lens = containers.length;
+        for (i = 0, j = 0; i < lens; i++) {
+            containers[j].setAttribute("style","width:" + width + "px;height:" + height + "px");
+        }
+    }
+
+    var theMask = null;
+
+    var showLoadingScreen = function() {
+        theMask = new Ext.LoadMask(Ext.getBody(), {id: 'loading-mask',msg:"Please wait, Processing Your request..."});
+        theMask.show();
+    }
+
+    var hideLoadingScreen = function() {
+//        Ext.getCmp('loading-mask').hide();
+        theMask.hide();
+    }
+
+    var downloadFile = function(url,params) {
+
+        theParams = [];
+        Ext.iterate(params,function(k,v){
+            theParams.push({
+                xtype: 'hidden',
+                name: k,
+                value: v
+            });
+        });
+
+        var hiddenForm = new Ext.form.FormPanel({
+            title:'hiddenForm',
+            standardSubmit: true,
+            url: url,
+            timeout: 120000,
+            height:0,
+            width: 0,
+            hidden:true,
+            items: theParams,
+            renderTo: Ext.getBody()
+        });
+
+        showLoadingScreen();
+        hiddenForm.getForm().submit();
+        hideLoadingScreen();
+    }
+
+
+    //BOQ3 Grid section--------------------------
+    var gridBoq3 = function(url,storeboq,column){
+
+        userGrid = Ext.extend(Ext.grid.GridPanel, {
+            renderTo    : 'user-grid',
+            iconCls     : 'silk-grid',
+            id          : 'boq3-grid',
+            frame       : true,
+            title       : 'BOQ3 Detail',
+            height      : 250,
+            width       : 850,
+            stateful    : false,
+            style       : 'margin-top: 10px',
+            initComponent : function() {
+
+                this.buttons = this.buildUI();
+
+                userGrid.superclass.initComponent.call(this);
+            },
+
+            buildUI : function() {
+
+            },
+
+            onSave : function(btn, ev) {
+                //this.store.save();
+                var json = '';
+                this.store.each(function(store){
+                    json += Ext.util.JSON.encode(store.data) + ',';
+                });
+                json = json.substring(0, json.length - 1);
+                params = {posts:[json]};
+                Ext.Ajax.request({
+                    url: url,
+                    method:'POST',
+                    success: function(resp){
+                        Ext.Msg.alert('Success', 'Data has been saved!');
+                        isEdited = false;
+                    },
+                    failure:function( action){
+                        if(action.failureType == 'server'){
+                            obj = Ext.util.JSON.decode(action.response.responseText);
+                            Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                    },
+                    params: params
+                });
+            }
+        });
+
+        var userGrids = new userGrid({
+            renderTo: 'user-grid',
+            id: 'boq3-grid',
+            store: storeboq,
+            columns : column,
+            loadMask: true,
+            bbar: new Ext.PagingToolbar({
+                id: 'paging',
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        });
+
+        return userGrids;
+    }
+
+    </script>
+
+    <!-- extensions -->
+    <script type="text/javascript" src="/js/layout/base/App.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/CenterLayout.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/RowLayout.js"></script>
+    <script type="text/javascript" src="/js/layout/base/TreePanelStatefull_plugin.js"></script>
+    <!-- page specific -->
+    <script type="text/javascript" src="/js/layout/base/menu.js"></script>
+
+	<script type="text/javascript" src="/js/layout/ux/RowEditor.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+	<script type="text/javascript" src="/js/layout/ux/RowActions.js"></script>
+	<script type="text/javascript" src="/js/layout/ux/GroupSummary.js"></script>
+	<script type="text/javascript" src="/js/layout/ux/gridsummary.js"></script>
+	<script type="text/javascript" src="/js/layout/base/windowblink.js"></script>
+	
+	<link rel="stylesheet" type="text/css" href="/css/superTables.css"/>
+	<script type="text/javascript" src="/js/layout/base/superTables.js"></script>
+	<script type="text/javascript" src="/js/layout/base/treeserializer.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/fileuploadfield/css/fileuploadfield.css" />
+	<script type="text/javascript" src="/js/layout/ux/fileuploadfield/FileUploadField.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/RowExpander.js"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/multigroup/GroupSummary.css" />
+    <script type="text/javascript" src="/js/layout/ux/multigroup/GroupSummary.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/multigroup/MultiGrouping.js"></script>
+     <script type="text/javascript" src="/js/layout/ux/customRendererField.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+     <script type="text/javascript" src="/js/layout/ux/PagingStore.js"></script>
+     <script type="text/javascript" src="/js/layout/ux/notification/notification.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/notification/notificationmgr.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/projectselector/projectSelector.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/projectselector/projectselector.css" />
+    <script type="text/javascript" src="/js/layout/ux/projectselector/projectSelectorReport.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/projectselector/projectselectorreport.css" />
+    <script type="text/javascript" src="/js/layout/ux/projectselector/budgetSelector.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/projectselector/budgetselector.css" />
+	<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/calendar/resources/css/calendar.css">
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/Ext.calendar.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayHeaderTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayBodyTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/DayViewTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/BoxLayoutTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/templates/MonthViewTemplate.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/CalendarScrollManager.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/StatusProxy.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/CalendarDD.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/dd/DayViewDD.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventRecord.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/MonthDayDetailView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/CalendarPicker.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/WeekEventRenderer.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/CalendarView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/MonthView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayHeaderView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayBodyView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/DayView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/views/WeekView.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/DateRangeField.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/widgets/ReminderField.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventEditForm.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/EventEditWindow.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/calendar/src/CalendarPanel.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/gridsearch.css"></link>
+    <script type="text/javascript" src="/js/layout/ux/Ext.ux.grid.Search.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/miframe.js"></script>
+	<script type="text/javascript" src='/js/layout/ux/mifmsg.js'></script>
+	<script type="text/javascript" src='/js/layout/ux/CheckColumn.js'></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/gridJurnal.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/windowJurnalAdj.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/printer/printer.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/util.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/rownumberer.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/monthpicker.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/uploadfile.js?_dc=<?php echo rand(1,1000000); ?>"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/md5.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/customgridtrans.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/edittrans.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/workflow/workflowButton.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/workflow/userGridSelector.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/progressbar.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/uploaderbutton.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/revisebutton.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/payment.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/finance/ebanking.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/common/editremarks.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/logistic/logisticpricecauth.js"></script>
+    <script type="text/javascript" src="/js/layout/ux/QDC/logistic/revisepricebutton.js"></script>
+    <script type="text/javascript" src="/js/accountingjs/accounting.min.js"></script>
+
+
+<style>
+    .menu-title{
+        background: #D6E3F2;
+        border-style: solid;
+        border-color:#DAE6F4 #99bbe8 #99bbe8 #DAE6F4;
+        border-width: 1px;
+        margin:-2px -2px 0;
+        color:#15428b;
+        font:bold 10px tahoma,arial,verdana,sans-serif;
+        display:block;
+        padding:3px;
+    }
+</style>
+<style type="text/css">
+/*		.tooltipDocs {
+			border-bottom: 1px dotted #000000; color: #000000; outline: none;
+			cursor: help; text-decoration: none;
+			position: relative;
+		}
+		.tooltipDocs span {
+			margin-left: -999em;
+			position: absolute;
+		}
+		.tooltipDocs:hover span {
+			border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+			box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+			font-family: Calibri, Tahoma, Geneva, sans-serif;
+			position: absolute; left: 1em; top: 2em; z-index: 99;
+			margin-left: 0;
+		}
+		.tooltipDocs:hover img {
+			border: 0; margin: -10px 0 0 -55px;
+			float: left; position: absolute;
+		}
+		.tooltipDocs:hover em {
+			font-family: Candara, Tahoma, Geneva, sans-serif; font-size: 1.2em; font-weight: bold;
+			display: block; padding: 0.2em 0 0.6em 0;
+		}
+		.infoDocs { padding: 0.8em 1em; }
+		.customDocs { padding: 0.5em 0.8em 0.8em 2em; }
+		* html a:hover { background: transparent;}
+		.infoDocs {background: #A7DBD8; border: 1px solid #E0E4CC;} */
+                           
+/*                           .tooltipDocs{
+   			display: inline;
+    		position: relative;
+		}
+		
+		.tooltipDocs:hover:after{
+    		background: #A7DBD8;
+    		background: rgba(0,0,0,.8);
+    		border-radius: 5px;
+    		bottom: -26px;
+    		color: #000;
+    		content: attr(title);
+    		left: 20%;
+    		padding: 5px 15px;
+    		position: absolute;
+    		z-index: 98;
+    		width: 220px;
+		}
+		
+		.tooltipDocs:hover:before{
+    		border: solid;
+    		border-color: #A7DBD8 transparent;
+    		border-width: 6px 6px 0 6px;
+    		bottom: -20px;
+    		 content: "";
+    		left: 50%;
+    		position: absolute;
+    		z-index: 99;
+		}*/
+         
+            .tooltipDocs span{	
+                    display:none;
+                    color:#fff;
+                    background:rgba(51,51,51,0.75);
+                    padding:8px 8px;
+                    border-radius:4px;
+                    -moz-border-radius:4px;
+                    -webkit-border-radius:4px;
+                    width:218px;
+                    text-align:center;
+                    position: absolute;
+                    z-index:10;
+                    font-weight: bold;
+            }
+            .tooltipDocs { display: inline-block;}
+            .tooltipDocs:hover span{ display:block;text-decoration: none; }
+            span.blue{
+                    background:rgba(41,137,216, 0.75);
+                    border:1px solid #1E5799;
+            }
+            .tooltipDocs a:hover, a:visited, a:link, a:active
+            {
+                text-decoration: none;
+            }
+</style>

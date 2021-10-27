@@ -1,0 +1,201 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var windowForm = ({
+            title: 'Balance Sheet Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: [
+                {
+                    xtype: 'tbtext',
+                    text: 'By Month'
+                },
+                {
+                    xtype: 'datefield',
+                    name: 'month',
+                    id: 'month',
+                    msgTarget: 'side',
+                    format: 'm-Y', // or other format you'd like
+                    plugins: 'monthPickerPlugin',
+                    listeners: {
+                        'select': function(t, newDate) {
+                            Ext.getCmp('startdate').setValue('');
+                            Ext.getCmp('enddate').setValue('');
+                        }
+                    }
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'By Date'
+                },
+                {
+                    xtype: 'datefield',
+                    name: 'startdate',
+                    id: 'startdate',
+                    msgTarget: 'side',
+                    endDateField: 'enddate', // id of the end date field
+                    vtype: 'daterange',
+                    format: 'd-m-Y', // or other format you'd like
+                    listeners: {
+                        'select': function(t, newDate) {
+                            Ext.getCmp('month').setValue('');
+                        }
+                    }
+                },
+                {
+                    xtype: 'tbtext',
+                    text: ' - '
+                },
+                {
+                    xtype: 'datefield',
+                    name: 'enddate',
+                    id: 'enddate',
+                    startDateField: 'startdate', // id of the start date field
+                    msgTarget: 'side',
+                    vtype: 'daterange',
+                    format: 'd-m-Y', // or other format you'd like
+                    listeners: {
+                        'select': function(t, newDate) {
+                            Ext.getCmp('month').setValue('');
+                        }
+                    }
+                },
+                '-',
+                {
+                    xtype: 'tbtext',
+                    text: 'Level',
+                    hidden: true
+                },
+                {
+                    xtype: 'combo'
+                    , fieldLabel: 'Depth'
+                    , id: 'combo-depth'
+                    , name: 'depth'
+                    , store: new Ext.data.SimpleStore({
+                        fields: ['type', 'name']
+                        , data:<?= $this->levels ?>
+                    })
+                    , valueField: 'type'
+                    , displayField: 'name'
+                    , typeAhead: true
+                    , mode: 'local'
+                    , triggerAction: 'all'
+                    , value: '<?= $this->max ?>'
+                    , emptyText: 'Select..'
+                    , selectOnFocus: true
+                    , anchor: '95%'
+                    , hiddenName: 'type'
+                    , width: 70,
+                    hidden: true
+
+                },
+                '-',
+                {
+                    xtype: 'checkbox',
+                    id: 'cek-box',
+                    boxLabel: 'Show Detail'
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    text: 'Show',
+                    width: 70,
+                    id: 'show_budget',
+                    cls: "x-btn-text-icon",
+                    icon: "/images/icons/fam/control_rewind.png",
+                    handler: function() {
+                        var myPanel = Ext.getCmp('abs-budget-panel'),
+                                month = Ext.getCmp('month').getValue(),
+                                depth = Ext.getCmp('combo-depth').getValue(),
+                                start = Ext.getCmp('startdate').getValue(),
+                                end = Ext.getCmp('enddate').getValue();
+
+                        if (month == '' && (start == '' && end == ''))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please choose Month or Date!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+
+                        }
+
+                        var urlLoad = '/finance/report/view-balancesheet-preview';
+
+                        myPanel.body.load({
+                            url: urlLoad,
+                            params: {
+                                month: month,
+                                start_date: start,
+                                end_date: end,
+                                depth: depth,
+                                detail: Ext.getCmp('cek-box').getValue()
+                            },
+                            scripts: true
+                        });
+                    }
+                },
+                '-',
+                {
+                    xtype: 'button',
+                    id: 'export_button',
+                    cls: "x-btn-icon",
+                    icon: "/images/print.png",
+                    handler: function()
+                    {
+                        var month = Ext.getCmp('month').getValue(),
+                                depth = Ext.getCmp('combo-depth').getValue(),
+                                start = Ext.getCmp('startdate').getValue(),
+                                end = Ext.getCmp('enddate').getValue();
+
+                        if (month == '' && (start == '' && end == ''))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Please choose Month or Date!',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+
+                        }
+
+                        var params = {
+                            month: month,
+                            start_date: start,
+                            end_date: end,
+                            depth: depth,
+                            export: true,
+                            detail: Ext.getCmp('cek-box').getValue()
+                        };
+
+                        location.href = '/finance/report/view-balancesheet-preview/' + Ext.util.urlEncodeZend(params);
+                    }
+                }
+
+            ]
+
+        });
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+    });
+</script>

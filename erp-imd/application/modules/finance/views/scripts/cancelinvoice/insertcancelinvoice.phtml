@@ -1,0 +1,568 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes,{
+            numericText: "Only numbers are allowed.",
+            numericMask: /[0-9]/,
+            numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+            numeric: function(v) {
+                return function() { return this.numericRe.test(v)} ;
+                }
+        });
+
+    var jurnal = new Ext.ux.grid.gridJurnal({
+        height: 200,
+        width: 750,
+        id: 'grid-jurnal',
+        renderTo:'gridjurnal',
+        hideRefNumber: false
+    });
+
+    var cekjurnal = 0;
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        function showinvoice ()
+        {
+            var invoicestore = new Ext.data.Store ({
+                url:'/finance/cancelinvoice/getinvoice',
+                autoLoad:true,
+                reader: new Ext.data.JsonReader ({
+                    root:'data',
+                    totalProperty:'total',
+                    fields:[{
+                        name:'trano'
+                    },{
+                        name:'tgl'
+                    },{
+                        name:'riv_no'
+                    },{
+                        name:'prj_kode'
+                    },{
+                        name:'prj_nama'
+                    },{
+                        name:'sit_kode'
+                    },{
+                        name:'sit_nama'
+                    },{
+                        name:'total'
+                    },{
+                        name:'cus_kode'
+                    },{
+                        name:'cus_nama'
+                    },{
+                        name:'val_kode'
+                    },{
+                        name:'uid'
+                    },{
+                        name:'paymentterm'
+                    },{
+                        name:'rateidr'
+                    }]
+                })
+            })
+
+            var invoicegrid = new Ext.grid.GridPanel ({
+
+                store:invoicestore,
+                height:300,
+                viewConfig:{
+                    forceFit:true
+                },
+                columns:[{
+                    header:'Trano',
+                    dataIndex:'trano',
+                    sortable:true
+                },{
+                    header:'Req Invoice',
+                    dataIndex:'riv_no',
+                    sortable:true
+                },{
+                    header:'Project Code',
+                    dataIndex:'prj_kode',
+                    sortable:true,
+                    align:'center'
+                },{
+                    header:'Site Code',
+                    dataIndex:'sit_kode',
+                    sortable:true,
+                    align:'center'
+                }],bbar:new Ext.PagingToolbar ({
+                    id: 'paging-voucher',
+                    pageSize: 20,
+                    store: invoicestore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),tbar:[{
+                    text:'Search By',
+                    xtype:'label',
+                    style:'margin-left:5px'
+                },'-',{
+                    xtype:'combo',
+                    id:'option',
+                    width:100,
+                    store: new Ext.data.SimpleStore({
+                        fields:['nilai','name'],
+                        data:[
+                                ['a.trano','Trano'],
+                                ['a.riv_no','Req Invoice'],
+                                ['a.prj_kode','Project Code'],
+                                ['a.sit_kode','Site Code']
+                            ]
+                    }),
+                    valueField:'nilai',
+                    displayField:'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    value:'a.trano'
+                },'-',{
+                    xtype:'textfield',
+                    id:'search',
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup' : function (txttext,event)
+                        {
+                            var txttext = txttext.getValue();
+                            if (txttext != "" && txttext.toString().length >= 3)
+                            {
+                                var option = Ext.getCmp('option').getValue();
+                                var search = Ext.getCmp('search').getValue();
+
+                                invoicestore.proxy.url= '/finance/cancelinvoice/getinvoice/search/' + search + '/option/' + option;
+                                invoicestore.proxy.setUrl('/finance/cancelinvoice/getinvoice/search/' + search + '/option/' + option);
+                                invoicestore.proxy.api.read['url']= '/finance/cancelinvoice/getinvoice/search/' + search + '/option/' + option;
+                                invoicestore.load();
+                                invoicegrid.getView().refresh();
+                            }
+                        }
+                    }
+                },'-',{
+                    xtype: 'button',
+                    text : 'Refresh',
+                    id: 'refresh_button',
+                    iconCls:"silk-table-refresh" ,
+                    handler:function(btn,ev)
+                    {
+                        Ext.getCmp('search').setValue('');
+                        Ext.getCmp('option').setValue('a.trano');
+                        invoicestore.proxy.url= '/finance/cancelinvoice/getinvoice';
+                        invoicestore.proxy.setUrl('/finance/cancelinvoice/getinvoice');
+                        invoicestore.proxy.api.read['url']= '/finance/cancelinvoice/getinvoice';
+                        invoicestore.load();
+                        invoicegrid.getView().refresh();
+                    }
+                }],
+                listeners:{
+                    'rowdblclick':function(gridaktif,rowIndex,e)
+                    {
+                        isDbClick = true;
+                        var invoice = gridaktif.getStore().getAt(rowIndex);
+
+                        Ext.getCmp('inv_number').setValue(invoice.get('trano'));
+                        Ext.getCmp('req_inv_number').setValue(invoice.get('riv_no'));
+                        Ext.getCmp('inv_date').setValue(invoice.get('tgl'));
+                        Ext.getCmp('uid').setValue(invoice.get('uid'));
+                        Ext.getCmp('cus_kode').setValue(invoice.get('cus_kode'));
+                        Ext.getCmp('cus_nama').setValue(invoice.get('cus_nama'));
+                        Ext.getCmp('prj_kode').setValue(invoice.get('prj_kode'));
+                        Ext.getCmp('prj_nama').setValue(invoice.get('prj_nama'));
+                        Ext.getCmp('sit_kode').setValue(invoice.get('sit_kode'));
+                        Ext.getCmp('sit_nama').setValue(invoice.get('sit_nama'));
+                        Ext.getCmp('desc').setValue(invoice.get('paymentterm'));
+                        Ext.getCmp('inv_value').setValue(invoice.get('total'));
+                        Ext.getCmp('cancel_value').setValue(invoice.get('total'));
+                        Ext.getCmp('val_kode1').setValue(invoice.get('val_kode'));
+                        Ext.getCmp('val_kode2').setValue(invoice.get('val_kode'));
+                        Ext.getCmp('rateidr').setValue(invoice.get('rateidr'));
+
+                        invoicewindow.close();
+
+                    }
+                }
+
+            })
+
+            var invoicewindow = new Ext.Window ({
+
+                title:'Choose Invoice Number',
+                id:'choose-invoice-number',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask:true,
+                items:[
+                    invoicegrid
+                ]
+            })
+
+            invoicewindow.show();
+        }
+
+        var inv_value = new Ext.form.FieldSet ({
+
+            labelWidth:100,
+            style:'margin:10 0 0 0',
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[new Ext.ux.customRendererField({
+                                xtype:'textfield',
+                                fieldLabel:'Rate IDR ',
+                                id:'rateidr',
+                                priceDelemiter:',',
+                                style:'text-align:right'
+                        }),{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.6,
+                            layout:'form',
+                            items:[new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    fieldLabel:'Invoice Value ',
+                                    anchor:'98%',
+                                    id:'inv_value',
+                                    priceDelemiter:',',
+                                    readOnly:true,
+                                    style:'text-align:right'
+                            })]
+                        },{
+                            columnWidth:0.3,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                readOnly:true,
+                                width:60,
+                                id:'val_kode1'
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.6,
+                            layout:'form',
+                            items:[new Ext.ux.customRendererField({
+                                    xtype:'textfield',
+                                    fieldLabel:'Cancel Value ',
+                                    anchor:'98%',
+                                    id:'cancel_value',
+                                    priceDelemiter:',',
+                                    style:'text-align:right',
+                                    vtype:'numeric'
+                            })]
+                        },{
+                            columnWidth:0.3,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                readOnly:true,
+                                width:60,
+                                id:"val_kode2"
+                            }]
+                        }]
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textarea',
+                        fieldLabel:'Cancel Reason ',
+                        width:300,
+                        height:80,
+                        id:"cancel_reason",
+                        allowBlank:false
+                    }]
+                }]
+            }]
+
+        })
+
+        var inv_info = new Ext.form.FieldSet ({
+
+            title:'Invoice Information',
+//            collapsible:true,
+            labelWidth:100,
+            items:[{
+                layout:'column',
+                items:[{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Invoice Date ',
+                        id:'inv_date',
+                        readOnly:true
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'User Input ',
+                        id:'uid',
+                        readOnly:true
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.35,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                fieldLabel:'Customer ',
+                                anchor:'98%',
+                                id:'cus_kode',
+                                readOnly:true
+                            }]
+                        },{
+                            columnWidth:0.65,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                readOnly:true,
+                                id:'cus_nama',
+                                readOnly:true
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.35,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                fieldLabel:'Project Code ',
+                                anchor:'98%',
+                                id:'prj_kode',
+                                readOnly:true
+                            }]
+                        },{
+                            columnWidth:0.65,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                readOnly:true,
+                                id:'prj_nama',
+                                readOnly:true
+                            }]
+                        }]
+                    },{
+                        layout:'column',
+                        items:[{
+                            columnWidth:0.35,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                fieldLabel:'Site Code ',
+                                anchor:'98%',
+                                id:'sit_kode',
+                                readOnly:true
+                            }]
+                        },{
+                            columnWidth:0.65,
+                            layout:'form',
+                            items:[{
+                                xtype:'textfield',
+                                hideLabel:true,
+                                readOnly:true,
+                                id:'sit_nama',
+                                readOnly:true
+                            }]
+                        }]
+                    }]
+                },{
+                    columnWidth:0.5,
+                    layout:'form',
+                    items:[{
+                        xtype:'textarea',
+                        fieldLabel:'Description ',
+                        width:300,
+                        height:80,
+                        id:'desc',
+                        readOnly:true
+                    }]
+                }]
+            }]
+
+        })
+
+        var panel = new Ext.FormPanel ({
+
+            id:'insert-cancel-invoice-panel',
+            renderTo:'insert_cancel_invoice_panel',
+            title:'Create Cancel Invoice',
+            frame:true,
+            labelWidth:160,
+            style:'margin:10 10 10 10',
+            width:'autoWidth',
+            items:[{
+                xtype:'trigger',
+                fieldLabel:'Invoice Number ',
+                editable : false,
+                width:160,
+                triggerClass: 'teropong',
+                allowBlank: false,
+                id:'inv_number',
+                onTriggerClick:function ()
+                {
+                    showinvoice ();
+                }
+            },{
+                xtype:'textfield',
+                fieldLabel:'Request Invoice Number ',
+                width:160,
+                readOnly:true,
+                id:'req_inv_number'
+            },inv_info,inv_value],
+            buttons:[{
+                text:'Create Journal',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    if (!Ext.getCmp('insert-cancel-invoice-panel').getForm().isValid())
+                    {
+                         Ext.Msg.alert('Error','Form not valid');
+                        return false;
+                    }
+
+                    if (parseFloat(Ext.getCmp('cancel_value').getValue().toString().replace(/\$|\,/g,'')) > parseFloat(Ext.getCmp('inv_value').getValue().toString().replace(/\$|\,/g,'')))
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry amount value grater then balance',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    var inv_number = Ext.getCmp('inv_number').getValue();
+
+                    Ext.Ajax.request({
+                        url:'/finance/cancelinvoice/getjurnalinvoice/inv_number/' + inv_number,
+                        method:'POST',
+                        success:function (result,request)
+                        {
+                            var returndata = Ext.util.JSON.decode(result.responseText);
+
+                            var datajurnal = {"data" : returndata};
+
+                            jurnal.loadData(datajurnal);
+                            jurnal.summaryTotal();
+
+                        },failure:function(action)
+                            {
+                                if (action.failureType == 'server')
+                                {
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert(('Error!'),obj.errors.reason);
+                                }
+                            }
+                    })
+
+                    jurnal.removeAll();
+
+                    cekjurnal = 1;
+
+                    Ext.getCmp('reset_form').disable();
+
+                }
+            },{
+                text:'Reset',
+                id:'reset_form',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('insert-cancel-invoice-panel').getForm().reset();
+                }
+            },{
+                text:'Submit',
+                iconCls:'icon-save',
+                handler:function(btn,ev)
+                {
+                    if (cekjurnal == 0)
+                    {
+                        Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry, Please Create Journal First ',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                        });
+                        return false;
+                    }
+
+                    Ext.MessageBox.confirm('Confirm','Are you sure want this action ?',function(btn){
+
+                        if (btn == 'yes')
+                        {
+                            var jsonJurnal = '';
+
+                            jsonJurnal =jurnal.getJSONFromStore();
+
+                            if (jsonJurnal == false)
+                                return false;
+                            Ext.getBody().mask('Loading..','x-mask-loading',false);
+                            Ext.getCmp('insert-cancel-invoice-panel').getForm().submit({
+                                method:'POST',
+                                params: {
+                                    jsonjurnal:jsonJurnal
+                                },
+                                url:'/finance/cancelinvoice/doinsertcancelinvoice',
+                                success:function(form,action){
+                                    Ext.getBody().unmask();
+                                    obj =  action.result;
+
+                                    if (obj.success)
+                                    {
+                                        Ext.Msg.alert ('Message','Success, Data has been saved' + '<br><br>Your Transaction number is <b><font color="#ff0000">' + obj.number + '</font></b>' );
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                        url: '/finance/cancelinvoice/insertcancelinvoice',
+                                        scripts : true
+                                        });
+                                    }else
+                                    {
+                                        Ext.Msg.alert('Error', obj.msg);
+                                    }
+                                },
+                                failure:function( action){
+                                    Ext.getBody().unmask();
+                                    if(action.failureType == 'server'){
+                                      obj = Ext.util.JSON.decode(action.response.responseText);
+                                      Ext.Msg.alert('Error!', obj.errors.reason);
+                                    }else{
+                                      Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                    }
+                                }
+
+                            })
+                        }
+
+                    })
+                }
+            }]
+
+        })
+
+    })
+
+
+
+
+
+</script>
+
+    <div id="insert_cancel_invoice_panel"></div>
+    <div id="gridjurnal" style="margin-left: 10px"></div>

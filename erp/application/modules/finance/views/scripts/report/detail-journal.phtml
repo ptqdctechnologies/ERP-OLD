@@ -1,0 +1,488 @@
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        var detail = false, detailTrano = false, detailMonth = false;
+
+        var checkValid = function(all)
+        {
+            (all == '') ? all = false : all = true;
+
+            var prj = Ext.getCmp('prj_kode_text').getValue(),
+                    coa = Ext.getCmp('coa_kode_text').getValue();
+
+//            if (prj == '' || prj == undefined)
+//            {
+//                Ext.Msg.alert("Error", "Please select Project");
+//                return false;
+//            }
+
+            if (!all)
+            {
+                if (coa == '' || coa == undefined)
+                {
+                    Ext.Msg.alert("Error", "Please select COA");
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+        var checkValid2 = function()
+        {
+
+            var trano = Ext.getCmp('trano_text').getValue();
+
+            if (trano == '' || trano == undefined)
+            {
+                Ext.Msg.alert("Error", "Please select Trano");
+                return false;
+            }
+
+            return true;
+        };
+
+        var checkValid3 = function()
+        {
+
+            var month = Ext.getCmp('month').getValue();
+
+            if (month == '' || month == undefined)
+            {
+                Ext.Msg.alert("Error", "Please select Month");
+                return false;
+            }
+
+            return true;
+        };
+
+        var windowForm = new Ext.Panel({
+            title: 'Detail Journal Report',
+            id: 'abs-budget-panel',
+            layout: 'fit',
+            bodyCfg: {cls: 'xpanel-body-table', style: {'overflow': 'auto'}},
+            bodyStyle: 'padding:15px;',
+            loadMask: true,
+            minWidth: 300,
+            minHeight: 200,
+            tbar: {// configured using the anchor layout
+                xtype: 'container',
+                layout: 'anchor',
+                height: 27 * 3,
+                defaults: {height: 27, anchor: '100%'},
+                items: [
+                    new Ext.Toolbar({
+                        items: [
+//                            {
+//                                xtype: 'label',
+//                                text: 'By Project >>',
+//                                style:'font-weight:bold;margin-left:10px;'
+//                            },'-',
+                            {
+                                xtype: 'label',
+                                text: 'Project'
+                            }, '-',
+                            {
+                                xtype: 'projectselectorreport',
+                                anchor: '100%',
+                                id: 'project-select',
+                                Selectid: 'prj_kode_text',
+                                Nameid: 'prj_nama_text',
+                                ShowName: false,
+                                showAll: true
+                            },
+                            {
+                                xtype: 'label',
+                                text: 'COA Code'
+                            }, '-',
+                            {
+                                xtype: 'coaselector',
+                                fieldLabel: 'Chart Of Account',
+                                id: 'coa_kodes',
+                                Selectid: 'coa_kode_text',
+                                Nameid: 'coa_nama_text',
+//                    width:180,
+                                ShowName: false
+                            }, '-', {
+                                xtype: 'label',
+                                text: 'Month & Year'
+                            }, '-', {
+                                xtype: 'datefield',
+                                name: 'month',
+                                id: 'month',
+                                allowBlank: false,
+                                msgTarget: 'side',
+                                format: 'm-Y', // or other format you'd like
+                                plugins: 'monthPickerPlugin'
+                            },
+                            {
+                                xtype: 'button',
+                                text: 'Reset',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/lov_refresh.gif",
+                                handler: function() {
+                                    Ext.getCmp('prj_kode_text').setValue('');
+                                    Ext.getCmp('coa_kode_text').setValue('');
+                                    Ext.getCmp('month').setValue('');
+                                }
+                            },
+                            '-',
+                            {
+                                xtype: 'button',
+                                text: 'Show',
+                                width: 70,
+                                id: 'show_report',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/control_rewind.png",
+                                handler: function(btn, ev)
+                                {
+                                    if (checkValid())
+                                    {
+                                        detail = false;
+                                        var month = Ext.getCmp('month').getValue();
+                                        var D = Ext.calendar.Date;
+                                        
+                                        if (month != '' || month != undefined)
+                                            month = D.formatDate(month, 'yyyy-mm');
+
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/finance/report/view-detail-journal',
+                                            params: {
+                                                prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                                                coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                                                month: month
+                                            },
+                                            scripts: true
+                                        });
+                                    }
+                                }
+                            }, '-',
+                            {
+                                xtype: 'button',
+                                text: 'Show Detail per Transaction',
+                                width: 70,
+                                id: 'show_report_all',
+                                cls: "x-btn-text-icon",
+                                icon: "/images/icons/fam/control_rewind.png",
+                                handler: function(btn, ev)
+                                {
+                                    if (checkValid(true))
+                                    {
+                                        detail = true;
+                                        var month = Ext.getCmp('month').getValue();
+                                        var D = Ext.calendar.Date;
+                                        if (month != '' || month != undefined)
+                                            month = D.formatDate(month, 'yyyy-mm');
+
+                                        myPanel = Ext.getCmp('abs-budget-panel');
+                                        myPanel.body.load({
+                                            url: '/finance/report/view-detail-journal-trans',
+                                            params: {
+                                                prj_kode: Ext.getCmp('prj_kode_text').getValue(),
+                                                coa_kode: Ext.getCmp('coa_kode_text').getValue(),
+                                                month: month
+                                            },
+                                            scripts: true
+                                        });
+                                    }
+                                }
+                            },
+                            '-',
+                            {
+                                xtype: 'button',
+                                id: 'export_button',
+                                cls: "x-btn-icon",
+                                icon: "/images/print.png",
+                                handler: function()
+                                {
+                                    if (!detail)
+                                    {
+                                        if (checkValid())
+                                        {
+                                            var prj_kode = Ext.getCmp('prj_kode_text').getValue(),
+                                                    coa_kode = Ext.getCmp('coa_kode_text').getValue();
+
+                                            var month = Ext.getCmp('month').getValue();
+                                            var D = Ext.calendar.Date;
+                                            if (month != '' || month != undefined)
+                                                month = D.formatDate(month, 'yyyy-mm');
+
+
+                                            location.href = '/finance/report/view-detail-journal/export/true/prj_kode/' + prj_kode + '/coa_kode/' + coa_kode + '/month/' + month;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (checkValid(true))
+                                        {
+                                            var prj_kode = Ext.getCmp('prj_kode_text').getValue(),
+                                                    coa_kode = Ext.getCmp('coa_kode_text').getValue();
+
+                                            var month = Ext.getCmp('month').getValue();
+                                            var D = Ext.calendar.Date;
+                                            if (month != '' || month != undefined)
+                                                month = D.formatDate(month, 'yyyy-mm');
+
+                                            location.href = '/finance/report/view-detail-journal-trans/export/true/prj_kode/' + prj_kode + '/coa_kode/' + coa_kode + '/month/' + month;
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    })
+//                    new Ext.Toolbar({
+//                        items : [
+//                            {
+//                                xtype: 'label',
+//                                text: 'By Transaction >>',
+//                                style:'font-weight:bold;margin-left:10px;'
+//                            },'-',
+//                            {
+//                                xtype: 'label',
+//                                text: 'Trano'
+//                            },'-',
+//                            {
+//                                xtype: 'tranoselector',
+//                                id: 'tranos',
+//                                Selectid: 'trano_text',
+//                                width: 120
+//                            },
+//                            {
+//                                xtype: 'button',
+//                                text: 'Reset',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/lov_refresh.gif",
+//                                handler: function(){
+//                                    Ext.getCmp('trano_text').setValue('');
+//                                }
+//                            },
+//                            '-',
+//                            {
+//                                xtype: 'button',
+//                                text: 'Show',
+//                                width:70,
+//                                id: 'show_report_trano',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/control_rewind.png",
+//                                handler:function(btn,ev)
+//                                {
+//                                    if(checkValid2())
+//                                    {
+//                                        detailTrano = false;
+//                                        myPanel = Ext.getCmp('abs-budget-panel');
+//                                        myPanel.body.load({
+//                                            url: '/finance/report/view-detail-journal',
+//                                            params: {
+//                                                trano : Ext.getCmp('trano_text').getValue()
+//                                            },
+//                                            scripts : true
+//                                        });
+//                                    }
+//                                }
+//                            },'-',
+//                            {
+//                                xtype: 'button',
+//                                text: 'Show Detail per Transaction',
+//                                width:70,
+//                                id: 'show_report_all_trano',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/control_rewind.png",
+//                                handler:function(btn,ev)
+//                                {
+//                                    if(checkValid2())
+//                                    {
+//                                        detailTrano = true;
+//                                        myPanel = Ext.getCmp('abs-budget-panel');
+//                                        myPanel.body.load({
+//                                            url: '/finance/report/view-detail-journal-trans',
+//                                            params: {
+//                                                trano : Ext.getCmp('trano_text').getValue()
+//                                            },
+//                                            scripts : true
+//                                        });
+//                                    }
+//                                }
+//                            },
+//                            '-',
+//                            {
+//                                xtype: 'button',
+//                                id: 'export_button_trano',
+//                                cls:"x-btn-icon" ,
+//                                icon:"/images/print.png",
+//                                handler:function()
+//                                {
+//                                    if (!detailTrano)
+//                                    {
+//                                        if(checkValid2())
+//                                        {
+//                                            var trano = Ext.getCmp('trano_text').getValue();
+//
+//                                            location.href = '/finance/report/view-detail-journal/export/true/trano/' + trano;
+//                                        }
+//                                    }
+//                                    else
+//                                    {
+//                                        if(checkValid2(true))
+//                                        {
+//                                            var trano = Ext.getCmp('trano_text').getValue();
+//
+//                                            location.href = '/finance/report/view-detail-journal-trans/export/true/trano/' + trano;
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        ]
+//                    }),
+//                    new Ext.Toolbar({
+//                        items : [
+//                            {
+//                                xtype: 'label',
+//                                text: 'By Month >>',
+//                                style:'font-weight:bold;margin-left:10px;'
+//                            },'-',
+//                            {
+//                                xtype:'label',
+//                                text:'Month & Year'
+//                            },'-',{
+//                                xtype:'datefield',
+//                                name: 'month',
+//                                id: 'month',
+//                                allowBlank:false,
+//                                msgTarget:'side',
+//                                format: 'm-Y', // or other format you'd like
+//                                plugins: 'monthPickerPlugin'
+//                            },
+//                            {
+//                                xtype: 'button',
+//                                text: 'Reset',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/lov_refresh.gif",
+//                                handler: function(){
+//                                    Ext.getCmp('month').setValue('');
+//                                }
+//                            },
+//                            '-',
+//                            {
+//                                xtype: 'button',
+//                                text: 'Show',
+//                                width:70,
+//                                id: 'show_report_month',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/control_rewind.png",
+//                                handler:function(btn,ev)
+//                                {
+//                                    if(checkValid3())
+//                                    {
+//                                        detailMonth = false;
+//                                        var month = Ext.getCmp('month').getValue();
+//                                        var D = Ext.calendar.Date;
+//                                        month = D.formatDate(month,'yyyy-mm');
+//                                        myPanel = Ext.getCmp('abs-budget-panel');
+//                                        myPanel.body.load({
+//                                            url: '/finance/report/view-detail-journal',
+//                                            params: {
+//                                                month : month
+//                                            },
+//                                            scripts : true
+//                                        });
+//                                    }
+//                                }
+//                            },'-',
+//                            {
+//                                xtype: 'button',
+//                                text: 'Show Detail per Transaction',
+//                                width:70,
+//                                id: 'show_report_all_month',
+//                                cls:"x-btn-text-icon" ,
+//                                icon:"/images/icons/fam/control_rewind.png",
+//                                handler:function(btn,ev)
+//                                {
+//                                    if(checkValid3())
+//                                    {
+//                                        detailMonth = true;
+//                                        var month = Ext.getCmp('month').getValue();
+//                                        var D = Ext.calendar.Date;
+//                                        month = D.formatDate(month,'yyyy-mm');
+//                                        myPanel = Ext.getCmp('abs-budget-panel');
+//                                        myPanel.body.load({
+//                                            url: '/finance/report/view-detail-journal-trans',
+//                                            params: {
+//                                                month : month
+//                                            },
+//                                            scripts : true
+//                                        });
+//                                    }
+//                                }
+//                            },
+//                            '-',
+//                            {
+//                                xtype: 'button',
+//                                id: 'export_button_month',
+//                                cls:"x-btn-icon" ,
+//                                icon:"/images/print.png",
+//                                handler:function()
+//                                {
+//                                    if (!detailMonth)
+//                                    {
+//                                        if(checkValid3())
+//                                        {
+//                                            var month = Ext.getCmp('month').getValue();
+//                                            var D = Ext.calendar.Date;
+//                                            month = D.formatDate(month,'yyyy-mm');
+//
+//                                            location.href = '/finance/report/view-detail-journal/export/true/month/' + month;
+//                                        }
+//                                    }
+//                                    else
+//                                    {
+//                                        if(checkValid3(true))
+//                                        {
+//                                            var month = Ext.getCmp('month').getValue();
+//                                            var D = Ext.calendar.Date;
+//                                            month = D.formatDate(month,'yyyy-mm');
+//
+//                                            location.href = '/finance/report/view-detail-journal-trans/export/true/month/' + month;
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        ]
+//                    })
+                ]
+            }
+        });
+
+        var tbar1 = [
+        ];
+
+        var tbar2 = new Ext.Toolbar({
+            items: [
+                {
+                    xtype: 'label',
+                    text: 'COA Code'
+                }, '-'
+
+            ]
+        })
+
+//        windowForm.getTopToolbar().add(tbar1);
+//        windowForm.getTopToolbar().add(tbar2);
+
+        viewPort = Ext.getCmp('viewport');
+
+        centerRegionTab = viewPort.getComponent('content-panel');
+        centerRegionTab.items.each(function(c) {
+            centerRegionTab.remove(c);
+        });
+        centerRegionTab.add(windowForm);
+        panelBaru = Ext.getCmp('abs-budget-panel');
+        centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+    })
+
+
+</script>

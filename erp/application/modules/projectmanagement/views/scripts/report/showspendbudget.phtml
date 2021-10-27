@@ -1,0 +1,190 @@
+<script type="text/javascript">
+
+showPrint = function() {
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+    sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+        if (prjKode == '')
+        {
+                Ext.MessageBox.show({
+                   title: 'Error',
+                   msg: 'Please Insert/Select Project Code!',
+                   buttons: Ext.MessageBox.OK,
+                   icon: Ext.MessageBox.ERROR
+               });
+                 return false;
+
+        }
+
+    var downloadPrint = function(prjKode,sitKode)
+    {
+        var params = {
+            prj_kode : prjKode,
+            sit_kode : sitKode,
+            export: true
+        };
+        
+      
+           url = '/projectmanagement/report/spendbudget';
+        
+        downloadFile(url,params);
+    }
+
+    if (sitKode == '')
+        {
+//                Ext.MessageBox.show({
+//                   title: 'Error',
+//                   msg: 'Please Insert/Select Site Code!',
+//                   buttons: Ext.MessageBox.OK,
+//                   icon: Ext.MessageBox.ERROR
+//               });
+//                 return false;
+
+        Ext.MessageBox.confirm('Warning','Choosing only Project will be decreasing Server Performance, particularly project with many Sites. Continue?', function(btn){
+            if (btn == 'yes')
+            {
+                downloadPrint(prjKode,sitKode);
+            }
+        });
+        }
+    else
+        downloadPrint(prjKode,sitKode);
+
+
+//    window.open('/projectmanagement/report/general/print/true/prj_kode/' + prjKode + '/sit_kode/' + sitKode,'general-report','toolbar=0');
+}
+
+showBudget = function(){
+    myPanel = Ext.getCmp('abs-budget-panel');
+    prjKode = Ext.getCmp('prj_kode_text').getValue();
+    sitKode = Ext.getCmp('sit_kode_text').getValue();
+
+
+    if (prjKode == '')
+        {
+                Ext.MessageBox.show({
+                   title: 'Error',
+                   msg: 'Please Insert/Select Project Code!',
+                   buttons: Ext.MessageBox.OK,
+                   icon: Ext.MessageBox.ERROR
+               });
+                 return false;
+
+        }
+
+    var showReport = function(prjKode,sitKode){
+        
+             url = '/projectmanagement/report/spendbudget/prj_kode/' + prjKode + '/sit_kode/' + sitKode;
+        
+
+        myPanel.body.load({
+            url: url,
+            scripts: true
+
+        });
+    }
+
+    if (sitKode == '')
+        {
+//                Ext.MessageBox.show({
+//                   title: 'Error',
+//                   msg: 'Please Insert/Select Site Code!',
+//                   buttons: Ext.MessageBox.OK,
+//                   icon: Ext.MessageBox.ERROR
+//               });
+//                 return false;
+        summary = true;
+        Ext.MessageBox.confirm('Warning','Choosing only Project will be decreasing Server Performance, particularly project with many Sites. Continue?', function(btn){
+            if (btn == 'yes')
+            {
+                showReport(prjKode,sitKode);
+            }
+        });
+        }
+    else
+        showReport(prjKode,sitKode);
+};
+
+        
+var windowForm =  ({
+
+    title: 'Spend Budget Report',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    minWidth: 300,
+    minHeight: 200,
+    loadMask: true,
+    tbar:[
+        {
+            xtype: 'tbtext',
+            text: 'Project Code'
+        },
+        {
+            xtype: 'projectselectorreport',
+            fieldLabel: 'Project Code',
+            anchor: '100%',
+            id: 'project-select',
+            Selectid: 'prj_kode_text',
+            Nameid: 'prj_nama_text',
+            ShowName: false,
+//            typeProject: true,
+            showAll: true
+        }
+        ,'-',
+        {
+            xtype: 'tbtext',
+            text: 'Site Code'
+        },
+        {
+            xtype: 'siteselector',
+            fieldLabel: 'Site Code',
+            anchor: '100%',
+            independent: false,
+            id: 'site-select',
+            SiteSelectid: 'sit_kode_text',
+            SiteNameid: 'sit_nama_text',
+            ProjectSelectid: 'prj_kode_text',
+            ShowName: false,
+            showAll: true
+        },
+//        '-',
+//        {
+//            xtype: 'tbtext',
+//            text: 'Summary Only'
+//        },
+//        {
+//            xtype:'checkbox',
+//            id: 'summary_only'
+//        },
+        '-',
+        {
+            xtype: 'button',
+            text: 'Show',
+            width:70,
+            id: 'show_budget',
+            cls:"x-btn-text-icon" ,
+            icon:"/images/icons/fam/control_rewind.png",
+            handler:showBudget
+        },
+        '-',
+        {
+            xtype: 'button',
+            id: 'export_button',
+            cls:"x-btn-icon" ,
+            icon:"/images/print.png",
+            handler: showPrint
+        }
+    ]
+});
+
+
+  viewPort = Ext.getCmp('viewport');
+
+ centerRegionTab = viewPort.getComponent('content-panel');
+ centerRegionTab.items.each(function(c){centerRegionTab.remove(c);})
+ centerRegionTab.add(windowForm);
+ panelBaru = Ext.getCmp('abs-budget-panel');
+ centerRegionTab.layout.setActiveItem('abs-budget-panel');
+</script>

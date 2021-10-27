@@ -1,0 +1,244 @@
+<script type="text/javascript">
+
+    var subbisnisstore = new Ext.data.Store ({
+
+        url:'/logistic/logisticbarang/getsubbisnis',
+        autoLoad:true,
+        id:'subbisnisstore',
+        reader:new Ext.data.JsonReader ({
+            root:'data',
+            totalProperty:'total',
+            fields:[{
+                name:'id'
+            },{
+                name:'kode_bisnis_sub'
+            },{
+                name:'nama_bisnis'
+            }]
+
+        })
+
+    })
+
+    function editsubbisnis (id)
+    {
+        var bisnis = subbisnisstore.getAt(subbisnisstore.findExact('id',id));
+        var code_subbisnis = bisnis.get('kode_bisnis_sub');
+        var name_subbisnis = bisnis.get('nama_bisnis');
+
+        var formpanel = new Ext.form.FormPanel ({
+
+            title:'Edit Sub Bisnis',
+            id:'edit-subbisnis',
+            frame:true,
+            layout:'form',
+            width:346,
+            items:[{
+                xtype:'textfield',
+                fieldLabel:'Sub Bisnis Code ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'subbisnis-code',
+                maxLength:2,
+                value:code_subbisnis
+            },{
+                xtype:'textfield',
+                fieldLabel:'Sub Bisnis Name ',
+                labelStyle:'width:140',
+                allowBlank: false,
+                id:'subbisnis-name',
+                value:name_subbisnis
+            }],
+            buttons:[{
+                text:'Update',
+                handler:function(btn,ev)
+                {
+                    Ext.getCmp('edit-subbisnis').getForm().submit({
+                        method:'POST',
+                        url:'/logistic/logisticbarang/doupdatesubbisnis/id/' + id,
+                        success:function(thisForm,response){
+                            windowinsert.close();
+
+                            subbisnisstore.reload();
+                            Ext.getCmp('subbisnis-list').getView().refresh();
+
+                        },
+                        failure:function(thisForm,response){
+                            if (response.failureType == 'server')
+                            {
+                                var resp = Ext.util.JSON.decode(response.response.responseText);
+                                Ext.Msg.alert('Error',resp.pesan);
+                            }
+                        }
+                    })
+                }
+            },{
+                text:'Close',
+                handler:function(btn,ev)
+                {
+                    windowinsert.close();
+                }
+            }]
+
+        })
+
+        var windowinsert = new Ext.Window ({
+
+//                title:'Choose Brand',
+                id:'window-insert',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanel]
+
+            })
+
+            windowinsert.show();
+    }
+
+    Ext.onReady(function(){
+
+        Ext.QuickTips.init();
+
+        function insertsubbisnis ()
+        {
+            var formpanelsubbisnis = new Ext.form.FormPanel ({
+
+                    title:'Insert Sub Bisnis',
+                    id:'insert-subbisnis',
+                    frame:true,
+                    layout:'form',
+                    width:346,
+                    items:[{
+                        xtype:'textfield',
+                        fieldLabel:'Sub Bisnis Code ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'sub_bisnis_code',
+                        maxLength:2
+                    },{
+                        xtype:'textfield',
+                        fieldLabel:'Sub Bisnis Name ',
+                        labelStyle:'width:140',
+                        allowBlank: false,
+                        id:'sub_bisnis_name'
+                    }],
+                    buttons:[{
+                        text:'Submit',
+                        handler:function(btn,ev)
+                        {
+                            Ext.getCmp('insert-subbisnis').getForm().submit({
+                                method:'POST',
+                                url:'/logistic/logisticbarang/doinsertsubbisnis',
+                                success:function(thisForm,response){
+                                    windowinsertsubbisnis.close();
+
+                                    subbisnisstore.reload();
+                                    Ext.getCmp('subbisnis-list').getView().refresh();
+
+                                },
+                                failure:function(thisForm,response){
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error',resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    },{
+                        text:'Close',
+                        handler:function(btn,ev)
+                        {
+                            windowinsertsubbisnis.close();
+                        }
+                    }]
+
+                })
+
+
+            var windowinsertsubbisnis = new Ext.Window ({
+
+                id:'window-insert-subbisnis',
+                layout:'absolute',
+                minHeight: 200,
+                stateful:false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height:150,
+                loadMask:true,
+                items:[formpanelsubbisnis]
+
+            })
+
+            windowinsertsubbisnis.show();
+        }
+
+        var subbisnisgrid = new Ext.grid.GridPanel ({
+
+            store:subbisnisstore,
+            title:'Sub Bisnis List',
+            id:'subbisnis-list',
+            renderTo:'subbisnis_list',
+            viewConfig:{
+                forceFit:true
+            },
+            width:340,
+            height:260,
+            frame:true,
+            columns:[new Ext.grid.RowNumberer(),
+            {
+                id:'edit',
+                header:'Edit',
+                width:40,
+                sortable:true,
+                css:'text-align:center;',
+                renderer: function (v,p,r) {
+                        return '<a href="#" onclick="editsubbisnis(\'' + r.data['id'] + '\')"><img src="/images/g_rec_upd.png"></a>&nbsp;';
+                }
+            },{
+                header:'Sub Bisnis Code',
+                dataIndex:'kode_bisnis_sub',
+                align:'center',
+                sortable:true
+            },{
+                header:'Sub Bisnis Name',
+                dataIndex:'nama_bisnis',
+                align:'center',
+                sortable:true
+            }],
+            bbar:new Ext.PagingToolbar ({
+                id: 'paging-subbisnis',
+                pageSize: 20,
+                store: subbisnisstore,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            }),
+            tbar:[{
+                xtype:'button',
+                text:'Create New',
+                iconCls:'silk-add',
+                handler:function(btn,ev)
+                {
+                    insertsubbisnis();
+                }
+            }]
+
+        })
+
+
+
+    })
+
+</script>
+
+    <div id="subbisnis_list"></div>

@@ -1,0 +1,341 @@
+<?php if ($this->noData) { ?>No Data to display....<? die;} ?>
+
+<!-- base library -->
+<link rel="stylesheet" type="text/css" href="/css/ext-all.css" />
+<link rel="stylesheet" type="text/css" href="/images/icons/silk.css" />
+<link rel="stylesheet" type="text/css" href="/js/layout/ux/css/GridSummary.css" />
+
+<!-- ** Javascript ** -->
+
+<script type="text/javascript" src="/js/layout/base/config.js"></script>
+
+<!-- ExtJS library: all widgets -->
+<script type="text/javascript" src="/js/ext-base.js"></script>
+<script type="text/javascript" src="/js/ext-all.js"></script>
+<script type="text/javascript" src="/js/layout/base/patchforextjs3-firefoxbugs.js"></script>
+<script type="text/javascript" src="/js/layout/ux/gridsummary.js"></script>
+
+<style>
+    #first {
+        width: 360px;
+        border: 1px solid #000;
+        padding: 5px;
+        margin-right: 10px;
+        margin-left: 10px;
+        float: left;
+    }
+    
+    #date {
+        width: 360px;
+        border: 0;
+        padding: 5px;
+        margin-right: 10px;
+        margin-left: 10px;
+        
+    }
+
+    #second {
+        width: 360px;
+        border: 1px solid #000;
+        padding: 5px;
+        float: left;
+    }
+    body {
+        font-size: 12px;
+    }
+    .header {
+        /*background-color: #01C9F9;*/
+        border: 1px #000000 solid;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: left;
+        /*color: #404040;*/
+    }
+</style>
+
+<script type="text/javascript">
+    Ext.onReady(function(){
+        Ext.QuickTips.init();
+        
+        var dataBefore = <?=$this->json?>;
+        var dataAfter = <?=$this->json2?>;
+
+        function loadFirst(n)
+        {
+            var firstData = dataBefore[n];
+            storeFirst.loadData({posts: firstData['detail']});
+            gridFirst.getView().refresh();
+            
+            var html = '';
+            if (n > 0)
+            {
+                html = 'Before : ';// + firstData['uid'] + ' (' + firstData['action'] + ')';
+                requester1='<b>Requester :</b> ' + firstData['header']['requester'];    
+                reason1 ='<b>Reason To Travel:</b> ' + firstData['header']['reason'];
+                travelDate1 ='<b>Travel Date :</b> ' + firstData['header']['tgl_awal'] + ' - ' + firstData['header']['tgl_akhir'];
+                headStation1='<b>Head Station Location :</b> ' + firstData['header']['head_station'];
+                businessTrip1 = '<b>Business Trip Location :</b> ' + firstData['header']['bt_location'];
+            }
+
+            document.getElementById('header1').innerHTML = html;
+            document.getElementById('requester1').innerHTML = requester1;
+            document.getElementById('reason1').innerHTML = reason1;  
+            document.getElementById('travelDate1').innerHTML = travelDate1;    
+            document.getElementById('headStation1').innerHTML = headStation1;
+            document.getElementById('businessTrip1').innerHTML = businessTrip1;
+        }
+
+        function loadSecond(n)
+        {
+
+            var secondData = dataAfter[n];
+            storeSecond.loadData({posts: secondData['detail']});
+            gridSecond.getView().refresh();
+
+            var html = '';
+            if (n > 0)
+            {
+                html = 'After : ' + secondData['uid'] + ' (' + secondData['action'] + ')';
+                requester2='<b>Requester :</b> ' + secondData['header']['requester'];                
+                reason2 ='<b>Reason To Travel:</b> ' + secondData['header']['reason'];
+                travelDate2 ='<b>Travel Date :</b> ' + secondData['header']['tgl_awal'] + ' - ' + secondData['header']['tgl_akhir'];
+                headStation2='<b>Head Station Location :</b> ' + secondData['header']['head_station'];
+                businessTrip2 = '<b>Business Trip Location :</b> ' + secondData['header']['bt_location'];
+            }
+
+            document.getElementById('header2').innerHTML = html;
+            document.getElementById('requester2').innerHTML = requester2;
+            document.getElementById('reason2').innerHTML = reason2;  
+            document.getElementById('travelDate2').innerHTML = travelDate2;    
+            document.getElementById('headStation2').innerHTML = headStation2;
+            document.getElementById('businessTrip2').innerHTML = businessTrip2;  
+        }
+
+        var readerCombo = new Ext.data.JsonReader(
+            {
+                root : 'posts'
+            },
+            [
+                {name: 'id'},
+                {name: 'name'}
+            ]
+        );
+
+        var storeCombo = new Ext.data.Store({
+            id: 'store-combo',
+            reader: readerCombo
+        });
+        storeCombo.loadData(<?=$this->jsonCombo?>);
+
+        var readerData = new Ext.data.JsonReader(
+                {
+                    root : 'posts'
+                },
+                [
+                    {name: 'id'},
+                    {name: 'prj_kode'},
+                    {name: 'sit_kode'},
+                    {name: 'kode_brg'},
+                    {name: 'nama_brg'},
+                    {name: 'workid'},
+                    {name: 'allowance'},
+                    {name: 'transport'},
+                    {name: 'airport_tax'},
+                    {name: 'accomodation'},
+                    {name: 'others'},
+                    {name: 'total'},
+                    {name: 'val_kode'}
+                ]
+        );
+
+        var storeFirst = new Ext.data.Store({
+            id: 'store-first',
+            reader: readerData,
+            sortInfo: { field: 'kode_brg', direction: 'ASC'}
+        });
+
+        var storeSecond = new Ext.data.Store({
+            id: 'store-second',
+            reader: readerData,
+            sortInfo: { field: 'kode_brg', direction: 'ASC'}
+        });
+
+        var summary = new Ext.ux.grid.GridSummary();
+        var summary2 = new Ext.ux.grid.GridSummary();
+
+        var columnsFirst = [
+            new Ext.grid.RowNumberer(),
+            {header: "Project-Site",width: 100, dataIndex: 'prj_kode', renderer: function(v,p,r){
+                return v + ' - ' + r.get("sit_kode");
+            }},
+            {header: "Product Code",width: 100, dataIndex: 'kode_brg'},
+            {header: "Name",width: 100, dataIndex: 'nama_brg'},
+            {header: "Sequence",width: 100, dataIndex: 'sequence'},
+            {header: "Allowance",width: 80, align: 'right',dataIndex: 'allowance', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Transport",width: 80, align: 'right',dataIndex: 'transport', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Airport Tax",width: 80, align: 'right',dataIndex: 'airport_tax', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Accomodation",width: 80, align: 'right',dataIndex: 'accomodation', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Others",width: 120, align: 'right',dataIndex: 'others', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Total",width: 120, align: 'right',dataIndex: 'total', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Currency",width: 100, dataIndex: 'val_kode'}
+        ];
+
+        var columnsSecond = [
+            new Ext.grid.RowNumberer(),
+            {header: "Project-Site",width: 100, dataIndex: 'prj_kode', renderer: function(v,p,r){
+                return v + ' - ' + r.get("sit_kode");
+            }},
+            {header: "Product Code",width: 100, dataIndex: 'kode_brg'},
+            {header: "Name",width: 100, dataIndex: 'nama_brg'},
+            {header: "Sequence",width: 100, dataIndex: 'sequence'},
+            {header: "Allowance",width: 80, align: 'right',dataIndex: 'allowance', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Transport",width: 80, align: 'right',dataIndex: 'transport', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Airport Tax",width: 80, align: 'right',dataIndex: 'airport_tax', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Accomodation",width: 80, align: 'right',dataIndex: 'accomodation', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Others",width: 120, align: 'right',dataIndex: 'others', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            }},
+            {header: "Total",width: 120, align: 'right',dataIndex: 'total', renderer: function(v, p, r){
+                return Ext.util.Format.number(v, '?0,000.00?');
+            },summaryType: 'sum'},
+            {header: "Currency",width: 100, dataIndex: 'val_kode'}
+        ];
+
+        var gridFirst = new Ext.grid.GridPanel ({
+            id:'grid-first',
+            height: 200,
+            store: storeFirst,
+            trackMouseOver: true,
+            autoWidth: true,
+            view : new Ext.grid.GridView({
+//                forceFit: true
+            }),
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true,
+                listeners: {
+                    'rowselect': function(t, rowIndex, rec){
+                        var kode_brg = rec.get("kode_brg"),
+                            secondRow = gridSecond.getStore().findExact('kode_brg',kode_brg);
+
+                        gridSecond.getSelectionModel().clearSelections();
+                        if (secondRow >= 0)
+                        {
+                            gridSecond.getSelectionModel().selectRow(secondRow,false);
+                        }
+
+                    }
+                }
+            }),
+            columns: columnsFirst,
+            renderTo: 'grid1',
+            plugins: [summary]
+        });
+
+        var gridSecond = new Ext.grid.GridPanel ({
+            id:'grid-second',
+            height: 200,
+            store: storeSecond,
+            trackMouseOver: true,
+            autoWidth: true,
+            view : new Ext.grid.GridView({
+
+            }),
+            sm: new Ext.grid.RowSelectionModel({
+                singleSelect:true,
+                listeners: {
+                    'rowselect': function(t, rowIndex, rec){
+
+                    }
+                }
+            }),
+            columns: columnsSecond,
+            renderTo: 'grid2',
+            plugins: [summary2]
+        });
+        
+        var formDate = new Ext.form.FormPanel({
+            id: 'form-date',
+            frame: false,
+            border: false,
+            renderTo: 'form_date',
+            items: [
+                {
+                    id: 'combo-second',
+                    xtype: 'combo',
+                    width: 200,
+                    triggerAction: 'all',
+                    mode: 'local',
+                    fieldLabel: 'Revision ',
+                    editable: false,
+                    displayField: 'name',
+                    valueField: 'id',
+                    value: <?=$this->lastRev?>,
+                    store: storeCombo,
+                    listeners: {
+                        'select': function(t,n,o){
+                            loadSecond(n.get("id"));
+                            loadFirst(n.get("id"));
+                        }
+                    }
+                }
+            ]
+        });
+
+        loadFirst(<?=$this->lastRev?>);
+        loadSecond(<?=$this->lastRev?>);
+    });
+</script>
+
+<center><h1 style="font-size: 20px;">Revision History for BRF : <?=$this->trano?></h1></center>
+<br>
+<div id="date"><div id="form_date"></div></div>
+<br>
+<div id="first">
+    <div id="header1" class="header"></div><br>
+    <div id="grid1"></div>
+    <br>
+    <p id="requester1"></p>
+    <br>
+    <p id="reason1"></p>
+    <br>
+    <p id="travelDate1"></p>
+    <br>
+    <p id="headStation1"></p>
+    <br>
+    <p id="businessTrip1"></p>
+</div>
+
+<div id="second">
+    <div id="header2" class="header"></div><br>
+    <div id="grid2"></div>
+    <br>
+    <p id="requester2"></p>
+    <br>
+    <p id="reason2"></p>
+    <br>
+    <p id="travelDate2"></p>
+    <br>
+    <p id="headStation2"></p>
+    <br>
+    <p id="businessTrip2"></p>
+</div>

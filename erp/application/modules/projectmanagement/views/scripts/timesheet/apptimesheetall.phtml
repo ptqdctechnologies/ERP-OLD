@@ -1,0 +1,623 @@
+
+<script type="text/javascript">
+
+<?php
+    $arr = array();
+    $arr2 = array();
+    foreach($this->result as $key => $val)
+    {
+        foreach($val as $key2 => $val2)
+        {
+            foreach($val2['trano'] as $key3 => $val3)
+            {
+                if (!in_array($val3,$arr))
+                    $arr[] = $val3;
+            }
+
+            foreach($val2['trans_id'] as $key3 => $val3)
+            {
+                if (!in_array($val3,$arr2))
+                    $arr2[] = $val3;
+            }
+        }
+    }
+?>
+var alltrano = '<?=implode(",",$arr)?>';
+var alltrans = '<?=implode(",",$arr2)?>';
+
+function rejectTsheet(trano,trans_id,prjKode,uidFirst,rowId)
+{
+    var win = new Ext.Window ({
+        id: 'window-comment',
+        layout: 'border',
+        width: 350,
+        height: 200,
+        modal: true,
+        closeAction: 'close',
+        resizable: false,
+        title: 'Insert comment',
+        style: 'margin-top: 10px',
+        labelAlign: 'right',
+        stateful: false,
+        items :
+        [
+            new Ext.form.FormPanel({
+                frame: true,
+                region: 'center',
+                layout: 'fit',
+                items: [
+                    {
+                        xtype: 'textarea',
+                        id: 'user-comment'
+                    }
+                ]
+            })
+        ],
+        buttons: [
+            {
+                text: 'OK',
+                handler: function(){
+                    var comment = Ext.getCmp('user-comment').getValue().toString().replace(/\"|\'|\t|\n|\r/g,'');
+                    params = {trans:trano,trans_id:trans_id,uid:uidFirst, prj_kode:prjKode, user: '<?=$this->uidNext?>', comment: comment, user_id:'<?=$this->userID?>',docType: 'TSHEET'};
+		            Ext.Ajax.request({
+                        url: '/admin/workflow/reject',
+                        method:'POST',
+                        success: function(resp){
+                            var returnData = Ext.util.JSON.decode(resp.responseText);
+                            if (returnData.success)
+                            {
+                                var isi = '<th scope="row" class="spec">&nbsp</th><td>&nbsp</td><td align="right">&nbsp</td><td>&nbsp</td>';
+
+                                var hour = parseFloat(document.getElementById('tsheet-row-hour' + rowId).innerHTML);
+                                var hourTotal = parseFloat(document.getElementById('tsheet-row-total').innerHTML);
+                                document.getElementById('tsheet-row-' + rowId).innerHTML = isi;
+                                document.getElementById('tsheet-row-total').innerHTML = hourTotal-hour;
+
+                                if (win)
+                                    win.close();
+//                                getDocs();
+                            }
+                            else
+                            {
+                                Ext.Msg.alert('Error', returnData.msg);
+                            }
+                        },
+                        failure:function( action){
+                        if(action.failureType == 'server'){
+                          obj = Ext.util.JSON.decode(action.response.responseText);
+                          Ext.Msg.alert('Error!', obj.errors.reason);
+                        }else{
+                          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                        }
+                        },
+                        params: params
+                    });
+                }
+            },
+            {
+                text: 'Cancel',
+                handler: function(){
+                    if (win)
+                        win.close();
+                }
+            },
+        ]
+    });
+
+    win.show();
+}
+
+function showNextPerson(userArray,params,isEdit,prjKode,approval)
+{
+    if (approval == undefined ||approval == '')
+        approval = false;
+    if (isEdit == undefined || isEdit == "")
+        isEdit = false;
+    var addlist = Ext.data.Record.create([
+             {name: 'id', type: 'string'},
+             {name: 'workflow_id', type: 'string'},
+             {name: 'workflow_item_id', type: 'string'},
+             {name: 'workflow_item_type_id', type: 'string'},
+             {name: 'workflow_item_name', type: 'string'},
+             {name: 'workflow_structure_id', type: 'string'},
+             {name: 'next', type: 'string'},
+             {name: 'uid_next', type: 'string'},
+             {name: 'trano', type: 'string'},
+             {name: 'name', type: 'string'},
+             {name: 'role_name', type: 'string'},
+             {name: 'prj_kode', type: 'string'}
+        ]);
+
+     var storeUser = new Ext.data.Store({
+        reader: new Ext.data.JsonReader({fields: addlist})
+    });
+
+    var groupByRole = '';
+    var groupByType = '';
+
+    Ext.each(userArray, function (t, index){
+        var d = new addlist({
+            id: t.id,
+            workflow_id: t.workflow_id,
+            workflow_item_id: t.workflow_item_id,
+            workflow_item_type_id: t.workflow_item_type_id,
+            workflow_item_name: t.workflow_item_name,
+            workflow_structure_id: t.workflow_structure_id,
+            uid_next: t.uid_next,
+            trano: t.trano,
+            next: t.next,
+            name: t.name,
+            role_name: t.role_name,
+            prj_kode: t.prj_kode
+        });
+        storeUser.add(d);
+        d = undefined;
+        var cek = groupByRole.search(t.role_name);
+        if (cek < 0)
+        {
+            if (groupByRole != "")
+                groupByRole = groupByRole + "," + t.role_name;
+            else
+                groupByRole = t.role_name;
+        }
+        cek = groupByType.search(t.workflow_item_name);
+        if (cek < 0)
+        {
+            if (groupByType != "")
+                groupByType = groupByType + "," + t.workflow_item_name;
+            else
+                groupByType = t.workflow_item_name;
+        }
+    });
+
+    var userColumns =  [
+        new Ext.grid.RowNumberer(),
+        {header: "Receiver", dataIndex: 'name', width: 220, renderer: function (v,p,r) {
+            return '<div class="personicon"><b>' + r.data.name + '</b>&nbsp;,&nbsp;' + r.data.role_name + '<br>Transaction Type: <b>' + r.data.workflow_item_name + '</b><br>Project : <b>' + r.data.prj_kode + '</b></div>';
+        }}
+    ];
+
+    var storeFilter = new Ext.data.SimpleStore({
+        fields: ['val','filter'],
+        data : [
+            ['role','Person\'s Role'],
+            ['type','Transaction Type']
+        ]
+    });
+    var storeFilter2 = new Ext.data.ArrayStore({
+        fields: ['filter']
+    });
+    var combo = new Ext.form.ComboBox({
+        store: storeFilter,
+        id: 'combofilter',
+        displayField:'filter',
+        valueField:'val',
+        fieldLabel: 'Filter By',
+        editable: false,
+        typeAhead: true,
+        mode: 'local',
+        forceSelection: true,
+        triggerAction: 'all',
+        emptyText:'Select Criteria...',
+        selectOnFocus:true,
+        listeners: {
+            select: { fn:
+                    function(t,rec,indeks)
+                    {
+                       combo2.clearValue();
+                       storeFilter2.removeAll();
+                       var combolist = Ext.data.Record.create([
+                         {name: 'filter', type: 'string'}
+                       ]);
+                       var teks = t.getValue();
+                       switch(teks)
+                       {
+                           case 'role':
+                            var arrayInsert = groupByRole.split(",");
+                           break;
+                           case 'type':
+                            var arrayInsert = groupByType.split(",");
+                           break;
+                       }
+                       Ext.each(arrayInsert,function(rows){
+                           var d = new combolist({
+                                filter: rows
+                           });
+                           storeFilter2.add(d);
+                       });
+                       combo2.setVisible(true);
+                    }
+            }
+        }
+    });
+
+    var combo2 = new Ext.form.ComboBox({
+        id: 'combofilter2',
+        store: storeFilter2,
+        displayField:'filter',
+        valueField:'filter',
+        fieldLabel: 'Value',
+        editable: false,
+        hidden: true,
+        typeAhead: true,
+        mode: 'local',
+        forceSelection: true,
+        triggerAction: 'all',
+        emptyText:'Select Value..',
+        selectOnFocus:true,
+        listeners: {
+            select: { fn:
+                    function(t,rec,indeks)
+                    {
+                       var parentCombo = Ext.getCmp('combofilter').getValue();
+                       var teks = t.getValue();
+                       storeUser.clearFilter();
+                       switch(parentCombo)
+                       {
+                           case 'role':
+                            storeUser.filter('role_name',teks,true,false);
+                           break;
+                           case 'type':
+                            storeUser.filter('workflow_item_name',teks,true,false);
+                           break;
+                       }
+                       Ext.getCmp('user-grids').getView().refresh();
+                    }
+            }
+        }
+    });
+
+    var bForm = new Ext.Window ({
+    id: 'choose-next',
+    layout: 'border',
+    width: 350,
+    height: 400,
+    modal: true,
+    resizable: false,
+    title: 'Choose Document Receiver For Project ' + prjKode,
+    style: 'margin-top: 10px',
+    labelAlign: 'right',
+    stateful: false,
+    items : [
+            new Ext.form.FormPanel({
+                frame: true,
+                region: 'north',
+                width: 348,
+                height: 70,
+                items: [
+                        combo,
+                        combo2
+                ]
+            }),
+
+
+                    new Ext.grid.GridPanel({
+                        id: 'user-grids',
+                        region: 'center',
+                        width: 348,
+                        height: 248,
+                        loadMask: true,
+                        columns: userColumns,
+                        store: storeUser,
+                        sm: new Ext.grid.RowSelectionModel({
+                            singleSelect:true
+                        }),
+                        viewConfig: {
+                            forceFit: true,
+                            enableRowBody:true,
+                            showPreview:true,
+                            getRowClass : function(record, rowIndex, p, ds) {
+                                            return 'x-grid3-row-collapsed';
+                                          }
+                        },
+                        listeners: {
+                            'rowdblclick': function(g, rowIndex, e){
+                                    var record = g.getStore().getAt(rowIndex);
+                                    if (approval)
+                                    {
+                                        g.loadMask.show();
+                                        approveDocs(params,record)
+                                    }
+                                    bForm.close();
+                            }
+                        }
+                    })
+//                ]
+//                })
+            ],
+             buttons: [
+                      {
+                         text: 'OK',
+                         id: 'ok-next',
+                         iconCls: 'silk-upd',
+                         handler: function(btn, ev) {
+                            var row = Ext.getCmp('user-grids').getSelectionModel().getSelections();
+                            var record = row[0];
+                            if (approval)
+                            {
+                                approveDocs(params,record)
+                            }
+                            bForm.close();
+                          }
+
+                      },
+                      {
+                         text: 'Cancel',
+                         id: 'cancel',
+                         handler: function(btn, ev) {
+                             bForm.close();
+                             bForm = '';
+                          }
+
+                      }
+
+
+                        ]
+        });
+        bForm.show();
+};
+
+function approveDocs(params,dataArray)
+{
+    var addurl = '';
+    if (dataArray != undefined)
+        addurl = '/next/' + dataArray.data['uid_next'] + '/uid_next/' + dataArray.data['uid_next'] +  '/workflow_id/' + dataArray.data['workflow_id'] + '/workflow_item_id/' + dataArray.data['workflow_item_id'] + '/workflow_item_type_id/' + dataArray.data['workflow_item_type_id'] + '/trano/' + dataArray.data['trano'];
+
+    Ext.Ajax.request({
+	        url: '/admin/workflow/approve' + addurl,
+	        method:'POST',
+	        success: function(resp){
+				var returnData = Ext.util.JSON.decode(resp.responseText);
+				if (returnData.success)
+				{
+                    if (returnData.user != undefined && returnData.number == undefined)
+                    {
+                        if (returnData.params.alltrano != undefined)
+                            var retTrano = returnData.params.alltrano;
+                        else
+                            var retTrano = params.trans;
+                        if (returnData.params.alltrans != undefined)
+                            var retTrans = returnData.params.alltrans;
+                        else
+                            var retTrans = params.trans_id;
+
+                        params = {trans: retTrano, trans_id: retTrans,uid: params.uid, user:params.user, comment: params.comment, user_id: params.user_id, docType: params.docType};
+
+                        showNextPerson(returnData.user,params,false,returnData.prj_kode,true);
+                        return false;
+                    }
+                    else
+                    {
+                        if (Ext.getCmp('choose-next'))
+                            Ext.getCmp('choose-next').close();
+                        getDocs();
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/default/home/showprocessdocument',
+                            scripts : true
+                        });
+                    }
+				}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+	        },
+	    	failure:function( action){
+	      	if(action.failureType == 'server'){
+	          obj = Ext.util.JSON.decode(action.response.responseText);
+	          Ext.Msg.alert('Error!', obj.errors.reason);
+	      	}else{
+	          Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+	      	}
+	      	},
+	        params: params
+	    });
+}
+
+function showResultText(btn, text){
+		var comment='';
+        if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+        params = {trans:trano, user: uid, comment: comment, user_id:user_id};
+    	Ext.Ajax.request({
+            url: '/admin/workflow/reject',
+            method:'POST',
+            success: function(resp){
+    			var returnData = Ext.util.JSON.decode(resp.responseText);
+    			if (returnData.success)
+    			{
+//    				Ext.Msg.alert('Success', 'Document has been rejected!');
+    				getDocs();
+    				myPanel = Ext.getCmp('abs-budget-panel');
+    			    myPanel.body.load({
+    			        url: '/default/home/showprocessdocument',
+    			        scripts : true
+    		        });
+    			}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+            },
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+          	}
+          	},
+            params: params
+        });
+    };
+
+var okButton = new Ext.Button({
+    text: 'Approve All',
+    iconCls: 'icon-add',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText2
+    });
+
+	function showResultText2(btn, text){
+		var comment='';
+		if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+		params = {trans:alltrano, trans_id:alltrans,uid:'<?=$this->uidNext?>', user: '<?=$this->uidNext?>', comment: comment, user_id:'<?=$this->userID?>',docType: 'TSHEET'};
+		approveDocs(params);
+	}
+	},
+	renderTo: 'ok-button'
+});
+
+var cancelButton = new Ext.Button({
+    text: 'Reject All',
+    iconCls: 'icon-cancel',
+    scale: 'large',
+    handler: function (){
+	Ext.MessageBox.show({
+        title: 'Comment',
+        msg: 'Please enter comment:',
+        width:300,
+        buttons: Ext.MessageBox.OKCANCEL,
+        multiline: true,
+        fn: showResultText
+    });
+
+	function showResultText(btn, text){
+		var comment='';
+        if (btn == 'ok')
+        {
+			comment = text;
+        }
+        else if (btn == 'cancel')
+            return false;
+        params = {trans:alltrano,trans_id:alltrans ,uid:'<?=$this->uidNext?>', user: '<?=$this->uidNext?>', comment: comment, user_id:'<?=$this->userID?>',docType: 'TSHEET'};
+    	Ext.Ajax.request({
+            url: '/admin/workflow/reject',
+            method:'POST',
+            success: function(resp){
+    			var returnData = Ext.util.JSON.decode(resp.responseText);
+    			if (returnData.success)
+    			{
+//    				Ext.Msg.alert('Success', 'Document has been rejected!');
+    				getDocs();
+    				myPanel = Ext.getCmp('abs-budget-panel');
+    			    myPanel.body.load({
+    			        url: '/default/home/showprocessdocument',
+    			        scripts : true
+    		        });
+    			}
+    			else
+    			{
+    				Ext.Msg.alert('Error', returnData.msg);
+    			}
+            },
+        	failure:function( action){
+          	if(action.failureType == 'server'){
+              obj = Ext.util.JSON.decode(action.response.responseText);
+              Ext.Msg.alert('Error!', obj.errors.reason);
+          	}else{
+              Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+          	}
+          	},
+            params: params
+        });
+    };
+
+
+	},
+	renderTo: 'cancel-button'
+});
+
+var backButton = new Ext.Button({
+    text: 'Cancel',
+    scale: 'large',
+    handler: function (){
+		myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '<?php echo $this->urlBack; ?>',
+	        scripts : true
+	    });
+	},
+	renderTo: 'back-button'
+});
+
+</script>
+
+<link rel="stylesheet" type="text/css" href="/css/table.css"/>
+<style>
+.title {
+	width: 100%;
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+</style>
+
+<div class="body">
+<div class="title">TIMESHEET FOR <?=$this->name?></div>
+<br></br>
+<table id="mytable" cellspacing="0">
+        <tr>
+            <th scope="col"><center>No</center></th>
+            <th scope="col"><center>Project</center></th>
+            <th scope="col"><center>Total Hour</center></th>
+            <th scope="col">&nbsp;</th>
+        </tr>
+    	<?php
+    		$totals = 0;
+            $i = 1;
+    		foreach($this->result as $key => $val)
+            {
+                $uid = $key;
+                foreach($val as $key2 => $val2)
+                {
+    	?>
+    		<tr id="tsheet-row-<?=$i?>">
+    		<th scope="row" class="spec"><?=($no+1)?></th>
+    		<td><?=$key2?>&nbsp;<?=$val2['ket']?></td>
+    		<td align="right" id="tsheet-row-hour<?=$i?>"><?=number_format(floatval($val2['hour']))?></td>
+            <?php if ($val2['behalfof']) { ?>
+            <td><input type="submit" value="View Detail" onclick="popup('/projectmanagement/timesheet/detailtimesheet/uid_next/<?=$this->uidNext?>/prj_kode/<?=$key2?>/uid/<?=$val2['behalfof']?>/behalfof/<?=$uid?>/approval/true','win-tsheet');"></input>&nbsp;&nbsp;<input type="submit" value="Reject" onclick="rejectTsheet('<?=implode(",",$val2['trano'])?>','<?=implode(",",$val2['trans_id'])?>','<?=$key2?>','<?=$uid?>','<?=$i?>')"></input></td>
+    		<?php } else { ?>
+            <td><input type="submit" value="View Detail" onclick="popup('/projectmanagement/timesheet/detailtimesheet/uid_next/<?=$this->uidNext?>/prj_kode/<?=$key2?>/uid/<?=$uid?>/approval/true','win-tsheet');"></input>&nbsp;&nbsp;<input type="submit" value="Reject" onclick="rejectTsheet('<?=implode(",",$val2['trano'])?>','<?=implode(",",$val2['trans_id'])?>','<?=$key2?>','<?=$uid?>','<?=$i?>')"></input></td>
+    		<?php } ?>
+            </tr>
+    	<?php
+                    
+                    $i++;
+                    $totals += floatval($val2['hour']);
+                    $no++;
+                }
+    		}
+
+    	?>
+    	<tr>
+    		<th scope="row" class="spec" colspan="2">Grand Total</th>
+    		<td align="right" id="tsheet-row-total"><?=number_format($totals)?></td>
+    	</tr>
+</table>
+
+        <div style="margin-top:15px;">
+            <div id="back-button"  style="margin-left:5px;float: right;"></div>
+            <div id="cancel-button"  style="margin-left:5px;float: right;"></div>
+            <div id="ok-button"  style="margin-left:5px;float: right;"></div>
+        </div>
+</div>

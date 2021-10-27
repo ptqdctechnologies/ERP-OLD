@@ -1,0 +1,165 @@
+<script type="text/javascript">
+    Ext.onReady(function(){
+       var store = new Ext.data.Store({
+           url: '/default/site/list',
+           reader: new Ext.data.JsonReader({
+               totalProperty: 'count',
+               root: 'posts'
+           },[
+               {name:'id'},
+               {name:'prj_kode'},
+               {name:'prj_nama'},
+               {name:'sit_kode'},
+               {name:'sit_nama'},
+               {name:'ket'},
+               {name:'stsoverhead'}
+           ])
+       });
+
+        var siteGrid = new Ext.grid.GridPanel({
+            title: 'Site List',
+            store: store,
+            hidden: true,
+            renderTo: 'user-grid',
+            columns: [
+                new Ext.grid.RowNumberer(),
+                {header: "Site Code", width: 100, sortable: true, dataIndex: 'sit_kode'},
+                {header: "Site Name", width: 200, sortable: true, dataIndex: 'sit_nama'},
+                {header: "Description", width: 200, sortable: true, dataIndex: 'ket'},
+                {header: "Status Overhead", width: 200, sortable: true, dataIndex: 'stsoverhead'}
+            ],
+            width: 500,
+            height: 500,
+            bbar: new Ext.PagingToolbar({
+                pageSize: 100,
+                store: store,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })
+        });
+
+        var form = new Ext.form.FormPanel({
+            frame: true,
+            id: 'user-forms',
+            renderTo: 'user-form',
+            labelAlign: 'right',
+            title: 'Add New Site',
+            width: 400,
+            defaults: {
+                anchor: '100%'
+            },
+            items:
+            [
+                {
+                    xtype: 'projectselector',
+                    id: 'project-select',
+                    Selectid: 'prj_kode',
+                    Nameid: 'prj_nama',
+                    ShowName: true,
+                    fieldLabel:'Project Code',
+                    allowBlank:false,
+                    typeProject: true,
+                    showAll: true,
+                    callback: function(prj){
+                        store.load({
+                            params: {
+                                byPrj_Kode: prj.prj_kode
+                            }
+                        });
+                        siteGrid.show();
+                        siteGrid.setTitle("Site List for Project " + prj.prj_nama);
+                    }
+                },
+                {fieldLabel: 'Site Code',id:'sit_kode',name: 'sit_kode', xtype: 'textfield',allowBlank:false},
+                {fieldLabel: 'Site Name',id:'sit_nama',name: 'sit_nama', xtype: 'textfield',allowBlank:false},
+                {fieldLabel: 'Description',id:'ket',name: 'ket', xtype: 'textfield'},
+                {
+                    xtype:'checkbox', id:'stsoverhead', name:'stsoverhead',  fieldLabel:'Status Overhead',
+                    trueText: '1',
+                    falseText: '0'
+                }
+
+            ],
+            buttons: [
+                {
+                    text: 'Create',
+                    handler: function() {
+                        if (!form.getForm().isValid()) {
+                            Ext.Msg.alert('Error','Form is not valid');
+                            return false;
+                        }
+                        var prjKode = Ext.getCmp('prj_kode').getValue();
+                        var sitKode = Ext.getCmp('sit_kode').getValue();
+
+                        if(!regexSiteCodeProject.test(sitKode.toString()))
+                        {
+                            Ext.MessageBox.show({
+                                title: 'Error',
+                                msg: 'Site Code not valid, Please use AlphaNumeric (A-Z, 0-9), Underscore (_), or Dash (-) only',
+                                buttons: Ext.MessageBox.OK,
+                                icon: Ext.MessageBox.ERROR
+                            });
+                            return false;
+                        }
+
+                        var data = form.getForm().getValues();
+
+                        var cekUrl = '/default/project/cekprojectexist/prj_kode/' + prjKode +'/sit_kode/'+ sitKode;
+                        Ext.getBody().mask('Loading..','x-mask-loading',false);
+                        Ext.Ajax.request({
+                            url: cekUrl,
+                            method: 'POST',
+                            success: function(result, request){
+                               Ext.getBody().unmask();
+                               var returnData = Ext.util.JSON.decode(result.responseText);
+
+                                if( returnData.success) {
+                                    Ext.Msg.alert('Error!', 'Site Code Exists!');
+                                } else {
+                                    Ext.Ajax.request({
+                                        url: '/projectmanagement/project/createsite',
+                                        method: 'POST',
+                                        params: {
+                                            posts: Ext.util.JSON.encode(data)
+                                        },
+                                        success: function(result, request){
+                                            form.getForm().reset();
+                                            store.load({
+                                                params: {
+                                                    byPrj_Kode: prjKode
+                                                }
+                                            });
+                                        },
+                                        failure:function( action){
+
+                                        }
+                                    });
+                                }
+                            },
+                            failure:function( action){
+                                Ext.getBody().unmask();
+                                if(action.failureType == 'server'){
+                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                    Ext.Msg.alert('Error!', obj.errors.reason);
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    text: 'Reset',
+                    handler: function(){
+                        form.getForm().reset();
+                        store.removeAll();
+                        siteGrid.hide();
+                    }
+                }
+            ]
+        })
+    });
+</script>
+<div>
+ <div id="user-form" style="float:left"></div>
+ <div id="user-grid" style="margin-left: 10px;float:left"></div>
+ </div>

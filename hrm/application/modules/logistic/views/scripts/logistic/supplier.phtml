@@ -1,0 +1,283 @@
+<script type="text/javascript">
+    Ext.onReady(function() {
+    Ext.QuickTips.init();
+
+    <?php echo $this->action('index','textfield',null); ?>
+
+	function showSuppChoose(num)
+	{
+		var bForm =  new Ext.Window({
+		    id: 'b-form-panel-trano_button',
+		    layout:'fit',
+		    width: 300,
+		    height: 100,
+		    style: 'margin-top: 10px',
+		    labelAlign: 'right',
+		    stateful: false,
+	        modal: true,
+	        resizable: false,
+		    items: [
+					new Ext.form.FormPanel({
+						frame: true,
+                        labelWidth : 100,
+//                        labelPad : 7,
+						items: [{
+								    fieldLabel : 'Supplier Code',
+								    id : 'supp_no_text',
+								    xtype: 'trigger',
+			                        allowBlank: false,
+			                        editable : false,
+			                        value: num,
+								    onTriggerClick:
+			                            function ()
+			                            {
+                            				bForm.close();
+											showSuppList();
+			                            },
+			                    	scope: this,
+			                    	width: 150
+						    	}]
+						})
+
+				    ],
+		    buttons: [
+		              {
+	 			         text: 'Edit',
+	 			         id: 'save',
+	 			         iconCls: 'silk-upd',
+	 			         handler: function(btn, ev) {
+		 			        var suppno = Ext.getCmp('supp_no_text').getValue().toString();
+		 			        if (suppno != undefined)
+		 			        {
+				          	    myPanel = Ext.getCmp('abs-budget-panel');
+				          	    myPanel.body.load({
+				          	        url: '/logistic/logistic/editsupp/sup_kode/' + suppno,
+				          	        scripts : true
+				                  });
+		 			        }
+		 			        bForm.close();
+			              }
+
+		              },
+		              {
+	 			         text: 'Cancel',
+	 			         id: 'cancel',
+	 			         handler: function(btn, ev) {
+		 			         bForm.close();
+			              }
+
+		              }
+
+
+			  		    ]
+		});
+
+		bForm.show();
+	}
+
+    function showSuppList()
+    {
+        var columns = [ {header:'Supplier Code',width:120,sortable:true,dataIndex:'sup_kode'},
+                        {header:'Supplier Name',width:250,sortable:true,dataIndex:'sup_nama'},
+                   
+                    ];
+
+        urlJson = CFG_CLIENT_SERVER_NAME +'/suplier/list';
+        data =  [
+                {name: 'sup_kode', mapping: 'sup_kode'},
+                {name: 'sup_nama', mapping: 'sup_nama'},
+
+                ];
+        primaryKey = 'sup_kode';
+        Pk = primaryKey;
+        widthGrid = 380;
+        heightGrid = 250;
+
+        var stores = new Ext.data.Store({
+            proxy:new Ext.data.HttpProxy({
+            url: urlJson
+             }),
+            reader: new Ext.data.JsonReader({
+            root: 'posts',
+            totalProperty: 'count'
+        },data)
+            });
+
+        yAxis=100;
+        grids = function()
+        {
+            grids.superclass.constructor.call(this, {
+            store: stores,
+            columns: columns,
+            x:0,
+            y:yAxis,
+            id:primaryKey+'_grid',
+            loadMask: true,
+            bbar:[ new Ext.PagingToolbar({
+                pageSize: 100,
+                store: stores,
+                displayInfo: true,
+                displayMsg: 'Displaying data {0} - {1} of {2}',
+                emptyMsg: "No data to display"
+            })],
+            height:heightGrid,
+            width:widthGrid,
+            listeners: {
+                'rowdblclick': function(g, rowIndex, e){
+                                closeForm = false;
+                                isDblClick = true;
+                                objectName = 'sup_kode';
+                                txtBoxChange = 'trano_text';
+                                closeForm = true;
+                                formId = 'a-form-panel-supp_button';
+                                prox = 'trano_proxy';
+                                gri = 'trano_grid';
+                                var trano = g.getStore().getAt(rowIndex).get(objectName);
+                                showSuppChoose(trano);
+                                Ext.getCmp('supp_no_text').setValue(trano);
+                                aForm.close();
+								window.setTimeout(function(){
+                                        isDblClick = false;
+                                }, 0);
+                        }
+                }
+        });
+        }
+        stores.load();
+
+        Ext.extend(grids, Ext.grid.GridPanel);
+        Ext.extend(txtboks,Ext.form.TextField);//PR
+        searchSupCode = function(field,e){
+        newUrl = '/suplier/listByParams/name/sup_kode/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+        }
+        searchSupName = function(field,e){
+        newUrl = '/suplier/listByParams/name/sup_nama/data/' + field.getValue();    prox = Pk+'_proxy';
+        gri = Pk+'_grid';
+        proxies = Ext.getCmp(gri).getStore();
+        proxies.proxy = new Ext.data.HttpProxy({
+            url: newUrl
+             });
+        Ext.getCmp(gri).getStore().reload();
+        };
+
+    var aForm =  new Ext.Window({
+        id: 'a-form-panel-sup_kode_button',
+        layout: 'absolute',
+        minWidth: 300,
+        minHeight: 200,
+        stateful:false,
+        modal: true,
+        resizable: false,
+        width: 400,
+        height: 400,
+        items : [
+            {
+            x: 6,
+            y: 12,
+            xtype: 'label',
+            text: 'Supplier Code'
+            },
+           new txtboks(80,10,80,'suplier_code',searchSupCode),
+             {
+            x: 184,
+            y: 12,
+            xtype: 'label',
+            text: 'Supplier Name'
+            },
+            new txtboks(260,10,80,'suplier_name',searchSupName),
+            new grids('suplier_list')
+        ]
+
+      });
+      aForm.title = 'Choose Supplier';
+      aForm.show();
+
+    }
+
+    showAddSupp = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/logistic/logistic/addsupp',
+	        scripts : true
+        });
+	};
+
+	showEditSupp = function(){
+			showSuppChoose();
+	};
+
+	showAppSupp = function(){
+	    myPanel = Ext.getCmp('abs-budget-panel');
+	    myPanel.body.load({
+	        url: '/default/home/showprocessdocument/type/SUPP',
+	        scripts : true
+        });
+	};
+
+
+    var windowForm =  ({
+
+    title: 'Master Supplier',
+    id: 'abs-budget-panel',
+    layout: 'fit',
+    bodyCfg : { cls:'xpanel-body-table' , style: {'overflow':'auto'}},
+    bodyStyle: 'padding:15px;',
+    loadMask: true,
+    minWidth: 300,
+    minHeight: 200,
+    tbar: [
+			{
+			    xtype: 'tbbutton',
+			    text: 'Select Action',
+			    iconCls: 'menu-drop',
+			    menu: {
+
+			    items: [
+						{
+						    id: 'supplier_add_button',
+						    text: 'Add Supplier',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/action_paste.gif",
+						    handler:showAddSupp
+						}
+						,{
+						    id: 'supplier_edit_button',
+						    text: 'Edit Existing Supplier',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_edit.gif",
+						    handler:showEditSupp
+						},{
+						    id: 'supplier_app_button',
+						    text: 'Verify & Approval',
+						    cls:"x-btn-text-icon" ,
+						    icon:"/images/icons/fam/page_script.gif",
+						    handler:showAppSupp
+						}
+						]
+				}
+			}
+         ]
+    });
+
+
+viewPort = Ext.getCmp('viewport');
+
+centerRegionTab = viewPort.getComponent('content-panel');
+centerRegionTab.items.each(function(c){centerRegionTab.remove(c);});
+centerRegionTab.add(windowForm);
+panelBaru = Ext.getCmp('abs-budget-panel');
+centerRegionTab.layout.setActiveItem('abs-budget-panel');
+
+panelBaru.body.load({
+            url:'/logistic/logistic/viewsupplier',
+            scripts:true
+        })
+        showSubmenu('abs-budget-panel');
+});
+</script>

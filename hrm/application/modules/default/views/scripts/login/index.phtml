@@ -1,0 +1,187 @@
+<html>
+<head>
+    <!-- base library -->
+    <link rel="stylesheet" type="text/css" href="/css/ext-all.css" />
+
+    <!-- overrides to base library -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/ux/css/CenterLayout.css" />
+
+    <!-- page specific -->
+    <link rel="stylesheet" type="text/css" href="/js/layout/base/layout-browser.css" />
+
+    <!-- ** Javascript ** -->
+    <!-- ExtJS library: base/adapter -->
+    <script type="text/javascript" src="/js/ext-base.js"></script>
+    <script type="text/javascript" src="/js/ext-all.js"></script>
+    <script type="text/javascript" src="/js/layout/base/config.js"></script>
+</head>
+<body>    
+      <script type="text/javascript">
+
+          // Path to the blank image should point to a valid location on your server
+
+          Ext.BLANK_IMAGE_URL = '/images/default/s.gif';
+
+
+
+          Ext.onReady(function(){
+
+			//check if layout already loaded
+    		if (Ext.getCmp('viewport') != undefined)
+    		{
+				document.location = '/login';
+    		}
+
+                              Ext.QuickTips.init();
+
+
+
+                              var msg = function(title, msg) {
+
+                              Ext.Msg.show({
+
+                                  title: title,
+
+                                  msg: msg,
+
+                                  minWidth: 200,
+
+                                  modal: true,
+
+                                  icon: Ext.Msg.INFO,
+
+                                  buttons: Ext.Msg.OK
+
+                              });
+
+                          };
+
+
+
+                              var loginForm = new Ext.form.FormPanel({
+
+                                      frame:true,
+
+                                      width:260,
+
+                                      labelWidth:60,
+
+                                      defaults: {
+
+                                              width: 165
+
+                                      },
+
+                                      items: [
+
+                                              new Ext.form.TextField({
+
+                                          id:"username",
+
+                                          fieldLabel:"Username",
+
+                                          allowBlank:false,
+
+                                          blankText:"Enter your username",
+                                          enableKeyEvents: true,
+                                          listeners: {
+                                        	  keypress: function(field, e) {
+                                            	  if(e.button==12){
+                                        	       doLogin();
+                                        	    }
+                                        	  }
+                                        	}
+
+                                      }),
+
+                                              new Ext.form.TextField({
+
+                                          id:"password",
+
+                                          fieldLabel:"Password",
+
+                                                      inputType: 'password',
+
+                                          allowBlank:false,
+  
+                                          blankText:"Enter your password",
+                                          enableKeyEvents: true,
+                                          listeners: {
+                                        	  keypress: function(field, e) {
+                                            	  if(e.button==12){
+                                        	       doLogin();
+                                        	    }
+                                        	  }
+                                        	}
+
+                                      })
+
+                                      ],
+
+                                      buttons: [{
+
+                                              text: 'Login',
+
+                                              handler: function(){ doLogin(); }
+
+                                      }]
+
+                              });
+
+							  var doLogin = function(){
+
+                                  if(loginForm.getForm().isValid()){
+
+                                          loginForm.getForm().submit({
+                                              method:'POST',
+                                              url: '/login/ldapauth',
+
+                                              waitMsg: 'Processing Request',
+
+                                              success: function(loginForm, resp){
+                                                  msg('Success', 'Welcome To iPCC');
+                                                  document.location = CFG_CLIENT_SERVER_NAME + '/index/menu';
+                                              },
+                                              failure:function(form, action){
+                                                if(action.failureType == 'server'){
+                                                    obj = Ext.util.JSON.decode(action.response.responseText);
+                                                    Ext.Msg.alert('Login Failed!', obj.errors.reason);
+                                                }else{
+                                                    Ext.Msg.alert('Warning!', 'Authentication server is unreachable : ' + action.response.responseText);
+                                                }
+                                                loginForm.getForm().reset();
+                                            }
+
+
+                                          });
+
+                                  }
+
+                              };
+
+                              var loginWindow = new Ext.Window({
+
+                                      title: 'Welcome to iPCC',
+
+                                      layout: 'fit',
+
+                                      height: 140,
+
+                                      width: 260,
+
+                                      closable: false,
+
+                                      resizable: false,
+
+                                      draggable: false,
+
+                                      items: [loginForm]
+
+                              });
+
+                              loginWindow.show();
+      }); //end onReady
+
+          </script>
+</body>          
+</html>

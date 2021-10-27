@@ -1,0 +1,1631 @@
+<script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+        numericText: "Only numbers are allowed.",
+        numericMask: /[0-9]/,
+        numericRe: /(^-?dd*.d*$)|(^-?dd*$)|(^-?.dd*$)/,
+        numeric: function(v) {
+            return function() {
+                return this.numericRe.test(v)
+            };
+        }
+    });
+
+    var listfixedasset = Ext.data.Record.create([
+        {name: 'code'},
+        {name: 'location'},
+        {name: 'storage'},
+        {name: 'gdg_kode'},
+        {name: 'clasification'},
+        {name: 'marking_date'},
+        {name: 'accessories'},
+        {name: 'brand'},
+        {name: 'type'},
+        {name: 'serial_number'},
+        {name: 'description'},
+        {name: 'purchase_status'},
+        {name: 'purchase_date'},
+        {name: 'val_kode'},
+        {name: 'rateidr'},
+        {name: 'purchase_price'},
+        {name: 'depr_rate'},
+        {name: 'depr_exp'},
+        {name: 'kode_kategori'},
+        {name: 'coa_debit'},
+        {name: 'coa_credit'},
+        {name: 'prj_kode'},
+        {name: 'sit_kode'}
+    ])
+
+    var storefixedasset = new Ext.data.Store({
+        id: 'store-fixedasset',
+        reader: new Ext.data.JsonReader({fields: listfixedasset})
+    });
+
+    function deleterowgrid(idItem)
+    {
+        Ext.MessageBox.confirm('Confirm', 'Are you sure want to delete this?', function(btn) {
+            if (btn == 'yes')
+            {
+                var store = storefixedasset;
+                var dat = store.getById(idItem);
+
+                if (dat)
+                {
+                    store.remove(dat);
+                    Ext.getCmp('grid_fixedasset').getView().refresh();
+                }
+
+                hitungTotal();
+            }
+        });
+    }
+
+    var total = 0;
+
+    function hitungTotal()
+    {
+        total = 0;
+
+        storefixedasset.each(function(items) {
+            total += (parseFloat(items.data['purchase_price']));
+        });
+        Ext.getCmp('total').setText('Total : ' + Ext.util.Format.number(total, '0,0'));
+    }
+
+    Ext.onReady(function() {
+
+        Ext.QuickTips.init();
+
+        Ext.form.Field.prototype.msgTarget = 'side';
+
+        function showkategori()
+        {
+            var kategoristore = new Ext.data.Store({
+                autoLoad: true,
+                url: '/finance/kategoriasset/getkategoriasset',
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'id'
+                        }, {
+                            name: 'kode_ktfa'
+                        }, {
+                            name: 'nama'
+                        }, {
+                            name: 'coa_debit'
+                        }, {
+                            name: 'coa_credit'
+                        }]
+                })
+
+            })
+
+            var kategorigrid = new Ext.grid.GridPanel({
+                store: kategoristore,
+                viewConfig: {
+                    forceFit: true
+                },
+                height: 300,
+                columns: [{
+                        header: 'Kode Kategori',
+                        dataIndex: 'kode_ktfa',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Name',
+                        dataIndex: 'nama',
+                        align: 'center',
+                        sortable: true
+                    }],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging-coa',
+                    pageSize: 20,
+                    store: kategoristore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                listeners:
+                        {
+                            'rowdblclick': function(gridaktif, rowIndex, e)
+                            {
+                                isDbClick = true;
+                                var kategori = gridaktif.getStore().getAt(rowIndex);
+                                var kode = kategori.get('kode_ktfa');
+                                //                        var coa_name = coa.get('coa_nama');
+                                Ext.getCmp('kode_kategori').setValue(kode);
+                                //                        Ext.getCmp('coa-name').setValue(coa_name);
+
+                                kategoriwindow.close();
+
+                            }
+                        }
+            })
+
+
+            var kategoriwindow = new Ext.Window({
+                title: 'Kategori List',
+                id: 'kategori-list-window',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask: true,
+                items: [
+                    kategorigrid
+                ]
+
+            })
+
+            kategoriwindow.show();
+        }
+
+        function windowinsert()
+        {
+            var formpanel = new Ext.form.FormPanel({
+                title: 'Insert Brand',
+                id: 'insert-brand',
+                frame: true,
+                layout: 'form',
+                width: 346,
+                items: [{
+                        xtype: 'textfield',
+                        fieldLabel: 'Brand Code ',
+                        labelStyle: 'width:140',
+                        //                        width:160,
+                        allowBlank: false,
+                        id: 'brand-code',
+                        maxLength: 2
+                    }, {
+                        xtype: 'textfield',
+                        fieldLabel: 'Brand Name ',
+                        labelStyle: 'width:140',
+                        //                        width:160,
+                        allowBlank: false,
+                        id: 'brand-name'
+                    }],
+                buttons: [{
+                        text: 'Submit',
+                        handler: function(btn, ev)
+                        {
+                            Ext.getCmp('insert-brand').getForm().submit({
+                                method: 'POST',
+                                url: '/logistic/logisticbarang/doinsertbrand',
+                                success: function(thisForm, response) {
+                                    windowinsert.close();
+
+                                },
+                                failure: function(thisForm, response) {
+                                    if (response.failureType == 'server')
+                                    {
+                                        var resp = Ext.util.JSON.decode(response.response.responseText);
+                                        Ext.Msg.alert('Error', resp.pesan);
+                                    }
+                                }
+                            })
+                        }
+                    }, {
+                        text: 'Close',
+                        handler: function(btn, ev)
+                        {
+                            windowinsert.close();
+                        }
+                    }]
+
+            })
+
+            var windowinsert = new Ext.Window({
+                //                title:'Choose Brand',
+                id: 'window-insert',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 360,
+                height: 150,
+                loadMask: true,
+                items: [formpanel]
+
+            })
+
+            windowinsert.show();
+        }
+
+        function showbrandlist()
+        {
+            var storebrand = new Ext.data.Store({
+                id: 'store-brand',
+                url: '/logistic/logisticbarang/getbrand',
+                autoLoad: true,
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'mrk_kode'
+                        }, {
+                            name: 'mrk_nama'
+                        }, {
+                            name: 'id'
+                        }]
+                })
+
+            })
+
+            var gridbrand = new Ext.grid.GridPanel({
+                store: storebrand,
+                height: 300,
+                viewConfig: {
+                    forceFit: true
+                },
+                columns: [new Ext.grid.RowNumberer(), {
+                        header: 'Brand Code',
+                        dataIndex: 'mrk_kode',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }, {
+                        header: 'Brand Name',
+                        dataIndex: 'mrk_nama',
+                        sortable: true,
+                        width: 120,
+                        align: 'center'
+                    }],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging-refnumber',
+                    pageSize: 20,
+                    store: storebrand,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }),
+                tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, '-', {
+                        xtype: 'combo',
+                        id: 'option-brand',
+                        width: 100,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['nilai', 'name'],
+                            data: [
+                                ['mrk_nama', 'Brand Name'],
+                                ['mrk_kode', 'Brand Code']
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 'mrk_nama'
+                    }, '-', {
+                        xtype: 'textfield',
+                        id: 'search-brand',
+                        enableKeyEvents: true,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option-brand').getValue();
+                                    var search = Ext.getCmp('search-brand').getValue();
+
+                                    storebrand.proxy.url = '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                                    storebrand.proxy.setUrl('/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option);
+                                    storebrand.proxy.api.read['url'] = '/logistic/logisticbarang/getbrand/search/' + search + '/option/' + option;
+                                    storebrand.load();
+                                    gridbrand.getView().refresh();
+                                }
+                            }
+                        }
+                    }],
+                listeners: {
+                    'rowdblclick': function(gridaktif, rowIndex, e)
+                    {
+                        isDbClick = true;
+
+                        var brand = gridaktif.getStore().getAt(rowIndex);
+
+                        var brandname = brand.get('mrk_nama');
+                        var brandcode = brand.get('mrk_kode');
+
+//                        console.log(brandcode);
+                        Ext.getCmp('brand').setValue(brandname);
+
+                        windowbrand.close();
+                    }
+                }
+
+            })
+
+            var windowbrand = new Ext.Window({
+                title: 'Choose Brand',
+                id: 'choose-brand',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 500,
+                height: 330,
+                loadMask: true,
+                items: [gridbrand]
+
+            })
+
+            windowbrand.show();
+        }
+
+        function inserttogrid()
+        {
+            if (!Ext.getCmp('form_insert_fixedasset').getForm().isValid())
+            {
+                Ext.Msg.alert('Error', 'Form not valid');
+                return false;
+            }
+
+            if (Ext.getCmp('kode_kategori').getValue() == '' || Ext.getCmp('kode_kategori').getValue() == undefined)
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Sorry,Please Select kode kategori',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+            if (parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g, '')) > parseFloat(Ext.getCmp('total_po').getValue().toString().replace(/\$|\,/g, '')))
+            {
+                Ext.MessageBox.show({
+                    title: 'Error',
+                    msg: 'Sorry Purchase Price grater then Total PO Value',
+                    buttons: Ext.MessageBox.OK,
+                    icon: Ext.MessageBox.ERROR
+                });
+                return false;
+            }
+
+            var totaldiGrid = 0;
+
+            if (storefixedasset.getCount() != 0)
+            {
+                storefixedasset.each(function(itemnya, indeks) {
+                    totaldiGrid += parseFloat(itemnya.data['purchase_price'].toString().replace(/\$|\,/g, ''));
+                });
+
+                var price = parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g, ''));
+
+                var gridbalance = price + totaldiGrid;
+
+                if (parseFloat(gridbalance.toString().replace(/\$|\,/g, '')) > parseFloat(Ext.getCmp('total_po').getValue().toString().replace(/\$|\,/g, '')))
+                {
+                    Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry amount value grater then grid balance',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                    });
+                    return false;
+                }
+
+            }
+
+            var code = Ext.getCmp('code').getValue();
+
+            if (storefixedasset.getCount() > 0)
+            {
+
+                var salah = false;
+
+                storefixedasset.each(function(itemnya, indeks) {
+
+                    gridcode = itemnya.data['code'];
+
+                    if (code == gridcode)
+                    {
+                        salah = true;
+                        return false;
+                    }
+
+                })
+
+                if (salah)
+                {
+                    Ext.MessageBox.show({
+                        title: 'Error',
+                        msg: 'Sorry amount value grater then grid balance',
+                        buttons: Ext.MessageBox.OK,
+                        icon: Ext.MessageBox.ERROR
+                    });
+                    return false;
+                }
+            }
+
+            Ext.Ajax.request({
+                url: '/logistic/fixedasset/cekcodefixedasset/code/' + code,
+                method: 'POST',
+                success: function(result)
+                {
+
+                    obj = Ext.util.JSON.decode(result.responseText);
+                    if (obj.success)
+                    {
+                        var e = new listfixedasset({
+                            code: Ext.getCmp('code').getValue(),
+                            location: Ext.getCmp('location').getValue(),
+                            storage: Ext.getCmp('storage').getValue(),
+                            gdg_kode: Ext.getCmp('gdg_kode').getValue(),
+                            marking_date: Ext.getCmp('marking_date').getValue(),
+                            description: Ext.getCmp('description').getValue(),
+                            clasification: Ext.getCmp('clasification').getValue(),
+                            brand: Ext.getCmp('brand').getValue(),
+                            type: Ext.getCmp('type').getValue(),
+                            serial_number: Ext.getCmp('serial_number').getValue(),
+                            accessories: Ext.getCmp('accessories').getValue(),
+                            purchase_status: Ext.getCmp('purchase_status').getValue(),
+                            purchase_date: Ext.getCmp('purchase_date').getValue(),
+                            val_kode: Ext.getCmp('val_kode').getValue(),
+                            coa_debit: Ext.getCmp('coa_debit').getValue(),
+                            coa_credit: Ext.getCmp('coa_credit').getValue(),
+                            rateidr: Ext.getCmp('rateidr').getValue(),
+                            purchase_price: parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g, '')),
+                            dep_rate: parseFloat(Ext.getCmp('dep_rate').getValue().toString().replace(/\$|\,/g, '')),
+                            dep_exp: parseFloat(Ext.getCmp('dep_exp').getValue().toString().replace(/\$|\,/g, '')),
+                            kode_kategori: Ext.getCmp('kode_kategori').getValue(),
+                            prj_kode: Ext.getCmp('prj_kode').getValue(),
+                            sit_kode: Ext.getCmp('sit_kode').getValue()
+
+                        })
+
+                        storefixedasset.add(e);
+
+                        var po_number = Ext.getCmp('po_no_text').getValue();
+                        var prj_kode = Ext.getCmp('prj_kode').getValue();
+                        var total_po = Ext.getCmp('total_po').getValue();
+                        var purchase_date = Ext.getCmp('purchase_date').getValue();
+                        var valuta = Ext.getCmp('val_kode').getValue();
+                        var rateidr = Ext.getCmp('rateidr').getValue();
+
+                        Ext.getCmp('form_insert_fixedasset').getForm().reset();
+
+                        Ext.getCmp('po_no_text').setValue(po_number);
+                        Ext.getCmp('prj_kode').setValue(prj_kode);
+                        Ext.getCmp('total_po').setValue(total_po);
+                        Ext.getCmp('purchase_status').setValue(po_number);
+                        Ext.getCmp('purchase_date').setValue(purchase_date);
+                        Ext.getCmp('val_kode').setValue(valuta);
+                        Ext.getCmp('rateidr').setValue(rateidr);
+
+                        Ext.getCmp('po_no_text').disable();
+
+                        hitungTotal();
+
+                        Ext.MessageBox.alert('Status', 'Changes saved successfully.');
+                    } else
+                    {
+                        Ext.Msg.alert('Error', 'Sorry,' + obj.message);
+                        return false;
+                    }
+
+                }, failure: function(action) {
+                    if (action.failureType == 'server') {
+                        obj = Ext.util.JSON.decode(action.response.responseText);
+                        Ext.Msg.alert('Error!', obj.errors.reason);
+                    } else {
+                        Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                    }
+                }
+
+            })
+
+
+
+        }
+
+        function showCoaExchange(status){
+            if(status){
+//                console.log('masuk');
+                Ext.getCmp('coa_debit_exchange').show();
+                Ext.getCmp('label_coa_debitexc').show(false);
+                Ext.getCmp('coa_credit_exchange').show(false);
+                Ext.getCmp('label_coa_creditexc').show(false);                
+            }else{
+                Ext.getCmp('coa_debit_exchange').hide();
+                Ext.getCmp('label_coa_debitexc').hide();
+                Ext.getCmp('coa_credit_exchange').hide();
+                Ext.getCmp('label_coa_creditexc').hide(); 
+            }            
+            
+        }
+        
+        function showcoalist(tipe)
+        {
+            var coastore = new Ext.data.Store({
+                autoLoad: true,
+                url: '/finance/paymentreimbursement/getcoalist',
+                reader: new Ext.data.JsonReader({
+                    root: 'data',
+                    totalProperty: 'total',
+                    fields: [{
+                            name: 'coa_kode'
+                        }, {
+                            name: 'coa_nama'
+                        }, {
+                            name: 'tipe'
+                        }]
+                })
+
+            })
+
+            var coagrid = new Ext.grid.GridPanel({
+                store: coastore,
+                viewConfig: {
+                    forceFit: true
+                },
+                height: 300,
+                columns: [{
+                        header: 'COA CODE',
+                        dataIndex: 'coa_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'COA NAME',
+                        dataIndex: 'coa_nama',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Type',
+                        dataIndex: 'tipe',
+                        align: 'center',
+                        sortable: true
+                    }],
+                bbar: new Ext.PagingToolbar({
+                    id: 'paging-coa',
+                    pageSize: 20,
+                    store: coastore,
+                    displayInfo: true,
+                    displayMsg: 'Displaying data {0} - {1} of {2}',
+                    emptyMsg: "No data to display"
+                }), tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, {
+                        xtype: 'combo',
+                        width: 100,
+                        allowBlank: false,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['name', 'nilai'],
+                            data: [
+                                ['Coa Code', 1],
+                                ['Coa Name', 2],
+                                ['Coa Type', 3]
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 1,
+                        id: 'option'
+                    }, {
+                        xtype: 'textfield',
+                        id: 'search',
+                        style: 'margin-left:10px',
+                        enableKeyEvents: true,
+                        width: 100,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option').getValue();
+                                    var search = Ext.getCmp('search').getValue();
+
+                                    coastore.proxy.setUrl('/finance/paymentreimbursement/getcoalist/search/' + search + '/option/' + option);
+                                    coastore.reload();
+                                    coagrid.getView().refresh();
+                                }
+                            }
+                        }
+                    }],
+                listeners:
+                        {
+                            'rowdblclick': function(gridaktif, rowIndex, e)
+                            {
+                                isDbClick = true;
+                                var coa = gridaktif.getStore().getAt(rowIndex);
+                                var coa_kode = coa.get('coa_kode');
+
+                                if (tipe == 'debet')
+                                {
+                                    Ext.getCmp('coa_debit').setValue(coa_kode);
+                                } else if (tipe == 'credit')
+                                {
+                                    Ext.getCmp('coa_credit').setValue(coa_kode);
+                                
+                                } 
+//                                else if (tipe == 'debit_exchange')
+//                                {
+//                                    Ext.getCmp('coa_debit_exchange').setValue(coa_kode);
+//                                
+//                                } else if (tipe == 'credit_exchange')
+//                                {
+//                                    Ext.getCmp('coa_credit_exchange').setValue(coa_kode);
+//                                }
+
+                                coawindow.close();
+
+                            }
+                        }
+
+
+
+            })
+
+            var coawindow = new Ext.Window({
+                title: 'COA List',
+                id: 'coa-list-window',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask: true,
+                items: [
+                    coagrid
+                ]
+
+            })
+
+            coawindow.show();
+        }
+
+        function showPoList()
+        {
+            var postore = new Ext.data.Store({
+                autoLoad: true,
+                url: '/default/poh/list/type/O/totalpo/true',
+                reader: new Ext.data.JsonReader({
+                    root: 'posts',
+                    totalProperty: 'count',
+                    fields: [{
+                            name: 'trano'
+                        }, {
+                            name: 'prj_kode'
+                        }, {
+                            name: 'prj_nama'
+                        }]
+                })
+
+            })
+
+            var pogrid = new Ext.grid.GridPanel({
+                store: postore,
+                viewConfig: {
+                    forceFit: true
+                },
+                height: 300,
+                columns: [{
+                        header: 'PO Trano',
+                        dataIndex: 'trano',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Project Code',
+                        dataIndex: 'prj_kode',
+                        align: 'center',
+                        sortable: true
+                    }, {
+                        header: 'Project Name',
+                        dataIndex: 'prj_nama',
+                        align: 'center',
+                        sortable: true
+                    }],
+                bbar: [new Ext.PagingToolbar({
+                        pageSize: 100,
+                        store: postore,
+                        displayInfo: true,
+                        displayMsg: 'Displaying data {0} - {1} of {2}',
+                        emptyMsg: "No data to display"
+                    })], tbar: [{
+                        text: 'Search By',
+                        xtype: 'label',
+                        style: 'margin-left:5px'
+                    }, '-', {
+                        xtype: 'combo',
+                        width: 100,
+                        allowBlank: false,
+                        store: new Ext.data.SimpleStore({
+                            fields: ['name', 'nilai'],
+                            data: [
+                                ['Trano', 'trano'],
+                                ['Project Code', 'prj_kode']
+                            ]
+                        }),
+                        valueField: 'nilai',
+                        displayField: 'name',
+                        typeAhead: true,
+                        forceSelection: true,
+                        editable: false,
+                        mode: 'local',
+                        triggerAction: 'all',
+                        selectOnFocus: true,
+                        value: 'Trano',
+                        id: 'option'
+                    }, '-', {
+                        xtype: 'textfield',
+                        id: 'search',
+                        enableKeyEvents: true,
+                        width: 100,
+                        listeners: {
+                            'keyup': function(txttext, event)
+                            {
+                                var txttext = txttext.getValue();
+                                if (txttext != "" && txttext.toString().length >= 3)
+                                {
+                                    var option = Ext.getCmp('option').getValue();
+                                    var search = Ext.getCmp('search').getValue();
+
+                                    if (option == 'Trano')
+                                    {
+                                        postore.proxy.setUrl('/poh/listByParams/totalpo/true/type/O/name/trano/data/' + search);
+                                    } else if (option == 'prj_kode')
+                                    {
+                                        postore.proxy.setUrl('/poh/listByParams/totalpo/true/type/O/name/prj_kode/data/' + search);
+                                    }
+
+                                    postore.reload();
+                                    pogrid.getView().refresh();
+                                }
+                            }
+                        }
+                    }],
+                listeners:
+                        {
+                            'rowdblclick': function(gridaktif, rowIndex, e)
+                            {
+                                isDbClick = true;
+                                var poh = gridaktif.getStore().getAt(rowIndex);
+                                var trano = poh.get('trano');
+                                Ext.getCmp('po_no_text').setValue(trano);
+                                Ext.getCmp('prj_kode').setValue(poh.get('prj_kode'));
+
+                                storepoitem.proxy.setUrl('/logistic/fixedasset/getpoditem/trano/' + trano);
+                                storepoitem.load();
+                                Ext.getCmp('grid-poitem').getView().refresh();
+
+                                powindow.close();
+
+                            }
+                        }
+
+            })
+
+
+            var powindow = new Ext.Window({
+                title: 'Purchase Order List',
+                id: 'po-list-window',
+                layout: 'absolute',
+                minHeight: 200,
+                stateful: false,
+                modal: true,
+                resizable: false,
+                closeAction: 'close',
+                width: 432,
+                height: 330,
+                loadMask: true,
+                items: [
+                    pogrid
+                ]
+
+            })
+
+            powindow.show();
+        }
+
+        var proxy = new Ext.data.HttpProxy({
+            url: 'what ever'
+        });
+
+        var storepoitem = new Ext.data.Store({
+            proxy: proxy,
+            reader: new Ext.data.JsonReader({
+                root: 'data',
+                totalProperty: 'total',
+                fields: [{
+                        name: 'trano'
+                    }, {
+                        name: 'kode_brg'
+                    }, {
+                        name: 'nama_brg'
+                    }, {
+                        name: 'qtyspl'
+                    }, {
+                        name: 'hargaspl'
+                    }, {
+                        name: 'prj_kode'
+                    }, {
+                        name: 'sit_kode'
+                    }, {
+                        name: 'val_kode'
+                    }, {
+                        name: 'rateidr',
+                    }, {
+                        name: 'tgl'
+                    }]
+            }),
+            listeners: {
+                'load': function(t, r, o)
+                {
+                    var total = 0;
+                    Ext.each(r, function(data) {
+                        total += parseFloat(data.get("qtyspl")) * parseFloat(data.get("hargaspl"));
+                    })
+
+                    Ext.getCmp('total_po').setValue(total);
+                    Ext.getCmp('val_kode').setValue(r[0].data['val_kode']);
+                    Ext.getCmp('purchase_status').setValue(r[0].data['trano']);
+                    Ext.getCmp('purchase_date').setValue(r[0].data['tgl']);
+                    Ext.getCmp('rateidr').setValue(r[0].data['rateidr']);
+                    Ext.getCmp('sit_kode').setValue(r[0].data['sit_kode']);
+
+                    
+//                    if(r[0].data['rateidr']!='IDR')
+//                        showCoaExchange(true);
+                }
+            }
+
+        })
+
+        var gridpoitem = new Ext.grid.GridPanel({
+            store: storepoitem,
+            id: 'grid-poitem',
+            height: 120,
+            columns: [{
+                    header: 'Site Code',
+                    dataIndex: 'sit_kode',
+                    align: 'center',
+                    sortable: true,
+                    width: 80
+                }, {
+                    header: 'Material Code',
+                    dataIndex: 'kode_brg',
+                    align: 'center',
+                    sortable: true,
+                    width: 100
+                }, {
+                    header: 'Material Name',
+                    dataIndex: 'nama_brg',
+                    align: 'center',
+                    sortable: true,
+                    width: 220
+                }, {
+                    header: 'Qty',
+                    dataIndex: 'qtyspl',
+                    align: 'center',
+                    sortable: true,
+                    width: 40
+                }, {
+                    header: 'Harga',
+                    dataIndex: 'hargaspl',
+                    align: 'right',
+                    sortable: true,
+                    width: 130,
+                    renderer: function(v, p, r) {
+                        return r.data['val_kode'] + ' ' + Ext.util.Format.number(v, '?0,000.00');
+                    }
+                }]
+        })
+
+        var coainfo = new Ext.form.FieldSet({
+            collapsible: false,
+            title: 'COA Information',
+            layout: 'form',
+            columnWidth: 0.5,
+            items: [{
+                    layout: 'column',
+                    style:'margin-bottom:5px',
+                    items: [
+                        {
+                            xtype: 'label',
+                            text: 'COA Debit',
+                            style: 'margin-top:5px;margin-right:8px;'
+                        },
+                        {
+                            xtype: 'combo',
+                            fieldLabel: 'COA Debit ',
+                            id: 'coa_debit',
+                            triggerClass: 'teropong',
+                            allowBlank: false,
+                            editable: false,
+                            width: 100,
+                            onTriggerClick: function()
+                            {
+                                showcoalist('debet')
+                            }
+                        }
+//                        {
+//                            xtype: 'label',
+//                            id:'label_coa_debitexc',
+//                            text: 'COA Debit Exchange',
+//                            style: 'margin-top:5px;margin-left:5px;margin-right:6px',
+//                            hidden:true
+//                        },
+//                        {
+//                            xtype: 'combo',
+//                            fieldLabel: 'COA Debit Exchange',
+//                            id: 'coa_debit_exchange',
+//                            triggerClass: 'teropong',
+//                            allowBlank: false,
+//                            editable: false,
+//                            width: 100,
+//                            hidden:true,
+//                            onTriggerClick: function()
+//                            {
+//                                showcoalist('debit_exchange')
+//                            }
+//                        }
+                    ]},{
+                    layout: 'column',
+                    items: [
+                        {
+                            xtype: 'label',
+                            text: 'COA Credit',
+                            style: 'margin-top:5px;margin-right:5px'
+                        },
+                        {
+                            xtype: 'combo',
+                            fieldLabel: 'COA Credit ',
+                            id: 'coa_credit',
+                            triggerClass: 'teropong',
+                            allowBlank: false,
+                            editable: false,
+                            width: 100,
+                            onTriggerClick: function()
+                            {
+                                showcoalist('credit')
+                            }
+                        }
+//                        , 
+//                        {
+//                            xtype: 'label',
+//                            id:'label_coa_creditexc',
+//                            text: 'COA Credit Exchange',
+//                            style: 'margin-top:5px;margin-left:5px;margin-right:2px',
+//                            hidden:true
+//                        },
+//                        {
+//                            xtype: 'combo',
+//                            fieldLabel: 'COA Credit Exchange',
+//                            id: 'coa_credit_exchange',
+//                            triggerClass: 'teropong',
+//                            allowBlank: false,
+//                            editable: false,
+//                            width: 100,
+//                            hidden:true,
+//                            onTriggerClick: function()
+//                            {
+//                                showcoalist('credit_exchange')
+//                            }
+//                        }
+                    ]}
+            ]
+        })
+        var locationinfo = new Ext.form.FieldSet({
+            collapsible: false,
+            title: 'Location Information',
+            layout: 'form',
+            items: [{
+                    xtype: 'datefield',
+                    fieldLabel: 'Marking Date ',
+                    id: 'marking_date',
+                    allowBlank: false
+                }, {
+                    xtype: 'combo',
+                    id: 'location',
+                    width: 140,
+                    store: new Ext.data.SimpleStore({
+                        fields: ['nilai', 'name'],
+                        data: [
+                            ['Central Storage', 'Central Storage'],
+                            ['Warehouse Storage', 'Warehouse Storage']
+                        ]
+                    }),
+                    valueField: 'nilai',
+                    displayField: 'name',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: false,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    fieldLabel: 'Storage Location ',
+                    allowBlank: false,
+                    listeners: {
+                        'select': function(combo, record, index)
+                        {
+                            Ext.getCmp('storage').clearValue();
+                            Ext.getCmp('storage').getStore().load({
+                                params: {
+                                    type: record.data.nilai
+                                }
+                            });
+
+                        }
+                    }
+                }, {
+                    xtype: 'combo',
+                    width: 140,
+                    fieldLabel: 'Storage ',
+                    store: new Ext.data.Store({
+                        fields: ['nilai', 'name'],
+                        proxy: new Ext.data.HttpProxy({
+                            url: '/logistic/fixedasset/getstorage'
+                        }),
+                        reader: new Ext.data.JsonReader({
+                            totalProperty: 'total',
+                            root: 'data'
+                        }, [{
+                                name: 'gdg_nama'
+                            }, {
+                                name: 'gdg_kode'
+                            }])
+                    }),
+                    valueField: 'gdg_nama',
+                    displayField: 'gdg_nama',
+                    typeAhead: true,
+                    forceSelection: true,
+                    editable: true,
+                    mode: 'local',
+                    triggerAction: 'all',
+                    selectOnFocus: true,
+                    id: 'storage',
+                    allowBlank: false,
+                    listeners: {
+                        'select': function(combo, record, index)
+                        {
+                            Ext.getCmp('gdg_kode').setValue('');
+                            Ext.getCmp('gdg_kode').setValue(record.data.gdg_kode);
+
+                        }
+                    }
+                },
+                {
+                    xtype: 'textfield',
+                    fieldLabel: '',
+                    id: 'gdg_kode',
+                    allowBlank: false,
+                    hidden:true
+                }]
+
+        })
+
+        var assetinfo = new Ext.form.FieldSet({
+            collapsible: false,
+            title: 'Asset Information',
+            layout: 'form',
+            items: [{
+                    layout: 'column',
+                    items: [{
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [{
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Code ',
+                                    id: 'code',
+                                    allowBlank: false
+                                }, {
+                                    xtype: 'textarea',
+                                    fieldLabel: 'Description ',
+                                    id: 'description',
+                                    width: 218,
+                                    allowBlank: false
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Clasification ',
+                                    id: 'clasification',
+                                    allowBlank: false
+                                }, {
+                                    layout: 'column',
+                                    items: [{
+                                            columnWidth: 0.6,
+                                            layout: 'form',
+                                            items: [{
+                                                    xtype: 'trigger',
+                                                    fieldLabel: 'Brand ',
+                                                    anchor: '85%',
+                                                    triggerClass: 'teropong',
+                                                    allowBlank: false,
+                                                    editable: false,
+                                                    id: 'brand',
+                                                    name: 'brand',
+                                                    onTriggerClick: function() {
+
+                                                        showbrandlist();
+                                                    }
+                                                }]
+                                        }, {
+                                            columnWidth: 0.4,
+                                            layout: 'form',
+                                            items: [{
+                                                    xtype: 'button',
+                                                    text: 'Create Brand',
+                                                    handler: function(btn, ev)
+                                                    {
+                                                        windowinsert();
+                                                    }
+                                                }]
+                                        }]
+                                }]
+                        }, {
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [{
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Type ',
+                                    id: 'type'
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Serial Number ',
+                                    id: 'serial_number'
+                                }, {
+                                    xtype: 'textarea',
+                                    fieldLabel: 'Accessories ',
+                                    id: 'accessories',
+                                    width: 218
+                                }, {
+                                    xtype: 'trigger',
+                                    fieldLabel: 'Kode Kategori ',
+                                    id: 'kode_kategori',
+                                    triggerClass: 'teropong',
+                                    allowBlank: false,
+                                    editable: false,
+                                    width: 100,
+                                    onTriggerClick: function()
+                                    {
+                                        showkategori();
+                                    }
+                                }]
+                        }]
+                }]
+
+        })
+
+        var purchaseinfo = new Ext.form.FieldSet({
+            collapsible: false,
+            title: 'Purchase Information',
+            layout: 'form',
+            items: [{
+                    layout: 'column',
+                    items: [{
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [{
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Purchase Status ',
+                                    id: 'purchase_status',
+                                    readOnly: true
+                                }, {
+                                    xtype: 'datefield',
+                                    fieldLabel: 'Purchase Date ',
+                                    id: 'purchase_date',
+                                    readOnly: true
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Valuta ',
+                                    id: 'val_kode',
+                                    width: 60,
+                                    readOnly: true
+                                }
+                                , {
+                                    xtype: 'textfield',
+                                    fieldLabel: ' ',
+                                    id: 'rateidr',
+                                    width: 60,
+                                    readOnly: true,
+                                    hidden: true
+                                }]
+                        }, {
+                            columnWidth: 0.5,
+                            layout: 'form',
+                            items: [new Ext.ux.customRendererField({
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Purchase Price ',
+                                    priceDelemiter: ',',
+                                    style: "text-align:right",
+                                    id: 'price',
+                                    vtype: 'numeric',
+                                    enableKeyEvents: true,
+                                    allowBlank: false,
+                                    listeners: {
+                                        'keyup': function(t, e)
+                                        {
+                                            var price = parseFloat(t.getValue());
+                                            var rate = parseFloat(Ext.getCmp('dep_rate').getValue().toString().replace(/\$|\,/g, ''));
+
+                                            var dep_exp = Ext.util.Format.number(((price * (rate / 100)) / 12), '0,0');
+                                            Ext.getCmp('dep_exp').setValue(dep_exp);
+
+                                        }
+                                    }
+                                }), {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Depr Rate ',
+                                    id: 'dep_rate',
+                                    style: "text-align:right",
+                                    vtype: 'numeric',
+                                    enableKeyEvents: true,
+                                    allowBlank: false,
+                                    listeners: {
+                                        'keyup': function(t, e)
+                                        {
+                                            var price = parseFloat(Ext.getCmp('price').getValue().toString().replace(/\$|\,/g, ''));
+
+                                            if (price == '')
+                                            {
+                                                Ext.MessageBox.show({
+                                                    title: 'Error',
+                                                    msg: 'Please insert purchase price first  ',
+                                                    buttons: Ext.MessageBox.OK,
+                                                    icon: Ext.MessageBox.ERROR
+                                                });
+                                                return false;
+                                            }
+
+                                            var rate = parseFloat(t.getValue());
+                                            if (parseFloat(rate) > 100 || parseFloat(rate) < 1)
+                                            {
+                                                Ext.MessageBox.show({
+                                                    title: 'Error',
+                                                    msg: 'Depreciation must be between 0 and 100 ',
+                                                    buttons: Ext.MessageBox.OK,
+                                                    icon: Ext.MessageBox.ERROR
+                                                });
+                                                return false;
+                                            }
+
+                                            var dep_exp = Ext.util.Format.number(((price * (rate / 100)) / 12), '0,0');
+                                            Ext.getCmp('dep_exp').setValue(dep_exp);
+                                        }
+                                    }
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Depr Exp / month ',
+                                    id: 'dep_exp',
+                                    style: "text-align:right",
+                                    readOnly: true,
+                                    allowBlank: false
+                                }]
+                        }]
+                }]
+
+        })
+
+        var fixedassetinput = new Ext.form.FieldSet({
+            collapsible: true,
+            id: 'fixed-asset-input',
+            style: 'margin:10 10 10 10',
+            title: 'Fixed Assets Input',
+            layout: 'form',
+            defaults: {
+                labelWidth: 140
+            },
+            items: [locationinfo, assetinfo, purchaseinfo, coainfo]
+        })
+
+        var poinfo = new Ext.form.FieldSet({
+            collapsible: true,
+            id: 'po_info',
+            style: 'margin:10 10 10 10',
+            title: 'Purchase Order Information',
+            defaults: {
+                labelWidth: 140
+            },
+            items: [{
+                    layout: 'column',
+                    items: [{
+                            columnWidth: 0.4,
+                            layout: 'form',
+                            items: [{
+                                    fieldLabel: 'PO Number',
+                                    id: 'po_no_text',
+                                    name: 'po_no',
+                                    xtype: 'trigger',
+                                    triggerClass: 'teropong',
+                                    allowBlank: false,
+                                    editable: false,
+                                    onTriggerClick:
+                                            function()
+                                            {
+                                                if (!this.disabled)
+                                                    showPoList();
+                                                else
+                                                    return false;
+                                            },
+                                    scope: this,
+                                    width: 157
+                                }, {
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Project Code ',
+                                    id: 'prj_kode',
+                                    readOnly: true
+                                },
+                                {
+                                    xtype: 'textfield',
+                                    fieldLabel: '',
+                                    id: 'sit_kode',
+                                    hidden: true
+                                },
+                                new Ext.ux.customRendererField({
+                                    xtype: 'textfield',
+                                    fieldLabel: 'Total PO Value ',
+                                    priceDelemiter: ',',
+                                    style: "text-align:right",
+                                    id: 'total_po',
+                                    readOnly: true
+                                })
+                            ]
+                        }, {
+                            columnWidth: 0.6,
+                            layout: 'form',
+                            items: [gridpoitem]
+                        }]
+                }]
+
+
+        })
+
+        var forminsert = new Ext.form.FormPanel({
+            renderTo: 'form-insert-fixedasset',
+            id: 'form_insert_fixedasset',
+            frame: true,
+            layout: 'form',
+            title: 'Fixed Assets Register',
+            style: 'margin:10 10 10 10',
+            items: [poinfo, fixedassetinput],
+            buttons: [{
+                    text: 'Add',
+                    iconCls: 'silk-add',
+                    handler: function(btn, ev)
+                    {
+                        inserttogrid();
+                    }
+                }, {
+                    text: 'Reset',
+                    handler: function(btn, ev)
+                    {
+                        Ext.getCmp('form_insert_fixedasset').getForm().reset();
+                        storepoitem.removeAll();
+                        storefixedasset.removeAll();
+                        total = 0;
+                        hitungTotal();
+                        Ext.getCmp('po_no_text').enable();
+                    }
+                }, {
+                    text: 'Cancel',
+                    handler: function(btn, ev)
+                    {
+                        myPanel = Ext.getCmp('abs-budget-panel');
+                        myPanel.body.load({
+                            url: '/logistic/fixedasset/menu',
+                            scripts: true
+                        });
+                    }
+                }]
+
+        })
+
+        var gridfixedasset = new Ext.grid.GridPanel({
+            store: storefixedasset,
+            renderTo: 'grid-fixedasset',
+            id: 'grid_fixedasset',
+            frame: true,
+            height: 200,
+            style: 'margin:10 10 10 10',
+            columns: [new Ext.grid.RowNumberer(),
+                {
+                    header: "Action",
+                    width: 40,
+                    dataIndex: 'id',
+                    css: 'text-align:center;',
+                    renderer: function(v, p, r) {
+                        return '<a href="#" onclick="deleterowgrid(\'' + r.id + '\')"><img src="/images/g_rec_del.png"></a>';
+                    }
+                }, {
+                    header: 'Code',
+                    dataIndex: 'code',
+                    width: 80
+                }, {
+                    header: 'Location',
+                    dataIndex: 'location',
+                    width: 120
+                }, {
+                    header: 'Storage',
+                    dataIndex: 'storage',
+                    width: 120
+                }, {
+                    header: 'Marking Date',
+                    dataIndex: 'marking_date',
+                    renderer: Ext.util.Format.dateRenderer('d M Y'),
+                    width: 120
+                }, {
+                    header: 'Description',
+                    dataIndex: 'description',
+                    width: 160
+                }, {
+                    header: 'Clasification',
+                    dataIndex: 'clasification',
+                    width: 100
+                }, {
+                    header: 'Brand',
+                    dataIndex: 'brand',
+                    width: 100
+                }, {
+                    header: 'Type',
+                    dataIndex: 'type',
+                    width: 60,
+                    align: 'center'
+                }, {
+                    header: 'Serial Number',
+                    dataIndex: 'serial_number',
+                    width: 100
+                }, {
+                    header: 'Accessories',
+                    dataIndex: 'accessories',
+                    width: 140
+                }, {
+                    header: 'Purchase Status',
+                    dataIndex: 'purchase_status',
+                    width: 100
+                }, {
+                    header: 'Purchase Date',
+                    dataIndex: 'purchase_date',
+                    renderer: Ext.util.Format.dateRenderer('d M Y'),
+                    width: 120
+                }, {
+                    header: 'Kode Kategori',
+                    dataIndex: 'kode_kategori',
+                    width: 80
+                }, {
+                    header: 'Valuta',
+                    dataIndex: 'val_kode',
+                    width: 80
+                }, {
+                    header: 'Price',
+                    dataIndex: 'purchase_price',
+                    align: 'right',
+                    width: 120,
+                    renderer: function(v, p, r) {
+                        var value = Ext.util.Format.number(v, '?0,000.00');
+                        return value;
+                    }
+                }, {
+                    header: 'Depr Rate',
+                    dataIndex: 'dep_rate',
+                    align: 'right',
+                    width: 80,
+                    renderer: function(v, p, r) {
+                        return v + ' ' + '%';
+                    }
+                }, {
+                    header: 'Depr Rate/Month',
+                    dataIndex: 'dep_exp',
+                    align: 'right',
+                    width: 120,
+                    renderer: function(v, p, r) {
+                        var value = Ext.util.Format.number(v, '?0,000.00');
+                        return value;
+                    }
+                }], bbar: new Ext.Toolbar({
+                id: 'total-bbar',
+                style: "text-align:right",
+                items: [{
+                        xtype: 'label',
+                        id: 'total',
+                        style: 'color:red;font-weight:bold;margin-right:40px;font-size:12'
+                    }],
+                layout: 'fit'
+            }),
+            buttons: [{
+                    text: 'Save Fixed Asset',
+                    iconCls: 'icon-save',
+                    handler: function(btn, ev)
+                    {
+                        var count = storefixedasset.getCount();
+                        if (count == 0)
+                        {
+                            return false;
+                        }
+
+                        Ext.MessageBox.confirm('Confirm', 'Are you sure want this action ?', function(btn) {
+
+                            if (btn == 'yes')
+                            {
+                                var fixedassetdata = '';
+                                storefixedasset.each(function(store) {
+                                    fixedassetdata += Ext.util.JSON.encode(store.data) + ',';
+                                })
+
+                                fixedassetdata = '[' + fixedassetdata.substring(0, fixedassetdata.length - 1) + ']';
+
+                                var params = {
+                                    fixedassetdata: fixedassetdata,
+                                }
+
+                                Ext.Ajax.request({
+                                    url: '/logistic/fixedasset/doinsertfixedasset',
+                                    method: 'POST',
+                                    params: params,
+                                    success: function(result) {
+                                        obj = Ext.util.JSON.decode(result.responseText);
+
+                                        if (obj.success)
+                                        {
+                                            Ext.Msg.alert('Message', 'Success, Data has been saved');
+                                            myPanel = Ext.getCmp('abs-budget-panel');
+                                            myPanel.body.load({
+                                                url: '/logistic/fixedasset/menu',
+                                                scripts: true
+                                            });
+                                        } else
+                                        {
+                                            Ext.Msg.alert('Error', obj.msg);
+                                        }
+                                    },
+                                    failure: function(action) {
+                                        if (action.failureType == 'server') {
+                                            obj = Ext.util.JSON.decode(action.response.responseText);
+                                            Ext.Msg.alert('Error!', obj.errors.reason);
+                                        } else {
+                                            Ext.Msg.alert('Warning!', 'Server is unreachable : ' + action.response.responseText);
+                                        }
+                                    }
+
+                                })
+                            }
+
+                        })
+                    }
+                }],
+            listeners: {
+                'afterrender': function(t)
+                {
+                    hitungTotal();
+                }
+            }
+
+
+        })
+
+    })
+
+
+
+</script>
+
+<div id="form-insert-fixedasset"></div>
+<div id="grid-fixedasset"></div>

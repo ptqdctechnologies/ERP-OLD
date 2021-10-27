@@ -1,0 +1,149 @@
+<script>
+    Ext.onReady(function(){
+        var store = new Ext.data.Store ({
+            url:'/admin/document/get-credential-transaction',
+            reader:new Ext.data.JsonReader ({
+                root:'data',
+                totalProperty:'total',
+                fields:[{
+                    name:'trano'
+                },{
+                    name:'name'
+                },{
+                    name:'reason'
+                },{
+                    name:'uid'
+                },{
+                    name:'tgl',type:'date',dateFormat : 'Y-m-d H:i:s'
+                },{
+                    name:'id'
+                }]
+            })
+        });
+
+        var rowactions = new Ext.ux.grid.RowActions({
+            actions:[
+                {
+                    iconCls:'silk-add',
+                    qtip:'Recover',
+                    callback: function (grid,record,action,row,col)
+                    {
+                        Ext.MessageBox.confirm('Confirm', 'This action will recover Document\'s Workflow into Current Workflow, Proceed?',
+                            function(btn)
+                            {
+                                if (btn == 'yes')
+                                {
+                                    if (record)
+                                    {
+                                        var id = record.data['id'],
+                                            trano = record.data['trano'],
+                                            searchTrano = Ext.getCmp('trano').getValue();
+                                        Ext.Ajax.request({
+                                            results: 0,
+                                            url: '/admin/document/do-recover-workflow',
+                                            params: {
+                                                id: id,
+                                                trano: trano
+                                            },
+                                            method:'POST',
+                                            success: function(result, request){
+                                                var returnData = Ext.util.JSON.decode(result.responseText);
+                                                if (returnData.success)
+                                                {
+                                                    store.reload({
+                                                        params: {
+                                                            trano: searchTrano
+                                                        }
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    Ext.Msg.alert('Error',returnData.msg);
+                                                }
+
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        );
+                    }
+                }
+            ]
+            ,index: 'actions'
+            ,header: ''
+        });
+
+        var grid = new Ext.grid.GridPanel ({
+            store:store,
+            height:300,
+            frame:true,
+            viewConfig:{
+                forceFit:true
+            },
+            plugins: [rowactions],
+            columns:[
+                new Ext.grid.RowNumberer(),
+                rowactions,
+            {
+                header:'Trano',
+                dataIndex:'trano',
+                sortable:true,
+                width:120
+            },{
+                header:'Person',
+                dataIndex:'name',
+                sortable:true,
+                width:120
+            },{
+                header:'Date',
+                dataIndex:'tgl',
+                renderer: Ext.util.Format.dateRenderer('d M Y H:i'),
+                sortable:true,
+                width:100
+            },{
+                header:'Reason',
+                dataIndex:'reason',
+                width:120
+            }]
+        });
+
+        var callbackFunc = function(trano){
+
+        };
+
+
+        var form = new Ext.form.FormPanel({
+            title: 'Recover Workflow',
+            width: 600,
+            frame: true,
+            items: [
+                {
+                    xtype: 'textfield',
+                    id: 'trano',
+                    fieldLabel: 'Trano',
+                    width: 120,
+                    enableKeyEvents:true,
+                    listeners:{
+                        'keyup' : function(txttext,event){
+                            var trano = txttext.getValue();
+                            if (trano != "" && trano.toString().length >= 2 ){
+                                store.load({
+                                    params: {
+                                        trano: trano
+                                    }
+                                })
+                            }
+                        }
+                    }
+                },
+                grid
+            ],
+            renderTo: 'forms'
+        })
+
+    });
+
+</script>
+
+<div id="forms"></div>
